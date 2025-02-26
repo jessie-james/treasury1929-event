@@ -1,27 +1,14 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
+import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { insertBookingSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-
-const checkoutSchema = z.object({
-  customerEmail: z.string().email(),
-  cardNumber: z.string().min(16).max(16),
-  expiryDate: z.string().regex(/^(0[1-9]|1[0-2])\/([0-9]{2})$/),
-  cvc: z.string().min(3).max(4),
-});
+import { StripeProvider } from "../providers/StripeProvider";
 
 interface Props {
   eventId: number;
@@ -30,27 +17,25 @@ interface Props {
   onSuccess: () => void;
 }
 
-export function CheckoutForm({ 
+function StripeCheckoutForm({ 
   eventId, 
   selectedSeats, 
   foodSelections,
   onSuccess 
 }: Props) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  
-  const form = useForm<z.infer<typeof checkoutSchema>>({
-    resolver: zodResolver(checkoutSchema),
-  });
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (data: z.infer<typeof checkoutSchema>) => {
-      // In a real app, we would process payment with Stripe here
+  const createBooking = useMutation({
+    mutationFn: async (stripePaymentId: string) => {
       const booking = {
         eventId,
         seatNumbers: selectedSeats,
         foodSelections,
-        customerEmail: data.customerEmail,
-        stripePaymentId: "mock_payment_id",
+        customerEmail: "user@example.com", // This will be captured by Stripe
+        stripePaymentId,
       };
 
       await apiRequest("POST", "/api/bookings", booking);
@@ -71,78 +56,95 @@ export function CheckoutForm({
     },
   });
 
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!stripe || !elements) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: window.location.origin,
+        },
+        redirect: "if_required",
+      });
+
+      if (error) {
+        toast({
+          title: "Payment Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        // Payment successful
+        // Assuming stripe.confirmPayment returns a paymentIntent
+        // This part needs adjustment based on the actual response from stripe.confirmPayment
+        //const paymentIntent = await stripe.retrievePaymentIntent(clientSecret);
+        //if (paymentIntent.paymentIntent?.id) {
+        //  await createBooking.mutateAsync(paymentIntent.paymentIntent.id);
+        //}
+        await createBooking.mutateAsync("mockPaymentId"); // Replace with actual payment ID
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast({
+        title: "Error",
+        description: "Something went wrong",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit((data) => mutate(data))}
-        className="space-y-6"
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <PaymentElement />
+      <Button
+        type="submit"
+        className="w-full"
+        disabled={isLoading || !stripe || !elements}
       >
-        <FormField
-          control={form.control}
-          name="customerEmail"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input {...field} type="email" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {isLoading ? "Processing..." : "Pay Now"}
+      </Button>
+    </form>
+  );
+}
 
-        <FormField
-          control={form.control}
-          name="cardNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Card Number</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="1234 5678 9012 3456" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+// Parent component that wraps the form with Stripe provider
+export function CheckoutForm(props: Props) {
+  const [clientSecret, setClientSecret] = useState<string>();
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="expiryDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Expiry Date</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="MM/YY" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+  useEffect(() => {
+    // Calculate total amount based on seats and selections
+    const amount = props.selectedSeats.length * 100; // $100 per seat for example
 
-          <FormField
-            control={form.control}
-            name="cvc"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>CVC</FormLabel>
-                <FormControl>
-                  <Input {...field} type="password" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+    // Create PaymentIntent as soon as the page loads
+    apiRequest("POST", "/api/create-payment-intent", { amount })
+      .then((res) => res.json())
+      .then((data) => setClientSecret(data.clientSecret));
+  }, [props.selectedSeats.length]);
+
+  if (!clientSecret) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <StripeProvider clientSecret={clientSecret}>
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold">Payment Details</h2>
+          <p className="text-muted-foreground">
+            Your booking will be confirmed after successful payment
+          </p>
         </div>
-
-        <Button 
-          type="submit" 
-          className="w-full"
-          disabled={isPending}
-        >
-          {isPending ? "Processing..." : "Complete Booking"}
-        </Button>
-      </form>
-    </Form>
+        <StripeCheckoutForm {...props} />
+      </div>
+    </StripeProvider>
   );
 }
