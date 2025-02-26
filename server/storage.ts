@@ -1,4 +1,6 @@
-import { type Event, type FoodOption, type Booking, type InsertBooking, mockEvents, mockFoodOptions } from "@shared/schema";
+import { type Event, type FoodOption, type Booking, type InsertBooking, events, foodOptions, bookings } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   getEvents(): Promise<Event[]>;
@@ -8,44 +10,38 @@ export interface IStorage {
   updateEventAvailability(eventId: number, seatsBooked: number): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private events: Map<number, Event>;
-  private foodOptions: Map<number, FoodOption>;
-  private bookings: Map<number, Booking>;
-  private currentBookingId: number;
-
-  constructor() {
-    this.events = new Map(mockEvents.map(event => [event.id, event]));
-    this.foodOptions = new Map(mockFoodOptions.map(option => [option.id, option]));
-    this.bookings = new Map();
-    this.currentBookingId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async getEvents(): Promise<Event[]> {
-    return Array.from(this.events.values());
+    return await db.select().from(events);
   }
 
   async getEvent(id: number): Promise<Event | undefined> {
-    return this.events.get(id);
+    const [event] = await db.select().from(events).where(eq(events.id, id));
+    return event;
   }
 
   async getFoodOptions(): Promise<FoodOption[]> {
-    return Array.from(this.foodOptions.values());
+    return await db.select().from(foodOptions);
   }
 
   async createBooking(booking: InsertBooking): Promise<Booking> {
-    const id = this.currentBookingId++;
-    const newBooking = { ...booking, id };
-    this.bookings.set(id, newBooking);
-    return newBooking;
+    const [created] = await db.insert(bookings).values(booking).returning();
+    return created;
   }
 
   async updateEventAvailability(eventId: number, seatsBooked: number): Promise<void> {
-    const event = this.events.get(eventId);
+    const [event] = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, eventId));
+
     if (!event) throw new Error("Event not found");
-    event.availableSeats -= seatsBooked;
-    this.events.set(eventId, event);
+
+    await db
+      .update(events)
+      .set({ availableSeats: event.availableSeats - seatsBooked })
+      .where(eq(events.id, eventId));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
