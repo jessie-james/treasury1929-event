@@ -6,14 +6,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 
-interface Selection {
-  entree?: number;
-  dessert?: number;
-  wine?: number;
+interface FoodSelections {
+  entree: number | undefined;
+  dessert: number | undefined;
+  wine: number | undefined;
 }
 
 interface Props {
-  onComplete: (selection: Selection) => void;
+  onComplete: (selection: Record<string, number>) => void;
 }
 
 export function FoodSelection({ onComplete }: Props) {
@@ -21,7 +21,11 @@ export function FoodSelection({ onComplete }: Props) {
     queryKey: ["/api/food-options"],
   });
 
-  const [selection, setSelection] = useState<Selection>({});
+  const [selection, setSelection] = useState<FoodSelections>({
+    entree: undefined,
+    dessert: undefined,
+    wine: undefined,
+  });
 
   const byType = options?.reduce((acc, option) => {
     if (!acc[option.type]) acc[option.type] = [];
@@ -30,6 +34,17 @@ export function FoodSelection({ onComplete }: Props) {
   }, {} as Record<string, FoodOption[]>) ?? {};
 
   const isComplete = selection.entree && selection.dessert && selection.wine;
+
+  const handleComplete = () => {
+    if (isComplete) {
+      const selections: Record<string, number> = {
+        entree: selection.entree!,
+        dessert: selection.dessert!,
+        wine: selection.wine!,
+      };
+      onComplete(selections);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -45,7 +60,7 @@ export function FoodSelection({ onComplete }: Props) {
           <div key={type} className="space-y-4">
             <h3 className="text-lg font-semibold capitalize">{type}</h3>
             <RadioGroup
-              value={selection[type as keyof Selection]?.toString()}
+              value={selection[type as keyof FoodSelections]?.toString()}
               onValueChange={(value) =>
                 setSelection({ ...selection, [type]: parseInt(value) })
               }
@@ -80,7 +95,7 @@ export function FoodSelection({ onComplete }: Props) {
       <Button
         className="w-full"
         disabled={!isComplete}
-        onClick={() => onComplete(selection)}
+        onClick={handleComplete}
       >
         Continue to Checkout
       </Button>
