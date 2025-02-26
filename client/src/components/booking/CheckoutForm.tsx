@@ -11,6 +11,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { loadStripe } from "@stripe/stripe-js";
 
+// Add debug logging to check the environment variable
+console.log("VITE_STRIPE_PUBLISHABLE_KEY exists:", !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+console.log("VITE_STRIPE_PUBLISHABLE_KEY type:", typeof import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
+if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) {
+  throw new Error("Missing Stripe publishable key");
+}
+
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 interface Props {
@@ -127,15 +135,13 @@ export function CheckoutForm(props: Props) {
     return <div>Loading...</div>;
   }
 
-  const options = {
-    clientSecret,
-    appearance: {
-      theme: 'stripe',
-    },
-  };
-
   return (
-    <Elements stripe={stripePromise} options={options}>
+    <Elements stripe={stripePromise} options={{
+      clientSecret,
+      appearance: {
+        theme: 'stripe' as const,
+      },
+    }}>
       <div className="space-y-6">
         <div className="space-y-2">
           <h2 className="text-2xl font-bold">Payment Details</h2>
