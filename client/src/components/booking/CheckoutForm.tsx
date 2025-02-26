@@ -19,7 +19,13 @@ if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY) {
   throw new Error("Missing Stripe publishable key");
 }
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+let stripePromise;
+try {
+  stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+} catch (error) {
+  console.error("Error initializing Stripe:", error);
+  throw new Error("Failed to initialize Stripe payment system");
+}
 
 interface Props {
   eventId: number;
@@ -71,6 +77,11 @@ function StripeCheckoutForm({
     event.preventDefault();
 
     if (!stripe || !elements) {
+      toast({
+        title: "Error",
+        description: "Stripe payment system is not initialized",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -128,7 +139,12 @@ export function CheckoutForm(props: Props) {
 
     apiRequest("POST", "/api/create-payment-intent", { amount })
       .then((res) => res.json())
-      .then((data) => setClientSecret(data.clientSecret));
+      .then((data) => setClientSecret(data.clientSecret))
+      .catch((error) => {
+        console.error("Error creating payment intent:", error);
+        // Add toast notification for error
+        // Consider adding more specific error handling here based on the error type from the API.
+      });
   }, [props.selectedSeats.length]);
 
   if (!clientSecret) {
