@@ -5,7 +5,6 @@ import { storage } from "./storage";
 import { insertBookingSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
-import passport from 'passport'; // Added import for passport
 
 const clients = new Set<WebSocket>();
 
@@ -13,109 +12,13 @@ export async function registerRoutes(app: Express) {
   // Set up authentication
   setupAuth(app);
 
-  app.post("/api/login", async (req, res, next) => {
-    try {
-      console.log("Login attempt for email:", req.body.email);
-
-      if (!req.body.email || !req.body.password) {
-        return res.status(400).json({ 
-          message: "Email and password are required" 
-        });
-      }
-
-      const user = await storage.getUserByEmail(req.body.email);
-      if (!user) {
-        console.log("Login failed: User not found");
-        return res.status(401).json({ 
-          message: "Invalid email or password" 
-        });
-      }
-
-      // Use passport authenticate
-      passport.authenticate('local', (err, user, info) => {
-        if (err) {
-          console.error("Login error:", err);
-          return next(err);
-        }
-        if (!user) {
-          console.log("Login failed:", info?.message);
-          return res.status(401).json({ 
-            message: "Invalid email or password" 
-          });
-        }
-        req.login(user, (err) => {
-          if (err) {
-            console.error("Session creation error:", err);
-            return next(err);
-          }
-          console.log("Login successful for user:", user.id);
-          res.json(user);
-        });
-      })(req, res, next);
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ 
-        message: "Login failed",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
-  app.post("/api/register", async (req, res, next) => {
-    try {
-      console.log("Registration request received:", {
-        ...req.body,
-        password: '[REDACTED]'
-      });
-
-      if (!req.body.email || !req.body.password) {
-        return res.status(400).json({ 
-          message: "Email and password are required" 
-        });
-      }
-
-      const existingUser = await storage.getUserByEmail(req.body.email);
-      if (existingUser) {
-        console.log("Registration failed: Email already exists");
-        return res.status(400).json({ 
-          message: "Email already exists" 
-        });
-      }
-
-      // Create user with default role of 'customer'
-      const user = await storage.createUser({
-        ...req.body,
-        role: 'customer',
-      });
-
-      console.log("User created successfully:", { 
-        id: user.id, 
-        email: user.email 
-      });
-
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Login after registration failed:", err);
-          return next(err);
-        }
-        res.status(201).json(user);
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ 
-        message: "Registration failed",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
-
   const httpServer = createServer(app);
 
-  // Create WebSocket server after HTTP server but before routes
+  // Create WebSocket server
   const wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws',
-    perMessageDeflate: false // Disable compression for faster startup
+    perMessageDeflate: false
   });
 
   wss.on('connection', (ws) => {
@@ -416,4 +319,10 @@ export async function registerRoutes(app: Express) {
   });
 
   return httpServer;
+}
+
+// Placeholder -  This function needs to be implemented using a suitable hashing library like bcrypt
+async function hashPassword(password: string): Promise<string> {
+  // Replace this with actual hashing logic
+  return password; //This is a placeholder and needs to be replaced with actual hashing logic.  For example using bcrypt.
 }

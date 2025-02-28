@@ -9,16 +9,6 @@ import { type User } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
-declare global {
-  namespace Express {
-    interface User {
-      id: number;
-      email: string;
-      role: string;
-    }
-  }
-}
-
 const scryptAsync = promisify(scrypt);
 
 async function hashPassword(password: string) {
@@ -43,7 +33,7 @@ const PostgresSessionStore = connectPg(session);
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
-    secret: "your-secret-key",
+    secret: "your-secret-key", // In production, use an environment variable
     resave: false,
     saveUninitialized: false,
     store: new PostgresSessionStore({
@@ -70,15 +60,15 @@ export function setupAuth(app: Express) {
 
           if (!user) {
             console.log("User not found");
-            return done(null, false);
+            return done(null, false, { message: "Invalid email or password" });
           }
 
-          console.log("Found user:", { id: user.id, email: user.email, role: user.role });
+          console.log("Found user:", { id: user.id, email: user.email });
           const isValid = await comparePasswords(password, user.password);
           console.log("Password validation result:", isValid);
 
           if (!isValid) {
-            return done(null, false);
+            return done(null, false, { message: "Invalid email or password" });
           }
 
           return done(null, user);
@@ -86,11 +76,11 @@ export function setupAuth(app: Express) {
           console.error("Login error:", error);
           return done(error);
         }
-      },
-    ),
+      }
+    )
   );
 
-  passport.serializeUser((user, done) => {
+  passport.serializeUser((user: any, done) => {
     done(null, user.id);
   });
 
@@ -103,25 +93,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Create initial admin user if it doesn't exist
-  (async () => {
-    try {
-      const existingAdmin = await storage.getUserByEmail("admin@venue.com");
-      if (!existingAdmin) {
-        console.log("Creating initial admin user...");
-        const hashedPassword = await hashPassword("admin123");
-        await storage.createUser({
-          email: "admin@venue.com",
-          password: hashedPassword,
-          role: "admin",
-        });
-        console.log("Initial admin user created successfully");
-      }
-    } catch (error) {
-      console.error("Error creating initial admin user:", error);
-    }
-  })();
-
+  // Handle registration
   app.post("/api/register", async (req, res) => {
     try {
       const existingUser = await storage.getUserByEmail(req.body.email);
@@ -129,22 +101,20 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already exists" });
       }
 
-      // Validate role
-      const role = req.body.role || 'customer';
-      if (!['admin', 'venue_owner', 'venue_manager', 'customer'].includes(role)) {
-        return res.status(400).json({ message: "Invalid role" });
-      }
-
       const hashedPassword = await hashPassword(req.body.password);
-      console.log("Registering new user with hashed password:", hashedPassword);
+      console.log("Registering new user with hashed password");
 
       const user = await storage.createUser({
-        ...req.body,
+        email: req.body.email,
         password: hashedPassword,
+        role: 'customer', // Default role for new registrations
       });
 
       req.login(user, (err) => {
-        if (err) throw err;
+        if (err) {
+          console.error("Login after registration failed:", err);
+          return res.status(500).json({ message: "Registration succeeded but login failed" });
+        }
         res.status(201).json(user);
       });
     } catch (error) {
@@ -153,17 +123,18 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", async (req, res, next) => {
+  // Handle login
+  app.post("/api/login", (req, res, next) => {
     console.log("Login attempt for:", req.body.email);
 
-    passport.authenticate("local", (err: any, user: User | false) => {
+    passport.authenticate("local", (err: any, user: User | false, info: any) => {
       if (err) {
         console.error("Authentication error:", err);
         return next(err);
       }
       if (!user) {
-        console.log("Authentication failed");
-        return res.status(401).json({ message: "Invalid credentials" });
+        console.log("Authentication failed:", info?.message);
+        return res.status(401).json({ message: info?.message || "Invalid credentials" });
       }
 
       req.login(user, (err) => {
