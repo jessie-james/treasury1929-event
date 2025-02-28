@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
@@ -6,18 +6,18 @@ import { useQuery } from "@tanstack/react-query";
 import { type Table, type Seat } from "@shared/schema";
 
 interface Props {
-  onComplete: (selectedSeats: { tableId: number; seatNumbers: number[] }) => void;
+  onComplete: (selection: { tableId: number; seatNumbers: number[] }) => void;
 }
 
 export function SeatSelection({ onComplete }: Props) {
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
 
-  const { data: tables, isLoading } = useQuery<Table[]>({
+  const { data: tables, isLoading: tablesLoading } = useQuery<Table[]>({
     queryKey: ["/api/tables"],
   });
 
-  const { data: seats } = useQuery<Seat[]>({
+  const { data: seats, isLoading: seatsLoading } = useQuery<Seat[]>({
     queryKey: [`/api/tables/${selectedTableId}/seats`],
     enabled: selectedTableId !== null,
   });
@@ -55,7 +55,7 @@ export function SeatSelection({ onComplete }: Props) {
     }
   };
 
-  if (isLoading) {
+  if (tablesLoading) {
     return <div>Loading tables...</div>;
   }
 
@@ -70,35 +70,49 @@ export function SeatSelection({ onComplete }: Props) {
 
       <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
         <div className="grid grid-cols-2 gap-6">
-          {tables?.map((table) => (
-            <div
-              key={table.id}
-              className={`p-4 border rounded-lg space-y-2 ${
-                selectedTableId === table.id ? 'border-primary' : ''
-              }`}
-            >
-              <p className="font-medium">Table {table.tableNumber}</p>
-              <div className="grid grid-cols-2 gap-2">
-                {seats?.map((seat) => {
-                  const isSelected = selectedSeats.includes(seat.seatNumber);
-                  const isAvailable = seat.isAvailable;
+          {tables?.map((table) => {
+            const isTableSelected = selectedTableId === table.id;
+            const tableSeats = isTableSelected ? seats : [];
 
-                  return (
-                    <Button
-                      key={seat.id}
-                      variant={isSelected ? "default" : "outline"}
-                      className="h-12"
-                      disabled={!isAvailable && !isSelected}
-                      onClick={() => handleSeatToggle(seat.seatNumber)}
-                    >
-                      Seat {seat.seatNumber}
-                      {!isAvailable && " (Taken)"}
-                    </Button>
-                  );
-                })}
+            return (
+              <div
+                key={table.id}
+                className={`p-4 border rounded-lg space-y-2 cursor-pointer ${
+                  isTableSelected ? 'border-primary' : ''
+                }`}
+                onClick={() => handleTableSelect(table.id)}
+              >
+                <p className="font-medium">Table {table.tableNumber}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {isTableSelected && !seatsLoading ? (
+                    tableSeats?.map((seat) => {
+                      const isSelected = selectedSeats.includes(seat.seatNumber);
+
+                      return (
+                        <Button
+                          key={seat.id}
+                          variant={isSelected ? "default" : "outline"}
+                          className="h-12"
+                          disabled={!seat.isAvailable && !isSelected}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSeatToggle(seat.seatNumber);
+                          }}
+                        >
+                          Seat {seat.seatNumber}
+                          {!seat.isAvailable && " (Taken)"}
+                        </Button>
+                      );
+                    })
+                  ) : (
+                    <div className="col-span-2 text-center text-sm text-muted-foreground">
+                      {isTableSelected && seatsLoading ? "Loading seats..." : "Click to view seats"}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </ScrollArea>
 

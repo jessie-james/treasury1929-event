@@ -41,7 +41,8 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(seats)
-      .where(eq(seats.tableId, tableId));
+      .where(eq(seats.tableId, tableId))
+      .orderBy(seats.seatNumber);
   }
 
   async updateSeatAvailability(
