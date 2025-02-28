@@ -82,19 +82,19 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
       <Tabs value={currentSeat} onValueChange={setCurrentSeat}>
         <TabsList className="grid grid-cols-4 w-full">
           {selectedSeats.map(seat => (
-            <TabsTrigger 
-              key={seat} 
+            <TabsTrigger
+              key={seat}
               value={seat.toString()}
               className="relative"
             >
               Seat #{seat}
               {selections[seat]?.name &&
-               selections[seat]?.salad &&
-               selections[seat]?.entree && 
-               selections[seat]?.dessert && 
-               selections[seat]?.wine && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
-              )}
+                selections[seat]?.salad &&
+                selections[seat]?.entree &&
+                selections[seat]?.dessert &&
+                selections[seat]?.wine && (
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+                )}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -133,27 +133,44 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                     })
                   }
                 >
-                  <div className="grid gap-4 md:grid-cols-3">
-                    {byType[type]?.map((option) => (
-                      <Card key={option.id} className="overflow-hidden">
-                        <div className="aspect-[4/3] relative">
-                          <img
-                            src={option.image}
-                            alt={option.name}
-                            className="object-cover w-full h-full"
-                          />
-                        </div>
-                        <CardContent className="p-4">
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value={option.id.toString()} id={`${type}-${seat}-${option.id}`} />
-                            <Label htmlFor={`${type}-${seat}-${option.id}`}>{option.name}</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {byType[type]?.map((option) => {
+                      const isSelected = selections[seat]?.[type as keyof SeatSelections] === option.id;
+                      return (
+                        <Card
+                          key={option.id}
+                          className={`overflow-hidden cursor-pointer transition-all ${
+                            isSelected ? 'ring-2 ring-primary' : ''
+                          }`}
+                          onClick={() => {
+                            setSelections({
+                              ...selections,
+                              [seat]: {
+                                ...selections[seat],
+                                [type]: option.id
+                              }
+                            });
+                          }}
+                        >
+                          <div className="aspect-[4/3] relative">
+                            <img
+                              src={option.image}
+                              alt={option.name}
+                              className="object-cover w-full h-full"
+                            />
                           </div>
-                          <p className="mt-2 text-sm text-muted-foreground">
-                            {option.description}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          <CardContent className="p-4">
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value={option.id.toString()} id={`${type}-${seat}-${option.id}`} />
+                              <Label htmlFor={`${type}-${seat}-${option.id}`}>{option.name}</Label>
+                            </div>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                              {option.description}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </RadioGroup>
               </div>
@@ -167,7 +184,9 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
         disabled={!isComplete}
         onClick={handleComplete}
       >
-        Continue to Checkout
+        {isComplete
+          ? "Continue to Checkout"
+          : `Please complete food selections for all ${selectedSeats.length} guests`}
       </Button>
     </div>
   );
