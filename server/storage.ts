@@ -300,7 +300,7 @@ export class DatabaseStorage implements IStorage {
 
   async getEventFoodTotals(eventId: number) {
     try {
-      const bookings = await db
+      const bookingResults = await db
         .select()
         .from(bookings)
         .where(eq(bookings.eventId, eventId));
@@ -312,7 +312,7 @@ export class DatabaseStorage implements IStorage {
         wines: {} as Record<number, number>
       };
 
-      bookings.forEach(booking => {
+      bookingResults.forEach(booking => {
         const selections = booking.foodSelections as Record<string, Record<string, number>>;
         Object.values(selections).forEach(selection => {
           if (selection.salad) {
