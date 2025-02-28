@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, log } from "./vite";
+import { setupVite, log, serveStatic } from "./vite";
 
 const app = express();
 app.use(express.json());
@@ -60,13 +60,16 @@ app.use((req, res, next) => {
     server.listen(port, "0.0.0.0", () => {
       log(`Server successfully started on port ${port}`);
 
-      // Set up Vite after server is running
+      // Set up serving mode based on environment
       if (app.get("env") === "development") {
         log("Setting up Vite development server...");
         setupVite(app, server).catch(error => {
           console.error("Failed to setup Vite:", error);
           process.exit(1); // Exit if Vite setup fails
         });
+      } else {
+        log("Setting up static file serving for production...");
+        serveStatic(app);
       }
     }).on('error', (err: NodeJS.ErrnoException) => {
       if (err.code === 'EADDRINUSE') {
