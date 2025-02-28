@@ -1,12 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
-import { type FoodOption } from "@shared/schema";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQuery } from "@tanstack/react-query";
+import { type FoodOption } from "@shared/schema";
 
 interface SeatSelections {
   name: string;
@@ -42,17 +43,6 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
     return acc;
   }, {} as Record<string, FoodOption[]>) ?? {};
 
-  const isComplete = selectedSeats.every(seat => {
-    const selection = selections[seat];
-    return (
-      selection?.name.trim() !== "" &&
-      selection?.salad !== undefined &&
-      selection?.entree !== undefined &&
-      selection?.dessert !== undefined &&
-      selection?.wine !== undefined
-    );
-  });
-
   const getMissingSections = (seat: number) => {
     const selection = selections[seat];
     const missing: string[] = [];
@@ -66,34 +56,41 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
     return missing;
   };
 
+  const isComplete = selectedSeats.every(seat => getMissingSections(seat).length === 0);
+
   const getButtonText = () => {
     if (isComplete) return "Continue to Checkout";
 
     const incompleteSeatNumbers = selectedSeats.filter(seat => getMissingSections(seat).length > 0);
-    if (incompleteSeatNumbers.length === 0) return "Continue to Checkout";
+    const missingSections = incompleteSeatNumbers.reduce((acc, seat) => {
+      getMissingSections(seat).forEach(section => {
+        if (!acc.includes(section)) acc.push(section);
+      });
+      return acc;
+    }, [] as string[]);
 
-    const seatText = incompleteSeatNumbers.length === 1
-      ? `Seat #${incompleteSeatNumbers[0]}`
-      : `Seats #${incompleteSeatNumbers.join(', #')}`;
+    if (incompleteSeatNumbers.length === 1) {
+      return `Please complete ${missingSections.join(", ")} for Seat #${incompleteSeatNumbers[0]}`;
+    }
 
-    return `Please complete all selections for ${seatText}`;
+    return `Please complete selections for Seats #${incompleteSeatNumbers.join(", #")}`;
   };
 
   const handleComplete = () => {
-    if (isComplete) {
-      const foodSelections = selectedSeats.map(seat => ({
-        salad: selections[seat].salad!,
-        entree: selections[seat].entree!,
-        dessert: selections[seat].dessert!,
-        wine: selections[seat].wine!,
-      }));
+    if (!isComplete) return;
 
-      const names = Object.fromEntries(
-        selectedSeats.map(seat => [seat, selections[seat].name])
-      );
+    const foodSelections = selectedSeats.map(seat => ({
+      salad: selections[seat].salad!,
+      entree: selections[seat].entree!,
+      dessert: selections[seat].dessert!,
+      wine: selections[seat].wine!,
+    }));
 
-      onComplete(foodSelections, names);
-    }
+    const names = Object.fromEntries(
+      selectedSeats.map(seat => [seat, selections[seat].name])
+    );
+
+    onComplete(foodSelections, names);
   };
 
   return (
@@ -129,7 +126,7 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Guest Information</h3>
               <Input
-                placeholder="First Name"
+                placeholder="Guest's First Name"
                 value={selections[seat]?.name || ""}
                 onChange={(e) =>
                   setSelections({
@@ -168,45 +165,51 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                       })
                     }
                   >
-                    <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                      {byType[type]?.map((option) => {
-                        const isSelected = selections[seat]?.[type as keyof SeatSelections] === option.id;
-                        return (
-                          <Card
-                            key={option.id}
-                            className={`overflow-hidden cursor-pointer transition-all ${
-                              isSelected ? 'ring-2 ring-primary' : 'hover:ring-1 hover:ring-muted-foreground'
-                            }`}
-                            onClick={() => {
-                              setSelections({
-                                ...selections,
-                                [seat]: {
-                                  ...selections[seat],
-                                  [type]: option.id
-                                }
-                              });
-                            }}
-                          >
-                            <div className="aspect-[4/3] relative">
-                              <img
-                                src={option.image}
-                                alt={option.name}
-                                className="object-cover w-full h-full"
-                              />
-                            </div>
-                            <CardContent className="p-2 sm:p-4">
-                              <div className="flex items-center space-x-2">
-                                <RadioGroupItem value={option.id.toString()} id={`${type}-${seat}-${option.id}`} />
-                                <Label htmlFor={`${type}-${seat}-${option.id}`}>{option.name}</Label>
+                    <ScrollArea className="h-[300px]">
+                      <div className="grid grid-cols-3 gap-3 pb-4">
+                        {byType[type]?.map((option) => {
+                          const isSelected = selections[seat]?.[type as keyof SeatSelections] === option.id;
+                          return (
+                            <Card
+                              key={option.id}
+                              className={`overflow-hidden cursor-pointer transition-colors ${
+                                isSelected 
+                                  ? 'ring-2 ring-primary bg-primary/5' 
+                                  : 'hover:bg-muted/50'
+                              }`}
+                              onClick={() => {
+                                setSelections({
+                                  ...selections,
+                                  [seat]: {
+                                    ...selections[seat],
+                                    [type]: option.id
+                                  }
+                                });
+                              }}
+                            >
+                              <div className="aspect-[4/3] relative">
+                                <img
+                                  src={option.image}
+                                  alt={option.name}
+                                  className="object-cover w-full h-full"
+                                />
                               </div>
-                              <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                                {option.description}
-                              </p>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
-                    </div>
+                              <CardContent className="p-3">
+                                <div className="flex items-center gap-2">
+                                  <RadioGroupItem value={option.id.toString()} id={`${type}-${seat}-${option.id}`} />
+                                  <Label className="font-medium" htmlFor={`${type}-${seat}-${option.id}`}>
+                                    {option.name}
+                                  </Label>
+                                </div>
+                                <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                                  {option.description}
+                                </p>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
                   </RadioGroup>
                 </div>
               );
