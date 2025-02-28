@@ -70,11 +70,20 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const event = await storage.createEvent(req.body);
+      console.log("Creating event with data:", req.body);
+      const event = await storage.createEvent({
+        ...req.body,
+        availableSeats: req.body.totalSeats, // Set initial available seats
+        date: new Date(req.body.date).toISOString(),
+      });
+      console.log("Event created successfully:", event);
       res.status(201).json(event);
     } catch (error) {
       console.error("Error creating event:", error);
-      res.status(500).json({ message: "Failed to create event" });
+      res.status(500).json({ 
+        message: "Failed to create event",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 

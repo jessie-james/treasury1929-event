@@ -55,10 +55,16 @@ export function EventForm({ event, onClose }: Props) {
 
   const { mutate: saveEvent, isPending } = useMutation({
     mutationFn: async (data: EventFormData) => {
-      console.log("Submitting event data:", data);
+      // Convert form data to proper types before submission
+      const formattedData = {
+        ...data,
+        totalSeats: Number(data.totalSeats),
+        date: new Date(data.date).toISOString(),
+      };
+      console.log("Submitting event data:", formattedData);
       const endpoint = event ? `/api/events/${event.id}` : "/api/events";
       const method = event ? "PATCH" : "POST";
-      return apiRequest(method, endpoint, data);
+      return apiRequest(method, endpoint, formattedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
@@ -105,16 +111,7 @@ export function EventForm({ event, onClose }: Props) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => {
-            // Convert form data to proper types before submission
-            const formattedData = {
-              ...data,
-              totalSeats: Number(data.totalSeats),
-              date: new Date(data.date).toISOString(),
-            };
-            console.log("Formatted event data:", formattedData);
-            saveEvent(formattedData);
-          })} className="space-y-4">
+          <form onSubmit={form.handleSubmit((data) => saveEvent(data))} className="space-y-4">
             <FormField
               control={form.control}
               name="title"
