@@ -40,7 +40,14 @@ export const seats = pgTable("seats", {
   id: serial("id").primaryKey(),
   tableId: integer("table_id").notNull(),
   seatNumber: integer("seat_number").notNull(),
-  isAvailable: boolean("is_available").notNull().default(true),
+});
+
+// New table to track event-specific seat availability
+export const seatBookings = pgTable("seat_bookings", {
+  id: serial("id").primaryKey(),
+  seatId: integer("seat_id").notNull(),
+  eventId: integer("event_id").notNull(),
+  isBooked: boolean("is_booked").notNull().default(false),
 });
 
 export const foodOptions = pgTable("food_options", {
@@ -69,6 +76,7 @@ export const insertEventSchema = createInsertSchema(events);
 export const insertVenueSchema = createInsertSchema(venues);
 export const insertTableSchema = createInsertSchema(tables);
 export const insertSeatSchema = createInsertSchema(seats);
+export const insertSeatBookingSchema = createInsertSchema(seatBookings);
 export const insertFoodOptionSchema = createInsertSchema(foodOptions);
 export const insertBookingSchema = createInsertSchema(bookings);
 
@@ -78,6 +86,7 @@ export type Event = typeof events.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
 export type Table = typeof tables.$inferSelect;
 export type Seat = typeof seats.$inferSelect;
+export type SeatBooking = typeof seatBookings.$inferSelect;
 export type FoodOption = typeof foodOptions.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 
@@ -86,5 +95,6 @@ export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type InsertVenue = z.infer<typeof insertVenueSchema>;
 export type InsertTable = z.infer<typeof insertTableSchema>;
 export type InsertSeat = z.infer<typeof insertSeatSchema>;
+export type InsertSeatBooking = z.infer<typeof insertSeatBookingSchema>;
 export type InsertFoodOption = z.infer<typeof insertFoodOptionSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;

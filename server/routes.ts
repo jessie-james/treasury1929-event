@@ -98,8 +98,25 @@ export async function registerRoutes(app: Express) {
   app.get("/api/tables/:tableId/seats", async (req, res) => {
     try {
       const tableId = parseInt(req.params.tableId);
+      const eventId = parseInt(req.query.eventId as string);
+
+      if (!eventId) {
+        return res.status(400).json({ message: "eventId query parameter is required" });
+      }
+
       const seats = await storage.getTableSeats(tableId);
-      res.json(seats);
+      const seatBookings = await storage.getTableSeatsAvailability(tableId, eventId);
+
+      // Combine seat information with availability
+      const seatsWithAvailability = seats.map(seat => {
+        const booking = seatBookings.find(b => b.seatId === seat.id);
+        return {
+          ...seat,
+          isAvailable: !booking?.isBooked
+        };
+      });
+
+      res.json(seatsWithAvailability);
     } catch (error) {
       console.error("Error fetching seats:", error);
       res.status(500).json({ message: "Failed to fetch seats" });
@@ -135,10 +152,9 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const bookings = await storage.getBookings().then(bookings => 
-        bookings.filter(booking => booking.userId === req.user?.id)
-      );
-      res.json(bookings);
+      const allBookings = await storage.getBookingDetails();
+      const userBookings = allBookings.filter(booking => booking.userId === req.user?.id);
+      res.json(userBookings);
     } catch (error) {
       console.error("Error fetching user bookings:", error);
       res.status(500).json({ message: "Failed to fetch user bookings" });

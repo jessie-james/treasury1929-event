@@ -1,7 +1,7 @@
 import { 
   type Event, type FoodOption, type Booking, type Table, type Seat,
-  type InsertBooking, type User, type InsertUser,
-  events, foodOptions, bookings, tables, seats, users 
+  type InsertBooking, type User, type InsertUser, type SeatBooking,
+  events, foodOptions, bookings, tables, seats, users, seatBookings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
@@ -19,15 +19,18 @@ export interface IStorage {
   // Tables and Seats
   getTables(): Promise<Table[]>;
   getTableSeats(tableId: number): Promise<Seat[]>;
-  updateSeatAvailability(tableId: number, seatNumbers: number[], isAvailable: boolean): Promise<void>;
+  getTableSeatsAvailability(tableId: number, eventId: number): Promise<SeatBooking[]>;
+  updateSeatAvailability(tableId: number, seatNumbers: number[], eventId: number, isBooked: boolean): Promise<void>;
 
   // Food Options
   getFoodOptions(): Promise<FoodOption[]>;
+  getFoodOptionsByIds(ids: number[]): Promise<FoodOption[]>;
 
   // Bookings
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateEventAvailability(eventId: number, seatsBooked: number): Promise<void>;
   getBookings(): Promise<Booking[]>;
+  getBookingDetails(): Promise<(Booking & { event: Event, foodItems: FoodOption[] })[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -108,22 +111,76 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getTableSeatsAvailability(tableId: number, eventId: number): Promise<SeatBooking[]> {
+    try {
+      const tableSeats = await this.getTableSeats(tableId);
+      const seatIds = tableSeats.map(seat => seat.id);
+
+      return await db
+        .select()
+        .from(seatBookings)
+        .where(
+          and(
+            inArray(seatBookings.seatId, seatIds),
+            eq(seatBookings.eventId, eventId)
+          )
+        );
+    } catch (error) {
+      console.error("Error fetching seat availability:", error);
+      throw error;
+    }
+  }
+
   async updateSeatAvailability(
     tableId: number, 
     seatNumbers: number[], 
-    isAvailable: boolean
+    eventId: number,
+    isBooked: boolean
   ): Promise<void> {
     try {
-      console.log(`Updating seat availability for table ${tableId}, seats ${seatNumbers.join(", ")} to ${isAvailable}`);
-      await db
-        .update(seats)
-        .set({ isAvailable })
+      console.log(`Updating seat availability for table ${tableId}, seats ${seatNumbers.join(", ")} to ${isBooked}`);
+
+      // Get the seat IDs for the given table and seat numbers
+      const tableSeats = await db
+        .select()
+        .from(seats)
         .where(
           and(
             eq(seats.tableId, tableId),
             inArray(seats.seatNumber, seatNumbers)
           )
         );
+
+      const seatIds = tableSeats.map(seat => seat.id);
+
+      // For each seat, ensure there's a booking record and update it
+      for (const seatId of seatIds) {
+        const [existing] = await db
+          .select()
+          .from(seatBookings)
+          .where(
+            and(
+              eq(seatBookings.seatId, seatId),
+              eq(seatBookings.eventId, eventId)
+            )
+          );
+
+        if (existing) {
+          await db
+            .update(seatBookings)
+            .set({ isBooked })
+            .where(eq(seatBookings.id, existing.id));
+        } else {
+          await db
+            .insert(seatBookings)
+            .values({
+              seatId,
+              eventId,
+              isBooked
+            });
+        }
+      }
+
       console.log("Seat availability updated successfully");
     } catch (error) {
       console.error("Error updating seat availability:", error);
@@ -140,6 +197,18 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getFoodOptionsByIds(ids: number[]): Promise<FoodOption[]> {
+    try {
+      return await db
+        .select()
+        .from(foodOptions)
+        .where(inArray(foodOptions.id, ids));
+    } catch (error) {
+      console.error("Error fetching food options by IDs:", error);
+      throw error;
+    }
+  }
+
   async createBooking(booking: InsertBooking): Promise<Booking> {
     try {
       console.log("Creating new booking:", booking);
@@ -150,7 +219,8 @@ export class DatabaseStorage implements IStorage {
       await this.updateSeatAvailability(
         booking.tableId,
         booking.seatNumbers,
-        false
+        booking.eventId,
+        true
       );
 
       return created;
@@ -187,6 +257,31 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(bookings);
     } catch (error) {
       console.error("Error fetching bookings:", error);
+      throw error;
+    }
+  }
+
+  async getBookingDetails(): Promise<(Booking & { event: Event, foodItems: FoodOption[] })[]> {
+    try {
+      const bookings = await this.getBookings();
+      const enrichedBookings = await Promise.all(
+        bookings.map(async (booking) => {
+          const event = await this.getEvent(booking.eventId);
+          const foodSelections = booking.foodSelections as Record<string, number>;
+          const foodIds = Object.values(foodSelections);
+          const foodItems = await this.getFoodOptionsByIds(foodIds);
+
+          return {
+            ...booking,
+            event: event!,
+            foodItems,
+          };
+        })
+      );
+
+      return enrichedBookings;
+    } catch (error) {
+      console.error("Error fetching booking details:", error);
       throw error;
     }
   }
