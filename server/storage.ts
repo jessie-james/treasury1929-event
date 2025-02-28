@@ -1,11 +1,24 @@
-import { type Event, type FoodOption, type Booking, type InsertBooking, events, foodOptions, bookings } from "@shared/schema";
+import { 
+  type Event, type FoodOption, type Booking, type Table, type Seat,
+  type InsertBooking, events, foodOptions, bookings, tables, seats 
+} from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
+  // Events
   getEvents(): Promise<Event[]>;
   getEvent(id: number): Promise<Event | undefined>;
+
+  // Tables and Seats
+  getTables(): Promise<Table[]>;
+  getTableSeats(tableId: number): Promise<Seat[]>;
+  updateSeatAvailability(tableId: number, seatNumbers: number[], isAvailable: boolean): Promise<void>;
+
+  // Food Options
   getFoodOptions(): Promise<FoodOption[]>;
+
+  // Bookings
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateEventAvailability(eventId: number, seatsBooked: number): Promise<void>;
 }
@@ -20,12 +33,47 @@ export class DatabaseStorage implements IStorage {
     return event;
   }
 
+  async getTables(): Promise<Table[]> {
+    return await db.select().from(tables);
+  }
+
+  async getTableSeats(tableId: number): Promise<Seat[]> {
+    return await db
+      .select()
+      .from(seats)
+      .where(eq(seats.tableId, tableId));
+  }
+
+  async updateSeatAvailability(
+    tableId: number, 
+    seatNumbers: number[], 
+    isAvailable: boolean
+  ): Promise<void> {
+    await db
+      .update(seats)
+      .set({ isAvailable })
+      .where(
+        and(
+          eq(seats.tableId, tableId),
+          seats.seatNumber.in(seatNumbers)
+        )
+      );
+  }
+
   async getFoodOptions(): Promise<FoodOption[]> {
     return await db.select().from(foodOptions);
   }
 
   async createBooking(booking: InsertBooking): Promise<Booking> {
     const [created] = await db.insert(bookings).values(booking).returning();
+
+    // Update seat availability
+    await this.updateSeatAvailability(
+      booking.tableId,
+      booking.seatNumbers,
+      false
+    );
+
     return created;
   }
 

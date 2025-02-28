@@ -52,6 +52,17 @@ export async function registerRoutes(app: Express) {
     res.json(event);
   });
 
+  app.get("/api/tables", async (_req, res) => {
+    const tables = await storage.getTables();
+    res.json(tables);
+  });
+
+  app.get("/api/tables/:tableId/seats", async (req, res) => {
+    const tableId = parseInt(req.params.tableId);
+    const seats = await storage.getTableSeats(tableId);
+    res.json(seats);
+  });
+
   app.get("/api/food-options", async (_req, res) => {
     const options = await storage.getFoodOptions();
     res.json(options);
