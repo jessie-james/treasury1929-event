@@ -12,6 +12,54 @@ export async function registerRoutes(app: Express) {
   // Set up authentication
   setupAuth(app);
 
+  app.post("/api/register", async (req, res, next) => {
+    try {
+      console.log("Registration request received:", {
+        ...req.body,
+        password: '[REDACTED]'
+      });
+
+      if (!req.body.email || !req.body.password) {
+        return res.status(400).json({ 
+          message: "Email and password are required" 
+        });
+      }
+
+      const existingUser = await storage.getUserByEmail(req.body.email);
+      if (existingUser) {
+        console.log("Registration failed: Email already exists");
+        return res.status(400).json({ 
+          message: "Email already exists" 
+        });
+      }
+
+      // Create user with default role of 'customer'
+      const user = await storage.createUser({
+        ...req.body,
+        role: 'customer',
+      });
+
+      console.log("User created successfully:", { 
+        id: user.id, 
+        email: user.email 
+      });
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Login after registration failed:", err);
+          return next(err);
+        }
+        res.status(201).json(user);
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ 
+        message: "Registration failed",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Create WebSocket server after HTTP server but before routes
