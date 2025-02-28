@@ -4,6 +4,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
+import Link from 'next/link';
+
+function BackButton() {
+  return (
+    <Link href="/">
+      <button className="text-blue-500 hover:underline">Back</button>
+    </Link>
+  );
+}
 
 export default function AuthPage() {
   const [_, setLocation] = useLocation();
@@ -18,6 +27,9 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen grid md:grid-cols-2">
       <div className="flex items-center justify-center p-8">
+        <div className="w-full max-w-md mb-4 self-start pl-4">
+          <BackButton />
+        </div>
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <Tabs defaultValue="login">

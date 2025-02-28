@@ -13,6 +13,15 @@ interface Props {
   children: React.ReactNode;
 }
 
+function BackButton() {
+  return (
+    <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+      Back
+    </button>
+  );
+}
+
+
 export function BackofficeLayout({ children }: Props) {
   const { user, logoutMutation } = useAuth();
 
@@ -79,7 +88,8 @@ export function BackofficeLayout({ children }: Props) {
             Logged in as {user?.email} ({user?.role})
           </p>
         </div>
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 p-8">
+          <BackButton className="lg:hidden" />
           {children}
         </div>
       </div>

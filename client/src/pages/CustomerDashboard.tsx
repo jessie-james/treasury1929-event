@@ -14,6 +14,16 @@ type EnrichedBooking = Booking & {
   foodItems: FoodOption[];
 };
 
+// Assumed BackButton component - needs to be defined elsewhere
+const BackButton = () => {
+  return (
+    <Link href="/">
+      <button>Back</button>
+    </Link>
+  );
+}
+
+
 export default function CustomerDashboard() {
   const { data: bookings, isLoading } = useQuery<EnrichedBooking[]>({
     queryKey: ["/api/user/bookings"],
@@ -23,6 +33,7 @@ export default function CustomerDashboard() {
     <div>
       <Header />
       <div className="container py-8 space-y-6">
+        <BackButton />
         <h1 className="text-3xl font-bold">My Tickets</h1>
 
         {isLoading ? (
