@@ -13,14 +13,17 @@ export async function registerRoutes(app: Express) {
   setupAuth(app);
 
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+  // Create WebSocket server after HTTP server but before routes
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws',
+    perMessageDeflate: false // Disable compression for faster startup
+  });
 
   wss.on('connection', (ws) => {
     clients.add(ws);
-
-    ws.on('close', () => {
-      clients.delete(ws);
-    });
+    ws.on('close', () => clients.delete(ws));
   });
 
   // Test database connection

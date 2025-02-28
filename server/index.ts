@@ -1,10 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, log } from "./vite";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Basic health check endpoint
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "healthy" });
+});
 
 // Add request logging middleware
 app.use((req, res, next) => {
@@ -25,11 +30,6 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
       log(logLine);
     }
   });
@@ -53,42 +53,30 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
-    // Static file serving first, then Vite setup if needed
-    log("Setting up static file serving...");
-    serveStatic(app);
+    // Force port 5000 for Replit
+    const port = 5000;
+    log(`Attempting to start server on port ${port}...`);
 
-    // Function to attempt server startup
-    const startServer = (retries = 3) => {
-      log("Attempting to start server...");
-      server.listen({
-        port: 5000,
-        host: "0.0.0.0",
-      }, () => {
-        log("Server successfully started on port 5000");
+    server.listen(port, "0.0.0.0", () => {
+      log(`Server successfully started on port ${port}`);
 
-        // Only set up Vite after server is running
-        if (app.get("env") === "development") {
-          log("Setting up Vite development server...");
-          setupVite(app, server).catch(error => {
-            console.error("Vite setup error:", error);
-          });
-        }
-      }).on('error', (err: NodeJS.ErrnoException) => {
-        if (err.code === 'EADDRINUSE' && retries > 0) {
-          log(`Port 5000 in use, waiting before retry... (${retries} retries left)`);
-          setTimeout(() => {
-            log("Retrying server start...");
-            server.close();
-            startServer(retries - 1);
-          }, 1000);
-        } else {
-          console.error('Failed to start server:', err);
-          process.exit(1);
-        }
-      });
-    };
+      // Set up Vite after server is running
+      if (app.get("env") === "development") {
+        log("Setting up Vite development server...");
+        setupVite(app, server).catch(error => {
+          console.error("Failed to setup Vite:", error);
+        });
+      }
+    }).on('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use`);
+        process.exit(1);
+      } else {
+        console.error('Failed to start server:', err);
+        process.exit(1);
+      }
+    });
 
-    startServer();
   } catch (error) {
     console.error("Failed to initialize server:", error);
     process.exit(1);
