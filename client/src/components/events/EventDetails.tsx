@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Event } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Calendar, MapPin } from "lucide-react";
+import { useEffect } from "react";
 
 export function EventDetails({ 
   eventId,
@@ -11,9 +12,35 @@ export function EventDetails({
   eventId: number;
   onBookNow: () => void;
 }) {
+  const queryClient = useQueryClient();
   const { data: event, isLoading } = useQuery<Event>({
     queryKey: [`/api/events/${eventId}`],
   });
+
+  useEffect(() => {
+    // Setup WebSocket connection
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'availability_update' && data.eventId === eventId) {
+        // Update the cached event data with new availability
+        queryClient.setQueryData([`/api/events/${eventId}`], (oldData: Event | undefined) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            availableSeats: data.availableSeats
+          };
+        });
+      }
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [eventId, queryClient]);
 
   if (isLoading) {
     return <div className="animate-pulse h-96 bg-muted rounded-lg" />;
@@ -32,10 +59,10 @@ export function EventDetails({
           className="object-cover w-full h-full"
         />
       </div>
-      
+
       <div className="space-y-4">
         <h1 className="text-3xl font-bold">{event.title}</h1>
-        
+
         <div className="flex flex-wrap gap-4 text-muted-foreground">
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
@@ -48,7 +75,7 @@ export function EventDetails({
         </div>
 
         <p className="text-lg">{event.description}</p>
-        
+
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
           <div>
             <p className="text-sm text-muted-foreground">Available Seats</p>

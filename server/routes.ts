@@ -1,11 +1,41 @@
 import type { Express } from "express";
 import { createServer } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertBookingSchema } from "@shared/schema";
 import { z } from "zod";
 
+const clients = new Set<WebSocket>();
+
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+
+  wss.on('connection', (ws) => {
+    clients.add(ws);
+
+    ws.on('close', () => {
+      clients.delete(ws);
+    });
+  });
+
+  // Broadcast updates to all connected clients
+  const broadcastAvailability = async (eventId: number) => {
+    const event = await storage.getEvent(eventId);
+    if (!event) return;
+
+    const message = JSON.stringify({
+      type: 'availability_update',
+      eventId: event.id,
+      availableSeats: event.availableSeats
+    });
+
+    clients.forEach(client => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  };
 
   app.get("/api/events", async (_req, res) => {
     const events = await storage.getEvents();
@@ -35,6 +65,8 @@ export async function registerRoutes(app: Express) {
         booking.eventId,
         booking.seatNumbers.length
       );
+      // Broadcast the update to all clients
+      await broadcastAvailability(booking.eventId);
       res.json(created);
     } catch (error) {
       if (error instanceof z.ZodError) {
