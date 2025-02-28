@@ -194,14 +194,7 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      // Get the current booking status for these seats
-      const seatBookings = await storage.getTableSeatsAvailability(booking.tableId, booking.eventId);
-      const unavailableSeats = selectedSeats.filter(seat => {
-        const booking = seatBookings.find(b => b.seatId === seat.id);
-        return booking && booking.isBooked;
-      });
-
-      if (unavailableSeats.length > 0) {
+      if (selectedSeats.some(seat => !seat.isAvailable)) {
         return res.status(400).json({ 
           message: "One or more selected seats are not available" 
         });
