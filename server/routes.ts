@@ -4,10 +4,14 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { insertBookingSchema } from "@shared/schema";
 import { z } from "zod";
+import { setupAuth } from "./auth";
 
 const clients = new Set<WebSocket>();
 
 export async function registerRoutes(app: Express) {
+  // Set up authentication
+  setupAuth(app);
+
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
@@ -66,6 +70,14 @@ export async function registerRoutes(app: Express) {
   app.get("/api/food-options", async (_req, res) => {
     const options = await storage.getFoodOptions();
     res.json(options);
+  });
+
+  app.get("/api/bookings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const bookings = await storage.getBookings();
+    res.json(bookings);
   });
 
   app.post("/api/bookings", async (req, res) => {

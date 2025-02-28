@@ -1,11 +1,17 @@
 import { 
   type Event, type FoodOption, type Booking, type Table, type Seat,
-  type InsertBooking, events, foodOptions, bookings, tables, seats 
+  type InsertBooking, type User, type InsertUser,
+  events, foodOptions, bookings, tables, seats, users 
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
 
 export interface IStorage {
+  // Users
+  getUser(id: number): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+
   // Events
   getEvents(): Promise<Event[]>;
   getEvent(id: number): Promise<Event | undefined>;
@@ -21,9 +27,25 @@ export interface IStorage {
   // Bookings
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateEventAvailability(eventId: number, seatsBooked: number): Promise<void>;
+  getBookings(): Promise<Booking[]>;
 }
 
 export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [created] = await db.insert(users).values(user).returning();
+    return created;
+  }
+
   async getEvents(): Promise<Event[]> {
     return await db.select().from(events);
   }
@@ -90,6 +112,9 @@ export class DatabaseStorage implements IStorage {
       .update(events)
       .set({ availableSeats: event.availableSeats - seatsBooked })
       .where(eq(events.id, eventId));
+  }
+  async getBookings(): Promise<Booking[]> {
+    return await db.select().from(bookings);
   }
 }
 
