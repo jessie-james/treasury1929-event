@@ -32,3 +32,35 @@ export function BackButton({ className }: BackButtonProps) {
     </Button>
   );
 }
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+
+interface BackButtonProps {
+  className?: string;
+  to?: string;
+}
+
+export function BackButton({ className = "", to }: BackButtonProps) {
+  const [, setLocation] = useLocation();
+  
+  const handleBack = () => {
+    if (to) {
+      setLocation(to);
+    } else {
+      window.history.back();
+    }
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className={`mb-4 flex items-center ${className}`}
+      onClick={handleBack}
+    >
+      <ArrowLeft className="mr-2 h-4 w-4" />
+      Back
+    </Button>
+  );
+}
