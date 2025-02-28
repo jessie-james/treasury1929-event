@@ -41,28 +41,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Broadcast updates to all connected clients
-  const broadcastAvailability = async (eventId: number) => {
-    try {
-      const event = await storage.getEvent(eventId);
-      if (!event) return;
-
-      const message = JSON.stringify({
-        type: 'availability_update',
-        eventId: event.id,
-        availableSeats: event.availableSeats
-      });
-
-      clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(message);
-        }
-      });
-    } catch (error) {
-      console.error("Error broadcasting availability:", error);
-    }
-  };
-
   // Add new CRUD endpoints for events
   app.post("/api/events", async (req, res) => {
     try {
@@ -317,6 +295,28 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch food totals" });
     }
   });
+
+  // Broadcast updates to all connected clients
+  const broadcastAvailability = async (eventId: number) => {
+    try {
+      const event = await storage.getEvent(eventId);
+      if (!event) return;
+
+      const message = JSON.stringify({
+        type: 'availability_update',
+        eventId: event.id,
+        availableSeats: event.availableSeats
+      });
+
+      clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+    } catch (error) {
+      console.error("Error broadcasting availability:", error);
+    }
+  };
 
   return httpServer;
 }

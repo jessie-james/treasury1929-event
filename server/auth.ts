@@ -9,6 +9,17 @@ import { type User } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
+// Extend Express.User with our custom User type
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      email: string;
+      role: string;
+    }
+  }
+}
+
 const scryptAsync = promisify(scrypt);
 
 async function hashPassword(password: string) {
@@ -80,15 +91,18 @@ export function setupAuth(app: Express) {
     )
   );
 
-  passport.serializeUser((user: any, done) => {
+  passport.serializeUser((user: Express.User, done) => {
+    console.log("Serializing user:", user.id);
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log("Deserializing user:", id);
       const user = await storage.getUser(id);
       done(null, user);
     } catch (error) {
+      console.error("Deserialization error:", error);
       done(error);
     }
   });
@@ -96,23 +110,28 @@ export function setupAuth(app: Express) {
   // Handle registration
   app.post("/api/register", async (req, res) => {
     try {
+      console.log("Registration attempt for:", req.body.email);
+
       if (!req.body.email || !req.body.password) {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
       const existingUser = await storage.getUserByEmail(req.body.email);
       if (existingUser) {
+        console.log("Registration failed: Email already exists");
         return res.status(400).json({ message: "Email already exists" });
       }
 
       const hashedPassword = await hashPassword(req.body.password);
-      console.log("Registering new user with hashed password");
+      console.log("Password hashed successfully");
 
       const user = await storage.createUser({
         email: req.body.email,
         password: hashedPassword,
         role: 'customer', // Default role for new registrations
       });
+
+      console.log("User created successfully:", { id: user.id, email: user.email });
 
       req.login(user, (err) => {
         if (err) {
@@ -123,7 +142,7 @@ export function setupAuth(app: Express) {
       });
     } catch (error) {
       console.error("Registration error:", error);
-      res.status(500).json({ message: "Failed to register user" });
+      res.status(500).json({ message: "Registration failed" });
     }
   });
 
