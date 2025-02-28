@@ -107,7 +107,7 @@ export function EventDetails({
             onClick={onBookNow}
             disabled={event.availableSeats === 0}
           >
-            {event.availableSeats === 0 ? "Sold Out" : "Book Now"}
+            {event.availableSeats === 0 ? "Sold Out" : hasBooking ? "Book More Tickets" : "Book Now"}
           </Button>
         </div>
       </div>

@@ -86,10 +86,13 @@ export function CheckoutForm({
   });
 
   const handleExpiryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, "");
+    let value = e.target.value.replace(/\D/g, ""); // Remove non-digits
     if (value.length >= 2) {
-      value = value.slice(0, 2) + "/" + value.slice(2, 4);
+      // Always add slash after month if we have 2 or more digits
+      value = value.slice(0, 2) + "/" + value.slice(2);
     }
+    // Limit the total input to 5 characters (MM/YY)
+    value = value.slice(0, 5);
     form.setValue("expiryDate", value);
   };
 
@@ -131,7 +134,7 @@ export function CheckoutForm({
           <FormField
             control={form.control}
             name="expiryDate"
-            render={({ field }) => (
+            render={({ field: { onChange, ...field } }) => (
               <FormItem>
                 <FormLabel>Expiry Date</FormLabel>
                 <FormControl>
@@ -140,6 +143,7 @@ export function CheckoutForm({
                     placeholder="MM/YY"
                     maxLength={5}
                     onChange={handleExpiryDateChange}
+                    value={field.value}
                   />
                 </FormControl>
                 <FormMessage />

@@ -4,6 +4,8 @@ import { type Booking, type Event, type FoodOption } from "@shared/schema";
 import { format } from "date-fns";
 import { Header } from "@/components/Header";
 import { Link } from "wouter";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Ticket } from "lucide-react";
 
 type EnrichedBooking = Booking & {
   event: Event;
@@ -15,8 +17,8 @@ export default function CustomerDashboard() {
     queryKey: ["/api/user/bookings"],
   });
 
-  const getFoodItemByType = (booking: EnrichedBooking, type: string) => {
-    const itemId = (booking.foodSelections as any)[type];
+  const getFoodItemByType = (booking: EnrichedBooking, seatIndex: number, type: string) => {
+    const itemId = booking.foodSelections[seatIndex][type];
     return booking.foodItems.find(item => item.id === itemId);
   };
 
@@ -53,25 +55,32 @@ export default function CustomerDashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-                    <div>
-                      <p className="text-sm font-medium">Entree</p>
-                      <p className="text-sm text-muted-foreground">
-                        {getFoodItemByType(booking, 'entree')?.name}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Dessert</p>
-                      <p className="text-sm text-muted-foreground">
-                        {getFoodItemByType(booking, 'dessert')?.name}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">Wine Selection</p>
-                      <p className="text-sm text-muted-foreground">
-                        {getFoodItemByType(booking, 'wine')?.name}
-                      </p>
-                    </div>
+                  <div className="space-y-4 pt-4 border-t">
+                    {booking.seatNumbers.map((seatNumber, index) => (
+                      <div key={seatNumber} className="space-y-2">
+                        <p className="font-medium">Seat #{seatNumber} Selections:</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <p className="text-sm font-medium">Entree</p>
+                            <p className="text-sm text-muted-foreground">
+                              {getFoodItemByType(booking, index, 'entree')?.name}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Dessert</p>
+                            <p className="text-sm text-muted-foreground">
+                              {getFoodItemByType(booking, index, 'dessert')?.name}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">Wine Selection</p>
+                            <p className="text-sm text-muted-foreground">
+                              {getFoodItemByType(booking, index, 'wine')?.name}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </CardContent>
