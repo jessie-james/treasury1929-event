@@ -6,10 +6,15 @@ import { useQuery } from "@tanstack/react-query";
 import { type Table, type Seat } from "@shared/schema";
 
 interface Props {
+  eventId: number;
   onComplete: (selection: { tableId: number; seatNumbers: number[] }) => void;
 }
 
-export function SeatSelection({ onComplete }: Props) {
+interface SeatWithAvailability extends Seat {
+  isAvailable: boolean;
+}
+
+export function SeatSelection({ eventId, onComplete }: Props) {
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
 
@@ -17,8 +22,8 @@ export function SeatSelection({ onComplete }: Props) {
     queryKey: ["/api/tables"],
   });
 
-  const { data: seats, isLoading: seatsLoading } = useQuery<Seat[]>({
-    queryKey: [`/api/tables/${selectedTableId}/seats`],
+  const { data: seats, isLoading: seatsLoading } = useQuery<SeatWithAvailability[]>({
+    queryKey: [`/api/tables/${selectedTableId}/seats`, eventId],
     enabled: selectedTableId !== null,
   });
 
