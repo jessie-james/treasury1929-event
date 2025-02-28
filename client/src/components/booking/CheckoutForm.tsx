@@ -32,6 +32,7 @@ interface Props {
   tableId: number;
   selectedSeats: number[];
   foodSelections: Record<string, number>[];
+  guestNames: Record<number, string>;
   onSuccess: () => void;
 }
 
@@ -40,6 +41,7 @@ export function CheckoutForm({
   tableId,
   selectedSeats, 
   foodSelections,
+  guestNames,
   onSuccess 
 }: Props) {
   const { toast } = useToast();
@@ -62,6 +64,7 @@ export function CheckoutForm({
         tableId,
         seatNumbers: selectedSeats,
         foodSelections,
+        guestNames,
         customerEmail: data.customerEmail,
         stripePaymentId: "mock_payment_id", // We'll implement Stripe later
         userId: user.id,

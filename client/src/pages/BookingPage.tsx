@@ -22,6 +22,7 @@ export default function BookingPage() {
   const [step, setStep] = useState<Step>("seats");
   const [selectedSeats, setSelectedSeats] = useState<SeatSelectionData | null>(null);
   const [foodSelections, setFoodSelections] = useState<Record<string, number>[]>([]);
+  const [guestNames, setGuestNames] = useState<Record<number, string>>({});
 
   const progress =
     step === "seats" ? 33 : step === "food" ? 66 : 100;
@@ -52,8 +53,9 @@ export default function BookingPage() {
             {step === "food" && selectedSeats && (
               <FoodSelection
                 selectedSeats={selectedSeats.seatNumbers}
-                onComplete={(selections) => {
+                onComplete={(selections, names) => {
                   setFoodSelections(selections);
+                  setGuestNames(names);
                   setStep("checkout");
                 }}
               />
@@ -65,6 +67,7 @@ export default function BookingPage() {
                 tableId={selectedSeats.tableId}
                 selectedSeats={selectedSeats.seatNumbers}
                 foodSelections={foodSelections}
+                guestNames={guestNames}
                 onSuccess={() => setLocation("/dashboard")}
               />
             )}

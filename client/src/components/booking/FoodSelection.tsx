@@ -4,10 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface FoodSelections {
+interface SeatSelections {
+  name: string;
+  salad: number | undefined;
   entree: number | undefined;
   dessert: number | undefined;
   wine: number | undefined;
@@ -15,7 +18,7 @@ interface FoodSelections {
 
 interface Props {
   selectedSeats: number[];
-  onComplete: (selections: Record<string, number>[]) => void;
+  onComplete: (selections: Record<string, number>[], names: Record<number, string>) => void;
 }
 
 export function FoodSelection({ selectedSeats, onComplete }: Props) {
@@ -24,11 +27,11 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
   });
 
   const [currentSeat, setCurrentSeat] = useState<string>(selectedSeats[0].toString());
-  const [selections, setSelections] = useState<Record<number, FoodSelections>>(
+  const [selections, setSelections] = useState<Record<number, SeatSelections>>(
     Object.fromEntries(
       selectedSeats.map(seat => [
         seat,
-        { entree: undefined, dessert: undefined, wine: undefined }
+        { name: "", salad: undefined, entree: undefined, dessert: undefined, wine: undefined }
       ])
     )
   );
@@ -41,17 +44,29 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
 
   const isComplete = selectedSeats.every(seat => {
     const selection = selections[seat];
-    return selection?.entree && selection?.dessert && selection?.wine;
+    return (
+      selection?.name.trim() !== "" &&
+      selection?.salad !== undefined &&
+      selection?.entree !== undefined &&
+      selection?.dessert !== undefined &&
+      selection?.wine !== undefined
+    );
   });
 
   const handleComplete = () => {
     if (isComplete) {
       const foodSelections = selectedSeats.map(seat => ({
+        salad: selections[seat].salad!,
         entree: selections[seat].entree!,
         dessert: selections[seat].dessert!,
         wine: selections[seat].wine!,
       }));
-      onComplete(foodSelections);
+
+      const names = Object.fromEntries(
+        selectedSeats.map(seat => [seat, selections[seat].name])
+      );
+
+      onComplete(foodSelections, names);
     }
   };
 
@@ -60,7 +75,7 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">Select Menu Items</h2>
         <p className="text-muted-foreground">
-          Choose menu items for each seat
+          Choose menu items for each person
         </p>
       </div>
 
@@ -73,7 +88,9 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
               className="relative"
             >
               Seat #{seat}
-              {selections[seat]?.entree && 
+              {selections[seat]?.name &&
+               selections[seat]?.salad &&
+               selections[seat]?.entree && 
                selections[seat]?.dessert && 
                selections[seat]?.wine && (
                 <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
@@ -84,11 +101,28 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
 
         {selectedSeats.map(seat => (
           <TabsContent key={seat} value={seat.toString()} className="space-y-8">
-            {Object.entries(byType).map(([type, options]) => (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Guest Information</h3>
+              <Input
+                placeholder="First Name"
+                value={selections[seat]?.name || ""}
+                onChange={(e) =>
+                  setSelections({
+                    ...selections,
+                    [seat]: {
+                      ...selections[seat],
+                      name: e.target.value
+                    }
+                  })
+                }
+              />
+            </div>
+
+            {["salad", "entree", "dessert", "wine"].map((type) => (
               <div key={type} className="space-y-4">
                 <h3 className="text-lg font-semibold capitalize">{type}</h3>
                 <RadioGroup
-                  value={selections[seat]?.[type as keyof FoodSelections]?.toString()}
+                  value={selections[seat]?.[type as keyof SeatSelections]?.toString()}
                   onValueChange={(value) =>
                     setSelections({
                       ...selections,
@@ -100,7 +134,7 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                   }
                 >
                   <div className="grid gap-4 md:grid-cols-3">
-                    {options.map((option) => (
+                    {byType[type]?.map((option) => (
                       <Card key={option.id} className="overflow-hidden">
                         <div className="aspect-[4/3] relative">
                           <img

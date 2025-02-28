@@ -10,7 +10,8 @@ import { Ticket } from "lucide-react";
 type EnrichedBooking = Booking & {
   event: Event;
   foodItems: FoodOption[];
-}
+  guestNames?: { [seatNumber: number]: string }; // Added guestNames property
+};
 
 export default function CustomerDashboard() {
   const { data: bookings } = useQuery<EnrichedBooking[]>({
@@ -58,8 +59,16 @@ export default function CustomerDashboard() {
                   <div className="space-y-4 pt-4 border-t">
                     {booking.seatNumbers.map((seatNumber, index) => (
                       <div key={seatNumber} className="space-y-2">
-                        <p className="font-medium">Seat #{seatNumber} Selections:</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <p className="font-medium">
+                          Seat #{seatNumber} - {(booking.guestNames as any)[seatNumber]}
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-sm font-medium">Salad</p>
+                            <p className="text-sm text-muted-foreground">
+                              {getFoodItemByType(booking, index, 'salad')?.name}
+                            </p>
+                          </div>
                           <div>
                             <p className="text-sm font-medium">Entree</p>
                             <p className="text-sm text-muted-foreground">
