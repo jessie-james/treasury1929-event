@@ -25,6 +25,7 @@ const checkoutSchema = z.object({
 
 interface Props {
   eventId: number;
+  tableId: number;
   selectedSeats: number[];
   foodSelections: Record<string, number>;
   onSuccess: () => void;
@@ -32,25 +33,27 @@ interface Props {
 
 export function CheckoutForm({ 
   eventId, 
+  tableId,
   selectedSeats, 
   foodSelections,
   onSuccess 
 }: Props) {
   const { toast } = useToast();
-  
+
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
   });
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: z.infer<typeof checkoutSchema>) => {
-      // In a real app, we would process payment with Stripe here
       const booking = {
         eventId,
+        tableId,
         seatNumbers: selectedSeats,
         foodSelections,
         customerEmail: data.customerEmail,
-        stripePaymentId: "mock_payment_id",
+        stripePaymentId: "mock_payment_id", // We'll implement Stripe later
+        userId: 1, // For now, use a default user ID
       };
 
       await apiRequest("POST", "/api/bookings", booking);

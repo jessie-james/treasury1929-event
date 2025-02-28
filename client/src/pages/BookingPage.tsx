@@ -8,13 +8,18 @@ import { Progress } from "@/components/ui/progress";
 
 type Step = "seats" | "food" | "checkout";
 
+interface SeatSelectionData {
+  tableId: number;
+  seatNumbers: number[];
+}
+
 export default function BookingPage() {
   const params = useParams<{ id: string }>();
   const [_, setLocation] = useLocation();
   const eventId = parseInt(params.id);
 
   const [step, setStep] = useState<Step>("seats");
-  const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
+  const [selectedSeats, setSelectedSeats] = useState<SeatSelectionData | null>(null);
   const [foodSelections, setFoodSelections] = useState<Record<string, number>>({});
 
   const progress = 
@@ -34,8 +39,8 @@ export default function BookingPage() {
         <div className="p-6">
           {step === "seats" && (
             <SeatSelection
-              onComplete={(seats) => {
-                setSelectedSeats(seats);
+              onComplete={(selection) => {
+                setSelectedSeats(selection);
                 setStep("food");
               }}
             />
@@ -50,10 +55,11 @@ export default function BookingPage() {
             />
           )}
 
-          {step === "checkout" && (
+          {step === "checkout" && selectedSeats && (
             <CheckoutForm
               eventId={eventId}
-              selectedSeats={selectedSeats}
+              tableId={selectedSeats.tableId}
+              selectedSeats={selectedSeats.seatNumbers}
               foodSelections={foodSelections}
               onSuccess={() => setLocation("/")}
             />
