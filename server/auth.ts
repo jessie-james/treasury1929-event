@@ -28,10 +28,15 @@ async function hashPassword(password: string) {
 }
 
 async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+  try {
+    const [hashed, salt] = stored.split(".");
+    const hashedBuf = Buffer.from(hashed, "hex");
+    const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+    return timingSafeEqual(hashedBuf, suppliedBuf);
+  } catch (error) {
+    console.error("Error comparing passwords:", error);
+    return false;
+  }
 }
 
 const PostgresSessionStore = connectPg(session);
@@ -60,12 +65,25 @@ export function setupAuth(app: Express) {
       { usernameField: "email" },
       async (email, password, done) => {
         try {
+          console.log(`Attempting login for email: ${email}`);
           const user = await storage.getUserByEmail(email);
-          if (!user || !(await comparePasswords(password, user.password))) {
+
+          if (!user) {
+            console.log("User not found");
             return done(null, false);
           }
+
+          console.log("Found user:", { id: user.id, email: user.email, role: user.role });
+          const isValid = await comparePasswords(password, user.password);
+          console.log("Password validation result:", isValid);
+
+          if (!isValid) {
+            return done(null, false);
+          }
+
           return done(null, user);
         } catch (error) {
+          console.error("Login error:", error);
           return done(error);
         }
       },
@@ -98,9 +116,12 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Invalid role" });
       }
 
+      const hashedPassword = await hashPassword(req.body.password);
+      console.log("Registering new user with hashed password:", hashedPassword);
+
       const user = await storage.createUser({
         ...req.body,
-        password: await hashPassword(req.body.password),
+        password: hashedPassword,
       });
 
       req.login(user, (err) => {
@@ -108,12 +129,33 @@ export function setupAuth(app: Express) {
         res.status(201).json(user);
       });
     } catch (error) {
+      console.error("Registration error:", error);
       res.status(500).json({ message: "Failed to register user" });
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.json(req.user);
+  app.post("/api/login", async (req, res, next) => {
+    console.log("Login attempt for:", req.body.email);
+
+    passport.authenticate("local", (err: any, user: User | false) => {
+      if (err) {
+        console.error("Authentication error:", err);
+        return next(err);
+      }
+      if (!user) {
+        console.log("Authentication failed");
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Login error:", err);
+          return next(err);
+        }
+        console.log("Login successful for user:", user.email);
+        res.json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {
