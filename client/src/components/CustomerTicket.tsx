@@ -15,14 +15,15 @@ interface CustomerTicketProps {
 
 export function CustomerTicket({ booking }: CustomerTicketProps) {
   // Function to get the food item by its ID
-  const getFoodItemById = (id: number) => {
-    return booking.foodItems.find(item => item.id === id);
+  const getFoodItemById = (id: number | undefined): string => {
+    const item = booking.foodItems.find(item => item.id === id);
+    return item ? item.name : "Not selected";
   };
 
   // Function to get the name of a guest by seat number
   const getGuestName = (seatNumber: number) => {
     const guestNames = booking.guestNames as Record<string, string>;
-    return guestNames[seatNumber] || `Guest at Seat #${seatNumber}`;
+    return guestNames[seatNumber.toString()] || `Guest at Seat #${seatNumber}`;
   };
 
   return (
@@ -54,37 +55,39 @@ export function CustomerTicket({ booking }: CustomerTicketProps) {
           <div>
             <h3 className="font-medium mb-2">Food Selections</h3>
             {booking.seatNumbers.map((seatNumber) => {
-              // Get the food selections for this seat
+              // Get the food selections for this seat.  Corrected type handling.
               const selections = (booking.foodSelections as Record<string, {
                 salad?: number;
                 entree?: number;
                 dessert?: number;
                 wine?: number;
-              }>)[seatNumber];
+              }>)[seatNumber.toString()];
+
+              const guestName = getGuestName(seatNumber);
 
               return (
                 <div key={seatNumber} className="mb-3 p-3 border rounded-md">
                   <h4 className="text-sm font-semibold mb-2">
-                    {getGuestName(seatNumber)}
+                    {guestName}
                   </h4>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     {selections && (
                       <>
                         <div>
                           <span className="text-muted-foreground">Salad:</span>{" "}
-                          {getFoodItemById(selections.salad || 0)?.name || "Not selected"}
+                          {getFoodItemById(selections.salad)}
                         </div>
                         <div>
                           <span className="text-muted-foreground">Entree:</span>{" "}
-                          {getFoodItemById(selections.entree || 0)?.name || "Not selected"}
+                          {getFoodItemById(selections.entree)}
                         </div>
                         <div>
                           <span className="text-muted-foreground">Dessert:</span>{" "}
-                          {getFoodItemById(selections.dessert || 0)?.name || "Not selected"}
+                          {getFoodItemById(selections.dessert)}
                         </div>
                         <div>
                           <span className="text-muted-foreground">Wine:</span>{" "}
-                          {getFoodItemById(selections.wine || 0)?.name || "Not selected"}
+                          {getFoodItemById(selections.wine)}
                         </div>
                       </>
                     )}
