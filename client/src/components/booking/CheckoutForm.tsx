@@ -15,6 +15,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { insertBookingSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 const checkoutSchema = z.object({
   customerEmail: z.string().email(),
@@ -39,6 +40,7 @@ export function CheckoutForm({
   onSuccess 
 }: Props) {
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
@@ -46,6 +48,8 @@ export function CheckoutForm({
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (data: z.infer<typeof checkoutSchema>) => {
+      if (!user) throw new Error("User not authenticated");
+
       const booking = {
         eventId,
         tableId,
@@ -53,7 +57,7 @@ export function CheckoutForm({
         foodSelections,
         customerEmail: data.customerEmail,
         stripePaymentId: "mock_payment_id", // We'll implement Stripe later
-        userId: 1, // For now, use a default user ID
+        userId: user.id,
       };
 
       await apiRequest("POST", "/api/bookings", booking);
@@ -87,7 +91,7 @@ export function CheckoutForm({
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input {...field} type="email" />
+                <Input {...field} type="email" defaultValue={user?.email} />
               </FormControl>
               <FormMessage />
             </FormItem>

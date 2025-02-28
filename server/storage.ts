@@ -32,39 +32,80 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    try {
+      console.log(`Fetching user with ID: ${id}`);
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      throw error;
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
+    try {
+      console.log(`Fetching user with email: ${email}`);
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      return user;
+    } catch (error) {
+      console.error("Error fetching user by email:", error);
+      throw error;
+    }
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const [created] = await db.insert(users).values(user).returning();
-    return created;
+    try {
+      console.log("Creating new user:", { ...user, password: "[REDACTED]" });
+      const [created] = await db.insert(users).values(user).returning();
+      console.log("User created successfully:", { id: created.id, email: created.email });
+      return created;
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw error;
+    }
   }
 
   async getEvents(): Promise<Event[]> {
-    return await db.select().from(events);
+    try {
+      return await db.select().from(events);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      throw error;
+    }
   }
 
   async getEvent(id: number): Promise<Event | undefined> {
-    const [event] = await db.select().from(events).where(eq(events.id, id));
-    return event;
+    try {
+      console.log(`Fetching event with ID: ${id}`);
+      const [event] = await db.select().from(events).where(eq(events.id, id));
+      return event;
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      throw error;
+    }
   }
 
   async getTables(): Promise<Table[]> {
-    return await db.select().from(tables);
+    try {
+      return await db.select().from(tables);
+    } catch (error) {
+      console.error("Error fetching tables:", error);
+      throw error;
+    }
   }
 
   async getTableSeats(tableId: number): Promise<Seat[]> {
-    return await db
-      .select()
-      .from(seats)
-      .where(eq(seats.tableId, tableId))
-      .orderBy(seats.seatNumber);
+    try {
+      console.log(`Fetching seats for table ID: ${tableId}`);
+      return await db
+        .select()
+        .from(seats)
+        .where(eq(seats.tableId, tableId))
+        .orderBy(seats.seatNumber);
+    } catch (error) {
+      console.error("Error fetching table seats:", error);
+      throw error;
+    }
   }
 
   async updateSeatAvailability(
@@ -72,49 +113,82 @@ export class DatabaseStorage implements IStorage {
     seatNumbers: number[], 
     isAvailable: boolean
   ): Promise<void> {
-    await db
-      .update(seats)
-      .set({ isAvailable })
-      .where(
-        and(
-          eq(seats.tableId, tableId),
-          inArray(seats.seatNumber, seatNumbers)
-        )
-      );
+    try {
+      console.log(`Updating seat availability for table ${tableId}, seats ${seatNumbers.join(", ")} to ${isAvailable}`);
+      await db
+        .update(seats)
+        .set({ isAvailable })
+        .where(
+          and(
+            eq(seats.tableId, tableId),
+            inArray(seats.seatNumber, seatNumbers)
+          )
+        );
+      console.log("Seat availability updated successfully");
+    } catch (error) {
+      console.error("Error updating seat availability:", error);
+      throw error;
+    }
   }
 
   async getFoodOptions(): Promise<FoodOption[]> {
-    return await db.select().from(foodOptions);
+    try {
+      return await db.select().from(foodOptions);
+    } catch (error) {
+      console.error("Error fetching food options:", error);
+      throw error;
+    }
   }
 
   async createBooking(booking: InsertBooking): Promise<Booking> {
-    const [created] = await db.insert(bookings).values(booking).returning();
+    try {
+      console.log("Creating new booking:", booking);
+      const [created] = await db.insert(bookings).values(booking).returning();
+      console.log("Booking created successfully:", created);
 
-    // Update seat availability
-    await this.updateSeatAvailability(
-      booking.tableId,
-      booking.seatNumbers,
-      false
-    );
+      // Update seat availability
+      await this.updateSeatAvailability(
+        booking.tableId,
+        booking.seatNumbers,
+        false
+      );
 
-    return created;
+      return created;
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      throw error;
+    }
   }
 
   async updateEventAvailability(eventId: number, seatsBooked: number): Promise<void> {
-    const [event] = await db
-      .select()
-      .from(events)
-      .where(eq(events.id, eventId));
+    try {
+      console.log(`Updating event ${eventId} availability, seats booked: ${seatsBooked}`);
+      const [event] = await db
+        .select()
+        .from(events)
+        .where(eq(events.id, eventId));
 
-    if (!event) throw new Error("Event not found");
+      if (!event) throw new Error("Event not found");
 
-    await db
-      .update(events)
-      .set({ availableSeats: event.availableSeats - seatsBooked })
-      .where(eq(events.id, eventId));
+      await db
+        .update(events)
+        .set({ availableSeats: event.availableSeats - seatsBooked })
+        .where(eq(events.id, eventId));
+
+      console.log("Event availability updated successfully");
+    } catch (error) {
+      console.error("Error updating event availability:", error);
+      throw error;
+    }
   }
+
   async getBookings(): Promise<Booking[]> {
-    return await db.select().from(bookings);
+    try {
+      return await db.select().from(bookings);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      throw error;
+    }
   }
 }
 

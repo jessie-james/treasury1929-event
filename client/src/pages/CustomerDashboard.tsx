@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { type Booking } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -11,7 +11,7 @@ export default function CustomerDashboard() {
   return (
     <div className="container py-8 space-y-6">
       <h1 className="text-3xl font-bold">My Tickets</h1>
-      
+
       <div className="space-y-4">
         {bookings?.map((booking) => (
           <Card key={booking.id}>
@@ -21,7 +21,7 @@ export default function CustomerDashboard() {
                   <div>
                     <h3 className="text-lg font-semibold">Event #{booking.eventId}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Booked on {format(new Date(booking.createdAt), "PPP")}
+                      Booked on {format(new Date(booking.createdAt!), "PPP")}
                     </p>
                   </div>
                   <div className="text-right">
@@ -41,9 +41,9 @@ export default function CustomerDashboard() {
                   <div>
                     <p className="text-sm font-medium">Food Selections</p>
                     <p className="text-sm text-muted-foreground">
-                      Entree #{booking.foodSelections.entree}, 
-                      Dessert #{booking.foodSelections.dessert}, 
-                      Wine #{booking.foodSelections.wine}
+                      Entree #{(booking.foodSelections as any).entree}, 
+                      Dessert #{(booking.foodSelections as any).dessert}, 
+                      Wine #{(booking.foodSelections as any).wine}
                     </p>
                   </div>
                 </div>
