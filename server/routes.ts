@@ -73,8 +73,8 @@ export async function registerRoutes(app: Express) {
       console.log("Creating event with data:", req.body);
       const event = await storage.createEvent({
         ...req.body,
-        availableSeats: req.body.totalSeats, // Set initial available seats
-        date: new Date(req.body.date).toISOString(),
+        totalSeats: Number(req.body.totalSeats),
+        venueId: 1, // For now, hardcode to venue 1
       });
       console.log("Event created successfully:", event);
       res.status(201).json(event);

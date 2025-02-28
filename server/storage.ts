@@ -343,8 +343,10 @@ export class DatabaseStorage implements IStorage {
 
   async createEvent(event: InsertEvent): Promise<Event> {
     try {
+      console.log("Creating event with data:", event);
       const [created] = await db.insert(events).values({
         ...event,
+        date: event.date, // Date is already in ISO string format from the client
         availableSeats: event.totalSeats,
       }).returning();
       return created;
