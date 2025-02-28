@@ -33,7 +33,7 @@ const PostgresSessionStore = connectPg(session);
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
-    secret: "your-secret-key", // In production, use an environment variable
+    secret: "venue-booking-secret-key",
     resave: false,
     saveUninitialized: false,
     store: new PostgresSessionStore({
@@ -96,6 +96,10 @@ export function setupAuth(app: Express) {
   // Handle registration
   app.post("/api/register", async (req, res) => {
     try {
+      if (!req.body.email || !req.body.password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
       const existingUser = await storage.getUserByEmail(req.body.email);
       if (existingUser) {
         return res.status(400).json({ message: "Email already exists" });

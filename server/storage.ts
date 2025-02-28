@@ -12,24 +12,20 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-
   // Events
   getEvents(): Promise<Event[]>;
   getEvent(id: number): Promise<Event | undefined>;
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: number, event: Partial<InsertEvent>): Promise<Event | undefined>;
   deleteEvent(id: number): Promise<void>;
-
   // Tables and Seats
   getTables(): Promise<Table[]>;
   getTableSeats(tableId: number): Promise<Seat[]>;
   getTableSeatsAvailability(tableId: number, eventId: number): Promise<SeatBooking[]>;
   updateSeatAvailability(tableId: number, seatNumbers: number[], eventId: number, isBooked: boolean): Promise<void>;
-
   // Food Options
   getFoodOptions(): Promise<FoodOption[]>;
   getFoodOptionsByIds(ids: number[]): Promise<FoodOption[]>;
-
   // Bookings
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateEventAvailability(eventId: number, seatsBooked: number): Promise<void>;
@@ -97,7 +93,6 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
-
   async getTables(): Promise<Table[]> {
     try {
       return await db.select().from(tables);
