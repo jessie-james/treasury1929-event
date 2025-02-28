@@ -18,8 +18,11 @@ export default function CustomerDashboard() {
     queryKey: ["/api/user/bookings"],
   });
 
-  const getFoodItemByType = (booking: EnrichedBooking, seatIndex: number, type: string) => {
-    const itemId = booking.foodSelections[seatIndex][type];
+  const getFoodItemByType = (booking: EnrichedBooking, seatNumber: number, type: string) => {
+    const foodSelection = (booking.foodSelections as Record<number, Record<string, number>>)[seatNumber];
+    if (!foodSelection) return null;
+
+    const itemId = foodSelection[type];
     return booking.foodItems.find(item => item.id === itemId);
   };
 
@@ -57,36 +60,23 @@ export default function CustomerDashboard() {
                   </div>
 
                   <div className="space-y-4 pt-4 border-t">
-                    {booking.seatNumbers.map((seatNumber, index) => (
+                    {booking.seatNumbers.map((seatNumber) => (
                       <div key={seatNumber} className="space-y-2">
                         <p className="font-medium">
-                          Seat #{seatNumber} - {(booking.guestNames as any)[seatNumber]}
+                          Seat #{seatNumber} - {(booking.guestNames as Record<number, string>)[seatNumber]}
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <div>
-                            <p className="text-sm font-medium">Salad</p>
-                            <p className="text-sm text-muted-foreground">
-                              {getFoodItemByType(booking, index, 'salad')?.name}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Entree</p>
-                            <p className="text-sm text-muted-foreground">
-                              {getFoodItemByType(booking, index, 'entree')?.name}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Dessert</p>
-                            <p className="text-sm text-muted-foreground">
-                              {getFoodItemByType(booking, index, 'dessert')?.name}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium">Wine Selection</p>
-                            <p className="text-sm text-muted-foreground">
-                              {getFoodItemByType(booking, index, 'wine')?.name}
-                            </p>
-                          </div>
+                          {['salad', 'entree', 'dessert', 'wine'].map(type => {
+                            const foodItem = getFoodItemByType(booking, seatNumber, type);
+                            return (
+                              <div key={type}>
+                                <p className="text-sm font-medium capitalize">{type}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {foodItem?.name || 'Not selected'}
+                                </p>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     ))}
@@ -97,9 +87,13 @@ export default function CustomerDashboard() {
           ))}
 
           {!bookings?.length && (
-            <p className="text-center text-muted-foreground">
-              You haven't made any bookings yet.
-            </p>
+            <Alert>
+              <Ticket className="h-4 w-4" />
+              <AlertTitle>No tickets yet</AlertTitle>
+              <AlertDescription>
+                You haven't made any bookings yet.
+              </AlertDescription>
+            </Alert>
           )}
         </div>
       </div>

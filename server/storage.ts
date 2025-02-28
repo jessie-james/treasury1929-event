@@ -267,9 +267,15 @@ export class DatabaseStorage implements IStorage {
       const enrichedBookings = await Promise.all(
         bookings.map(async (booking) => {
           const event = await this.getEvent(booking.eventId);
-          const foodSelections = booking.foodSelections as Record<string, number>;
-          const foodIds = Object.values(foodSelections);
-          const foodItems = await this.getFoodOptionsByIds(foodIds);
+
+          // Extract all unique food IDs from the foodSelections
+          const foodSelections = booking.foodSelections as Record<string, Record<string, number>>;
+          const foodIds = new Set<number>();
+          Object.values(foodSelections).forEach(selections => {
+            Object.values(selections).forEach(id => foodIds.add(id));
+          });
+
+          const foodItems = await this.getFoodOptionsByIds([...foodIds]);
 
           return {
             ...booking,
