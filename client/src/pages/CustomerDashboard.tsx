@@ -63,13 +63,13 @@ export default function CustomerDashboard() {
                     {booking.seatNumbers.map((seatNumber) => (
                       <div key={seatNumber} className="space-y-2">
                         <p className="font-medium">
-                          Seat #{seatNumber} - {(booking.guestNames as Record<number, string>)[seatNumber]}
+                          Seat #{seatNumber} - {booking.guestNames?.[seatNumber] || 'Guest'}
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           {['salad', 'entree', 'dessert', 'wine'].map(type => {
                             const foodItem = getFoodItemByType(booking, seatNumber, type);
                             return (
-                              <div key={type}>
+                              <div key={type} className="space-y-1">
                                 <p className="text-sm font-medium capitalize">{type}</p>
                                 <p className="text-sm text-muted-foreground">
                                   {foodItem?.name || 'Not selected'}

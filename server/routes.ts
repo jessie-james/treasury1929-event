@@ -212,6 +212,7 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
+      console.log("Fetching bookings for user:", req.user?.id);
       const allBookings = await storage.getBookingDetails();
       const userBookings = allBookings.filter(booking => booking.userId === req.user?.id);
       res.json(userBookings);
