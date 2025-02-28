@@ -111,7 +111,14 @@ export function EventForm({ event, onClose }: Props) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => saveEvent(data))} className="space-y-4">
+          <form onSubmit={form.handleSubmit((data) => {
+            console.log("Form data before submission:", data);
+            console.log("Form validation state:", form.formState);
+            if (form.formState.errors) {
+              console.log("Form errors:", form.formState.errors);
+            }
+            saveEvent(data);
+          })} className="space-y-4">
             <FormField
               control={form.control}
               name="title"
