@@ -55,6 +55,7 @@ export function EventForm({ event, onClose }: Props) {
 
   const { mutate: saveEvent, isPending } = useMutation({
     mutationFn: async (data: EventFormData) => {
+      console.log("Submitting event data:", data);
       const endpoint = event ? `/api/events/${event.id}` : "/api/events";
       const method = event ? "PATCH" : "POST";
       return apiRequest(method, endpoint, data);
@@ -66,7 +67,8 @@ export function EventForm({ event, onClose }: Props) {
       });
       onClose();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Event save error:", error);
       toast({
         title: "Error",
         description: `Failed to ${event ? "update" : "create"} event`,
@@ -103,7 +105,16 @@ export function EventForm({ event, onClose }: Props) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => saveEvent(data))} className="space-y-4">
+          <form onSubmit={form.handleSubmit((data) => {
+            // Convert form data to proper types before submission
+            const formattedData = {
+              ...data,
+              totalSeats: Number(data.totalSeats),
+              date: new Date(data.date).toISOString(),
+            };
+            console.log("Formatted event data:", formattedData);
+            saveEvent(formattedData);
+          })} className="space-y-4">
             <FormField
               control={form.control}
               name="title"
