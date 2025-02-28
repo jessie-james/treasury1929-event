@@ -62,15 +62,15 @@ app.use((req, res, next) => {
     server.listen({
       port,
       host: "0.0.0.0",
-      reusePort: true,
     }, () => {
       log(`serving on port ${port}`);
     }).on('error', (err: any) => {
-      if (err.code === 'EADDRINUSE' && port < 5010) {
+      if (err.code === 'EADDRINUSE' && port < 5100) {
         log(`Port ${port} is busy, trying ${port + 1}...`);
         startServer(port + 1);
       } else {
-        throw err;
+        log(`Failed to start server: ${err.message}`);
+        process.exit(1);
       }
     });
   };
