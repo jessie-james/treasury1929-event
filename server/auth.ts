@@ -92,6 +92,12 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email already exists" });
       }
 
+      // Validate role
+      const role = req.body.role || 'customer';
+      if (!['admin', 'venue_owner', 'venue_manager', 'customer'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
       const user = await storage.createUser({
         ...req.body,
         password: await hashPassword(req.body.password),
