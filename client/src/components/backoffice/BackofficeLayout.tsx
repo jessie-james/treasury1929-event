@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { BackButton } from "@/components/ui/back-button";
 import {
   LayoutDashboard,
   Calendar,
@@ -12,15 +13,6 @@ import {
 interface Props {
   children: React.ReactNode;
 }
-
-function BackButton() {
-  return (
-    <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-      Back
-    </button>
-  );
-}
-
 
 export function BackofficeLayout({ children }: Props) {
   const { user, logoutMutation } = useAuth();

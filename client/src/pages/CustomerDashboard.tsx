@@ -8,21 +8,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Ticket } from "lucide-react";
 import { CustomerTicket } from "@/components/CustomerTicket";
 import { EmptyState } from "@/components/EmptyState";
+import { BackButton } from "@/components/ui/back-button";
 
 type EnrichedBooking = Booking & {
   event: Event;
   foodItems: FoodOption[];
 };
-
-// Assumed BackButton component - needs to be defined elsewhere
-const BackButton = () => {
-  return (
-    <Link href="/">
-      <button>Back</button>
-    </Link>
-  );
-}
-
 
 export default function CustomerDashboard() {
   const { data: bookings, isLoading } = useQuery<EnrichedBooking[]>({

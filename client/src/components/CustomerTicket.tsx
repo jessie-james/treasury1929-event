@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,12 +53,15 @@ export function CustomerTicket({ booking }: CustomerTicketProps) {
 
           <div>
             <h3 className="font-medium mb-2">Food Selections</h3>
-            {booking.seatNumbers.map((seatNumber, index) => {
+            {booking.seatNumbers.map((seatNumber) => {
               // Get the food selections for this seat
-              const selections = Array.isArray(booking.foodSelections) 
-                ? booking.foodSelections[index] 
-                : (booking.foodSelections as any)[seatNumber];
-              
+              const selections = (booking.foodSelections as Record<string, {
+                salad?: number;
+                entree?: number;
+                dessert?: number;
+                wine?: number;
+              }>)[seatNumber];
+
               return (
                 <div key={seatNumber} className="mb-3 p-3 border rounded-md">
                   <h4 className="text-sm font-semibold mb-2">
@@ -70,19 +72,19 @@ export function CustomerTicket({ booking }: CustomerTicketProps) {
                       <>
                         <div>
                           <span className="text-muted-foreground">Salad:</span>{" "}
-                          {getFoodItemById(selections.salad)?.name || "Not selected"}
+                          {getFoodItemById(selections.salad || 0)?.name || "Not selected"}
                         </div>
                         <div>
                           <span className="text-muted-foreground">Entree:</span>{" "}
-                          {getFoodItemById(selections.entree)?.name || "Not selected"}
+                          {getFoodItemById(selections.entree || 0)?.name || "Not selected"}
                         </div>
                         <div>
                           <span className="text-muted-foreground">Dessert:</span>{" "}
-                          {getFoodItemById(selections.dessert)?.name || "Not selected"}
+                          {getFoodItemById(selections.dessert || 0)?.name || "Not selected"}
                         </div>
                         <div>
                           <span className="text-muted-foreground">Wine:</span>{" "}
-                          {getFoodItemById(selections.wine)?.name || "Not selected"}
+                          {getFoodItemById(selections.wine || 0)?.name || "Not selected"}
                         </div>
                       </>
                     )}
