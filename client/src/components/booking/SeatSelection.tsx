@@ -23,7 +23,9 @@ export function SeatSelection({ eventId, onComplete }: Props) {
   });
 
   const { data: seats, isLoading: seatsLoading } = useQuery<SeatWithAvailability[]>({
-    queryKey: [`/api/tables/${selectedTableId}/seats`, eventId],
+    queryKey: [`/api/tables/${selectedTableId}/seats`, { eventId }],
+    queryFn: ({ queryKey }) => 
+      fetch(`/api/tables/${selectedTableId}/seats?eventId=${eventId}`).then(res => res.json()),
     enabled: selectedTableId !== null,
   });
 
