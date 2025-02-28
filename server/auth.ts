@@ -100,6 +100,10 @@ export function setupAuth(app: Express) {
     try {
       console.log("Deserializing user:", id);
       const user = await storage.getUser(id);
+      if (!user) {
+        console.log("User not found during deserialization");
+        return done(null, false);
+      }
       done(null, user);
     } catch (error) {
       console.error("Deserialization error:", error);
@@ -138,7 +142,11 @@ export function setupAuth(app: Express) {
           console.error("Login after registration failed:", err);
           return res.status(500).json({ message: "Registration succeeded but login failed" });
         }
-        res.status(201).json(user);
+        res.status(201).json({
+          id: user.id,
+          email: user.email,
+          role: user.role
+        });
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -166,13 +174,20 @@ export function setupAuth(app: Express) {
           return next(err);
         }
         console.log("Login successful for user:", user.email);
-        res.json(user);
+        res.json({
+          id: user.id,
+          email: user.email,
+          role: user.role
+        });
       });
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {
+    const user = req.user;
+    console.log("Logout request for user:", user?.email);
     req.logout(() => {
+      console.log("User logged out successfully");
       res.sendStatus(200);
     });
   });
@@ -181,6 +196,7 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) {
       return res.sendStatus(401);
     }
+    console.log("Returning user data for:", req.user?.email);
     res.json(req.user);
   });
 }
