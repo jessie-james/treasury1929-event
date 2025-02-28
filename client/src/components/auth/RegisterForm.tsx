@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/use-auth";
 const registerSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(['customer', 'venue_owner', 'venue_manager']),
+  role: z.string().default('customer'),
 });
 
 export function RegisterForm() {

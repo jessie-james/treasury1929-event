@@ -80,6 +80,17 @@ export async function registerRoutes(app: Express) {
     res.json(bookings);
   });
 
+  app.get("/api/user/bookings", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const bookings = await storage.getBookings().then(bookings => 
+      bookings.filter(booking => booking.userId === req.user?.id)
+    );
+    res.json(bookings);
+  });
+
   app.post("/api/bookings", async (req, res) => {
     try {
       const booking = insertBookingSchema.parse(req.body);

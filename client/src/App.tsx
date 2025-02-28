@@ -10,6 +10,7 @@ import EventPage from "@/pages/EventPage";
 import BookingPage from "@/pages/BookingPage";
 import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/backoffice/DashboardPage";
+import CustomerDashboard from "@/pages/CustomerDashboard";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/events/:id" component={EventPage} />
       <ProtectedRoute path="/events/:id/book" component={BookingPage} />
       <ProtectedRoute path="/backoffice" component={DashboardPage} />
+      <ProtectedRoute path="/dashboard" component={CustomerDashboard} />
       <Route component={NotFound} />
     </Switch>
   );
