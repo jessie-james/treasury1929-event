@@ -65,12 +65,18 @@ app.use((req, res, next) => {
         log("Setting up Vite development server...");
         setupVite(app, server).catch(error => {
           console.error("Failed to setup Vite:", error);
+          process.exit(1); // Exit if Vite setup fails
         });
       }
     }).on('error', (err: NodeJS.ErrnoException) => {
       if (err.code === 'EADDRINUSE') {
-        console.error(`Port ${port} is already in use`);
-        process.exit(1);
+        console.error(`Port ${port} is already in use, attempting to close existing connections...`);
+        setTimeout(() => {
+          server.close(() => {
+            console.log('Server closed. Retrying...');
+            server.listen(port, "0.0.0.0");
+          });
+        }, 1000);
       } else {
         console.error('Failed to start server:', err);
         process.exit(1);
