@@ -56,13 +56,15 @@ export default function BookingPage() {
             />
           )}
 
-          {step === "checkout" && selectedSeats && (
+          {step === "checkout" && (
             <CheckoutForm
               eventId={eventId}
-              tableId={selectedSeats.tableId}
-              selectedSeats={selectedSeats.seatNumbers}
+              tableId={selectedSeats?.tableId || 0}
+              seatNumbers={selectedSeats?.seatNumbers || []}
               foodSelections={foodSelections}
-              onSuccess={() => setLocation("/")}
+              onComplete={() => {
+                setLocation("/dashboard");
+              }}
             />
           )}
         </div>
