@@ -103,6 +103,25 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Create initial admin user if it doesn't exist
+  (async () => {
+    try {
+      const existingAdmin = await storage.getUserByEmail("admin@venue.com");
+      if (!existingAdmin) {
+        console.log("Creating initial admin user...");
+        const hashedPassword = await hashPassword("admin123");
+        await storage.createUser({
+          email: "admin@venue.com",
+          password: hashedPassword,
+          role: "admin",
+        });
+        console.log("Initial admin user created successfully");
+      }
+    } catch (error) {
+      console.error("Error creating initial admin user:", error);
+    }
+  })();
+
   app.post("/api/register", async (req, res) => {
     try {
       const existingUser = await storage.getUserByEmail(req.body.email);
