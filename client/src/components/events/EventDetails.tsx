@@ -1,9 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { type Event } from "@shared/schema";
+import { type Event, type Booking } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Calendar, MapPin } from "lucide-react";
+import { Calendar, MapPin, Ticket } from "lucide-react";
 import { useEffect } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Link } from "wouter";
 
 export function EventDetails({ 
   eventId,
@@ -16,6 +18,13 @@ export function EventDetails({
   const { data: event, isLoading } = useQuery<Event>({
     queryKey: [`/api/events/${eventId}`],
   });
+
+  // Query user's bookings to check if they have already booked this event
+  const { data: bookings } = useQuery<Booking[]>({
+    queryKey: ["/api/user/bookings"],
+  });
+
+  const hasBooking = bookings?.some(booking => booking.eventId === eventId);
 
   useEffect(() => {
     // Setup WebSocket connection
@@ -75,6 +84,18 @@ export function EventDetails({
         </div>
 
         <p className="text-lg">{event.description}</p>
+
+        {hasBooking && (
+          <Alert>
+            <Ticket className="h-4 w-4" />
+            <AlertTitle>You have tickets for this event</AlertTitle>
+            <AlertDescription>
+              <Link href="/dashboard" className="underline">
+                View your tickets
+              </Link>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
           <div>

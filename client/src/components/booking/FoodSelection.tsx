@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface FoodSelections {
   entree: number | undefined;
@@ -13,19 +14,24 @@ interface FoodSelections {
 }
 
 interface Props {
-  onComplete: (selection: Record<string, number>) => void;
+  selectedSeats: number[];
+  onComplete: (selections: Record<string, number>[]) => void;
 }
 
-export function FoodSelection({ onComplete }: Props) {
+export function FoodSelection({ selectedSeats, onComplete }: Props) {
   const { data: options } = useQuery<FoodOption[]>({
     queryKey: ["/api/food-options"],
   });
 
-  const [selection, setSelection] = useState<FoodSelections>({
-    entree: undefined,
-    dessert: undefined,
-    wine: undefined,
-  });
+  const [currentSeat, setCurrentSeat] = useState<string>(selectedSeats[0].toString());
+  const [selections, setSelections] = useState<Record<number, FoodSelections>>(
+    Object.fromEntries(
+      selectedSeats.map(seat => [
+        seat,
+        { entree: undefined, dessert: undefined, wine: undefined }
+      ])
+    )
+  );
 
   const byType = options?.reduce((acc, option) => {
     if (!acc[option.type]) acc[option.type] = [];
@@ -33,64 +39,94 @@ export function FoodSelection({ onComplete }: Props) {
     return acc;
   }, {} as Record<string, FoodOption[]>) ?? {};
 
-  const isComplete = selection.entree && selection.dessert && selection.wine;
+  const isComplete = selectedSeats.every(seat => {
+    const selection = selections[seat];
+    return selection?.entree && selection?.dessert && selection?.wine;
+  });
 
   const handleComplete = () => {
     if (isComplete) {
-      const selections: Record<string, number> = {
-        entree: selection.entree!,
-        dessert: selection.dessert!,
-        wine: selection.wine!,
-      };
-      onComplete(selections);
+      const foodSelections = selectedSeats.map(seat => ({
+        entree: selections[seat].entree!,
+        dessert: selections[seat].dessert!,
+        wine: selections[seat].wine!,
+      }));
+      onComplete(foodSelections);
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold">Select Your Menu</h2>
+        <h2 className="text-2xl font-bold">Select Menu Items</h2>
         <p className="text-muted-foreground">
-          Choose one item from each category
+          Choose menu items for each seat
         </p>
       </div>
 
-      <div className="space-y-8">
-        {Object.entries(byType).map(([type, options]) => (
-          <div key={type} className="space-y-4">
-            <h3 className="text-lg font-semibold capitalize">{type}</h3>
-            <RadioGroup
-              value={selection[type as keyof FoodSelections]?.toString()}
-              onValueChange={(value) =>
-                setSelection({ ...selection, [type]: parseInt(value) })
-              }
+      <Tabs value={currentSeat} onValueChange={setCurrentSeat}>
+        <TabsList className="grid grid-cols-4 w-full">
+          {selectedSeats.map(seat => (
+            <TabsTrigger 
+              key={seat} 
+              value={seat.toString()}
+              className="relative"
             >
-              <div className="grid gap-4 md:grid-cols-3">
-                {options.map((option) => (
-                  <Card key={option.id} className="overflow-hidden">
-                    <div className="aspect-[4/3] relative">
-                      <img
-                        src={option.image}
-                        alt={option.name}
-                        className="object-cover w-full h-full"
-                      />
-                    </div>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value={option.id.toString()} id={`${type}-${option.id}`} />
-                        <Label htmlFor={`${type}-${option.id}`}>{option.name}</Label>
-                      </div>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {option.description}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
+              Seat #{seat}
+              {selections[seat]?.entree && 
+               selections[seat]?.dessert && 
+               selections[seat]?.wine && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full" />
+              )}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+
+        {selectedSeats.map(seat => (
+          <TabsContent key={seat} value={seat.toString()} className="space-y-8">
+            {Object.entries(byType).map(([type, options]) => (
+              <div key={type} className="space-y-4">
+                <h3 className="text-lg font-semibold capitalize">{type}</h3>
+                <RadioGroup
+                  value={selections[seat]?.[type as keyof FoodSelections]?.toString()}
+                  onValueChange={(value) =>
+                    setSelections({
+                      ...selections,
+                      [seat]: {
+                        ...selections[seat],
+                        [type]: parseInt(value)
+                      }
+                    })
+                  }
+                >
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {options.map((option) => (
+                      <Card key={option.id} className="overflow-hidden">
+                        <div className="aspect-[4/3] relative">
+                          <img
+                            src={option.image}
+                            alt={option.name}
+                            className="object-cover w-full h-full"
+                          />
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value={option.id.toString()} id={`${type}-${seat}-${option.id}`} />
+                            <Label htmlFor={`${type}-${seat}-${option.id}`}>{option.name}</Label>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            {option.description}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </RadioGroup>
               </div>
-            </RadioGroup>
-          </div>
+            ))}
+          </TabsContent>
         ))}
-      </div>
+      </Tabs>
 
       <Button
         className="w-full"

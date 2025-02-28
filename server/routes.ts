@@ -184,6 +184,9 @@ export async function registerRoutes(app: Express) {
 
       // Then check if all selected seats are available
       const seats = await storage.getTableSeats(booking.tableId);
+      const seatBookings = await storage.getTableSeatsAvailability(booking.tableId, booking.eventId);
+
+      // Filter out seats that are already booked
       const selectedSeats = seats.filter(
         seat => booking.seatNumbers.includes(seat.seatNumber)
       );
@@ -194,7 +197,10 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      if (selectedSeats.some(seat => !seat.isAvailable)) {
+      const bookedSeats = seatBookings.filter(sb => sb.isBooked);
+      if (selectedSeats.some(seat => 
+        bookedSeats.some(bs => bs.seatId === seat.id)
+      )) {
         return res.status(400).json({ 
           message: "One or more selected seats are not available" 
         });

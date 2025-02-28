@@ -1,16 +1,10 @@
 import { EventList } from "@/components/events/EventList";
-import { UserMenu } from "@/components/UserMenu";
+import { Header } from "@/components/Header";
 
 export default function HomePage() {
   return (
     <div>
-      <div className="border-b">
-        <div className="container flex justify-between items-center h-16">
-          <h1 className="text-xl font-semibold">Event Venue Booking</h1>
-          <UserMenu />
-        </div>
-      </div>
-
+      <Header />
       <div className="container py-8 space-y-6">
         <div className="text-center space-y-2">
           <h2 className="text-4xl font-bold">Upcoming Events</h2>

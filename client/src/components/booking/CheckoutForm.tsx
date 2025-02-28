@@ -20,7 +20,10 @@ import { useAuth } from "@/hooks/use-auth";
 const checkoutSchema = z.object({
   customerEmail: z.string().email(),
   cardNumber: z.string().min(16).max(16),
-  expiryDate: z.string().regex(/^(0[1-9]|1[0-2])\/([0-9]{2})$/),
+  expiryDate: z.string()
+    .min(5, "Date must be in MM/YY format")
+    .max(5, "Date must be in MM/YY format")
+    .regex(/^(0[1-9]|1[0-2])\/([0-9]{2})$/, "Must be in MM/YY format"),
   cvc: z.string().min(3).max(4),
 });
 
@@ -28,7 +31,7 @@ interface Props {
   eventId: number;
   tableId: number;
   selectedSeats: number[];
-  foodSelections: Record<string, number>;
+  foodSelections: Record<string, number>[];
   onSuccess: () => void;
 }
 
@@ -44,6 +47,10 @@ export function CheckoutForm({
 
   const form = useForm<z.infer<typeof checkoutSchema>>({
     resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      customerEmail: user?.email,
+      expiryDate: "",
+    },
   });
 
   const { mutate, isPending } = useMutation({
@@ -78,6 +85,14 @@ export function CheckoutForm({
     },
   });
 
+  const handleExpiryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value.replace(/\D/g, "");
+    if (value.length >= 2) {
+      value = value.slice(0, 2) + "/" + value.slice(2, 4);
+    }
+    form.setValue("expiryDate", value);
+  };
+
   return (
     <Form {...form}>
       <form
@@ -91,7 +106,7 @@ export function CheckoutForm({
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input {...field} type="email" defaultValue={user?.email} />
+                <Input {...field} type="email" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -120,7 +135,12 @@ export function CheckoutForm({
               <FormItem>
                 <FormLabel>Expiry Date</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="MM/YY" />
+                  <Input 
+                    {...field} 
+                    placeholder="MM/YY"
+                    maxLength={5}
+                    onChange={handleExpiryDateChange}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -134,7 +154,7 @@ export function CheckoutForm({
               <FormItem>
                 <FormLabel>CVC</FormLabel>
                 <FormControl>
-                  <Input {...field} type="password" />
+                  <Input {...field} type="password" maxLength={4} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
