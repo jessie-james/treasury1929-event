@@ -1,6 +1,5 @@
 import { useParams, useLocation } from "wouter";
 import { EventDetails } from "@/components/events/EventDetails";
-import { BackButton } from "@/components/ui/back-button"; // Added import for BackButton
 
 export default function EventPage() {
   const [_, setLocation] = useLocation();
@@ -9,7 +8,6 @@ export default function EventPage() {
 
   return (
     <div className="container py-8">
-      <BackButton /> {/* Added BackButton */}
       <EventDetails
         eventId={eventId}
         onBookNow={() => setLocation(`/events/${eventId}/book`)}

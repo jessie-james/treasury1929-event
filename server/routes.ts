@@ -14,11 +14,11 @@ export async function registerRoutes(app: Express) {
 
   const httpServer = createServer(app);
 
-  // Create WebSocket server
+  // Create WebSocket server after HTTP server but before routes
   const wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws',
-    perMessageDeflate: false
+    perMessageDeflate: false // Disable compression for faster startup
   });
 
   wss.on('connection', (ws) => {
@@ -40,6 +40,28 @@ export async function registerRoutes(app: Express) {
       });
     }
   });
+
+  // Broadcast updates to all connected clients
+  const broadcastAvailability = async (eventId: number) => {
+    try {
+      const event = await storage.getEvent(eventId);
+      if (!event) return;
+
+      const message = JSON.stringify({
+        type: 'availability_update',
+        eventId: event.id,
+        availableSeats: event.availableSeats
+      });
+
+      clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+    } catch (error) {
+      console.error("Error broadcasting availability:", error);
+    }
+  };
 
   // Add new CRUD endpoints for events
   app.post("/api/events", async (req, res) => {
@@ -190,7 +212,6 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      console.log("Fetching bookings for user:", req.user?.id);
       const allBookings = await storage.getBookingDetails();
       const userBookings = allBookings.filter(booking => booking.userId === req.user?.id);
       res.json(userBookings);
@@ -296,33 +317,5 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Broadcast updates to all connected clients
-  const broadcastAvailability = async (eventId: number) => {
-    try {
-      const event = await storage.getEvent(eventId);
-      if (!event) return;
-
-      const message = JSON.stringify({
-        type: 'availability_update',
-        eventId: event.id,
-        availableSeats: event.availableSeats
-      });
-
-      clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(message);
-        }
-      });
-    } catch (error) {
-      console.error("Error broadcasting availability:", error);
-    }
-  };
-
   return httpServer;
-}
-
-// Placeholder -  This function needs to be implemented using a suitable hashing library like bcrypt
-async function hashPassword(password: string): Promise<string> {
-  // Replace this with actual hashing logic
-  return password; //This is a placeholder and needs to be replaced with actual hashing logic.  For example using bcrypt.
 }

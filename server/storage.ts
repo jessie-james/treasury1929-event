@@ -12,20 +12,24 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+
   // Events
   getEvents(): Promise<Event[]>;
   getEvent(id: number): Promise<Event | undefined>;
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: number, event: Partial<InsertEvent>): Promise<Event | undefined>;
   deleteEvent(id: number): Promise<void>;
+
   // Tables and Seats
   getTables(): Promise<Table[]>;
   getTableSeats(tableId: number): Promise<Seat[]>;
   getTableSeatsAvailability(tableId: number, eventId: number): Promise<SeatBooking[]>;
   updateSeatAvailability(tableId: number, seatNumbers: number[], eventId: number, isBooked: boolean): Promise<void>;
+
   // Food Options
   getFoodOptions(): Promise<FoodOption[]>;
   getFoodOptionsByIds(ids: number[]): Promise<FoodOption[]>;
+
   // Bookings
   createBooking(booking: InsertBooking): Promise<Booking>;
   updateEventAvailability(eventId: number, seatsBooked: number): Promise<void>;
@@ -93,6 +97,7 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+
   async getTables(): Promise<Table[]> {
     try {
       return await db.select().from(tables);
@@ -237,23 +242,20 @@ export class DatabaseStorage implements IStorage {
 
   async updateEventAvailability(eventId: number, seatsBooked: number): Promise<void> {
     try {
-      // Get current event to check available seats
-      const currentEvent = await this.getEvent(eventId);
-      if (!currentEvent) {
-        throw new Error(`Event with ID ${eventId} not found`);
-      }
+      console.log(`Updating event ${eventId} availability, seats booked: ${seatsBooked}`);
+      const [event] = await db
+        .select()
+        .from(events)
+        .where(eq(events.id, eventId));
 
-      // Ensure we don't go below 0 available seats
-      const newAvailableSeats = Math.max(0, currentEvent.availableSeats - seatsBooked);
+      if (!event) throw new Error("Event not found");
 
       await db
         .update(events)
-        .set({
-          availableSeats: newAvailableSeats
-        })
+        .set({ availableSeats: event.availableSeats - seatsBooked })
         .where(eq(events.id, eventId));
 
-      console.log(`Updated event ${eventId} availability: ${currentEvent.availableSeats} -> ${newAvailableSeats}`);
+      console.log("Event availability updated successfully");
     } catch (error) {
       console.error("Error updating event availability:", error);
       throw error;

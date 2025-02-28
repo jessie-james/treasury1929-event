@@ -1,7 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { BackButton } from "@/components/ui/back-button";
 import {
   LayoutDashboard,
   Calendar,
@@ -80,8 +79,7 @@ export function BackofficeLayout({ children }: Props) {
             Logged in as {user?.email} ({user?.role})
           </p>
         </div>
-        <div className="flex-1 p-8">
-          <BackButton className="lg:hidden" />
+        <div className="flex-1 overflow-auto p-6">
           {children}
         </div>
       </div>

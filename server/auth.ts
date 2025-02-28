@@ -9,7 +9,6 @@ import { type User } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
-// Extend Express.User with our custom User type
 declare global {
   namespace Express {
     interface User {
@@ -44,7 +43,7 @@ const PostgresSessionStore = connectPg(session);
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
-    secret: "venue-booking-secret-key",
+    secret: "your-secret-key",
     resave: false,
     saveUninitialized: false,
     store: new PostgresSessionStore({
@@ -71,15 +70,15 @@ export function setupAuth(app: Express) {
 
           if (!user) {
             console.log("User not found");
-            return done(null, false, { message: "Invalid email or password" });
+            return done(null, false);
           }
 
-          console.log("Found user:", { id: user.id, email: user.email });
+          console.log("Found user:", { id: user.id, email: user.email, role: user.role });
           const isValid = await comparePasswords(password, user.password);
           console.log("Password validation result:", isValid);
 
           if (!isValid) {
-            return done(null, false, { message: "Invalid email or password" });
+            return done(null, false);
           }
 
           return done(null, user);
@@ -87,85 +86,84 @@ export function setupAuth(app: Express) {
           console.error("Login error:", error);
           return done(error);
         }
-      }
-    )
+      },
+    ),
   );
 
-  passport.serializeUser((user: Express.User, done) => {
-    console.log("Serializing user:", user.id);
+  passport.serializeUser((user, done) => {
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
-      console.log("Deserializing user:", id);
       const user = await storage.getUser(id);
-      if (!user) {
-        console.log("User not found during deserialization");
-        return done(null, false);
-      }
       done(null, user);
     } catch (error) {
-      console.error("Deserialization error:", error);
       done(error);
     }
   });
 
-  // Handle registration
+  // Create initial admin user if it doesn't exist
+  (async () => {
+    try {
+      const existingAdmin = await storage.getUserByEmail("admin@venue.com");
+      if (!existingAdmin) {
+        console.log("Creating initial admin user...");
+        const hashedPassword = await hashPassword("admin123");
+        await storage.createUser({
+          email: "admin@venue.com",
+          password: hashedPassword,
+          role: "admin",
+        });
+        console.log("Initial admin user created successfully");
+      }
+    } catch (error) {
+      console.error("Error creating initial admin user:", error);
+    }
+  })();
+
   app.post("/api/register", async (req, res) => {
     try {
-      console.log("Registration attempt for:", req.body.email);
-
-      if (!req.body.email || !req.body.password) {
-        return res.status(400).json({ message: "Email and password are required" });
-      }
-
       const existingUser = await storage.getUserByEmail(req.body.email);
       if (existingUser) {
-        console.log("Registration failed: Email already exists");
         return res.status(400).json({ message: "Email already exists" });
       }
 
+      // Validate role
+      const role = req.body.role || 'customer';
+      if (!['admin', 'venue_owner', 'venue_manager', 'customer'].includes(role)) {
+        return res.status(400).json({ message: "Invalid role" });
+      }
+
       const hashedPassword = await hashPassword(req.body.password);
-      console.log("Password hashed successfully");
+      console.log("Registering new user with hashed password:", hashedPassword);
 
       const user = await storage.createUser({
-        email: req.body.email,
+        ...req.body,
         password: hashedPassword,
-        role: 'customer', // Default role for new registrations
       });
 
-      console.log("User created successfully:", { id: user.id, email: user.email });
-
       req.login(user, (err) => {
-        if (err) {
-          console.error("Login after registration failed:", err);
-          return res.status(500).json({ message: "Registration succeeded but login failed" });
-        }
-        res.status(201).json({
-          id: user.id,
-          email: user.email,
-          role: user.role
-        });
+        if (err) throw err;
+        res.status(201).json(user);
       });
     } catch (error) {
       console.error("Registration error:", error);
-      res.status(500).json({ message: "Registration failed" });
+      res.status(500).json({ message: "Failed to register user" });
     }
   });
 
-  // Handle login
-  app.post("/api/login", (req, res, next) => {
+  app.post("/api/login", async (req, res, next) => {
     console.log("Login attempt for:", req.body.email);
 
-    passport.authenticate("local", (err: any, user: User | false, info: any) => {
+    passport.authenticate("local", (err: any, user: User | false) => {
       if (err) {
         console.error("Authentication error:", err);
         return next(err);
       }
       if (!user) {
-        console.log("Authentication failed:", info?.message);
-        return res.status(401).json({ message: info?.message || "Invalid credentials" });
+        console.log("Authentication failed");
+        return res.status(401).json({ message: "Invalid credentials" });
       }
 
       req.login(user, (err) => {
@@ -174,20 +172,13 @@ export function setupAuth(app: Express) {
           return next(err);
         }
         console.log("Login successful for user:", user.email);
-        res.json({
-          id: user.id,
-          email: user.email,
-          role: user.role
-        });
+        res.json(user);
       });
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {
-    const user = req.user;
-    console.log("Logout request for user:", user?.email);
     req.logout(() => {
-      console.log("User logged out successfully");
       res.sendStatus(200);
     });
   });
@@ -196,7 +187,6 @@ export function setupAuth(app: Express) {
     if (!req.isAuthenticated()) {
       return res.sendStatus(401);
     }
-    console.log("Returning user data for:", req.user?.email);
     res.json(req.user);
   });
 }

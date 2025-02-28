@@ -6,7 +6,6 @@ import { CheckoutForm } from "@/components/booking/CheckoutForm";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Header } from "@/components/Header";
-import { BackButton } from "@/components/ui/back-button"; // Added import
 
 type Step = "seats" | "food" | "checkout";
 
@@ -32,7 +31,6 @@ export default function BookingPage() {
     <div>
       <Header />
       <div className="container py-8 space-y-6">
-        <BackButton /> {/* Added BackButton */}
         <div className="space-y-2">
           <Progress value={progress} className="w-full" />
           <p className="text-center text-sm text-muted-foreground">

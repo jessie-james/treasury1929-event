@@ -75,20 +75,7 @@ export default function EventsPage() {
                       {event.description}
                     </p>
                     <div className="flex justify-between text-sm">
-                      <span>
-                        Available Seats: {' '}
-                        <span className={
-                          event.availableSeats === 0 
-                            ? "font-bold text-red-500" 
-                            : event.availableSeats <= event.totalSeats * 0.2 
-                              ? "font-bold text-amber-500"
-                              : ""
-                        }>
-                          {event.availableSeats}
-                        </span>
-                        {event.availableSeats === 0 && " (SOLD OUT)"}
-                        {event.availableSeats > 0 && event.availableSeats <= event.totalSeats * 0.2 && " (SELLING FAST)"}
-                      </span>
+                      <span>Available Seats: {event.availableSeats}</span>
                       <span>Total Seats: {event.totalSeats}</span>
                     </div>
                   </div>
