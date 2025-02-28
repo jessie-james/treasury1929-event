@@ -5,6 +5,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
+import { type InsertEvent } from "@shared/schema";
 
 export interface IStorage {
   // Users
@@ -15,6 +16,9 @@ export interface IStorage {
   // Events
   getEvents(): Promise<Event[]>;
   getEvent(id: number): Promise<Event | undefined>;
+  createEvent(event: InsertEvent): Promise<Event>;
+  updateEvent(id: number, event: Partial<InsertEvent>): Promise<Event | undefined>;
+  deleteEvent(id: number): Promise<void>;
 
   // Tables and Seats
   getTables(): Promise<Table[]>;
@@ -333,6 +337,42 @@ export class DatabaseStorage implements IStorage {
       return totals;
     } catch (error) {
       console.error("Error getting event food totals:", error);
+      throw error;
+    }
+  }
+
+  async createEvent(event: InsertEvent): Promise<Event> {
+    try {
+      const [created] = await db.insert(events).values({
+        ...event,
+        availableSeats: event.totalSeats,
+      }).returning();
+      return created;
+    } catch (error) {
+      console.error("Error creating event:", error);
+      throw error;
+    }
+  }
+
+  async updateEvent(id: number, eventUpdate: Partial<InsertEvent>): Promise<Event | undefined> {
+    try {
+      const [updated] = await db
+        .update(events)
+        .set(eventUpdate)
+        .where(eq(events.id, id))
+        .returning();
+      return updated;
+    } catch (error) {
+      console.error("Error updating event:", error);
+      throw error;
+    }
+  }
+
+  async deleteEvent(id: number): Promise<void> {
+    try {
+      await db.delete(events).where(eq(events.id, id));
+    } catch (error) {
+      console.error("Error deleting event:", error);
       throw error;
     }
   }
