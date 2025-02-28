@@ -240,5 +240,25 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add new endpoint for event food totals
+  app.get("/api/events/:id/food-totals", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.id);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const totals = await storage.getEventFoodTotals(eventId);
+      res.json(totals);
+    } catch (error) {
+      console.error("Error fetching event food totals:", error);
+      res.status(500).json({ message: "Failed to fetch food totals" });
+    }
+  });
+
   return httpServer;
 }

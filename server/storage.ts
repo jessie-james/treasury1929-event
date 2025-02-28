@@ -31,6 +31,12 @@ export interface IStorage {
   updateEventAvailability(eventId: number, seatsBooked: number): Promise<void>;
   getBookings(): Promise<Booking[]>;
   getBookingDetails(): Promise<(Booking & { event: Event, foodItems: FoodOption[] })[]>;
+  getEventFoodTotals(eventId: number): Promise<{
+    salads: Record<number, number>;
+    entrees: Record<number, number>;
+    desserts: Record<number, number>;
+    wines: Record<number, number>;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -288,6 +294,45 @@ export class DatabaseStorage implements IStorage {
       return enrichedBookings;
     } catch (error) {
       console.error("Error fetching booking details:", error);
+      throw error;
+    }
+  }
+
+  async getEventFoodTotals(eventId: number) {
+    try {
+      const bookings = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.eventId, eventId));
+
+      const totals = {
+        salads: {} as Record<number, number>,
+        entrees: {} as Record<number, number>,
+        desserts: {} as Record<number, number>,
+        wines: {} as Record<number, number>
+      };
+
+      bookings.forEach(booking => {
+        const selections = booking.foodSelections as Record<string, Record<string, number>>;
+        Object.values(selections).forEach(selection => {
+          if (selection.salad) {
+            totals.salads[selection.salad] = (totals.salads[selection.salad] || 0) + 1;
+          }
+          if (selection.entree) {
+            totals.entrees[selection.entree] = (totals.entrees[selection.entree] || 0) + 1;
+          }
+          if (selection.dessert) {
+            totals.desserts[selection.dessert] = (totals.desserts[selection.dessert] || 0) + 1;
+          }
+          if (selection.wine) {
+            totals.wines[selection.wine] = (totals.wines[selection.wine] || 0) + 1;
+          }
+        });
+      });
+
+      return totals;
+    } catch (error) {
+      console.error("Error getting event food totals:", error);
       throw error;
     }
   }
