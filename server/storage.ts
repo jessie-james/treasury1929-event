@@ -242,20 +242,23 @@ export class DatabaseStorage implements IStorage {
 
   async updateEventAvailability(eventId: number, seatsBooked: number): Promise<void> {
     try {
-      console.log(`Updating event ${eventId} availability, seats booked: ${seatsBooked}`);
-      const [event] = await db
-        .select()
-        .from(events)
-        .where(eq(events.id, eventId));
+      // Get current event to check available seats
+      const currentEvent = await this.getEvent(eventId);
+      if (!currentEvent) {
+        throw new Error(`Event with ID ${eventId} not found`);
+      }
 
-      if (!event) throw new Error("Event not found");
+      // Ensure we don't go below 0 available seats
+      const newAvailableSeats = Math.max(0, currentEvent.availableSeats - seatsBooked);
 
       await db
         .update(events)
-        .set({ availableSeats: event.availableSeats - seatsBooked })
+        .set({
+          availableSeats: newAvailableSeats
+        })
         .where(eq(events.id, eventId));
 
-      console.log("Event availability updated successfully");
+      console.log(`Updated event ${eventId} availability: ${currentEvent.availableSeats} -> ${newAvailableSeats}`);
     } catch (error) {
       console.error("Error updating event availability:", error);
       throw error;

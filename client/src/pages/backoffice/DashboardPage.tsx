@@ -68,9 +68,20 @@ export default function DashboardPage() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium">{event.availableSeats} seats left</p>
+                          <p className={`font-medium ${
+                            event.availableSeats === 0 
+                              ? "text-red-500" 
+                              : event.availableSeats <= event.totalSeats * 0.2 
+                                ? "text-amber-500"
+                                : ""
+                          }`}>
+                            {event.availableSeats === 0 
+                              ? "SOLD OUT" 
+                              : `${event.availableSeats} seats left`}
+                          </p>
                           <p className="text-sm text-muted-foreground">
                             out of {event.totalSeats}
+                            {event.availableSeats > 0 && event.availableSeats <= event.totalSeats * 0.2 && " (SELLING FAST)"}
                           </p>
                         </div>
                       </div>
