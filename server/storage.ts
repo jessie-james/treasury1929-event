@@ -3,7 +3,7 @@ import {
   type InsertBooking, events, foodOptions, bookings, tables, seats 
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Events
@@ -55,7 +55,7 @@ export class DatabaseStorage implements IStorage {
       .where(
         and(
           eq(seats.tableId, tableId),
-          seats.seatNumber.in(seatNumbers)
+          inArray(seats.seatNumber, seatNumbers)
         )
       );
   }
