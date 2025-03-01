@@ -10,6 +10,7 @@ import EventPage from "@/pages/EventPage";
 import BookingPage from "@/pages/BookingPage";
 import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/backoffice/DashboardPage";
+import OrdersPage from "@/pages/backoffice/OrdersPage";
 import EventsPage from "@/pages/backoffice/EventsPage";
 import FoodPage from "@/pages/backoffice/FoodPage";
 import CustomerDashboard from "@/pages/CustomerDashboard";
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/events/:id" component={EventPage} />
       <ProtectedRoute path="/events/:id/book" component={BookingPage} />
       <ProtectedRoute path="/backoffice" component={DashboardPage} />
+      <ProtectedRoute path="/backoffice/orders" component={OrdersPage} />
       <ProtectedRoute path="/backoffice/events" component={EventsPage} />
       <ProtectedRoute path="/backoffice/food" component={FoodPage} />
       <ProtectedRoute path="/dashboard" component={CustomerDashboard} />

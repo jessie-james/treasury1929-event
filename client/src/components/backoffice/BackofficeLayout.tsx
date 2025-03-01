@@ -8,6 +8,7 @@ import {
   Settings,
   Utensils,
   LogOut,
+  ClipboardList, // Added import
 } from "lucide-react";
 
 interface Props {
@@ -22,6 +23,12 @@ export function BackofficeLayout({ children }: Props) {
       name: "Dashboard",
       href: "/backoffice",
       icon: LayoutDashboard,
+      roles: ['admin', 'venue_owner', 'venue_manager'],
+    },
+    {
+      name: "Orders",
+      href: "/backoffice/orders",
+      icon: ClipboardList,
       roles: ['admin', 'venue_owner', 'venue_manager'],
     },
     {
