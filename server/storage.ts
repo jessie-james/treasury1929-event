@@ -12,6 +12,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getUsers(): Promise<User[]>; // Added getUsers method
 
   // Events
   getEvents(): Promise<Event[]>;
@@ -77,6 +78,15 @@ export class DatabaseStorage implements IStorage {
       return created;
     } catch (error) {
       console.error("Error creating user:", error);
+      throw error;
+    }
+  }
+
+  async getUsers(): Promise<User[]> { // Added getUsers method
+    try {
+      return await db.select().from(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
       throw error;
     }
   }

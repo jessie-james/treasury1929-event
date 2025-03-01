@@ -8,7 +8,7 @@ import {
   Settings,
   Utensils,
   LogOut,
-  ClipboardList, // Added import
+  ClipboardList,
 } from "lucide-react";
 
 interface Props {
