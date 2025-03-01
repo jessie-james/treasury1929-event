@@ -40,28 +40,30 @@ export function EventFoodTotals({ eventId }: Props) {
   return (
     <Card className="bg-card/50">
       <CardHeader>
-        <CardTitle className="text-xl">Food & Drink Selections</CardTitle>
+        <CardTitle className="text-2xl font-bold">Food & Drink Selections</CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[300px]">
-          <div className="grid grid-cols-2 gap-6">
+        <ScrollArea className="h-[500px]">
+          <div className="space-y-6">
             {categories.map(category => (
-              <Card key={category.key} className="border-none shadow-none bg-transparent">
-                <CardHeader className="p-3">
-                  <CardTitle className="text-lg font-semibold">{category.name}</CardTitle>
+              <Card key={category.key} className="border shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-xl font-bold">{category.name}</CardTitle>
                 </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  <div className="space-y-3">
+                <CardContent>
+                  <div className="space-y-4">
                     {Object.entries(totals[category.key] || {}).map(([id, count]) => (
-                      <div key={id} className="flex items-center justify-between">
-                        <span className="text-base text-muted-foreground">
+                      <div key={id} className="flex items-center justify-between border-b pb-3 last:border-0">
+                        <span className="text-lg">
                           {getFoodName(parseInt(id), category.key)}
                         </span>
-                        <span className="text-2xl font-bold">{count}</span>
+                        <span className="text-3xl font-bold text-primary">{count}</span>
                       </div>
                     ))}
                     {Object.keys(totals[category.key] || {}).length === 0 && (
-                      <p className="text-sm text-muted-foreground italic">No selections</p>
+                      <p className="text-lg text-muted-foreground italic text-center py-4">
+                        No {category.name.toLowerCase()} selected
+                      </p>
                     )}
                   </div>
                 </CardContent>
