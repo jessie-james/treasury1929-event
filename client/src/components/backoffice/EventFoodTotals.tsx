@@ -38,25 +38,34 @@ export function EventFoodTotals({ eventId }: Props) {
   };
 
   return (
-    <Card>
+    <Card className="bg-card/50">
       <CardHeader>
-        <CardTitle>Food & Drink Selections</CardTitle>
+        <CardTitle className="text-xl">Food & Drink Selections</CardTitle>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[300px]">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             {categories.map(category => (
-              <div key={category.key} className="space-y-2">
-                <h3 className="font-semibold">{category.name}</h3>
-                <div className="space-y-1">
-                  {Object.entries(totals[category.key] || {}).map(([id, count]) => (
-                    <div key={id} className="flex justify-between text-sm">
-                      <span>{getFoodName(parseInt(id), category.key)}</span>
-                      <span className="font-medium">{count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Card key={category.key} className="border-none shadow-none bg-transparent">
+                <CardHeader className="p-3">
+                  <CardTitle className="text-lg font-semibold">{category.name}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 pt-0">
+                  <div className="space-y-3">
+                    {Object.entries(totals[category.key] || {}).map(([id, count]) => (
+                      <div key={id} className="flex items-center justify-between">
+                        <span className="text-base text-muted-foreground">
+                          {getFoodName(parseInt(id), category.key)}
+                        </span>
+                        <span className="text-2xl font-bold">{count}</span>
+                      </div>
+                    ))}
+                    {Object.keys(totals[category.key] || {}).length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">No selections</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         </ScrollArea>
