@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ArrowUpDown, Search, RotateCcw } from "lucide-react";
-import { type User, type Event, type FoodOption } from "@shared/schema";
+import { type User, type Event, type FoodOption, type Booking } from "@shared/schema";
 import { UserProfile } from "@/components/backoffice/UserProfile";
 import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -39,14 +39,25 @@ type FilterOptions = {
   minSeats?: number;
 };
 
+interface ExtendedUser extends User {
+  bookings?: ExtendedBooking[];
+}
+
+interface ExtendedBooking extends Booking {
+  foodSelections?: {
+    [key: string]: {
+      [key: string]: number;
+    };
+  };
+}
+
 export default function UsersPage() {
   const [sortBy, setSortBy] = useState<SortOption>('date');
   const [sortAsc, setSortAsc] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({});
   const [appliedFilters, setAppliedFilters] = useState<FilterOptions>({});
-  const [appliedSort, setAppliedSort] = useState({ by: 'date' as SortOption, asc: false });
 
-  const { data: users, isLoading: usersLoading } = useQuery<User[]>({
+  const { data: users, isLoading: usersLoading } = useQuery<ExtendedUser[]>({
     queryKey: ["/api/users"],
   });
 
@@ -58,46 +69,120 @@ export default function UsersPage() {
     queryKey: ["/api/food-options"],
   });
 
-  // Collect unique allergens and special requests from all bookings
+  // Get unique allergens and special requests
   const uniqueValues = useMemo(() => {
     const allergens = new Set<string>();
     const specialRequests = new Set<string>();
 
-    // We'll populate these from user bookings when available
-    return { allergens: Array.from(allergens), specialRequests: Array.from(specialRequests) };
-  }, []);
+    users?.forEach(user => {
+      user.bookings?.forEach(booking => {
+        if ('allergens' in booking && booking.allergens) {
+          allergens.add(booking.allergens);
+        }
+        if ('specialRequests' in booking && booking.specialRequests) {
+          specialRequests.add(booking.specialRequests);
+        }
+      });
+    });
 
-  // Sort users based on selected criteria
-  const sortedUsers = useMemo(() => {
+    return { 
+      allergens: Array.from(allergens), 
+      specialRequests: Array.from(specialRequests) 
+    };
+  }, [users]);
+
+  // Get user stats based on filters
+  const getUserStats = (user: ExtendedUser) => {
+    const userBookings = user.bookings || [];
+    const stats = {
+      totalSeats: 0,
+      eventCount: 0,
+      selectedFoodCount: 0,
+      matchingEvents: [] as string[],
+    };
+
+    if (appliedFilters.event) {
+      const eventBookings = userBookings.filter(b => b.eventId === appliedFilters.event);
+      stats.matchingEvents = events
+        ?.filter(e => e.id === appliedFilters.event)
+        .map(e => e.title) || [];
+      stats.totalSeats = eventBookings.reduce((sum, b) => sum + (b.seatNumbers?.length || 0), 0);
+    }
+
+    if (appliedFilters.foodItem) {
+      stats.selectedFoodCount = userBookings.reduce((count, booking) => {
+        const selections = booking.foodSelections || {};
+        return count + Object.values(selections).filter(s => 
+          Object.values(s).includes(appliedFilters.foodItem!)
+        ).length;
+      }, 0);
+    }
+
+    return stats;
+  };
+
+  // Filter and sort users
+  const filteredAndSortedUsers = useMemo(() => {
     if (!users) return [];
 
-    return [...users].sort((a, b) => {
-      const multiplier = appliedSort.asc ? 1 : -1;
-      switch (appliedSort.by) {
+    let filtered = [...users];
+
+    // Apply filters
+    if (appliedFilters.event) {
+      filtered = filtered.filter(user => 
+        user.bookings?.some(b => b.eventId === appliedFilters.event)
+      );
+    }
+
+    if (appliedFilters.foodItem) {
+      filtered = filtered.filter(user => {
+        const stats = getUserStats(user);
+        return stats.selectedFoodCount > 0;
+      });
+    }
+
+    if (appliedFilters.minSeats) {
+      filtered = filtered.filter(user => {
+        const totalSeats = user.bookings?.reduce(
+          (sum, b) => sum + (b.seatNumbers?.length || 0), 
+          0
+        ) || 0;
+        return totalSeats >= appliedFilters.minSeats;
+      });
+    }
+
+    // Sort users
+    return filtered.sort((a, b) => {
+      const multiplier = sortAsc ? 1 : -1;
+      switch (sortBy) {
         case 'date':
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
           const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
           return (dateA - dateB) * multiplier;
+        case 'events':
+          const eventsA = a.bookings?.length || 0;
+          const eventsB = b.bookings?.length || 0;
+          return (eventsA - eventsB) * multiplier;
+        case 'seats':
+          const seatsA = a.bookings?.reduce((sum, b) => sum + (b.seatNumbers?.length || 0), 0) || 0;
+          const seatsB = b.bookings?.reduce((sum, b) => sum + (b.seatNumbers?.length || 0), 0) || 0;
+          return (seatsA - seatsB) * multiplier;
         default:
           return 0;
       }
     });
-  }, [users, appliedSort]);
+  }, [users, appliedFilters, sortBy, sortAsc]);
 
   // Get active filter count
   const activeFilterCount = Object.values(appliedFilters).filter(Boolean).length;
 
   const handleSearch = () => {
     setAppliedFilters(filters);
-    setAppliedSort({ by: sortBy, asc: sortAsc });
   };
 
   const handleReset = () => {
     setFilters({});
-    setSortBy('date');
-    setSortAsc(false);
     setAppliedFilters({});
-    setAppliedSort({ by: 'date', asc: false });
   };
 
   if (usersLoading) {
@@ -120,7 +205,7 @@ export default function UsersPage() {
           )}
         </div>
 
-        {/* Filters and Sorting */}
+        {/* Filters Card */}
         <Card>
           <CardHeader>
             <CardTitle>Filters & Organization</CardTitle>
@@ -344,30 +429,49 @@ export default function UsersPage() {
 
         {/* User List */}
         <div className="space-y-6">
-          {sortedUsers?.map((user) => (
-            <Card key={user.id} className="overflow-hidden">
-              <CardHeader>
-                <CardTitle className="text-2xl font-bold flex items-center justify-between">
-                  <span>{user.email}</span>
-                  <span className="text-base font-normal text-muted-foreground">
-                    Customer since: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-                  </span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Accordion type="single" collapsible>
-                  <AccordionItem value="profile">
-                    <AccordionTrigger className="text-xl">
-                      View Profile & Bookings
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <UserProfile userId={user.id} />
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </CardContent>
-            </Card>
-          ))}
+          {filteredAndSortedUsers.map((user) => {
+            const stats = getUserStats(user);
+
+            return (
+              <Card key={user.id} className="overflow-hidden">
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div>
+                      <span>{user.email}</span>
+                      <span className="text-base font-normal text-muted-foreground block lg:inline lg:ml-4">
+                        Customer since: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+                      </span>
+                    </div>
+                    {/* Show relevant stats based on active filters */}
+                    <div className="flex gap-4 text-base font-normal">
+                      {stats.matchingEvents.length > 0 && (
+                        <Badge variant="outline" className="h-auto py-1">
+                          Event: {stats.matchingEvents.join(", ")} ({stats.totalSeats} seats)
+                        </Badge>
+                      )}
+                      {appliedFilters.foodItem && (
+                        <Badge variant="outline" className="h-auto py-1">
+                          Selected food: {stats.selectedFoodCount} times
+                        </Badge>
+                      )}
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Accordion type="single" collapsible>
+                    <AccordionItem value="profile">
+                      <AccordionTrigger className="text-xl">
+                        View Profile & Bookings
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <UserProfile userId={user.id} />
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
     </BackofficeLayout>
