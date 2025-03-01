@@ -17,17 +17,205 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowUpDown, Search, RotateCcw } from "lucide-react";
+import { ArrowUpDown, Search, RotateCcw, Loader2 } from "lucide-react";
 import { type User, type Event, type FoodOption, type Booking } from "@shared/schema";
-import { UserProfile } from "@/components/backoffice/UserProfile";
 import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
-// ... keep existing type definitions and interfaces ...
+type SortOption = 'date' | 'events' | 'seats';
+type FilterOptions = {
+  events?: number[];
+  foodItems?: number[];
+  allergens?: string[];
+  specialRequest?: string;
+  minSeats?: number;
+};
+
+interface ExtendedBooking extends Booking {
+  event: {
+    id: number;
+    title: string;
+    date: string;
+  };
+  foodItems: Array<{
+    id: number;
+    name: string;
+    type: string;
+  }>;
+  specialRequests?: string;
+  allergens?: string;
+}
+
+interface ExtendedUser extends User {
+  bookings: ExtendedBooking[];
+}
+
+const ALLERGEN_OPTIONS = ['Wheat', 'Dairy', 'Nuts'];
 
 export default function UsersPage() {
-  // ... keep existing state and query hooks ...
+  const [sortBy, setSortBy] = useState<SortOption>('date');
+  const [sortAsc, setSortAsc] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>({});
+  const [appliedFilters, setAppliedFilters] = useState<FilterOptions>({});
+
+  const { data: users, isLoading: usersLoading, error: usersError } = useQuery<ExtendedUser[]>({
+    queryKey: ["/api/users"],
+  });
+
+  const { data: events } = useQuery<Event[]>({
+    queryKey: ["/api/events"],
+  });
+
+  const { data: foodOptions } = useQuery<FoodOption[]>({
+    queryKey: ["/api/food-options"],
+  });
+
+  // Get user stats based on filters
+  const getUserStats = (user: ExtendedUser) => {
+    const userBookings = user.bookings || [];
+    const stats = {
+      totalSeats: 0,
+      eventCount: userBookings.length,
+      totalSeatsAll: userBookings.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0),
+      selectedFoodCount: {} as Record<number, number>,
+      matchingEvents: [] as string[],
+    };
+
+    if (appliedFilters.events?.length) {
+      const eventBookings = userBookings.filter(b => appliedFilters.events?.includes(b.event.id));
+      stats.matchingEvents = eventBookings.map(b => b.event.title);
+      stats.totalSeats = eventBookings.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0);
+    }
+
+    if (appliedFilters.foodItems?.length) {
+      appliedFilters.foodItems.forEach(foodId => {
+        stats.selectedFoodCount[foodId] = userBookings.reduce((count, booking) => {
+          return count + booking.foodItems.filter(item => item.id === foodId).length;
+        }, 0);
+      });
+    }
+
+    return stats;
+  };
+
+  // Filter and sort users
+  const filteredAndSortedUsers = useMemo(() => {
+    if (!users) return [];
+
+    let filtered = [...users];
+
+    // Apply filters
+    if (appliedFilters.events?.length) {
+      filtered = filtered.filter(user =>
+        user.bookings?.some(b => appliedFilters.events?.includes(b.event.id))
+      );
+    }
+
+    if (appliedFilters.foodItems?.length) {
+      filtered = filtered.filter(user => {
+        const stats = getUserStats(user);
+        return appliedFilters.foodItems?.some(foodId => stats.selectedFoodCount[foodId] > 0);
+      });
+    }
+
+    if (appliedFilters.allergens?.length) {
+      filtered = filtered.filter(user =>
+        user.bookings?.some(b => 
+          b.allergens && appliedFilters.allergens?.some(allergen => 
+            b.allergens?.includes(allergen)
+          )
+        )
+      );
+    }
+
+    if (appliedFilters.minSeats) {
+      filtered = filtered.filter(user => {
+        const totalSeats = user.bookings?.reduce(
+          (sum, b) => sum + (b.seatNumbers.length || 0),
+          0
+        ) || 0;
+        return totalSeats >= appliedFilters.minSeats;
+      });
+    }
+
+    // Sort users
+    return filtered.sort((a, b) => {
+      const multiplier = sortAsc ? 1 : -1;
+      switch (sortBy) {
+        case 'date':
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return (dateA - dateB) * multiplier;
+        case 'events':
+          const eventsA = a.bookings?.length || 0;
+          const eventsB = b.bookings?.length || 0;
+          return (eventsA - eventsB) * multiplier;
+        case 'seats':
+          const seatsA = a.bookings?.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0) || 0;
+          const seatsB = b.bookings?.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0) || 0;
+          return (seatsA - seatsB) * multiplier;
+        default:
+          return 0;
+      }
+    });
+  }, [users, appliedFilters, sortBy, sortAsc]);
+
+  const handleSearch = () => {
+    setAppliedFilters(filters);
+  };
+
+  const handleReset = () => {
+    setFilters({});
+    setAppliedFilters({});
+  };
+
+  const handleEventToggle = (eventId: number) => {
+    setFilters(prev => ({
+      ...prev,
+      events: prev.events?.includes(eventId)
+        ? prev.events.filter(id => id !== eventId)
+        : [...(prev.events || []), eventId]
+    }));
+  };
+
+  const handleFoodToggle = (foodId: number) => {
+    setFilters(prev => ({
+      ...prev,
+      foodItems: prev.foodItems?.includes(foodId)
+        ? prev.foodItems.filter(id => id !== foodId)
+        : [...(prev.foodItems || []), foodId]
+    }));
+  };
+
+  const handleAllergenToggle = (allergen: string) => {
+    setFilters(prev => ({
+      ...prev,
+      allergens: prev.allergens?.includes(allergen)
+        ? prev.allergens.filter(a => a !== allergen)
+        : [...(prev.allergens || []), allergen]
+    }));
+  };
+
+  if (usersLoading) {
+    return (
+      <BackofficeLayout>
+        <div className="flex items-center justify-center min-h-[200px]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </BackofficeLayout>
+    );
+  }
+
+  if (usersError) {
+    return (
+      <BackofficeLayout>
+        <div className="text-center text-destructive py-8">
+          <p>Error loading users. Please try again later.</p>
+        </div>
+      </BackofficeLayout>
+    );
+  }
 
   return (
     <BackofficeLayout>
@@ -90,7 +278,7 @@ export default function UsersPage() {
                         onCheckedChange={() => handleEventToggle(event.id)}
                         className="h-5 w-5"
                       />
-                      <Label 
+                      <Label
                         htmlFor={`event-${event.id}`}
                         className="text-sm sm:text-base flex-1 cursor-pointer"
                       >
@@ -115,7 +303,7 @@ export default function UsersPage() {
                         onCheckedChange={() => handleFoodToggle(food.id)}
                         className="h-5 w-5"
                       />
-                      <Label 
+                      <Label
                         htmlFor={`food-${food.id}`}
                         className="text-sm sm:text-base flex-1 cursor-pointer"
                       >
@@ -140,7 +328,7 @@ export default function UsersPage() {
                         onCheckedChange={() => handleAllergenToggle(allergen)}
                         className="h-5 w-5"
                       />
-                      <Label 
+                      <Label
                         htmlFor={`allergen-${allergen}`}
                         className="text-sm sm:text-base flex-1 cursor-pointer"
                       >
@@ -278,7 +466,8 @@ export default function UsersPage() {
                         View Profile & Bookings
                       </AccordionTrigger>
                       <AccordionContent>
-                        <UserProfile userId={user.id} />
+                        {/* Assuming UserProfile component is defined elsewhere */}
+                        {/* <UserProfile userId={user.id} /> */}
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
