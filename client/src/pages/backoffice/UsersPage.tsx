@@ -22,6 +22,7 @@ import { type User, type Event, type FoodOption, type Booking } from "@shared/sc
 import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 
 type SortOption = 'date' | 'events' | 'seats';
 type FilterOptions = {
@@ -54,6 +55,7 @@ interface ExtendedUser extends User {
 const ALLERGEN_OPTIONS = ['Wheat', 'Dairy', 'Nuts'];
 
 export default function UsersPage() {
+  const { toast } = useToast();
   const [sortBy, setSortBy] = useState<SortOption>('date');
   const [sortAsc, setSortAsc] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({});
@@ -61,6 +63,14 @@ export default function UsersPage() {
 
   const { data: users, isLoading: usersLoading, error: usersError } = useQuery<ExtendedUser[]>({
     queryKey: ["/api/users"],
+    onError: (error: Error) => {
+      console.error("Error fetching users:", error);
+      toast({
+        title: "Error loading users",
+        description: "Please try refreshing the page",
+        variant: "destructive",
+      });
+    },
   });
 
   const { data: events } = useQuery<Event[]>({
@@ -121,8 +131,8 @@ export default function UsersPage() {
 
     if (appliedFilters.allergens?.length) {
       filtered = filtered.filter(user =>
-        user.bookings?.some(b => 
-          b.allergens && appliedFilters.allergens?.some(allergen => 
+        user.bookings?.some(b =>
+          b.allergens && appliedFilters.allergens?.some(allergen =>
             b.allergens?.includes(allergen)
           )
         )
@@ -201,7 +211,7 @@ export default function UsersPage() {
     return (
       <BackofficeLayout>
         <div className="flex items-center justify-center min-h-[200px]">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </BackofficeLayout>
     );
@@ -210,8 +220,25 @@ export default function UsersPage() {
   if (usersError) {
     return (
       <BackofficeLayout>
-        <div className="text-center text-destructive py-8">
-          <p>Error loading users. Please try again later.</p>
+        <div className="flex flex-col items-center justify-center min-h-[200px] gap-4">
+          <p className="text-destructive text-center">Failed to load users.</p>
+          <Button
+            variant="outline"
+            onClick={() => window.location.reload()}
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </BackofficeLayout>
+    );
+  }
+
+  if (!users?.length) {
+    return (
+      <BackofficeLayout>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No users found</p>
         </div>
       </BackofficeLayout>
     );
