@@ -1,7 +1,10 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { FoodOption } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 interface Props {
   eventId: number;
@@ -26,10 +29,10 @@ export function EventFoodTotals({ eventId }: Props) {
   if (!totals || !foodOptions) return null;
 
   const categories = [
-    { name: "Salads", key: "salads" as keyof FoodTotals },
-    { name: "Entrees", key: "entrees" as keyof FoodTotals },
-    { name: "Desserts", key: "desserts" as keyof FoodTotals },
-    { name: "Wines", key: "wines" as keyof FoodTotals }
+    { name: "Salads", key: "salads" as keyof FoodTotals, color: "bg-green-500" },
+    { name: "Entrees", key: "entrees" as keyof FoodTotals, color: "bg-amber-500" },
+    { name: "Desserts", key: "desserts" as keyof FoodTotals, color: "bg-pink-500" },
+    { name: "Wines", key: "wines" as keyof FoodTotals, color: "bg-purple-500" }
   ];
 
   const getFoodName = (id: number, type: string) => {
@@ -37,28 +40,60 @@ export function EventFoodTotals({ eventId }: Props) {
     return option?.name || "Unknown";
   };
 
+  // Calculate total selections for all categories
+  const getTotalSelections = () => {
+    let total = 0;
+    categories.forEach(category => {
+      const categoryTotals = totals[category.key] || {};
+      Object.values(categoryTotals).forEach(count => {
+        total += count;
+      });
+    });
+    return total;
+  };
+
+  const totalSelections = getTotalSelections();
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Food & Drink Selections</CardTitle>
+    <Card className="shadow-md">
+      <CardHeader className="bg-muted/50">
+        <CardTitle className="text-lg">Food & Drink Selections</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[300px]">
-          <div className="grid grid-cols-2 gap-4">
-            {categories.map(category => (
-              <div key={category.key} className="space-y-2">
-                <h3 className="font-semibold">{category.name}</h3>
-                <div className="space-y-1">
-                  {Object.entries(totals[category.key] || {}).map(([id, count]) => (
-                    <div key={id} className="flex justify-between text-sm">
-                      <span>{getFoodName(parseInt(id), category.key)}</span>
-                      <span className="font-medium">{count}</span>
-                    </div>
-                  ))}
+      <CardContent className="pt-4">
+        <ScrollArea className="h-[300px] pr-4">
+          {categories.map(category => {
+            const categoryItems = Object.entries(totals[category.key] || {});
+            if (categoryItems.length === 0) return null;
+            
+            return (
+              <div key={category.key} className="mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="font-semibold">{category.name}</h3>
+                  <Badge variant="outline" className={category.color.replace('bg-', 'border-') + " text-xs"}>
+                    {categoryItems.reduce((sum, [_, count]) => sum + count, 0)} orders
+                  </Badge>
+                </div>
+                
+                <div className="space-y-3">
+                  {categoryItems.map(([id, count]) => {
+                    const percentage = Math.round((count / totalSelections) * 100);
+                    return (
+                      <div key={id} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="font-medium">{getFoodName(parseInt(id), category.key)}</span>
+                          <span className="text-muted-foreground">{count} orders</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Progress value={percentage} className={`h-2 ${category.color}`} />
+                          <span className="text-xs text-muted-foreground w-8">{percentage}%</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </ScrollArea>
       </CardContent>
     </Card>
