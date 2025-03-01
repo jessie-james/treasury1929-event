@@ -9,7 +9,11 @@ import {
   Utensils,
   LogOut,
   ClipboardList,
+  Menu,
+  X,
 } from "lucide-react";
+import { useState } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 interface Props {
   children: React.ReactNode;
@@ -17,6 +21,7 @@ interface Props {
 
 export function BackofficeLayout({ children }: Props) {
   const { user, logoutMutation } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
 
   const navigation = [
     {
@@ -57,38 +62,65 @@ export function BackofficeLayout({ children }: Props) {
     },
   ];
 
+  const filteredNav = navigation.filter((item) => item.roles.includes(user?.role || ''));
+
+  const NavItems = ({ onClick }: { onClick?: () => void }) => (
+    <>
+      {filteredNav.map((item) => (
+        <Link key={item.name} href={item.href}>
+          <a onClick={onClick} className="flex items-center gap-2 px-4 py-3 rounded-md hover:bg-accent transition-colors">
+            <item.icon className="h-5 w-5" />
+            {item.name}
+          </a>
+        </Link>
+      ))}
+      <Button
+        variant="ghost"
+        className="w-full justify-start px-4 py-3"
+        onClick={() => {
+          onClick?.();
+          logoutMutation.mutate();
+        }}
+      >
+        <LogOut className="h-5 w-5 mr-2" />
+        Logout
+      </Button>
+    </>
+  );
+
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
-      <div className="w-64 border-r bg-muted">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex md:w-64 border-r bg-muted flex-col">
         <div className="h-16 flex items-center px-4 border-b">
           <h1 className="text-lg font-semibold">Venue Management</h1>
         </div>
-        <nav className="p-4 space-y-2">
-          {navigation
-            .filter((item) => item.roles.includes(user?.role || ''))
-            .map((item) => (
-              <Link key={item.name} href={item.href}>
-                <a className="flex items-center gap-2 px-4 py-2 rounded-md hover:bg-accent">
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
-                </a>
-              </Link>
-            ))}
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => logoutMutation.mutate()}
-          >
-            <LogOut className="h-5 w-5 mr-2" />
-            Logout
-          </Button>
+        <nav className="flex-1 p-4 space-y-1">
+          <NavItems />
         </nav>
       </div>
+
+      {/* Mobile navigation */}
+      <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <SheetTrigger asChild>
+          <Button variant="ghost" size="icon" className="md:hidden absolute top-3 left-3">
+            <Menu className="h-6 w-6" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-64 p-0">
+          <SheetHeader className="h-16 flex items-center px-4 border-b">
+            <SheetTitle className="text-lg font-semibold">Venue Management</SheetTitle>
+          </SheetHeader>
+          <nav className="flex-1 p-4 space-y-1">
+            <NavItems onClick={() => setIsOpen(false)} />
+          </nav>
+        </SheetContent>
+      </Sheet>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="h-16 border-b flex items-center px-6">
+          <div className="w-12 md:w-0" /> {/* Spacer for mobile menu button */}
           <p className="text-sm text-muted-foreground">
             Logged in as {user?.email} ({user?.role})
           </p>
