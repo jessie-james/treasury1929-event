@@ -13,6 +13,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -32,9 +33,9 @@ import { Separator } from "@/components/ui/separator";
 
 type SortOption = 'date' | 'events' | 'seats';
 type FilterOptions = {
-  event?: number;
-  foodItem?: number;
-  allergen?: string;
+  events?: number[];
+  foodItems?: number[];
+  allergens?: string[];
   specialRequest?: string;
   minSeats?: number;
 };
@@ -50,11 +51,6 @@ interface ExtendedBooking extends Booking {
     name: string;
     type: string;
   }>;
-  foodSelections: {
-    [key: string]: {
-      [key: string]: number;
-    };
-  };
   specialRequests?: string;
   allergens?: string;
 }
@@ -62,6 +58,8 @@ interface ExtendedBooking extends Booking {
 interface ExtendedUser extends User {
   bookings: ExtendedBooking[];
 }
+
+const ALLERGEN_OPTIONS = ['Wheat', 'Dairy', 'Nuts'];
 
 export default function UsersPage() {
   const [sortBy, setSortBy] = useState<SortOption>('date');
@@ -81,49 +79,29 @@ export default function UsersPage() {
     queryKey: ["/api/food-options"],
   });
 
-  // Get unique allergens and special requests
-  const uniqueValues = useMemo(() => {
-    const allergens = new Set<string>();
-    const specialRequests = new Set<string>();
-
-    users?.forEach(user => {
-      user.bookings?.forEach(booking => {
-        if (booking.allergens) {
-          allergens.add(booking.allergens);
-        }
-        if (booking.specialRequests) {
-          specialRequests.add(booking.specialRequests);
-        }
-      });
-    });
-
-    return {
-      allergens: Array.from(allergens),
-      specialRequests: Array.from(specialRequests)
-    };
-  }, [users]);
-
-  // Update the getUserStats function
+  // Get user stats based on filters
   const getUserStats = (user: ExtendedUser) => {
     const userBookings = user.bookings || [];
     const stats = {
       totalSeats: 0,
       eventCount: userBookings.length,
       totalSeatsAll: userBookings.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0),
-      selectedFoodCount: 0,
+      selectedFoodCount: {} as Record<number, number>,
       matchingEvents: [] as string[],
     };
 
-    if (appliedFilters.event) {
-      const eventBookings = userBookings.filter(b => b.event.id === appliedFilters.event);
+    if (appliedFilters.events?.length) {
+      const eventBookings = userBookings.filter(b => appliedFilters.events?.includes(b.event.id));
       stats.matchingEvents = eventBookings.map(b => b.event.title);
       stats.totalSeats = eventBookings.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0);
     }
 
-    if (appliedFilters.foodItem) {
-      stats.selectedFoodCount = userBookings.reduce((count, booking) => {
-        return count + booking.foodItems.filter(item => item.id === appliedFilters.foodItem).length;
-      }, 0);
+    if (appliedFilters.foodItems?.length) {
+      appliedFilters.foodItems.forEach(foodId => {
+        stats.selectedFoodCount[foodId] = userBookings.reduce((count, booking) => {
+          return count + booking.foodItems.filter(item => item.id === foodId).length;
+        }, 0);
+      });
     }
 
     return stats;
@@ -136,23 +114,33 @@ export default function UsersPage() {
     let filtered = [...users];
 
     // Apply filters
-    if (appliedFilters.event) {
+    if (appliedFilters.events?.length) {
       filtered = filtered.filter(user =>
-        user.bookings?.some(b => b.event.id === appliedFilters.event)
+        user.bookings?.some(b => appliedFilters.events?.includes(b.event.id))
       );
     }
 
-    if (appliedFilters.foodItem) {
+    if (appliedFilters.foodItems?.length) {
       filtered = filtered.filter(user => {
         const stats = getUserStats(user);
-        return stats.selectedFoodCount > 0;
+        return appliedFilters.foodItems?.some(foodId => stats.selectedFoodCount[foodId] > 0);
       });
+    }
+
+    if (appliedFilters.allergens?.length) {
+      filtered = filtered.filter(user =>
+        user.bookings?.some(b => 
+          b.allergens && appliedFilters.allergens?.some(allergen => 
+            b.allergens?.includes(allergen)
+          )
+        )
+      );
     }
 
     if (appliedFilters.minSeats) {
       filtered = filtered.filter(user => {
         const totalSeats = user.bookings?.reduce(
-          (sum, b) => sum + (b.seatNumbers?.length || 0),
+          (sum, b) => sum + (b.seatNumbers.length || 0),
           0
         ) || 0;
         return totalSeats >= appliedFilters.minSeats;
@@ -181,9 +169,6 @@ export default function UsersPage() {
     });
   }, [users, appliedFilters, sortBy, sortAsc]);
 
-  // Get active filter count
-  const activeFilterCount = Object.values(appliedFilters).filter(Boolean).length;
-
   const handleSearch = () => {
     setAppliedFilters(filters);
   };
@@ -191,6 +176,33 @@ export default function UsersPage() {
   const handleReset = () => {
     setFilters({});
     setAppliedFilters({});
+  };
+
+  const handleEventToggle = (eventId: number) => {
+    setFilters(prev => ({
+      ...prev,
+      events: prev.events?.includes(eventId)
+        ? prev.events.filter(id => id !== eventId)
+        : [...(prev.events || []), eventId]
+    }));
+  };
+
+  const handleFoodToggle = (foodId: number) => {
+    setFilters(prev => ({
+      ...prev,
+      foodItems: prev.foodItems?.includes(foodId)
+        ? prev.foodItems.filter(id => id !== foodId)
+        : [...(prev.foodItems || []), foodId]
+    }));
+  };
+
+  const handleAllergenToggle = (allergen: string) => {
+    setFilters(prev => ({
+      ...prev,
+      allergens: prev.allergens?.includes(allergen)
+        ? prev.allergens.filter(a => a !== allergen)
+        : [...(prev.allergens || []), allergen]
+    }));
   };
 
   if (usersLoading) {
@@ -201,23 +213,19 @@ export default function UsersPage() {
     );
   }
 
-  const selectedFoodName = appliedFilters.foodItem
-    ? foodOptions?.find(f => f.id === appliedFilters.foodItem)?.name
-    : null;
-
   return (
     <BackofficeLayout>
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-4xl font-bold">User Management</h1>
-          {activeFilterCount > 0 && (
+          {Object.values(appliedFilters).filter(v => Array.isArray(v) ? v.length > 0 : Boolean(v)).length > 0 && (
             <Badge variant="secondary" className="text-base">
-              {activeFilterCount} {activeFilterCount === 1 ? 'filter' : 'filters'} applied
+              {Object.values(appliedFilters).filter(v => Array.isArray(v) ? v.length > 0 : Boolean(v)).length} filters applied
             </Badge>
           )}
         </div>
 
-        {/* Filters Card - Content remains the same as before */}
+        {/* Filters Card */}
         <Card>
           <CardHeader>
             <CardTitle>Filters & Organization</CardTitle>
@@ -254,35 +262,67 @@ export default function UsersPage() {
 
               <Separator />
 
-              {/* Basic Filters */}
+              {/* Events Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Basic Filters</h3>
+                <h3 className="text-lg font-semibold">Events</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Event</Label>
-                    <Select
-                      value={filters.event?.toString() || "all"}
-                      onValueChange={(value) =>
-                        setFilters(prev => ({
-                          ...prev,
-                          event: value === "all" ? undefined : parseInt(value)
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select event" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Events</SelectItem>
-                        {events?.map(event => (
-                          <SelectItem key={event.id} value={event.id.toString()}>
-                            {event.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {events?.map(event => (
+                    <div key={event.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`event-${event.id}`}
+                        checked={filters.events?.includes(event.id)}
+                        onCheckedChange={() => handleEventToggle(event.id)}
+                      />
+                      <Label htmlFor={`event-${event.id}`}>{event.title}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
+              <Separator />
+
+              {/* Food Options */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Food Selections</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {foodOptions?.map(food => (
+                    <div key={food.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`food-${food.id}`}
+                        checked={filters.foodItems?.includes(food.id)}
+                        onCheckedChange={() => handleFoodToggle(food.id)}
+                      />
+                      <Label htmlFor={`food-${food.id}`}>{food.name}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Allergens */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Allergens</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {ALLERGEN_OPTIONS.map(allergen => (
+                    <div key={allergen} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`allergen-${allergen}`}
+                        checked={filters.allergens?.includes(allergen)}
+                        onCheckedChange={() => handleAllergenToggle(allergen)}
+                      />
+                      <Label htmlFor={`allergen-${allergen}`}>{allergen}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Minimum Seats */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Additional Filters</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Minimum Seats Booked</Label>
                     <Input
@@ -294,89 +334,6 @@ export default function UsersPage() {
                       }
                       placeholder="Enter minimum seats"
                     />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Food Preferences */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Food Preferences</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Food Selection</Label>
-                    <Select
-                      value={filters.foodItem?.toString() || "all"}
-                      onValueChange={(value) =>
-                        setFilters(prev => ({
-                          ...prev,
-                          foodItem: value === "all" ? undefined : parseInt(value)
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select food item" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Food Items</SelectItem>
-                        {foodOptions?.map(food => (
-                          <SelectItem key={food.id} value={food.id.toString()}>
-                            {food.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Special Requirements</Label>
-                    <Select
-                      value={filters.specialRequest || "all"}
-                      onValueChange={(value) =>
-                        setFilters(prev => ({
-                          ...prev,
-                          specialRequest: value === "all" ? undefined : value
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select requirement" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Requirements</SelectItem>
-                        {uniqueValues.specialRequests.map(req => (
-                          <SelectItem key={req} value={req}>
-                            {req}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Allergens</Label>
-                    <Select
-                      value={filters.allergen || "all"}
-                      onValueChange={(value) =>
-                        setFilters(prev => ({
-                          ...prev,
-                          allergen: value === "all" ? undefined : value
-                        }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select allergen" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Allergens</SelectItem>
-                        {uniqueValues.allergens.map(allergen => (
-                          <SelectItem key={allergen} value={allergen}>
-                            {allergen}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
               </div>
@@ -403,33 +360,28 @@ export default function UsersPage() {
               </div>
 
               {/* Active Filters Summary */}
-              {activeFilterCount > 0 && (
+              {Object.values(appliedFilters).some(v => Array.isArray(v) ? v.length > 0 : Boolean(v)) && (
                 <div className="pt-4 space-y-2">
                   <h3 className="text-sm font-medium text-muted-foreground">Active Filters:</h3>
                   <div className="flex flex-wrap gap-2">
-                    {appliedFilters.event && (
-                      <Badge variant="secondary">
-                        Event: {events?.find(e => e.id === appliedFilters.event)?.title}
+                    {appliedFilters.events?.map(eventId => (
+                      <Badge key={eventId} variant="secondary">
+                        Event: {events?.find(e => e.id === eventId)?.title}
                       </Badge>
-                    )}
-                    {appliedFilters.foodItem && (
-                      <Badge variant="secondary">
-                        Food: {foodOptions?.find(f => f.id === appliedFilters.foodItem)?.name}
+                    ))}
+                    {appliedFilters.foodItems?.map(foodId => (
+                      <Badge key={foodId} variant="secondary">
+                        Food: {foodOptions?.find(f => f.id === foodId)?.name}
                       </Badge>
-                    )}
+                    ))}
+                    {appliedFilters.allergens?.map(allergen => (
+                      <Badge key={allergen} variant="secondary">
+                        Allergen: {allergen}
+                      </Badge>
+                    ))}
                     {appliedFilters.minSeats && (
                       <Badge variant="secondary">
                         Min Seats: {appliedFilters.minSeats}
-                      </Badge>
-                    )}
-                    {appliedFilters.allergen && (
-                      <Badge variant="secondary">
-                        Allergen: {appliedFilters.allergen}
-                      </Badge>
-                    )}
-                    {appliedFilters.specialRequest && (
-                      <Badge variant="secondary">
-                        Special Request: {appliedFilters.specialRequest}
                       </Badge>
                     )}
                   </div>
@@ -465,23 +417,23 @@ export default function UsersPage() {
                       <span className="text-sm text-muted-foreground">Total Seats Booked</span>
                       <p className="text-2xl font-bold">{stats.totalSeatsAll}</p>
                     </div>
-                    {appliedFilters.event && stats.matchingEvents.length > 0 && (
+                    {stats.matchingEvents.length > 0 && (
                       <div className="space-y-1">
-                        <span className="text-sm text-muted-foreground">Selected Event Seats</span>
+                        <span className="text-sm text-muted-foreground">Selected Events Seats</span>
                         <p className="text-2xl font-bold">{stats.totalSeats}</p>
                         <span className="text-sm text-primary">
                           {stats.matchingEvents.join(", ")}
                         </span>
                       </div>
                     )}
-                    {selectedFoodName && (
-                      <div className="space-y-1">
+                    {appliedFilters.foodItems?.map(foodId => (
+                      <div key={foodId} className="space-y-1">
                         <span className="text-sm text-muted-foreground">
-                          {selectedFoodName} Orders
+                          {foodOptions?.find(f => f.id === foodId)?.name} Orders
                         </span>
-                        <p className="text-2xl font-bold">{stats.selectedFoodCount}</p>
+                        <p className="text-2xl font-bold">{stats.selectedFoodCount[foodId] || 0}</p>
                       </div>
-                    )}
+                    ))}
                   </div>
                 </CardHeader>
                 <CardContent>
