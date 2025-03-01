@@ -14,13 +14,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -31,195 +24,18 @@ import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
-type SortOption = 'date' | 'events' | 'seats';
-type FilterOptions = {
-  events?: number[];
-  foodItems?: number[];
-  allergens?: string[];
-  specialRequest?: string;
-  minSeats?: number;
-};
-
-interface ExtendedBooking extends Booking {
-  event: {
-    id: number;
-    title: string;
-    date: string;
-  };
-  foodItems: Array<{
-    id: number;
-    name: string;
-    type: string;
-  }>;
-  specialRequests?: string;
-  allergens?: string;
-}
-
-interface ExtendedUser extends User {
-  bookings: ExtendedBooking[];
-}
-
-const ALLERGEN_OPTIONS = ['Wheat', 'Dairy', 'Nuts'];
+// ... keep existing type definitions and interfaces ...
 
 export default function UsersPage() {
-  const [sortBy, setSortBy] = useState<SortOption>('date');
-  const [sortAsc, setSortAsc] = useState(false);
-  const [filters, setFilters] = useState<FilterOptions>({});
-  const [appliedFilters, setAppliedFilters] = useState<FilterOptions>({});
-
-  const { data: users, isLoading: usersLoading } = useQuery<ExtendedUser[]>({
-    queryKey: ["/api/users"],
-  });
-
-  const { data: events } = useQuery<Event[]>({
-    queryKey: ["/api/events"],
-  });
-
-  const { data: foodOptions } = useQuery<FoodOption[]>({
-    queryKey: ["/api/food-options"],
-  });
-
-  // Get user stats based on filters
-  const getUserStats = (user: ExtendedUser) => {
-    const userBookings = user.bookings || [];
-    const stats = {
-      totalSeats: 0,
-      eventCount: userBookings.length,
-      totalSeatsAll: userBookings.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0),
-      selectedFoodCount: {} as Record<number, number>,
-      matchingEvents: [] as string[],
-    };
-
-    if (appliedFilters.events?.length) {
-      const eventBookings = userBookings.filter(b => appliedFilters.events?.includes(b.event.id));
-      stats.matchingEvents = eventBookings.map(b => b.event.title);
-      stats.totalSeats = eventBookings.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0);
-    }
-
-    if (appliedFilters.foodItems?.length) {
-      appliedFilters.foodItems.forEach(foodId => {
-        stats.selectedFoodCount[foodId] = userBookings.reduce((count, booking) => {
-          return count + booking.foodItems.filter(item => item.id === foodId).length;
-        }, 0);
-      });
-    }
-
-    return stats;
-  };
-
-  // Filter and sort users
-  const filteredAndSortedUsers = useMemo(() => {
-    if (!users) return [];
-
-    let filtered = [...users];
-
-    // Apply filters
-    if (appliedFilters.events?.length) {
-      filtered = filtered.filter(user =>
-        user.bookings?.some(b => appliedFilters.events?.includes(b.event.id))
-      );
-    }
-
-    if (appliedFilters.foodItems?.length) {
-      filtered = filtered.filter(user => {
-        const stats = getUserStats(user);
-        return appliedFilters.foodItems?.some(foodId => stats.selectedFoodCount[foodId] > 0);
-      });
-    }
-
-    if (appliedFilters.allergens?.length) {
-      filtered = filtered.filter(user =>
-        user.bookings?.some(b => 
-          b.allergens && appliedFilters.allergens?.some(allergen => 
-            b.allergens?.includes(allergen)
-          )
-        )
-      );
-    }
-
-    if (appliedFilters.minSeats) {
-      filtered = filtered.filter(user => {
-        const totalSeats = user.bookings?.reduce(
-          (sum, b) => sum + (b.seatNumbers.length || 0),
-          0
-        ) || 0;
-        return totalSeats >= appliedFilters.minSeats;
-      });
-    }
-
-    // Sort users
-    return filtered.sort((a, b) => {
-      const multiplier = sortAsc ? 1 : -1;
-      switch (sortBy) {
-        case 'date':
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return (dateA - dateB) * multiplier;
-        case 'events':
-          const eventsA = a.bookings?.length || 0;
-          const eventsB = b.bookings?.length || 0;
-          return (eventsA - eventsB) * multiplier;
-        case 'seats':
-          const seatsA = a.bookings?.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0) || 0;
-          const seatsB = b.bookings?.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0) || 0;
-          return (seatsA - seatsB) * multiplier;
-        default:
-          return 0;
-      }
-    });
-  }, [users, appliedFilters, sortBy, sortAsc]);
-
-  const handleSearch = () => {
-    setAppliedFilters(filters);
-  };
-
-  const handleReset = () => {
-    setFilters({});
-    setAppliedFilters({});
-  };
-
-  const handleEventToggle = (eventId: number) => {
-    setFilters(prev => ({
-      ...prev,
-      events: prev.events?.includes(eventId)
-        ? prev.events.filter(id => id !== eventId)
-        : [...(prev.events || []), eventId]
-    }));
-  };
-
-  const handleFoodToggle = (foodId: number) => {
-    setFilters(prev => ({
-      ...prev,
-      foodItems: prev.foodItems?.includes(foodId)
-        ? prev.foodItems.filter(id => id !== foodId)
-        : [...(prev.foodItems || []), foodId]
-    }));
-  };
-
-  const handleAllergenToggle = (allergen: string) => {
-    setFilters(prev => ({
-      ...prev,
-      allergens: prev.allergens?.includes(allergen)
-        ? prev.allergens.filter(a => a !== allergen)
-        : [...(prev.allergens || []), allergen]
-    }));
-  };
-
-  if (usersLoading) {
-    return (
-      <BackofficeLayout>
-        <div>Loading users...</div>
-      </BackofficeLayout>
-    );
-  }
+  // ... keep existing state and query hooks ...
 
   return (
     <BackofficeLayout>
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-4xl font-bold">User Management</h1>
+      <div className="space-y-4 sm:space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h1 className="text-3xl sm:text-4xl font-bold">User Management</h1>
           {Object.values(appliedFilters).filter(v => Array.isArray(v) ? v.length > 0 : Boolean(v)).length > 0 && (
-            <Badge variant="secondary" className="text-base">
+            <Badge variant="secondary" className="text-base self-start sm:self-auto">
               {Object.values(appliedFilters).filter(v => Array.isArray(v) ? v.length > 0 : Boolean(v)).length} filters applied
             </Badge>
           )}
@@ -227,9 +43,9 @@ export default function UsersPage() {
 
         {/* Filters Card */}
         <Card>
-          <CardHeader>
+          <CardHeader className="space-y-2">
             <CardTitle>Filters & Organization</CardTitle>
-            <CardDescription>
+            <CardDescription className="hidden sm:block">
               Use the filters below to find specific users and organize the results
             </CardDescription>
           </CardHeader>
@@ -238,7 +54,7 @@ export default function UsersPage() {
               {/* Sort Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Sort Options</h3>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                   <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder="Select sort criteria" />
@@ -253,7 +69,7 @@ export default function UsersPage() {
                     variant="outline"
                     size="icon"
                     onClick={() => setSortAsc(!sortAsc)}
-                    className="shrink-0"
+                    className="shrink-0 w-12 h-10"
                   >
                     <ArrowUpDown className={`h-4 w-4 transition-transform ${sortAsc ? 'rotate-180' : ''}`} />
                   </Button>
@@ -265,15 +81,21 @@ export default function UsersPage() {
               {/* Events Section */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Events</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {events?.map(event => (
-                    <div key={event.id} className="flex items-center space-x-2">
+                    <div key={event.id} className="flex items-center space-x-3">
                       <Checkbox
                         id={`event-${event.id}`}
                         checked={filters.events?.includes(event.id)}
                         onCheckedChange={() => handleEventToggle(event.id)}
+                        className="h-5 w-5"
                       />
-                      <Label htmlFor={`event-${event.id}`}>{event.title}</Label>
+                      <Label 
+                        htmlFor={`event-${event.id}`}
+                        className="text-sm sm:text-base flex-1 cursor-pointer"
+                      >
+                        {event.title}
+                      </Label>
                     </div>
                   ))}
                 </div>
@@ -284,15 +106,21 @@ export default function UsersPage() {
               {/* Food Options */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Food Selections</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {foodOptions?.map(food => (
-                    <div key={food.id} className="flex items-center space-x-2">
+                    <div key={food.id} className="flex items-center space-x-3">
                       <Checkbox
                         id={`food-${food.id}`}
                         checked={filters.foodItems?.includes(food.id)}
                         onCheckedChange={() => handleFoodToggle(food.id)}
+                        className="h-5 w-5"
                       />
-                      <Label htmlFor={`food-${food.id}`}>{food.name}</Label>
+                      <Label 
+                        htmlFor={`food-${food.id}`}
+                        className="text-sm sm:text-base flex-1 cursor-pointer"
+                      >
+                        {food.name}
+                      </Label>
                     </div>
                   ))}
                 </div>
@@ -303,15 +131,21 @@ export default function UsersPage() {
               {/* Allergens */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Allergens</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {ALLERGEN_OPTIONS.map(allergen => (
-                    <div key={allergen} className="flex items-center space-x-2">
+                    <div key={allergen} className="flex items-center space-x-3">
                       <Checkbox
                         id={`allergen-${allergen}`}
                         checked={filters.allergens?.includes(allergen)}
                         onCheckedChange={() => handleAllergenToggle(allergen)}
+                        className="h-5 w-5"
                       />
-                      <Label htmlFor={`allergen-${allergen}`}>{allergen}</Label>
+                      <Label 
+                        htmlFor={`allergen-${allergen}`}
+                        className="text-sm sm:text-base flex-1 cursor-pointer"
+                      >
+                        {allergen}
+                      </Label>
                     </div>
                   ))}
                 </div>
@@ -322,7 +156,7 @@ export default function UsersPage() {
               {/* Minimum Seats */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Additional Filters</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="w-full sm:w-1/2">
                   <div className="space-y-2">
                     <Label>Minimum Seats Booked</Label>
                     <Input
@@ -333,6 +167,7 @@ export default function UsersPage() {
                         setFilters(prev => ({ ...prev, minSeats: parseInt(e.target.value) || undefined }))
                       }
                       placeholder="Enter minimum seats"
+                      className="w-full"
                     />
                   </div>
                 </div>
@@ -341,18 +176,18 @@ export default function UsersPage() {
               <Separator />
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-4">
+              <div className="flex flex-col sm:flex-row justify-end gap-4">
                 <Button
                   variant="outline"
                   onClick={handleReset}
-                  className="min-w-[120px]"
+                  className="w-full sm:w-auto"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Reset Filters
                 </Button>
                 <Button
                   onClick={handleSearch}
-                  className="min-w-[120px]"
+                  className="w-full sm:w-auto"
                 >
                   <Search className="h-4 w-4 mr-2" />
                   Apply Filters
@@ -365,22 +200,22 @@ export default function UsersPage() {
                   <h3 className="text-sm font-medium text-muted-foreground">Active Filters:</h3>
                   <div className="flex flex-wrap gap-2">
                     {appliedFilters.events?.map(eventId => (
-                      <Badge key={eventId} variant="secondary">
+                      <Badge key={eventId} variant="secondary" className="text-xs sm:text-sm">
                         Event: {events?.find(e => e.id === eventId)?.title}
                       </Badge>
                     ))}
                     {appliedFilters.foodItems?.map(foodId => (
-                      <Badge key={foodId} variant="secondary">
+                      <Badge key={foodId} variant="secondary" className="text-xs sm:text-sm">
                         Food: {foodOptions?.find(f => f.id === foodId)?.name}
                       </Badge>
                     ))}
                     {appliedFilters.allergens?.map(allergen => (
-                      <Badge key={allergen} variant="secondary">
+                      <Badge key={allergen} variant="secondary" className="text-xs sm:text-sm">
                         Allergen: {allergen}
                       </Badge>
                     ))}
                     {appliedFilters.minSeats && (
-                      <Badge variant="secondary">
+                      <Badge variant="secondary" className="text-xs sm:text-sm">
                         Min Seats: {appliedFilters.minSeats}
                       </Badge>
                     )}
@@ -392,35 +227,35 @@ export default function UsersPage() {
         </Card>
 
         {/* User List */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {filteredAndSortedUsers.map((user) => {
             const stats = getUserStats(user);
 
             return (
               <Card key={user.id} className="overflow-hidden">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-2xl font-bold flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <div>
+                  <CardTitle className="text-xl sm:text-2xl font-bold flex flex-col gap-2 sm:gap-4">
+                    <div className="break-all">
                       <span>{user.email}</span>
-                      <span className="text-base font-normal text-muted-foreground block lg:inline lg:ml-4">
+                      <span className="block text-base font-normal text-muted-foreground mt-1">
                         Customer since: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                       </span>
                     </div>
                   </CardTitle>
                   {/* User Stats Based on Active Filters */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                     <div className="space-y-1">
                       <span className="text-sm text-muted-foreground">Total Events</span>
-                      <p className="text-2xl font-bold">{stats.eventCount}</p>
+                      <p className="text-xl sm:text-2xl font-bold">{stats.eventCount}</p>
                     </div>
                     <div className="space-y-1">
                       <span className="text-sm text-muted-foreground">Total Seats Booked</span>
-                      <p className="text-2xl font-bold">{stats.totalSeatsAll}</p>
+                      <p className="text-xl sm:text-2xl font-bold">{stats.totalSeatsAll}</p>
                     </div>
                     {stats.matchingEvents.length > 0 && (
                       <div className="space-y-1">
                         <span className="text-sm text-muted-foreground">Selected Events Seats</span>
-                        <p className="text-2xl font-bold">{stats.totalSeats}</p>
+                        <p className="text-xl sm:text-2xl font-bold">{stats.totalSeats}</p>
                         <span className="text-sm text-primary">
                           {stats.matchingEvents.join(", ")}
                         </span>
@@ -431,7 +266,7 @@ export default function UsersPage() {
                         <span className="text-sm text-muted-foreground">
                           {foodOptions?.find(f => f.id === foodId)?.name} Orders
                         </span>
-                        <p className="text-2xl font-bold">{stats.selectedFoodCount[foodId] || 0}</p>
+                        <p className="text-xl sm:text-2xl font-bold">{stats.selectedFoodCount[foodId] || 0}</p>
                       </div>
                     ))}
                   </div>
@@ -439,7 +274,7 @@ export default function UsersPage() {
                 <CardContent>
                   <Accordion type="single" collapsible>
                     <AccordionItem value="profile">
-                      <AccordionTrigger className="text-xl">
+                      <AccordionTrigger className="text-lg sm:text-xl py-4">
                         View Profile & Bookings
                       </AccordionTrigger>
                       <AccordionContent>
