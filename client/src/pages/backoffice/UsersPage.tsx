@@ -30,6 +30,7 @@ import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { UsersSkeleton } from "@/components/skeletons/UsersSkeleton";
 
 type SortOption = 'date' | 'events' | 'seats';
 type FilterOptions = {
@@ -219,9 +220,7 @@ export default function UsersPage() {
   if (usersLoading) {
     return (
       <BackofficeLayout>
-        <div className="flex items-center justify-center min-h-[200px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <UsersSkeleton />
       </BackofficeLayout>
     );
   }
