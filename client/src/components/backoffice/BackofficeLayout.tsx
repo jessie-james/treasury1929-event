@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
   LayoutDashboard,
@@ -12,7 +12,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 interface Props {
@@ -22,6 +22,7 @@ interface Props {
 export function BackofficeLayout({ children }: Props) {
   const { user, logoutMutation } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   const navigation = [
     {
@@ -64,23 +65,33 @@ export function BackofficeLayout({ children }: Props) {
 
   const filteredNav = navigation.filter((item) => item.roles.includes(user?.role || ''));
 
-  const NavItems = ({ onClick }: { onClick?: () => void }) => (
+  const handleNavigation = (href: string) => {
+    setLocation(href);
+    setIsOpen(false);
+  };
+
+  const handleLogout = () => {
+    setIsOpen(false);
+    logoutMutation.mutate();
+  };
+
+  const NavItems = () => (
     <>
       {filteredNav.map((item) => (
-        <Link key={item.name} href={item.href}>
-          <a onClick={onClick} className="flex items-center gap-2 px-4 py-3 rounded-md hover:bg-accent transition-colors">
-            <item.icon className="h-5 w-5" />
-            {item.name}
-          </a>
-        </Link>
+        <Button
+          key={item.name}
+          variant="ghost"
+          className="w-full justify-start"
+          onClick={() => handleNavigation(item.href)}
+        >
+          <item.icon className="h-5 w-5 mr-2" />
+          {item.name}
+        </Button>
       ))}
       <Button
         variant="ghost"
-        className="w-full justify-start px-4 py-3"
-        onClick={() => {
-          onClick?.();
-          logoutMutation.mutate();
-        }}
+        className="w-full justify-start"
+        onClick={handleLogout}
       >
         <LogOut className="h-5 w-5 mr-2" />
         Logout
@@ -112,7 +123,7 @@ export function BackofficeLayout({ children }: Props) {
             <SheetTitle className="text-lg font-semibold">Venue Management</SheetTitle>
           </SheetHeader>
           <nav className="flex-1 p-4 space-y-1">
-            <NavItems onClick={() => setIsOpen(false)} />
+            <NavItems />
           </nav>
         </SheetContent>
       </Sheet>

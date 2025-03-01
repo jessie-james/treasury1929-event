@@ -2,13 +2,17 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { Route, Redirect } from "wouter";
 
+interface Props {
+  path: string;
+  component: () => React.JSX.Element;
+  requiredRole?: 'admin' | 'venue_owner' | 'venue_manager';
+}
+
 export function ProtectedRoute({
   path,
   component: Component,
-}: {
-  path: string;
-  component: () => React.JSX.Element;
-}) {
+  requiredRole,
+}: Props) {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
@@ -29,8 +33,8 @@ export function ProtectedRoute({
     );
   }
 
-  // For backoffice routes, check if user has the correct role
-  if (path.startsWith("/backoffice") && user.role === "customer") {
+  // Check if user has required role
+  if (requiredRole && user.role !== requiredRole) {
     return (
       <Route path={path}>
         <Redirect to="/" />

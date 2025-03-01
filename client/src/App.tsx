@@ -27,7 +27,7 @@ function Router() {
       <ProtectedRoute path="/backoffice/orders" component={OrdersPage} />
       <ProtectedRoute path="/backoffice/events" component={EventsPage} />
       <ProtectedRoute path="/backoffice/food" component={FoodPage} />
-      <ProtectedRoute path="/backoffice/users" component={UsersPage} />
+      <ProtectedRoute path="/backoffice/users" component={UsersPage} requiredRole="admin" />
       <ProtectedRoute path="/dashboard" component={CustomerDashboard} />
       <Route component={NotFound} />
     </Switch>
