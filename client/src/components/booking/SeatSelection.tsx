@@ -4,6 +4,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { type Table, type Seat } from "@shared/schema";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface Props {
   eventId: number;
@@ -15,23 +17,33 @@ interface SeatWithAvailability extends Seat {
 }
 
 export function SeatSelection({ eventId, onComplete }: Props) {
-  const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
-  const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
+  const [selectedSeats, setSelectedSeats] = useState<Array<{ tableId: number; seatNumber: number }>>([]);
 
   const { data: tables, isLoading: tablesLoading } = useQuery<Table[]>({
     queryKey: ["/api/tables"],
   });
 
-  const { data: seats, isLoading: seatsLoading } = useQuery<SeatWithAvailability[]>({
-    queryKey: [`/api/tables/${selectedTableId}/seats`, { eventId }],
-    queryFn: ({ queryKey }) => 
-      fetch(`/api/tables/${selectedTableId}/seats?eventId=${eventId}`).then(res => res.json()),
-    enabled: selectedTableId !== null,
+  const { data: allSeats, isLoading: seatsLoading } = useQuery<Record<number, SeatWithAvailability[]>>({
+    queryKey: ["/api/tables/seats", { eventId }],
+    queryFn: async () => {
+      if (!tables) return {};
+      const seatsMap: Record<number, SeatWithAvailability[]> = {};
+      for (const table of tables) {
+        const response = await fetch(`/api/tables/${table.id}/seats?eventId=${eventId}`);
+        seatsMap[table.id] = await response.json();
+      }
+      return seatsMap;
+    },
+    enabled: !!tables,
   });
 
-  const handleSeatToggle = (seatNumber: number) => {
-    if (selectedSeats.includes(seatNumber)) {
-      setSelectedSeats(selectedSeats.filter(id => id !== seatNumber));
+  const handleSeatToggle = (tableId: number, seatNumber: number) => {
+    const existingSeatIndex = selectedSeats.findIndex(
+      s => s.tableId === tableId && s.seatNumber === seatNumber
+    );
+
+    if (existingSeatIndex >= 0) {
+      setSelectedSeats(selectedSeats.filter((_, i) => i !== existingSeatIndex));
     } else {
       if (selectedSeats.length >= 4) {
         toast({
@@ -41,29 +53,39 @@ export function SeatSelection({ eventId, onComplete }: Props) {
         });
         return;
       }
-      setSelectedSeats([...selectedSeats, seatNumber]);
-    }
-  };
 
-  const handleTableSelect = (tableId: number) => {
-    if (selectedTableId === tableId) {
-      setSelectedTableId(null);
-      setSelectedSeats([]);
-    } else {
-      if (selectedSeats.length > 0) {
+      // Check if selecting from a different table
+      if (selectedSeats.length > 0 && selectedSeats[0].tableId !== tableId) {
         toast({
-          title: "Clear current selection",
-          description: "Please deselect seats from the current table before selecting a new table",
+          title: "Select seats from one table",
+          description: "Please select seats from the same table",
           variant: "destructive"
         });
         return;
       }
-      setSelectedTableId(tableId);
+
+      setSelectedSeats([...selectedSeats, { tableId, seatNumber }]);
     }
   };
 
-  if (tablesLoading) {
-    return <div>Loading tables...</div>;
+  const isSeatSelected = (tableId: number, seatNumber: number) => {
+    return selectedSeats.some(s => s.tableId === tableId && s.seatNumber === seatNumber);
+  };
+
+  if (tablesLoading || seatsLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 w-48 bg-muted rounded" />
+          <div className="h-4 w-96 bg-muted rounded" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-48 bg-muted rounded" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -76,63 +98,64 @@ export function SeatSelection({ eventId, onComplete }: Props) {
       </div>
 
       <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {tables?.map((table) => {
-            const isTableSelected = selectedTableId === table.id;
-            const tableSeats = isTableSelected ? seats : [];
+            const tableSeats = allSeats?.[table.id] || [];
 
             return (
-              <div
-                key={table.id}
-                className={`p-4 border rounded-lg space-y-2 cursor-pointer ${
-                  isTableSelected ? 'border-primary' : ''
-                }`}
-                onClick={() => handleTableSelect(table.id)}
-              >
-                <p className="font-medium">Table {table.tableNumber}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {isTableSelected && !seatsLoading ? (
-                    tableSeats?.map((seat) => {
-                      const isSelected = selectedSeats.includes(seat.seatNumber);
+              <Card key={table.id} className={cn(
+                "overflow-hidden",
+                selectedSeats.some(s => s.tableId === table.id) && "border-primary"
+              )}>
+                <CardContent className="p-4">
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Table {table.tableNumber}</h3>
+                    <div className="grid grid-cols-2 gap-2 relative">
+                      {/* Visual table representation */}
+                      <div className="absolute inset-4 border-2 border-muted-foreground/20 rounded-lg" />
 
-                      return (
-                        <Button
-                          key={seat.id}
-                          variant={isSelected ? "default" : "outline"}
-                          className="h-12"
-                          disabled={!seat.isAvailable && !isSelected}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSeatToggle(seat.seatNumber);
-                          }}
-                        >
-                          Seat {seat.seatNumber}
-                          {!seat.isAvailable && " (Taken)"}
-                        </Button>
-                      );
-                    })
-                  ) : (
-                    <div className="col-span-2 text-center text-sm text-muted-foreground">
-                      {isTableSelected && seatsLoading ? "Loading seats..." : "Click to view seats"}
+                      {tableSeats.map((seat) => {
+                        const isSelected = isSeatSelected(table.id, seat.seatNumber);
+                        const seatPosition = seat.seatNumber % 2 === 0 ? "justify-self-end" : "justify-self-start";
+
+                        return (
+                          <Button
+                            key={seat.id}
+                            variant={isSelected ? "default" : "outline"}
+                            className={cn(
+                              "h-12 relative z-10",
+                              seatPosition,
+                              !seat.isAvailable && !isSelected && "opacity-50"
+                            )}
+                            disabled={!seat.isAvailable && !isSelected}
+                            onClick={() => handleSeatToggle(table.id, seat.seatNumber)}
+                          >
+                            Seat {seat.seatNumber}
+                            {!seat.isAvailable && !isSelected && " (Taken)"}
+                          </Button>
+                        );
+                      })}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                </CardContent>
+              </Card>
             );
           })}
         </div>
       </ScrollArea>
 
       <div className="flex justify-between items-center">
-        <p>{selectedSeats.length} seats selected</p>
+        <p className="text-sm">{selectedSeats.length} seats selected</p>
         <Button
-          onClick={() => selectedTableId && onComplete({ 
-            tableId: selectedTableId, 
-            seatNumbers: selectedSeats 
-          })}
+          onClick={() => {
+            if (selectedSeats.length === 0) return;
+            const tableId = selectedSeats[0].tableId;
+            const seatNumbers = selectedSeats.map(s => s.seatNumber).sort((a, b) => a - b);
+            onComplete({ tableId, seatNumbers });
+          }}
           disabled={selectedSeats.length === 0}
         >
-          Continue to Food Selection
+          Continue to Guest Details
         </Button>
       </div>
     </div>
