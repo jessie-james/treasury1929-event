@@ -61,8 +61,10 @@ export default function UsersPage() {
     return [...users].sort((a, b) => {
       switch (sortBy) {
         case 'date':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        // Other sort options will be implemented when we have the data
+          // Ensure the dates are valid before comparison
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return dateB - dateA;
         default:
           return 0;
       }
@@ -108,16 +110,19 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label>Filter by Event</Label>
                 <Select
-                  value={filters.event?.toString()}
+                  value={filters.event?.toString() || "all"}
                   onValueChange={(value) => 
-                    setFilters(prev => ({ ...prev, event: parseInt(value) }))
+                    setFilters(prev => ({ 
+                      ...prev, 
+                      event: value === "all" ? undefined : parseInt(value) 
+                    }))
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select event" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Events</SelectItem>
+                    <SelectItem value="all">All Events</SelectItem>
                     {events?.map(event => (
                       <SelectItem key={event.id} value={event.id.toString()}>
                         {event.title}
@@ -131,16 +136,19 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label>Filter by Food Selection</Label>
                 <Select
-                  value={filters.foodItem?.toString()}
+                  value={filters.foodItem?.toString() || "all"}
                   onValueChange={(value) =>
-                    setFilters(prev => ({ ...prev, foodItem: parseInt(value) }))
+                    setFilters(prev => ({ 
+                      ...prev, 
+                      foodItem: value === "all" ? undefined : parseInt(value) 
+                    }))
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select food item" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Food Items</SelectItem>
+                    <SelectItem value="all">All Food Items</SelectItem>
                     {foodOptions?.map(food => (
                       <SelectItem key={food.id} value={food.id.toString()}>
                         {food.name}
@@ -168,16 +176,19 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label>Filter by Allergen</Label>
                 <Select
-                  value={filters.allergen}
+                  value={filters.allergen || "all"}
                   onValueChange={(value) =>
-                    setFilters(prev => ({ ...prev, allergen: value }))
+                    setFilters(prev => ({ 
+                      ...prev, 
+                      allergen: value === "all" ? undefined : value 
+                    }))
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select allergen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Allergens</SelectItem>
+                    <SelectItem value="all">All Allergens</SelectItem>
                     {uniqueValues.allergens.map(allergen => (
                       <SelectItem key={allergen} value={allergen}>
                         {allergen}
@@ -191,16 +202,19 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label>Filter by Special Requirement</Label>
                 <Select
-                  value={filters.specialRequest}
+                  value={filters.specialRequest || "all"}
                   onValueChange={(value) =>
-                    setFilters(prev => ({ ...prev, specialRequest: value }))
+                    setFilters(prev => ({ 
+                      ...prev, 
+                      specialRequest: value === "all" ? undefined : value 
+                    }))
                   }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select requirement" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Requirements</SelectItem>
+                    <SelectItem value="all">All Requirements</SelectItem>
                     {uniqueValues.specialRequests.map(req => (
                       <SelectItem key={req} value={req}>
                         {req}
@@ -221,7 +235,7 @@ export default function UsersPage() {
                 <CardTitle className="text-2xl font-bold flex items-center justify-between">
                   <span>{user.email}</span>
                   <span className="text-base font-normal text-muted-foreground">
-                    Customer since: {new Date(user.createdAt).toLocaleDateString()}
+                    Customer since: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                   </span>
                 </CardTitle>
               </CardHeader>
