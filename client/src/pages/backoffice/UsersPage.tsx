@@ -39,16 +39,28 @@ type FilterOptions = {
   minSeats?: number;
 };
 
-interface ExtendedUser extends User {
-  bookings?: ExtendedBooking[];
-}
-
 interface ExtendedBooking extends Booking {
-  foodSelections?: {
+  event: {
+    id: number;
+    title: string;
+    date: string;
+  };
+  foodItems: Array<{
+    id: number;
+    name: string;
+    type: string;
+  }>;
+  foodSelections: {
     [key: string]: {
       [key: string]: number;
     };
   };
+  specialRequests?: string;
+  allergens?: string;
+}
+
+interface ExtendedUser extends User {
+  bookings: ExtendedBooking[];
 }
 
 export default function UsersPage() {
@@ -76,46 +88,41 @@ export default function UsersPage() {
 
     users?.forEach(user => {
       user.bookings?.forEach(booking => {
-        if ('allergens' in booking && booking.allergens) {
+        if (booking.allergens) {
           allergens.add(booking.allergens);
         }
-        if ('specialRequests' in booking && booking.specialRequests) {
+        if (booking.specialRequests) {
           specialRequests.add(booking.specialRequests);
         }
       });
     });
 
-    return { 
-      allergens: Array.from(allergens), 
-      specialRequests: Array.from(specialRequests) 
+    return {
+      allergens: Array.from(allergens),
+      specialRequests: Array.from(specialRequests)
     };
   }, [users]);
 
-  // Get user stats based on filters
+  // Update the getUserStats function
   const getUserStats = (user: ExtendedUser) => {
     const userBookings = user.bookings || [];
     const stats = {
       totalSeats: 0,
       eventCount: userBookings.length,
-      totalSeatsAll: userBookings.reduce((sum, b) => sum + (b.seatNumbers?.length || 0), 0),
+      totalSeatsAll: userBookings.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0),
       selectedFoodCount: 0,
       matchingEvents: [] as string[],
     };
 
     if (appliedFilters.event) {
-      const eventBookings = userBookings.filter(b => b.eventId === appliedFilters.event);
-      stats.matchingEvents = events
-        ?.filter(e => e.id === appliedFilters.event)
-        .map(e => e.title) || [];
-      stats.totalSeats = eventBookings.reduce((sum, b) => sum + (b.seatNumbers?.length || 0), 0);
+      const eventBookings = userBookings.filter(b => b.event.id === appliedFilters.event);
+      stats.matchingEvents = eventBookings.map(b => b.event.title);
+      stats.totalSeats = eventBookings.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0);
     }
 
     if (appliedFilters.foodItem) {
       stats.selectedFoodCount = userBookings.reduce((count, booking) => {
-        const selections = booking.foodSelections || {};
-        return count + Object.values(selections).filter(s => 
-          Object.values(s).includes(appliedFilters.foodItem!)
-        ).length;
+        return count + booking.foodItems.filter(item => item.id === appliedFilters.foodItem).length;
       }, 0);
     }
 
@@ -130,8 +137,8 @@ export default function UsersPage() {
 
     // Apply filters
     if (appliedFilters.event) {
-      filtered = filtered.filter(user => 
-        user.bookings?.some(b => b.eventId === appliedFilters.event)
+      filtered = filtered.filter(user =>
+        user.bookings?.some(b => b.event.id === appliedFilters.event)
       );
     }
 
@@ -145,7 +152,7 @@ export default function UsersPage() {
     if (appliedFilters.minSeats) {
       filtered = filtered.filter(user => {
         const totalSeats = user.bookings?.reduce(
-          (sum, b) => sum + (b.seatNumbers?.length || 0), 
+          (sum, b) => sum + (b.seatNumbers?.length || 0),
           0
         ) || 0;
         return totalSeats >= appliedFilters.minSeats;
@@ -165,8 +172,8 @@ export default function UsersPage() {
           const eventsB = b.bookings?.length || 0;
           return (eventsA - eventsB) * multiplier;
         case 'seats':
-          const seatsA = a.bookings?.reduce((sum, b) => sum + (b.seatNumbers?.length || 0), 0) || 0;
-          const seatsB = b.bookings?.reduce((sum, b) => sum + (b.seatNumbers?.length || 0), 0) || 0;
+          const seatsA = a.bookings?.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0) || 0;
+          const seatsB = b.bookings?.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0) || 0;
           return (seatsA - seatsB) * multiplier;
         default:
           return 0;
@@ -194,8 +201,8 @@ export default function UsersPage() {
     );
   }
 
-  const selectedFoodName = appliedFilters.foodItem 
-    ? foodOptions?.find(f => f.id === appliedFilters.foodItem)?.name 
+  const selectedFoodName = appliedFilters.foodItem
+    ? foodOptions?.find(f => f.id === appliedFilters.foodItem)?.name
     : null;
 
   return (

@@ -221,14 +221,24 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add these routes after the existing user routes
+  // Add this route after the existing /api/users route
   app.get("/api/users", async (req, res) => {
     try {
       if (!req.isAuthenticated() || req.user?.role !== "admin") {
         return res.status(401).json({ message: "Unauthorized" });
       }
+
+      // Get users and their bookings
       const users = await storage.getUsers();
-      res.json(users);
+      const allBookings = await storage.getBookingDetails();
+
+      // Attach bookings to each user
+      const usersWithBookings = users.map(user => ({
+        ...user,
+        bookings: allBookings.filter(booking => booking.userId === user.id)
+      }));
+
+      res.json(usersWithBookings);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
