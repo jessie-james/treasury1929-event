@@ -6,6 +6,7 @@ import {
   Calendar,
   Users,
   Settings,
+  Utensils,
   LogOut,
 } from "lucide-react";
 
@@ -27,6 +28,12 @@ export function BackofficeLayout({ children }: Props) {
       name: "Events",
       href: "/backoffice/events",
       icon: Calendar,
+      roles: ['admin', 'venue_owner', 'venue_manager'],
+    },
+    {
+      name: "Food",
+      href: "/backoffice/food",
+      icon: Utensils,
       roles: ['admin', 'venue_owner', 'venue_manager'],
     },
     {

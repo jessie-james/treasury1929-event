@@ -29,6 +29,9 @@ export interface IStorage {
   // Food Options
   getFoodOptions(): Promise<FoodOption[]>;
   getFoodOptionsByIds(ids: number[]): Promise<FoodOption[]>;
+  createFoodOption(foodOption: Omit<FoodOption, "id">): Promise<FoodOption>;
+  updateFoodOption(id: number, foodOption: Partial<Omit<FoodOption, "id">>): Promise<FoodOption | undefined>;
+  deleteFoodOption(id: number): Promise<void>;
 
   // Bookings
   createBooking(booking: InsertBooking): Promise<Booking>;
@@ -375,6 +378,40 @@ export class DatabaseStorage implements IStorage {
       await db.delete(events).where(eq(events.id, id));
     } catch (error) {
       console.error("Error deleting event:", error);
+      throw error;
+    }
+  }
+
+  async createFoodOption(foodOption: Omit<FoodOption, "id">): Promise<FoodOption> {
+    try {
+      console.log("Creating food option with data:", foodOption);
+      const [created] = await db.insert(foodOptions).values(foodOption).returning();
+      return created;
+    } catch (error) {
+      console.error("Error creating food option:", error);
+      throw error;
+    }
+  }
+
+  async updateFoodOption(id: number, foodOption: Partial<Omit<FoodOption, "id">>): Promise<FoodOption | undefined> {
+    try {
+      const [updated] = await db
+        .update(foodOptions)
+        .set(foodOption)
+        .where(eq(foodOptions.id, id))
+        .returning();
+      return updated;
+    } catch (error) {
+      console.error("Error updating food option:", error);
+      throw error;
+    }
+  }
+
+  async deleteFoodOption(id: number): Promise<void> {
+    try {
+      await db.delete(foodOptions).where(eq(foodOptions.id, id));
+    } catch (error) {
+      console.error("Error deleting food option:", error);
       throw error;
     }
   }

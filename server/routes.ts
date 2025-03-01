@@ -317,5 +317,58 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Add these routes after the existing event routes
+  app.post("/api/food-options", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      console.log("Creating food option with data:", req.body);
+      const foodOption = await storage.createFoodOption(req.body);
+      console.log("Food option created successfully:", foodOption);
+      res.status(201).json(foodOption);
+    } catch (error) {
+      console.error("Error creating food option:", error);
+      res.status(500).json({ 
+        message: "Failed to create food option",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  app.patch("/api/food-options/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const id = parseInt(req.params.id);
+      const foodOption = await storage.updateFoodOption(id, req.body);
+      if (!foodOption) {
+        return res.status(404).json({ message: "Food option not found" });
+      }
+      res.json(foodOption);
+    } catch (error) {
+      console.error("Error updating food option:", error);
+      res.status(500).json({ message: "Failed to update food option" });
+    }
+  });
+
+  app.delete("/api/food-options/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const id = parseInt(req.params.id);
+      await storage.deleteFoodOption(id);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error("Error deleting food option:", error);
+      res.status(500).json({ message: "Failed to delete food option" });
+    }
+  });
+
   return httpServer;
 }
