@@ -18,6 +18,8 @@ interface BookingDetails extends Booking {
     name: string;
     type: string;
   }>;
+  specialRequests?: string;
+  allergens?: string;
 }
 
 export function UserProfile({ userId }: Props) {
@@ -47,6 +49,10 @@ export function UserProfile({ userId }: Props) {
     },
   ];
 
+  // Get unique special requirements and allergens
+  const specialRequests = bookings?.find(b => b.specialRequests)?.specialRequests;
+  const allergens = bookings?.find(b => b.allergens)?.allergens;
+
   return (
     <div className="space-y-6 pt-4">
       {/* Stats Cards */}
@@ -75,17 +81,13 @@ export function UserProfile({ userId }: Props) {
             <div>
               <h3 className="text-lg font-semibold mb-2">Dietary Preferences</h3>
               <p className="text-muted-foreground">
-                {bookings?.some(b => b.specialRequests) 
-                  ? bookings?.find(b => b.specialRequests)?.specialRequests 
-                  : "No special dietary requirements"}
+                {specialRequests || "No special dietary requirements"}
               </p>
             </div>
             <div>
               <h3 className="text-lg font-semibold mb-2">Allergens</h3>
               <p className="text-muted-foreground">
-                {bookings?.some(b => b.allergens)
-                  ? bookings?.find(b => b.allergens)?.allergens
-                  : "No allergens reported"}
+                {allergens || "No allergens reported"}
               </p>
             </div>
           </div>
