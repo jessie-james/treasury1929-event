@@ -8,6 +8,13 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Accordion,
   AccordionContent,
   AccordionItem,
@@ -61,8 +68,10 @@ export default function UsersPage() {
   const [filters, setFilters] = useState<FilterOptions>({});
   const [appliedFilters, setAppliedFilters] = useState<FilterOptions>({});
 
+  // Add error handling to queries
   const { data: users, isLoading: usersLoading, error: usersError } = useQuery<ExtendedUser[]>({
     queryKey: ["/api/users"],
+    retry: 3,
     onError: (error: Error) => {
       console.error("Error fetching users:", error);
       toast({
