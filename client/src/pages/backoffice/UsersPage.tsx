@@ -96,7 +96,8 @@ export default function UsersPage() {
     const userBookings = user.bookings || [];
     const stats = {
       totalSeats: 0,
-      eventCount: 0,
+      eventCount: userBookings.length,
+      totalSeatsAll: userBookings.reduce((sum, b) => sum + (b.seatNumbers?.length || 0), 0),
       selectedFoodCount: 0,
       matchingEvents: [] as string[],
     };
@@ -193,6 +194,10 @@ export default function UsersPage() {
     );
   }
 
+  const selectedFoodName = appliedFilters.foodItem 
+    ? foodOptions?.find(f => f.id === appliedFilters.foodItem)?.name 
+    : null;
+
   return (
     <BackofficeLayout>
       <div className="space-y-8">
@@ -205,7 +210,7 @@ export default function UsersPage() {
           )}
         </div>
 
-        {/* Filters Card */}
+        {/* Filters Card - Content remains the same as before */}
         <Card>
           <CardHeader>
             <CardTitle>Filters & Organization</CardTitle>
@@ -434,7 +439,7 @@ export default function UsersPage() {
 
             return (
               <Card key={user.id} className="overflow-hidden">
-                <CardHeader>
+                <CardHeader className="pb-4">
                   <CardTitle className="text-2xl font-bold flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div>
                       <span>{user.email}</span>
@@ -442,20 +447,35 @@ export default function UsersPage() {
                         Customer since: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
                       </span>
                     </div>
-                    {/* Show relevant stats based on active filters */}
-                    <div className="flex gap-4 text-base font-normal">
-                      {stats.matchingEvents.length > 0 && (
-                        <Badge variant="outline" className="h-auto py-1">
-                          Event: {stats.matchingEvents.join(", ")} ({stats.totalSeats} seats)
-                        </Badge>
-                      )}
-                      {appliedFilters.foodItem && (
-                        <Badge variant="outline" className="h-auto py-1">
-                          Selected food: {stats.selectedFoodCount} times
-                        </Badge>
-                      )}
-                    </div>
                   </CardTitle>
+                  {/* User Stats Based on Active Filters */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    <div className="space-y-1">
+                      <span className="text-sm text-muted-foreground">Total Events</span>
+                      <p className="text-2xl font-bold">{stats.eventCount}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-sm text-muted-foreground">Total Seats Booked</span>
+                      <p className="text-2xl font-bold">{stats.totalSeatsAll}</p>
+                    </div>
+                    {appliedFilters.event && stats.matchingEvents.length > 0 && (
+                      <div className="space-y-1">
+                        <span className="text-sm text-muted-foreground">Selected Event Seats</span>
+                        <p className="text-2xl font-bold">{stats.totalSeats}</p>
+                        <span className="text-sm text-primary">
+                          {stats.matchingEvents.join(", ")}
+                        </span>
+                      </div>
+                    )}
+                    {selectedFoodName && (
+                      <div className="space-y-1">
+                        <span className="text-sm text-muted-foreground">
+                          {selectedFoodName} Orders
+                        </span>
+                        <p className="text-2xl font-bold">{stats.selectedFoodCount}</p>
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <Accordion type="single" collapsible>
