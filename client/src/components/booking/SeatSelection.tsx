@@ -78,7 +78,7 @@ export function SeatSelection({ eventId, onComplete }: Props) {
         <div className="animate-pulse space-y-4">
           <div className="h-8 w-48 bg-muted rounded" />
           <div className="h-4 w-96 bg-muted rounded" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="h-48 bg-muted rounded" />
             ))}
@@ -90,15 +90,33 @@ export function SeatSelection({ eventId, onComplete }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Header with progress */}
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold">Select Your Seats</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Select Your Seats</h2>
+          <Button
+            onClick={() => {
+              if (selectedSeats.length === 0) return;
+              const tableId = selectedSeats[0].tableId;
+              const seatNumbers = selectedSeats.map(s => s.seatNumber).sort((a, b) => a - b);
+              onComplete({ tableId, seatNumbers });
+            }}
+            disabled={selectedSeats.length === 0}
+          >
+            Continue to Guest Details
+          </Button>
+        </div>
         <p className="text-muted-foreground">
           Choose up to 4 seats from a single table
         </p>
+        <p className="text-sm font-medium text-primary">
+          {selectedSeats.length} seats selected
+        </p>
       </div>
 
-      <ScrollArea className="h-[60vh] w-full rounded-md border p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      {/* Tables Grid */}
+      <ScrollArea className="h-[calc(100vh-250px)] w-full rounded-md border p-4">
+        <div className="grid grid-cols-2 gap-6">
           {tables?.map((table) => {
             const tableSeats = allSeats?.[table.id] || [];
 
@@ -143,21 +161,6 @@ export function SeatSelection({ eventId, onComplete }: Props) {
           })}
         </div>
       </ScrollArea>
-
-      <div className="flex justify-between items-center">
-        <p className="text-sm">{selectedSeats.length} seats selected</p>
-        <Button
-          onClick={() => {
-            if (selectedSeats.length === 0) return;
-            const tableId = selectedSeats[0].tableId;
-            const seatNumbers = selectedSeats.map(s => s.seatNumber).sort((a, b) => a - b);
-            onComplete({ tableId, seatNumbers });
-          }}
-          disabled={selectedSeats.length === 0}
-        >
-          Continue to Guest Details
-        </Button>
-      </div>
     </div>
   );
 }
