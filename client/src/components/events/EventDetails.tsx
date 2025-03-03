@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Event, type Booking } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Calendar, MapPin, Ticket } from "lucide-react";
+import { Calendar, MapPin, Ticket, AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link } from "wouter";
@@ -86,10 +86,10 @@ export function EventDetails({
         <p className="text-lg">{event.description}</p>
 
         {hasBooking && (
-          <Alert>
-            <Ticket className="h-4 w-4" />
-            <AlertTitle>You have tickets for this event</AlertTitle>
-            <AlertDescription>
+          <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertTitle className="text-yellow-800">You have tickets for this event</AlertTitle>
+            <AlertDescription className="text-yellow-700">
               <Link href="/dashboard" className="underline">
                 View your tickets
               </Link>
