@@ -99,7 +99,7 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Progress indicator */}
       <div className="space-y-2">
         <div className="flex justify-between items-center">
@@ -117,7 +117,7 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
       </div>
 
       {/* Current step content */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {currentStep === "name" ? (
           <div className="space-y-4">
             <Label htmlFor="guest-name">Guest's Name</Label>
@@ -137,7 +137,7 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
             />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-2">
             <Label className="capitalize">{currentStep} Selection</Label>
             <RadioGroup
               value={selections[currentSeat]?.[currentStep]?.toString()}
@@ -151,8 +151,8 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                 })
               }
             >
-              <ScrollArea className="h-[400px]">
-                <div className="grid grid-cols-3 gap-3 pb-4">
+              <ScrollArea className="h-[400px] border rounded-lg">
+                <div className="grid grid-cols-3 gap-3 p-4">
                   {byType[currentStep]?.map((option) => {
                     const isSelected = selections[currentSeat]?.[currentStep] === option.id;
                     return (
@@ -198,29 +198,29 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
             </RadioGroup>
           </div>
         )}
-      </div>
 
-      {/* Navigation buttons */}
-      <div className="flex justify-between items-center pt-4">
-        <Button
-          variant="outline"
-          onClick={moveToPreviousStep}
-          disabled={currentStepIndex === 0 && currentSeat === selectedSeats[0]}
-        >
-          Previous
-        </Button>
-        <Button
-          onClick={moveToNextStep}
-          disabled={
-            (currentStep === "name" && !selections[currentSeat]?.name.trim()) ||
-            (currentStep !== "name" && selections[currentSeat]?.[currentStep] === undefined)
-          }
-        >
-          {currentStepIndex === STEPS.length - 1 && currentSeat === selectedSeats[selectedSeats.length - 1]
-            ? "Complete Selection"
-            : "Next"
-          }
-        </Button>
+        {/* Navigation buttons moved closer to content */}
+        <div className="flex justify-between items-center pt-2 pb-4">
+          <Button
+            variant="outline"
+            onClick={moveToPreviousStep}
+            disabled={currentStepIndex === 0 && currentSeat === selectedSeats[0]}
+          >
+            Previous
+          </Button>
+          <Button
+            onClick={moveToNextStep}
+            disabled={
+              (currentStep === "name" && !selections[currentSeat]?.name.trim()) ||
+              (currentStep !== "name" && selections[currentSeat]?.[currentStep] === undefined)
+            }
+          >
+            {currentStepIndex === STEPS.length - 1 && currentSeat === selectedSeats[selectedSeats.length - 1]
+              ? "Complete Selection"
+              : "Next"
+            }
+          </Button>
+        </div>
       </div>
     </div>
   );
