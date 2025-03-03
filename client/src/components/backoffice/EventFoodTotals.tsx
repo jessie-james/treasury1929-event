@@ -46,13 +46,13 @@ export function EventFoodTotals({ eventId, type, className }: Props) {
       {entries.map(([id, count]) => (
         <Card key={id} className="col-span-1">
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <h3 className="font-medium text-base sm:text-lg line-clamp-2">
+            <div className="flex flex-col items-start gap-2">
+              <h3 className="font-medium text-lg line-clamp-2">
                 {getFoodName(id)}
               </h3>
-              <p className={`${className} sm:ml-4`}>
+              <p className={className}>
                 {count}
-                <span className="text-sm sm:text-base font-normal text-muted-foreground ml-2">orders</span>
+                <span className="text-base font-normal text-muted-foreground ml-2">orders</span>
               </p>
             </div>
           </CardContent>
