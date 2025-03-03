@@ -39,12 +39,12 @@ export default function OrdersPage() {
           {foodStats.map((stat) => (
             <Card key={stat.name} className="bg-card">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-lg font-medium">
+                <CardTitle className="text-base sm:text-lg font-medium">
                   {stat.name}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-bold">{stat.value}</div>
+                <div className="text-3xl sm:text-4xl font-bold">{stat.value}</div>
               </CardContent>
             </Card>
           ))}
@@ -55,16 +55,16 @@ export default function OrdersPage() {
           <div className="grid gap-6">
             {events?.map((event) => (
               <Card key={event.id} className="overflow-hidden">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <Accordion type="single" collapsible>
                     <AccordionItem value="details" className="border-none">
                       <AccordionTrigger className="py-0 [&[data-state=open]>div]:pb-4">
-                        <div className="flex flex-col lg:flex-row gap-6 w-full">
+                        <div className="flex flex-col lg:flex-row gap-4 w-full">
                           <div className="flex-1">
-                            <div className="flex justify-between items-start">
+                            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                               <div>
-                                <h3 className="text-2xl font-bold mb-2">{event.title}</h3>
-                                <p className="text-lg text-muted-foreground">
+                                <h3 className="text-xl sm:text-2xl font-bold mb-2">{event.title}</h3>
+                                <p className="text-base sm:text-lg text-muted-foreground">
                                   {new Date(event.date).toLocaleDateString(undefined, {
                                     weekday: 'long',
                                     year: 'numeric',
@@ -73,12 +73,12 @@ export default function OrdersPage() {
                                   })}
                                 </p>
                               </div>
-                              <div className="text-right">
-                                <p className="text-3xl font-bold text-primary">
+                              <div className="text-left sm:text-right w-full sm:w-auto">
+                                <p className="text-2xl sm:text-3xl font-bold text-primary">
                                   {event.totalSeats - event.availableSeats}
-                                  <span className="text-lg font-normal text-muted-foreground ml-2">orders</span>
+                                  <span className="text-base sm:text-lg font-normal text-muted-foreground ml-2">orders</span>
                                 </p>
-                                <p className="text-lg text-muted-foreground">
+                                <p className="text-base sm:text-lg text-muted-foreground">
                                   out of {event.totalSeats} total seats
                                 </p>
                               </div>
@@ -90,15 +90,15 @@ export default function OrdersPage() {
                         <div className="mt-6 p-4 bg-muted/50 rounded-lg">
                           <div className="space-y-6">
                             {['salad', 'entree', 'dessert', 'wine'].map((type) => (
-                              <div key={type} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div className="col-span-full">
-                                  <h4 className="text-xl font-semibold capitalize mb-4">{type} Selections</h4>
+                              <div key={type}>
+                                <h4 className="text-lg sm:text-xl font-semibold capitalize mb-4">{type} Selections</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                  <EventFoodTotals 
+                                    eventId={event.id} 
+                                    type={type}
+                                    className="text-2xl sm:text-3xl font-bold" 
+                                  />
                                 </div>
-                                <EventFoodTotals 
-                                  eventId={event.id} 
-                                  type={type}
-                                  className="text-2xl font-bold" 
-                                />
                               </div>
                             ))}
                           </div>
