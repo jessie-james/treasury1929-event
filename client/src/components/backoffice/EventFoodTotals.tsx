@@ -35,7 +35,7 @@ export function EventFoodTotals({ eventId, type, className }: Props) {
     return (
       <div className="col-span-full">
         <p className="text-lg text-muted-foreground italic text-center py-4">
-          No {type} selections
+          No {type} selections yet
         </p>
       </div>
     );
@@ -46,14 +46,16 @@ export function EventFoodTotals({ eventId, type, className }: Props) {
       {entries.map(([id, count]) => (
         <Card key={id} className="col-span-1">
           <CardContent className="p-4">
-            <div className="flex flex-col items-start gap-2">
-              <h3 className="font-medium text-lg line-clamp-2">
+            <div className="flex flex-col gap-2">
+              <h3 className="font-semibold text-xl">
                 {getFoodName(id)}
               </h3>
-              <p className={className}>
-                {count}
-                <span className="text-base font-normal text-muted-foreground ml-2">orders</span>
-              </p>
+              <div>
+                <span className={`${className} inline-block`}>
+                  {count}
+                </span>
+                <span className="text-base text-muted-foreground ml-2">orders</span>
+              </div>
             </div>
           </CardContent>
         </Card>

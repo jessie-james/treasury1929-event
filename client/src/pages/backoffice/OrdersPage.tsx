@@ -88,17 +88,17 @@ export default function OrdersPage() {
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-                          <div className="space-y-6">
+                          <div className="space-y-8">
                             {['salad', 'entree', 'dessert', 'wine'].map((type) => (
-                              <div key={type} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div className="col-span-full">
-                                  <h4 className="text-xl font-semibold capitalize mb-4">{type} Selections</h4>
+                              <div key={type} className="space-y-4">
+                                <h4 className="text-xl font-semibold capitalize border-b pb-2">{type} Selections</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                  <EventFoodTotals 
+                                    eventId={event.id} 
+                                    type={type}
+                                    className="text-3xl font-bold text-primary" 
+                                  />
                                 </div>
-                                <EventFoodTotals 
-                                  eventId={event.id} 
-                                  type={type}
-                                  className="text-2xl font-bold" 
-                                />
                               </div>
                             ))}
                           </div>
