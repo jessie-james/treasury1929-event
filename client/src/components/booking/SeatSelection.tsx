@@ -6,17 +6,20 @@ import { useQuery } from "@tanstack/react-query";
 import { type Table, type Seat } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertTriangle } from "lucide-react";
 
 interface Props {
   eventId: number;
   onComplete: (selection: { tableId: number; seatNumbers: number[] }) => void;
+  hasExistingBooking?: boolean;
 }
 
 interface SeatWithAvailability extends Seat {
   isAvailable: boolean;
 }
 
-export function SeatSelection({ eventId, onComplete }: Props) {
+export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props) {
   const [selectedSeats, setSelectedSeats] = useState<Array<{ tableId: number; seatNumber: number }>>([]);
 
   const { data: tables, isLoading: tablesLoading } = useQuery<Table[]>({
@@ -92,6 +95,15 @@ export function SeatSelection({ eventId, onComplete }: Props) {
     <div className="space-y-6">
       {/* Header with progress */}
       <div className="space-y-2">
+        {hasExistingBooking && (
+          <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertTitle className="text-yellow-800">Existing Booking</AlertTitle>
+            <AlertDescription className="text-yellow-700">
+              You already have tickets for this event. Additional bookings will be separate from your existing reservation.
+            </AlertDescription>
+          </Alert>
+        )}
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Select Your Seats</h2>
           <Button

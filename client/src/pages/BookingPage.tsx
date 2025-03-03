@@ -6,6 +6,8 @@ import { CheckoutForm } from "@/components/booking/CheckoutForm";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Header } from "@/components/Header";
+import { useQuery } from "@tanstack/react-query";
+import type { Booking } from "@shared/schema";
 
 type Step = "seats" | "food" | "checkout";
 
@@ -23,6 +25,12 @@ export default function BookingPage() {
   const [selectedSeats, setSelectedSeats] = useState<SeatSelectionData | null>(null);
   const [foodSelections, setFoodSelections] = useState<Record<string, number>[]>([]);
   const [guestNames, setGuestNames] = useState<Record<number, string>>({});
+
+  const { data: existingBookings } = useQuery<Booking[]>({
+    queryKey: ["/api/user/bookings"],
+  });
+
+  const hasExistingBooking = existingBookings?.some(booking => booking.eventId === eventId);
 
   const progress =
     step === "seats" ? 33 : step === "food" ? 66 : 100;
@@ -43,6 +51,7 @@ export default function BookingPage() {
             {step === "seats" && (
               <SeatSelection
                 eventId={eventId}
+                hasExistingBooking={hasExistingBooking}
                 onComplete={(selection) => {
                   setSelectedSeats(selection);
                   setStep("food");
