@@ -102,14 +102,38 @@ export default function OrdersPage() {
                               </div>
                             ))}
                           </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {foodStats.map((stat) => (
+            <Card key={stat.name}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">{stat.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {events?.map((event) => (
+            <Card key={event.id} className="overflow-hidden">
+              <CardHeader className="bg-secondary/50">
+                <CardTitle>{event.title}</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(event.date).toLocaleDateString()}
+                </p>
+              </CardHeader>
+              <CardContent className="p-6">
+                <EventFoodTotals eventId={event.id} />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     </BackofficeLayout>

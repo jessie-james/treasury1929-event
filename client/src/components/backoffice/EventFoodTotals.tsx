@@ -1,65 +1,131 @@
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
-import type { FoodOption } from "@shared/schema";
 
-interface Props {
-  eventId: number;
-  type: string;
-  className?: string;
-}
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { type FoodOption } from "@shared/schema";
+import { Progress } from "@/components/ui/progress";
+import { Loader2 } from "lucide-react";
 
 interface FoodTotals {
-  [type: string]: Record<string, number>;
+  salads: Record<string, number>;
+  entrees: Record<string, number>;
+  desserts: Record<string, number>;
+  wines: Record<string, number>;
 }
 
-export function EventFoodTotals({ eventId, type, className }: Props) {
+interface EventFoodTotalsProps {
+  eventId: number;
+}
+
+export function EventFoodTotals({ eventId }: EventFoodTotalsProps) {
+  const [totalItems, setTotalItems] = useState(0);
+
   const { data: foodOptions } = useQuery<FoodOption[]>({
     queryKey: ["/api/food-options"],
   });
 
-  const { data: totals } = useQuery<FoodTotals>({
+  const { data: totals, isLoading } = useQuery<FoodTotals>({
     queryKey: [`/api/events/${eventId}/food-totals`],
+    enabled: !!eventId,
   });
 
-  if (!totals || !foodOptions) return null;
+  useEffect(() => {
+    if (totals) {
+      const count = 
+        Object.values(totals.salads).reduce((sum, count) => sum + count, 0) +
+        Object.values(totals.entrees).reduce((sum, count) => sum + count, 0) +
+        Object.values(totals.desserts).reduce((sum, count) => sum + count, 0) +
+        Object.values(totals.wines).reduce((sum, count) => sum + count, 0);
+      setTotalItems(count);
+    }
+  }, [totals]);
 
-  const getFoodName = (id: string) => {
-    const option = foodOptions.find(o => o.id === parseInt(id) && o.type === type);
-    return option?.name || "Unknown";
+  const getFoodNameById = (id: string, type: 'salad' | 'entree' | 'dessert' | 'wine') => {
+    const typeMap = {
+      'salad': 'salad',
+      'entree': 'entree',
+      'dessert': 'dessert',
+      'wine': 'wine'
+    };
+    
+    const option = foodOptions?.find(o => o.id === parseInt(id) && o.type === typeMap[type]);
+    return option?.name || `Item ${id}`;
   };
 
-  const currentTotals = totals[`${type}s`] || {};
-  const entries = Object.entries(currentTotals);
+  const getPercentage = (count: number) => {
+    return totalItems > 0 ? (count / totalItems) * 100 : 0;
+  };
 
-  if (entries.length === 0) {
+  const renderFoodSection = (title: string, items: Record<string, number>, type: 'salad' | 'entree' | 'dessert' | 'wine') => {
+    const sortedItems = Object.entries(items)
+      .sort(([, countA], [, countB]) => countB - countA);
+    
+    if (sortedItems.length === 0) return null;
+    
     return (
-      <div className="col-span-full">
-        <p className="text-lg text-muted-foreground italic text-center py-4">
-          No {type} selections yet
-        </p>
+      <div className="space-y-2">
+        <h3 className="font-medium">{title}</h3>
+        {sortedItems.map(([id, count]) => (
+          <div key={id} className="space-y-1">
+            <div className="flex justify-between text-sm">
+              <span>{getFoodNameById(id, type)}</span>
+              <span className="font-medium">{count}</span>
+            </div>
+            <Progress value={getPercentage(count)} className="h-2" />
+          </div>
+        ))}
       </div>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Food Orders</CardTitle>
+          <CardDescription>Loading data...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!totals) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Food Orders</CardTitle>
+          <CardDescription>No data available</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-muted-foreground py-8">No food orders for this event yet.</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <>
-      {entries.map(([id, count]) => (
-        <Card key={id} className="col-span-1">
-          <CardContent className="p-4">
-            <div className="flex flex-col gap-2">
-              <h3 className="font-semibold text-xl">
-                {getFoodName(id)}
-              </h3>
-              <div>
-                <span className={`${className} inline-block`}>
-                  {count}
-                </span>
-                <span className="text-base text-muted-foreground ml-2">orders</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </>
+    <Card>
+      <CardHeader>
+        <CardTitle>Food Orders</CardTitle>
+        <CardDescription>
+          {totalItems} total selected items
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {renderFoodSection("Entrees", totals.entrees, 'entree')}
+        {renderFoodSection("Salads", totals.salads, 'salad')}
+        {renderFoodSection("Desserts", totals.desserts, 'dessert')}
+        {renderFoodSection("Wines", totals.wines, 'wine')}
+      </CardContent>
+    </Card>
   );
 }

@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
 import {
@@ -56,31 +57,18 @@ interface ExtendedBooking extends Booking {
   allergens?: string;
 }
 
-interface ExtendedUser extends User {
+interface UserWithBookings extends User {
   bookings: ExtendedBooking[];
 }
-
-const ALLERGEN_OPTIONS = ['Wheat', 'Dairy', 'Nuts'];
 
 export default function UsersPage() {
   const { toast } = useToast();
   const [sortBy, setSortBy] = useState<SortOption>('date');
-  const [sortAsc, setSortAsc] = useState(false);
   const [filters, setFilters] = useState<FilterOptions>({});
-  const [appliedFilters, setAppliedFilters] = useState<FilterOptions>({});
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Add error handling to queries
-  const { data: users, isLoading: usersLoading, error: usersError } = useQuery<ExtendedUser[]>({
+  const { data: users, isLoading: usersLoading, error: usersError } = useQuery<UserWithBookings[]>({
     queryKey: ["/api/users"],
-    retry: 3,
-    onError: (error: Error) => {
-      console.error("Error fetching users:", error);
-      toast({
-        title: "Error loading users",
-        description: "Please try refreshing the page",
-        variant: "destructive",
-      });
-    },
   });
 
   const { data: events } = useQuery<Event[]>({
@@ -91,104 +79,144 @@ export default function UsersPage() {
     queryKey: ["/api/food-options"],
   });
 
-  // Get user stats based on filters
-  const getUserStats = (user: ExtendedUser) => {
-    const userBookings = user.bookings || [];
-    const stats = {
-      totalSeats: 0,
-      eventCount: userBookings.length,
-      totalSeatsAll: userBookings.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0),
-      selectedFoodCount: {} as Record<number, number>,
-      matchingEvents: [] as string[],
-    };
-
-    if (appliedFilters.events?.length) {
-      const eventBookings = userBookings.filter(b => appliedFilters.events?.includes(b.event.id));
-      stats.matchingEvents = eventBookings.map(b => b.event.title);
-      stats.totalSeats = eventBookings.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0);
+  // Group food options by type
+  const foodOptionsByType = useMemo(() => {
+    const grouped: Record<string, FoodOption[]> = {};
+    
+    if (foodOptions) {
+      foodOptions.forEach(item => {
+        if (!grouped[item.type]) {
+          grouped[item.type] = [];
+        }
+        grouped[item.type].push(item);
+      });
     }
+    
+    return grouped;
+  }, [foodOptions]);
 
-    if (appliedFilters.foodItems?.length) {
-      appliedFilters.foodItems.forEach(foodId => {
-        stats.selectedFoodCount[foodId] = userBookings.reduce((count, booking) => {
-          return count + booking.foodItems.filter(item => item.id === foodId).length;
-        }, 0);
+  // Get all unique allergens from food items
+  const allAllergens = useMemo(() => {
+    const allergens = new Set<string>();
+    
+    if (foodOptions) {
+      foodOptions.forEach(item => {
+        if (item.description?.toLowerCase().includes('allergen')) {
+          const match = item.description.match(/allergens:([^]+)/i);
+          if (match && match[1]) {
+            const allergensText = match[1].trim();
+            allergensText.split(',').forEach(allergen => {
+              const cleanAllergen = allergen.trim().replace(/contains /i, '');
+              if (cleanAllergen) allergens.add(cleanAllergen);
+            });
+          }
+        }
+      });
+    }
+    
+    return Array.from(allergens);
+  }, [foodOptions]);
+
+  // Apply filters and sort
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+
+    // First, filter based on search term
+    let result = users;
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(user => {
+        const hasMatchingEmail = user.email.toLowerCase().includes(term);
+        const hasMatchingBooking = user.bookings.some(booking => 
+          booking.guestNames && Object.values(booking.guestNames)
+            .some(name => name.toLowerCase().includes(term))
+        );
+        return hasMatchingEmail || hasMatchingBooking;
       });
     }
 
-    return stats;
-  };
-
-  // Filter and sort users
-  const filteredAndSortedUsers = useMemo(() => {
-    if (!users) return [];
-
-    let filtered = [...users];
-
-    // Apply filters
-    if (appliedFilters.events?.length) {
-      filtered = filtered.filter(user =>
-        user.bookings?.some(b => appliedFilters.events?.includes(b.event.id))
+    // Apply other filters
+    const appliedFilters = filters;
+    
+    if (appliedFilters.events && appliedFilters.events.length > 0) {
+      result = result.filter(user => 
+        user.bookings.some(booking => appliedFilters.events?.includes(booking.event.id))
       );
     }
 
-    if (appliedFilters.foodItems?.length) {
-      filtered = filtered.filter(user => {
-        const stats = getUserStats(user);
-        return appliedFilters.foodItems?.some(foodId => stats.selectedFoodCount[foodId] > 0);
-      });
+    if (appliedFilters.foodItems && appliedFilters.foodItems.length > 0) {
+      result = result.filter(user =>
+        user.bookings.some(booking =>
+          booking.foodItems.some(food => appliedFilters.foodItems?.includes(food.id))
+        )
+      );
     }
 
-    if (appliedFilters.allergens?.length) {
-      filtered = filtered.filter(user =>
-        user.bookings?.some(b =>
-          b.allergens && appliedFilters.allergens?.some(allergen =>
-            b.allergens?.includes(allergen)
+    if (appliedFilters.allergens && appliedFilters.allergens.length > 0) {
+      result = result.filter(user =>
+        user.bookings.some(booking =>
+          booking.allergens && appliedFilters.allergens?.some(allergen => 
+            booking.allergens?.toLowerCase().includes(allergen.toLowerCase())
           )
         )
       );
     }
 
-    if (appliedFilters.minSeats) {
-      filtered = filtered.filter(user => {
-        const totalSeats = user.bookings?.reduce(
-          (sum, b) => sum + (b.seatNumbers.length || 0),
-          0
-        ) || 0;
-        return totalSeats >= appliedFilters.minSeats;
-      });
+    if (appliedFilters.specialRequest) {
+      const requestTerm = appliedFilters.specialRequest.toLowerCase();
+      result = result.filter(user =>
+        user.bookings.some(booking =>
+          booking.specialRequests?.toLowerCase().includes(requestTerm)
+        )
+      );
     }
 
-    // Sort users
-    return filtered.sort((a, b) => {
-      const multiplier = sortAsc ? 1 : -1;
-      switch (sortBy) {
-        case 'date':
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return (dateA - dateB) * multiplier;
-        case 'events':
-          const eventsA = a.bookings?.length || 0;
-          const eventsB = b.bookings?.length || 0;
-          return (eventsA - eventsB) * multiplier;
-        case 'seats':
-          const seatsA = a.bookings?.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0) || 0;
-          const seatsB = b.bookings?.reduce((sum, b) => sum + (b.seatNumbers.length || 0), 0) || 0;
-          return (seatsA - seatsB) * multiplier;
-        default:
-          return 0;
+    if (appliedFilters.minSeats) {
+      result = result.filter(user =>
+        user.bookings.some(booking =>
+          booking.seatNumbers.length >= (appliedFilters.minSeats || 0)
+        )
+      );
+    }
+
+    // Sort the users
+    result.sort((a, b) => {
+      if (sortBy === 'date') {
+        // Sort by most recent booking
+        const aDate = a.bookings.length 
+          ? new Date(a.bookings[0].createdAt).getTime()
+          : 0;
+        const bDate = b.bookings.length 
+          ? new Date(b.bookings[0].createdAt).getTime()
+          : 0;
+        return bDate - aDate; // Most recent first
+      } else if (sortBy === 'events') {
+        // Sort by number of booked events
+        const aEvents = new Set(a.bookings.map(b => b.eventId)).size;
+        const bEvents = new Set(b.bookings.map(b => b.eventId)).size;
+        return bEvents - aEvents; // Most events first
+      } else if (sortBy === 'seats') {
+        // Sort by total seats booked
+        const aSeats = a.bookings.reduce((sum, b) => sum + b.seatNumbers.length, 0);
+        const bSeats = b.bookings.reduce((sum, b) => sum + b.seatNumbers.length, 0);
+        return bSeats - aSeats; // Most seats first
       }
+      return 0;
     });
-  }, [users, appliedFilters, sortBy, sortAsc]);
 
-  const handleSearch = () => {
-    setAppliedFilters(filters);
-  };
+    return result;
+  }, [users, searchTerm, filters, sortBy]);
 
-  const handleReset = () => {
-    setFilters({});
-    setAppliedFilters({});
-  };
+  // Track applied filters for displaying count
+  const appliedFilters = useMemo(() => {
+    return {
+      events: filters.events || [],
+      foodItems: filters.foodItems || [],
+      allergens: filters.allergens || [],
+      specialRequest: filters.specialRequest || "",
+      minSeats: filters.minSeats || 0
+    };
+  }, [filters]);
 
   const handleEventToggle = (eventId: number) => {
     setFilters(prev => ({
@@ -264,252 +292,300 @@ export default function UsersPage() {
           )}
         </div>
 
-        {/* Filters Card */}
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardTitle>Filters & Organization</CardTitle>
-            <CardDescription className="hidden sm:block">
-              Use the filters below to find specific users and organize the results
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {/* Sort Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Sort Options</h3>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select sort criteria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="date">Customer Since</SelectItem>
-                      <SelectItem value="events">Number of Events</SelectItem>
-                      <SelectItem value="seats">Total Seats Booked</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setSortAsc(!sortAsc)}
-                    className="shrink-0 w-12 h-10"
-                  >
-                    <ArrowUpDown className={`h-4 w-4 transition-transform ${sortAsc ? 'rotate-180' : ''}`} />
-                  </Button>
-                </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
+          {/* Filters sidebar */}
+          <Card className="h-fit sticky top-4">
+            <CardHeader>
+              <CardTitle>Filters & Sorting</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="sort-by">Sort by</Label>
+                <Select 
+                  value={sortBy} 
+                  onValueChange={(value) => setSortBy(value as SortOption)}
+                >
+                  <SelectTrigger id="sort-by">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date">Most Recent</SelectItem>
+                    <SelectItem value="events">Number of Events</SelectItem>
+                    <SelectItem value="seats">Total Seats</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <Separator />
 
-              {/* Events Section */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Events</h3>
-                <div className="grid grid-cols-1 gap-4">
-                  {events?.map(event => (
-                    <div key={event.id} className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`event-${event.id}`}
-                        checked={filters.events?.includes(event.id)}
-                        onCheckedChange={() => handleEventToggle(event.id)}
-                        className="h-5 w-5"
-                      />
-                      <Label
-                        htmlFor={`event-${event.id}`}
-                        className="text-sm sm:text-base flex-1 cursor-pointer"
-                      >
-                        {event.title}
-                      </Label>
-                    </div>
-                  ))}
+              <div className="space-y-2">
+                <Label htmlFor="search">Search</Label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="search"
+                    placeholder="Search email or guest name"
+                    className="pl-8"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
               </div>
 
-              <Separator />
-
-              {/* Food Options */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Food Selections</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {foodOptions?.map(food => (
-                    <div key={food.id} className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`food-${food.id}`}
-                        checked={filters.foodItems?.includes(food.id)}
-                        onCheckedChange={() => handleFoodToggle(food.id)}
-                        className="h-5 w-5"
-                      />
-                      <Label
-                        htmlFor={`food-${food.id}`}
-                        className="text-sm sm:text-base flex-1 cursor-pointer"
-                      >
-                        {food.name}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Allergens */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Allergens</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {ALLERGEN_OPTIONS.map(allergen => (
-                    <div key={allergen} className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`allergen-${allergen}`}
-                        checked={filters.allergens?.includes(allergen)}
-                        onCheckedChange={() => handleAllergenToggle(allergen)}
-                        className="h-5 w-5"
-                      />
-                      <Label
-                        htmlFor={`allergen-${allergen}`}
-                        className="text-sm sm:text-base flex-1 cursor-pointer"
-                      >
-                        {allergen}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Minimum Seats */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Additional Filters</h3>
-                <div className="w-full sm:w-1/2">
+              {events && events.length > 0 && (
+                <>
+                  <Separator />
+                  
                   <div className="space-y-2">
-                    <Label>Minimum Seats Booked</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={filters.minSeats || ''}
-                      onChange={(e) =>
-                        setFilters(prev => ({ ...prev, minSeats: parseInt(e.target.value) || undefined }))
-                      }
-                      placeholder="Enter minimum seats"
-                      className="w-full"
-                    />
+                    <Label>Filter by Event</Label>
+                    <div className="pl-1 space-y-2">
+                      {events.map((event) => (
+                        <div key={event.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`event-${event.id}`}
+                            checked={appliedFilters.events.includes(event.id)}
+                            onCheckedChange={() => handleEventToggle(event.id)}
+                          />
+                          <label
+                            htmlFor={`event-${event.id}`}
+                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            {event.title}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                </>
+              )}
+
+              {foodOptionsByType && Object.keys(foodOptionsByType).length > 0 && (
+                <>
+                  <Separator />
+                  
+                  <div className="space-y-2">
+                    <Label>Filter by Food Selections</Label>
+                    <Accordion type="multiple" className="w-full">
+                      {Object.entries(foodOptionsByType).map(([type, items]) => (
+                        <AccordionItem key={type} value={type}>
+                          <AccordionTrigger className="capitalize text-sm">{type}s</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="pl-1 space-y-2">
+                              {items.map((item) => (
+                                <div key={item.id} className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`food-${item.id}`}
+                                    checked={appliedFilters.foodItems.includes(item.id)}
+                                    onCheckedChange={() => handleFoodToggle(item.id)}
+                                  />
+                                  <label
+                                    htmlFor={`food-${item.id}`}
+                                    className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                  >
+                                    {item.name}
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  </div>
+                </>
+              )}
+
+              {allAllergens.length > 0 && (
+                <>
+                  <Separator />
+                  
+                  <div className="space-y-2">
+                    <Label>Filter by Allergens</Label>
+                    <div className="pl-1 space-y-2">
+                      {allAllergens.map((allergen) => (
+                        <div key={allergen} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`allergen-${allergen}`}
+                            checked={appliedFilters.allergens.includes(allergen)}
+                            onCheckedChange={() => handleAllergenToggle(allergen)}
+                          />
+                          <label
+                            htmlFor={`allergen-${allergen}`}
+                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            {allergen}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <Separator />
+              
+              <div className="space-y-2">
+                <Label htmlFor="special-request">Special Request</Label>
+                <Input
+                  id="special-request"
+                  placeholder="Contains text..."
+                  value={filters.specialRequest || ""}
+                  onChange={(e) => setFilters(prev => ({ ...prev, specialRequest: e.target.value }))}
+                />
               </div>
 
               <Separator />
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row justify-end gap-4">
-                <Button
-                  variant="outline"
-                  onClick={handleReset}
-                  className="w-full sm:w-auto"
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset Filters
-                </Button>
-                <Button
-                  onClick={handleSearch}
-                  className="w-full sm:w-auto"
-                >
-                  <Search className="h-4 w-4 mr-2" />
-                  Apply Filters
-                </Button>
+              
+              <div className="space-y-2">
+                <Label htmlFor="min-seats">Minimum Seats</Label>
+                <Input
+                  id="min-seats"
+                  type="number"
+                  min="0"
+                  value={filters.minSeats || ""}
+                  onChange={(e) => setFilters(prev => ({ 
+                    ...prev, 
+                    minSeats: e.target.value ? parseInt(e.target.value) : undefined 
+                  }))}
+                />
               </div>
 
-              {/* Active Filters Summary */}
-              {Object.values(appliedFilters).some(v => Array.isArray(v) ? v.length > 0 : Boolean(v)) && (
-                <div className="pt-4 space-y-2">
-                  <h3 className="text-sm font-medium text-muted-foreground">Active Filters:</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {appliedFilters.events?.map(eventId => (
-                      <Badge key={eventId} variant="secondary" className="text-xs sm:text-sm">
-                        Event: {events?.find(e => e.id === eventId)?.title}
-                      </Badge>
-                    ))}
-                    {appliedFilters.foodItems?.map(foodId => (
-                      <Badge key={foodId} variant="secondary" className="text-xs sm:text-sm">
-                        Food: {foodOptions?.find(f => f.id === foodId)?.name}
-                      </Badge>
-                    ))}
-                    {appliedFilters.allergens?.map(allergen => (
-                      <Badge key={allergen} variant="secondary" className="text-xs sm:text-sm">
-                        Allergen: {allergen}
-                      </Badge>
-                    ))}
-                    {appliedFilters.minSeats && (
-                      <Badge variant="secondary" className="text-xs sm:text-sm">
-                        Min Seats: {appliedFilters.minSeats}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => {
+                  setFilters({});
+                  setSearchTerm("");
+                  toast({
+                    description: "All filters have been reset."
+                  });
+                }}
+              >
+                Reset Filters
+              </Button>
+            </CardContent>
+          </Card>
 
-        {/* User List */}
-        <div className="space-y-4 sm:space-y-6">
-          {filteredAndSortedUsers.map((user) => {
-            const stats = getUserStats(user);
-
-            return (
+          {/* Main user list */}
+          <div className="space-y-6">
+            {filteredUsers.map(user => (
               <Card key={user.id} className="overflow-hidden">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl sm:text-2xl font-bold flex flex-col gap-2 sm:gap-4">
-                    <div className="break-all">
-                      <span>{user.email}</span>
-                      <span className="block text-base font-normal text-muted-foreground mt-1">
-                        Customer since: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
-                      </span>
+                <CardHeader className="bg-secondary/50">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        {user.email}
+                        <Badge variant={user.role === 'admin' ? 'destructive' : 'default'}>
+                          {user.role}
+                        </Badge>
+                      </CardTitle>
+                      <CardDescription>
+                        Joined {new Date(user.createdAt).toLocaleDateString()}
+                      </CardDescription>
                     </div>
-                  </CardTitle>
-                  {/* User Stats Based on Active Filters */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                    <div className="space-y-1">
-                      <span className="text-sm text-muted-foreground">Total Events</span>
-                      <p className="text-xl sm:text-2xl font-bold">{stats.eventCount}</p>
+                    <div className="text-right">
+                      <p className="text-sm font-medium">{user.bookings.length} Bookings</p>
+                      <p className="text-xs text-muted-foreground">
+                        {user.bookings.reduce((total, booking) => total + booking.seatNumbers.length, 0)} Total Seats
+                      </p>
                     </div>
-                    <div className="space-y-1">
-                      <span className="text-sm text-muted-foreground">Total Seats Booked</span>
-                      <p className="text-xl sm:text-2xl font-bold">{stats.totalSeatsAll}</p>
-                    </div>
-                    {stats.matchingEvents.length > 0 && (
-                      <div className="space-y-1">
-                        <span className="text-sm text-muted-foreground">Selected Events Seats</span>
-                        <p className="text-xl sm:text-2xl font-bold">{stats.totalSeats}</p>
-                        <span className="text-sm text-primary">
-                          {stats.matchingEvents.join(", ")}
-                        </span>
-                      </div>
-                    )}
-                    {appliedFilters.foodItems?.map(foodId => (
-                      <div key={foodId} className="space-y-1">
-                        <span className="text-sm text-muted-foreground">
-                          {foodOptions?.find(f => f.id === foodId)?.name} Orders
-                        </span>
-                        <p className="text-xl sm:text-2xl font-bold">{stats.selectedFoodCount[foodId] || 0}</p>
-                      </div>
-                    ))}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <Accordion type="single" collapsible>
-                    <AccordionItem value="profile">
-                      <AccordionTrigger className="text-lg sm:text-xl py-4">
-                        View Profile & Bookings
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        {/* Assuming UserProfile component is defined elsewhere */}
-                        {/* <UserProfile userId={user.id} /> */}
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
+                <CardContent className="p-0">
+                  {user.bookings.length > 0 ? (
+                    <Accordion type="multiple" className="w-full">
+                      {user.bookings.map(booking => (
+                        <AccordionItem key={booking.id} value={`booking-${booking.id}`}>
+                          <AccordionTrigger className="px-6 py-3 hover:no-underline hover:bg-secondary/30">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 w-full text-left">
+                              <div>
+                                <p className="font-medium">{booking.event.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(booking.event.date).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="flex gap-4">
+                                <p className="text-sm">
+                                  {booking.seatNumbers.length} {booking.seatNumbers.length === 1 ? 'seat' : 'seats'}
+                                </p>
+                                <p className="text-sm">
+                                  {booking.foodItems.length} {booking.foodItems.length === 1 ? 'item' : 'items'}
+                                </p>
+                              </div>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-6 py-3 bg-secondary/10">
+                            <div className="space-y-4">
+                              <div>
+                                <h4 className="font-medium mb-2">Guests</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                  {booking.guestNames && Object.entries(booking.guestNames).map(([seatNumber, name]) => (
+                                    <div key={seatNumber} className="flex items-center gap-2">
+                                      <Badge variant="outline" className="h-6 w-6 flex items-center justify-center p-0 rounded-full">
+                                        {seatNumber}
+                                      </Badge>
+                                      <span className="text-sm">{name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              <div>
+                                <h4 className="font-medium mb-2">Food Selections</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                  {booking.foodItems.map(item => (
+                                    <div key={item.id} className="text-sm flex gap-2 items-center">
+                                      <Badge variant="outline" className="capitalize">
+                                        {item.type}
+                                      </Badge>
+                                      <span>{item.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {booking.specialRequests && (
+                                <div>
+                                  <h4 className="font-medium mb-1">Special Requests</h4>
+                                  <p className="text-sm italic">{booking.specialRequests}</p>
+                                </div>
+                              )}
+
+                              {booking.allergens && (
+                                <div>
+                                  <h4 className="font-medium mb-1">Allergens</h4>
+                                  <p className="text-sm italic">{booking.allergens}</p>
+                                </div>
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
+                  ) : (
+                    <div className="p-6 text-center text-muted-foreground">
+                      No bookings found for this user.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            );
-          })}
+            ))}
+
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No users match the selected filters</p>
+                <Button
+                  variant="link"
+                  onClick={() => {
+                    setFilters({});
+                    setSearchTerm("");
+                  }}
+                >
+                  Reset filters
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </BackofficeLayout>
