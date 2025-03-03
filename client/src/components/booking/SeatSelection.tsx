@@ -139,17 +139,18 @@ export function SeatSelection({ eventId, onComplete }: Props) {
                         return (
                           <Button
                             key={seat.id}
-                            variant={isSelected ? "default" : "outline"}
+                            variant={isSelected ? "default" : seat.isAvailable ? "secondary" : "ghost"}
                             className={cn(
                               "h-12 relative z-10",
                               seatPosition,
-                              !seat.isAvailable && !isSelected && "opacity-50"
+                              isSelected && "bg-primary hover:bg-primary/90",
+                              !isSelected && seat.isAvailable && "bg-green-500/10 hover:bg-green-500/20 text-green-600",
+                              !isSelected && !seat.isAvailable && "bg-muted/50 text-muted-foreground hover:bg-muted/50 cursor-not-allowed"
                             )}
                             disabled={!seat.isAvailable && !isSelected}
                             onClick={() => handleSeatToggle(table.id, seat.seatNumber)}
                           >
                             Seat {seat.seatNumber}
-                            {!seat.isAvailable && !isSelected && " (Taken)"}
                           </Button>
                         );
                       })}

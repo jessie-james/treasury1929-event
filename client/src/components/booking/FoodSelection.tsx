@@ -151,8 +151,8 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                 })
               }
             >
-              <ScrollArea className="h-[50vh]">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4">
+              <ScrollArea className="h-[400px]">
+                <div className="grid grid-cols-3 gap-3 pb-4">
                   {byType[currentStep]?.map((option) => {
                     const isSelected = selections[currentSeat]?.[currentStep] === option.id;
                     return (
@@ -172,21 +172,21 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                           });
                         }}
                       >
-                        <div className="aspect-[4/3] relative">
+                        <div className="aspect-video relative">
                           <img
                             src={option.image}
                             alt={option.name}
                             className="object-cover w-full h-full"
                           />
                         </div>
-                        <CardContent className="p-3">
+                        <CardContent className="p-2">
                           <div className="flex items-center gap-2">
                             <RadioGroupItem value={option.id.toString()} id={`${currentStep}-${currentSeat}-${option.id}`} />
-                            <Label className="font-medium" htmlFor={`${currentStep}-${currentSeat}-${option.id}`}>
+                            <Label className="font-medium text-sm" htmlFor={`${currentStep}-${currentSeat}-${option.id}`}>
                               {option.name}
                             </Label>
                           </div>
-                          <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                          <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
                             {option.description}
                           </p>
                         </CardContent>
