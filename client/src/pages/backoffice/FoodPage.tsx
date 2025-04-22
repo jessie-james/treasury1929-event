@@ -79,12 +79,32 @@ export default function FoodPage() {
     const foodType = activeTab;
     const foodsOfType = sortedFoodByType[foodType] || [];
     
+    // If source and destination are the same, no need to update
+    if (result.source.index === result.destination.index) return;
+    
+    // Create a new array from the current items
     const items = Array.from(foodsOfType);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
     
     // Get the ordered IDs to send to the server
     const orderedIds = items.map(item => item.id);
+    
+    console.log(`Reordering ${foodType} items:`, orderedIds);
+    
+    // Optimistically update the UI
+    // We can create a temporary copy of foodOptions with the new order
+    // This provides a smoother user experience
+    const updatedFoodOptions = [...(foodOptions || [])];
+    const typeItems = updatedFoodOptions.filter(item => item.type === foodType);
+    
+    // Update the display order for the UI
+    typeItems.forEach((item, i) => {
+      const newIndex = items.findIndex(newItem => newItem.id === item.id);
+      if (newIndex !== -1) {
+        item.displayOrder = newIndex;
+      }
+    });
     
     // Update the order in the database
     updateOrderMutation.mutate(orderedIds);

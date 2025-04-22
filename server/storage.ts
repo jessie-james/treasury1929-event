@@ -253,9 +253,19 @@ export class DatabaseStorage implements IStorage {
   
   async getFoodOptionsByDisplayOrder(): Promise<FoodOption[]> {
     try {
-      return await db.select()
-        .from(foodOptions)
-        .orderBy(foodOptions.displayOrder);
+      // Get all food options and manually sort them
+      const allFoodOptions = await db.select().from(foodOptions);
+      
+      // Sort first by type, then by displayOrder
+      return allFoodOptions.sort((a, b) => {
+        // First compare by type
+        if (a.type !== b.type) {
+          return a.type.localeCompare(b.type);
+        }
+        
+        // Then by displayOrder within the same type
+        return (a.displayOrder || 0) - (b.displayOrder || 0);
+      });
     } catch (error) {
       console.error("Error fetching food options by display order:", error);
       throw error;
