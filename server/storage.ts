@@ -265,12 +265,41 @@ export class DatabaseStorage implements IStorage {
   async updateFoodOptionsOrder(orderedIds: number[]): Promise<void> {
     try {
       console.log("Updating food options display order:", orderedIds);
-      // Update display order for each food option based on its position in orderedIds array
+      
+      // Get the food type from the first item to ensure we're only reordering items of the same type
+      if (orderedIds.length === 0) return;
+      
+      const firstFoodItem = await db
+        .select()
+        .from(foodOptions)
+        .where(eq(foodOptions.id, orderedIds[0]))
+        .limit(1);
+        
+      if (firstFoodItem.length === 0) return;
+      
+      const foodType = firstFoodItem[0].type;
+      console.log(`Reordering food items of type: ${foodType}`);
+      
+      // Get current food items of this type, ordered by display order
+      let foodItemsOfType = await db
+        .select()
+        .from(foodOptions)
+        .where(eq(foodOptions.type, foodType))
+        .orderBy(foodOptions.displayOrder);
+        
+      // Create a map of IDs to existing display orders to preserve relative order
+      const existingOrderMap = new Map<number, number>();
+      foodItemsOfType.forEach((item, index) => {
+        existingOrderMap.set(item.id, item.displayOrder !== null ? item.displayOrder : index);
+      });
+      
+      // Update the display order based on the new order
       for (let i = 0; i < orderedIds.length; i++) {
         await db.update(foodOptions)
           .set({ displayOrder: i })
           .where(eq(foodOptions.id, orderedIds[i]));
       }
+      
       console.log("Food options display order updated successfully");
     } catch (error) {
       console.error("Error updating food options order:", error);

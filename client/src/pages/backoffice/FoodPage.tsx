@@ -37,6 +37,7 @@ export default function FoodPage() {
 
   const { data: foodOptions, refetch } = useQuery<FoodOption[]>({
     queryKey: ["/api/food-options"],
+    staleTime: 0, // Make sure data is always fresh
   });
   
   const updateOrderMutation = useMutation({
@@ -49,14 +50,18 @@ export default function FoodPage() {
         title: "Order updated",
         description: "Food item display order has been updated successfully.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/food-options"] });
-      refetch(); // Explicitly refetch food options data
       
-      // Switch back to non-reordering mode and use custom order
-      setTimeout(() => {
+      // Force a complete cache invalidation and refetch
+      queryClient.invalidateQueries({ queryKey: ["/api/food-options"] });
+      
+      // Wait a moment for the server to process the update
+      setTimeout(async () => {
+        await refetch(); // Explicitly refetch food options data with await
+        
+        // Switch back to non-reordering mode and use custom order
         setSortBy("display-order"); // Set sort to display custom order
         setIsReorderMode(false);
-      }, 500);
+      }, 800); // Increased timeout to ensure the backend has time to process
     },
     onError: (error: Error) => {
       toast({
