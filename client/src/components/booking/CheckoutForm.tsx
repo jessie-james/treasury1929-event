@@ -1,31 +1,23 @@
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements
+} from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { insertBookingSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
-const checkoutSchema = z.object({
-  customerEmail: z.string().email(),
-  cardNumber: z.string().min(16).max(16),
-  expiryDate: z.string()
-    .min(5, "Date must be in MM/YY format")
-    .max(5, "Date must be in MM/YY format")
-    .regex(/^(0[1-9]|1[0-2])\/([0-9]{2})$/, "Must be in MM/YY format"),
-  cvc: z.string().min(3).max(4),
-});
+// Make sure to call loadStripe outside of a component's render to avoid
+// recreating the Stripe object on every render
+// This is your test publishable API key.
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY as string);
 
 interface Props {
   eventId: number;
@@ -36,147 +28,189 @@ interface Props {
   onSuccess: () => void;
 }
 
-export function CheckoutForm({ 
-  eventId, 
+function StripeCheckoutForm({
+  eventId,
   tableId,
-  selectedSeats, 
+  selectedSeats,
   foodSelections,
   guestNames,
-  onSuccess 
-}: Props) {
+  onSuccess,
+  clientSecret
+}: Props & { clientSecret: string }) {
+  const stripe = useStripe();
+  const elements = useElements();
   const { toast } = useToast();
   const { user } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const form = useForm<z.infer<typeof checkoutSchema>>({
-    resolver: zodResolver(checkoutSchema),
-    defaultValues: {
-      customerEmail: user?.email,
-      expiryDate: "",
-    },
-  });
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (data: z.infer<typeof checkoutSchema>) => {
-      if (!user) throw new Error("User not authenticated");
+    if (!stripe || !elements) {
+      // Stripe.js has not yet loaded.
+      // Make sure to disable form submission until Stripe.js has loaded.
+      return;
+    }
 
-      const booking = {
-        eventId,
-        tableId,
-        seatNumbers: selectedSeats,
-        foodSelections,
-        guestNames,
-        customerEmail: data.customerEmail,
-        stripePaymentId: "mock_payment_id", // We'll implement Stripe later
-        userId: user.id,
-      };
+    setIsProcessing(true);
 
-      await apiRequest("POST", "/api/bookings", booking);
-    },
-    onSuccess: () => {
+    // Confirm payment with Stripe
+    const { paymentIntent, error } = await stripe.confirmPayment({
+      //`Elements` instance that was used to create the Payment Element
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/success`,
+      },
+      redirect: 'if_required'
+    });
+
+    if (error) {
       toast({
-        title: "Booking Confirmed!",
-        description: "Check your email for the confirmation.",
-      });
-      onSuccess();
-    },
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to process booking",
+        title: "Payment Failed",
+        description: error.message || "An unexpected error occurred.",
         variant: "destructive",
       });
-    },
-  });
-
-  const handleExpiryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value.replace(/\D/g, ""); // Remove non-digits
-    if (value.length >= 2) {
-      // Always add slash after month if we have 2 or more digits
-      value = value.slice(0, 2) + "/" + value.slice(2);
+      setIsProcessing(false);
+      return;
     }
-    // Limit the total input to 5 characters (MM/YY)
-    value = value.slice(0, 5);
-    form.setValue("expiryDate", value);
+
+    if (paymentIntent && paymentIntent.status === 'succeeded') {
+      // Payment succeeded, now create booking in our system
+      try {
+        if (!user) throw new Error("User not authenticated");
+
+        const booking = {
+          eventId,
+          tableId,
+          seatNumbers: selectedSeats,
+          foodSelections,
+          guestNames,
+          customerEmail: user.email,
+          stripePaymentId: paymentIntent.id,
+          userId: user.id,
+        };
+
+        await apiRequest("POST", "/api/bookings", booking);
+        
+        toast({
+          title: "Booking Confirmed!",
+          description: "Your payment was successful. Enjoy the event!",
+        });
+        
+        onSuccess();
+      } catch (err) {
+        toast({
+          title: "Booking Failed",
+          description: "Payment successful but booking failed to save. Please contact support.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Payment Processing",
+        description: "Your payment is being processed. We'll notify you when it's complete.",
+      });
+    }
+
+    setIsProcessing(false);
   };
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit((data) => mutate(data))}
-        className="space-y-6"
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <PaymentElement />
+      <Button 
+        type="submit" 
+        className="w-full"
+        disabled={!stripe || !elements || isProcessing}
       >
-        <FormField
-          control={form.control}
-          name="customerEmail"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input {...field} type="email" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {isProcessing ? (
+          <span className="flex items-center">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing...
+          </span>
+        ) : (
+          `Pay $${(19.99 * selectedSeats.length).toFixed(2)}`
+        )}
+      </Button>
+    </form>
+  );
+}
 
-        <FormField
-          control={form.control}
-          name="cardNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Card Number</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="1234 5678 9012 3456" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+export function CheckoutForm({
+  eventId,
+  tableId,
+  selectedSeats,
+  foodSelections,
+  guestNames,
+  onSuccess
+}: Props) {
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="expiryDate"
-            render={({ field: { onChange, ...field } }) => (
-              <FormItem>
-                <FormLabel>Expiry Date</FormLabel>
-                <FormControl>
-                  <Input 
-                    {...field} 
-                    placeholder="MM/YY"
-                    maxLength={5}
-                    onChange={handleExpiryDateChange}
-                    value={field.value}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+  // Create Payment Intent as soon as the component loads
+  useEffect(() => {
+    // Get client secret from our API
+    const getClientSecret = async () => {
+      try {
+        if (!user) return;
+
+        const response = await apiRequest("POST", "/api/create-payment-intent", {
+          seatCount: selectedSeats.length
+        });
+        
+        const data = await response.json();
+        setClientSecret(data.clientSecret);
+      } catch (error) {
+        toast({
+          title: "Payment Setup Failed",
+          description: "Could not initialize payment system. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    getClientSecret();
+  }, [selectedSeats.length, toast, user]);
+
+  if (!clientSecret) {
+    return (
+      <Card className="p-6">
+        <CardHeader className="pb-2">
+          <CardTitle>Preparing Payment</CardTitle>
+          <CardDescription>Please wait while we connect to our payment provider...</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-4 flex justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-4">
+      <CardHeader>
+        <CardTitle>Complete Your Booking</CardTitle>
+        <CardDescription>
+          Booking {selectedSeats.length} seat{selectedSeats.length > 1 ? 's' : ''} for ${(19.99 * selectedSeats.length).toFixed(2)}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Elements stripe={stripePromise} options={{ clientSecret }}>
+          <StripeCheckoutForm
+            eventId={eventId}
+            tableId={tableId}
+            selectedSeats={selectedSeats}
+            foodSelections={foodSelections}
+            guestNames={guestNames}
+            onSuccess={onSuccess}
+            clientSecret={clientSecret}
           />
-
-          <FormField
-            control={form.control}
-            name="cvc"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>CVC</FormLabel>
-                <FormControl>
-                  <Input {...field} type="password" maxLength={4} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <Button 
-          type="submit" 
-          className="w-full"
-          disabled={isPending}
-        >
-          {isPending ? "Processing..." : "Complete Booking"}
-        </Button>
-      </form>
-    </Form>
+        </Elements>
+      </CardContent>
+      <CardFooter className="text-xs text-muted-foreground">
+        <p>Test card details: 4242 4242 4242 4242, any future date, any CVC</p>
+      </CardFooter>
+    </Card>
   );
 }

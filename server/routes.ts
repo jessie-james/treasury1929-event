@@ -5,6 +5,16 @@ import { storage } from "./storage";
 import { insertBookingSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
+import Stripe from "stripe";
+
+// Initialize Stripe with the secret key
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error("STRIPE_SECRET_KEY environment variable not set");
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
+  apiVersion: "2025-02-24.acacia", // Use the latest API version available
+});
 
 const clients = new Set<WebSocket>();
 
@@ -407,6 +417,72 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error deleting food option:", error);
       res.status(500).json({ message: "Failed to delete food option" });
+    }
+  });
+
+  // Stripe payment integration
+  app.post("/api/create-payment-intent", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // For testing, we'll use a fixed amount (like $19.99 for each seat)
+      // In production, you would calculate this based on event prices, food choices, etc.
+      const { seatCount } = req.body;
+      const unitPrice = 1999; // $19.99 in cents (Stripe uses cents as the base unit)
+      const amount = unitPrice * (seatCount || 1);
+      
+      // Add metadata for tracking
+      const metadata = {
+        userId: req.user!.id.toString(),
+        seats: seatCount || 1,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log(`Creating payment intent for amount: ${amount} cents, user: ${req.user!.id}`);
+      
+      // Create the payment intent with Stripe
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount,
+        currency: "usd",
+        metadata,
+        // Use automatic payment methods for simplicity in testing
+        automatic_payment_methods: {
+          enabled: true,
+        },
+      });
+      
+      // Return only the client secret to the client to complete the payment
+      res.status(200).json({ 
+        clientSecret: paymentIntent.client_secret,
+        amount
+      });
+    } catch (error) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : "Failed to create payment"
+      });
+    }
+  });
+
+  // Test endpoint for Stripe - use this to verify Stripe is connected correctly
+  app.get("/api/stripe-test", async (_req, res) => {
+    try {
+      // Try to fetch something simple from Stripe to verify the connection
+      await stripe.customers.list({ limit: 1 });
+      
+      res.json({ 
+        success: true, 
+        message: "Stripe connection successful"
+      });
+    } catch (error) {
+      console.error("Stripe test failed:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Stripe connection failed", 
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
