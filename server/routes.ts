@@ -288,6 +288,35 @@ export async function registerRoutes(app: Express) {
       });
     }
   });
+  
+  // Handle event image uploads
+  app.post("/api/upload/event-image", upload.single('image'), async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+      
+      // Return the path to the uploaded file
+      const filePath = `/uploads/${req.file.filename}`;
+      res.status(201).json({ 
+        path: filePath,
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size 
+      });
+    } catch (error) {
+      console.error("Error uploading event image:", error);
+      res.status(500).json({ 
+        message: "Failed to upload image",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   app.get("/api/user/bookings", async (req, res) => {
     try {

@@ -11,17 +11,20 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { type Event } from "@shared/schema";
+import { useState, useRef, useEffect } from "react";
+import { ImagePlus, Loader2, RefreshCw, X } from "lucide-react";
 
 const eventFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
-  image: z.string().url("Must be a valid URL"),
+  image: z.string().min(1, "Image is required"),
   date: z.string().min(1, "Date is required"),
   totalSeats: z.number().min(1, "Must have at least 1 seat"),
   venueId: z.number().default(1), // For now, hardcode to venue 1
@@ -37,6 +40,58 @@ interface Props {
 export function EventForm({ event, onClose }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [uploading, setUploading] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(event?.image || null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Set existing event image as uploaded image on component mount
+  useEffect(() => {
+    if (event?.image) {
+      setUploadedImage(event.image);
+    }
+  }, [event]);
+  
+  // Function to handle image upload
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+    
+    setUploading(true);
+    
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+      const response = await fetch('/api/upload/event-image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      const imagePath = data.path;
+      
+      // Update the form field with the new image path
+      form.setValue('image', imagePath);
+      setUploadedImage(imagePath);
+      
+      toast({
+        title: 'Image uploaded successfully',
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Could not upload image. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const form = useForm<EventFormData>({
     resolver: zodResolver(eventFormSchema),
@@ -152,10 +207,83 @@ export function EventForm({ event, onClose }: Props) {
               name="image"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input {...field} type="url" />
-                  </FormControl>
+                  <FormLabel>Event Image</FormLabel>
+                  <div className="flex flex-col items-center gap-4">
+                    {/* Hidden file input controlled by our custom UI */}
+                    <input 
+                      ref={fileInputRef}
+                      type="file" 
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleImageUpload(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    
+                    {/* Image preview */}
+                    {(uploadedImage || field.value) && (
+                      <div className="relative w-full max-w-[300px] h-[200px] rounded-md overflow-hidden bg-muted">
+                        <img 
+                          src={uploadedImage || field.value} 
+                          alt="Event preview" 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Show a placeholder on error
+                            (e.target as HTMLImageElement).src = 'https://placehold.co/300x200?text=Image+Error';
+                          }}
+                        />
+                        {/* Remove image button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            field.onChange('');
+                            setUploadedImage(null);
+                          }}
+                          className="absolute top-2 right-2 p-1 rounded-full bg-destructive text-white"
+                          aria-label="Remove image"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Upload button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : uploadedImage || field.value ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          Change Image
+                        </>
+                      ) : (
+                        <>
+                          <ImagePlus className="mr-2 h-4 w-4" />
+                          Upload Event Image
+                        </>
+                      )}
+                    </Button>
+                    
+                    {/* Hidden input to store the actual value */}
+                    <Input
+                      type="hidden"
+                      {...field}
+                    />
+                  </div>
+                  <FormDescription>
+                    Upload a photo for this event.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
