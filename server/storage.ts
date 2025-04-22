@@ -16,10 +16,12 @@ export interface IStorage {
 
   // Events
   getEvents(): Promise<Event[]>;
+  getEventsByDisplayOrder(): Promise<Event[]>; // Get events ordered by display_order
   getEvent(id: number): Promise<Event | undefined>;
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: number, event: Partial<InsertEvent>): Promise<Event | undefined>;
   deleteEvent(id: number): Promise<void>;
+  updateEventsOrder(orderedIds: number[]): Promise<void>; // Update display order of events
 
   // Tables and Seats
   getTables(): Promise<Table[]>;
@@ -29,10 +31,12 @@ export interface IStorage {
 
   // Food Options
   getFoodOptions(): Promise<FoodOption[]>;
+  getFoodOptionsByDisplayOrder(): Promise<FoodOption[]>; // Get food options ordered by display_order
   getFoodOptionsByIds(ids: number[]): Promise<FoodOption[]>;
   createFoodOption(foodOption: Omit<FoodOption, "id">): Promise<FoodOption>;
   updateFoodOption(id: number, foodOption: Partial<Omit<FoodOption, "id">>): Promise<FoodOption | undefined>;
   deleteFoodOption(id: number): Promise<void>;
+  updateFoodOptionsOrder(orderedIds: number[]): Promise<void>; // Update display order of food options
 
   // Bookings
   createBooking(booking: InsertBooking): Promise<Booking>;
@@ -96,6 +100,33 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(events);
     } catch (error) {
       console.error("Error fetching events:", error);
+      throw error;
+    }
+  }
+  
+  async getEventsByDisplayOrder(): Promise<Event[]> {
+    try {
+      return await db.select()
+        .from(events)
+        .orderBy(events.displayOrder);
+    } catch (error) {
+      console.error("Error fetching events by display order:", error);
+      throw error;
+    }
+  }
+  
+  async updateEventsOrder(orderedIds: number[]): Promise<void> {
+    try {
+      console.log("Updating events display order:", orderedIds);
+      // Update display order for each event based on its position in orderedIds array
+      for (let i = 0; i < orderedIds.length; i++) {
+        await db.update(events)
+          .set({ displayOrder: i })
+          .where(eq(events.id, orderedIds[i]));
+      }
+      console.log("Events display order updated successfully");
+    } catch (error) {
+      console.error("Error updating events order:", error);
       throw error;
     }
   }
@@ -219,6 +250,33 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+  
+  async getFoodOptionsByDisplayOrder(): Promise<FoodOption[]> {
+    try {
+      return await db.select()
+        .from(foodOptions)
+        .orderBy(foodOptions.displayOrder);
+    } catch (error) {
+      console.error("Error fetching food options by display order:", error);
+      throw error;
+    }
+  }
+  
+  async updateFoodOptionsOrder(orderedIds: number[]): Promise<void> {
+    try {
+      console.log("Updating food options display order:", orderedIds);
+      // Update display order for each food option based on its position in orderedIds array
+      for (let i = 0; i < orderedIds.length; i++) {
+        await db.update(foodOptions)
+          .set({ displayOrder: i })
+          .where(eq(foodOptions.id, orderedIds[i]));
+      }
+      console.log("Food options display order updated successfully");
+    } catch (error) {
+      console.error("Error updating food options order:", error);
+      throw error;
+    }
+  }
 
   async getFoodOptionsByIds(ids: number[]): Promise<FoodOption[]> {
     try {
@@ -293,12 +351,17 @@ export class DatabaseStorage implements IStorage {
 
           // Extract all unique food IDs from the foodSelections
           const foodSelections = booking.foodSelections as Record<string, Record<string, number>>;
-          const foodIds = new Set<number>();
+          // Extract unique food IDs from the selections
+          const foodIdsArray: number[] = [];
           Object.values(foodSelections).forEach(selections => {
-            Object.values(selections).forEach(id => foodIds.add(id));
+            Object.values(selections).forEach(id => {
+              if (id && !foodIdsArray.includes(id)) {
+                foodIdsArray.push(id);
+              }
+            });
           });
 
-          const foodItems = await this.getFoodOptionsByIds([...foodIds]);
+          const foodItems = await this.getFoodOptionsByIds(foodIdsArray);
 
           return {
             ...booking,

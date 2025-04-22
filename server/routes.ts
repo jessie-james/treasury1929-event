@@ -96,6 +96,15 @@ async function clearAllBookings() {
   }
 }
 
+// Validation schemas for reordering requests
+const updateEventsOrderSchema = z.object({
+  orderedIds: z.array(z.number())
+});
+
+const updateFoodOptionsOrderSchema = z.object({
+  orderedIds: z.array(z.number())
+});
+
 export async function registerRoutes(app: Express) {
   // Set up authentication
   setupAuth(app);
@@ -271,7 +280,8 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/events", async (_req, res) => {
     try {
-      const events = await storage.getEvents();
+      // Get events ordered by display_order by default
+      const events = await storage.getEventsByDisplayOrder();
       res.json(events);
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -334,7 +344,8 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/food-options", async (_req, res) => {
     try {
-      const options = await storage.getFoodOptions();
+      // Get food options ordered by display_order by default
+      const options = await storage.getFoodOptionsByDisplayOrder();
       res.json(options);
     } catch (error) {
       console.error("Error fetching food options:", error);
@@ -374,6 +385,64 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ 
         success: false, 
         message: "Failed to clear bookings",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Route to update the order of events
+  app.post("/api/events/order", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const validationResult = updateEventsOrderSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          message: "Invalid request body",
+          errors: validationResult.error.format()
+        });
+      }
+      
+      const { orderedIds } = validationResult.data;
+      await storage.updateEventsOrder(orderedIds);
+      
+      res.status(200).json({ success: true, message: "Events order updated successfully" });
+    } catch (error) {
+      console.error("Error updating events order:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update events order",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Route to update the order of food options
+  app.post("/api/food-options/order", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const validationResult = updateFoodOptionsOrderSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          message: "Invalid request body",
+          errors: validationResult.error.format()
+        });
+      }
+      
+      const { orderedIds } = validationResult.data;
+      await storage.updateFoodOptionsOrder(orderedIds);
+      
+      res.status(200).json({ success: true, message: "Food options order updated successfully" });
+    } catch (error) {
+      console.error("Error updating food options order:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update food options order",
         error: error instanceof Error ? error.message : String(error)
       });
     }
