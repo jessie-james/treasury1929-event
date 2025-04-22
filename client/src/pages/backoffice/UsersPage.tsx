@@ -52,6 +52,8 @@ interface ExtendedBooking extends Booking {
     id: number;
     name: string;
     type: string;
+    allergens?: string[];
+    dietaryRestrictions?: string[];
   }>;
   specialRequests?: string;
   allergens?: string;
@@ -101,6 +103,14 @@ export default function UsersPage() {
     
     if (foodOptions) {
       foodOptions.forEach(item => {
+        // Extract allergens from allergens array (more reliable)
+        if (item.allergens && Array.isArray(item.allergens)) {
+          item.allergens.forEach(allergen => {
+            if (allergen) allergens.add(allergen);
+          });
+        }
+        
+        // Also check description for backward compatibility
         if (item.description?.toLowerCase().includes('allergen')) {
           const match = item.description.match(/allergens:([^]+)/i);
           if (match && match[1]) {
@@ -154,11 +164,16 @@ export default function UsersPage() {
 
     if (appliedFilters.allergens && appliedFilters.allergens.length > 0) {
       result = result.filter(user =>
-        user.bookings.some(booking =>
-          booking.allergens && appliedFilters.allergens?.some(allergen => 
-            booking.allergens?.toLowerCase().includes(allergen.toLowerCase())
-          )
-        )
+        user.bookings.some(booking => {
+          // Check if any of the food items in this booking has any of the filtered allergens
+          return booking.foodItems.some(food => {
+            // Check if this food has allergens array and it includes any of the selected allergens
+            return food.allergens && Array.isArray(food.allergens) &&
+              food.allergens.some(allergen => 
+                appliedFilters.allergens?.includes(allergen)
+              );
+          });
+        })
       );
     }
 
