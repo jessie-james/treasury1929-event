@@ -21,9 +21,11 @@ interface FoodTotals {
 
 interface EventFoodTotalsProps {
   eventId: number;
+  type?: 'salad' | 'entree' | 'dessert';
+  className?: string;
 }
 
-export function EventFoodTotals({ eventId }: EventFoodTotalsProps) {
+export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsProps) {
   const [totalItems, setTotalItems] = useState(0);
 
   const { data: foodOptions } = useQuery<FoodOption[]>({
@@ -128,6 +130,24 @@ export function EventFoodTotals({ eventId }: EventFoodTotalsProps) {
     );
   }
 
+  // If specific type is passed, only show that type's data
+  if (type) {
+    const data = type === 'entree' ? totals.entrees :
+                 type === 'salad' ? totals.salads :
+                 totals.desserts;
+                 
+    const title = type === 'entree' ? 'Entrees' :
+                  type === 'salad' ? 'Salads' :
+                  'Desserts';
+                  
+    return (
+      <div className={className}>
+        {renderFoodSection(title, data, type)}
+      </div>
+    );
+  }
+  
+  // Otherwise show all types
   return (
     <Card>
       <CardHeader>

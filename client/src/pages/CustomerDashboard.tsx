@@ -21,24 +21,36 @@ export default function CustomerDashboard() {
   });
 
   const getFoodItemByType = (booking: EnrichedBooking, seatNumber: number, type: string) => {
-    // Handle both formats of food selections data
+    // Handle different formats of food selections data
     let foodSelection;
+    const seatIndex = booking.seatNumbers.indexOf(seatNumber);
     
-    // Check if it's an array format (newer bookings)
+    // If it's an array format (one selection per seat)
     if (Array.isArray(booking.foodSelections)) {
-      // If seat number is within array bounds
-      if (seatNumber <= booking.foodSelections.length) {
-        // Array index is 0-based, but seat numbers are 1-based, so subtract 1
-        foodSelection = booking.foodSelections[seatNumber - 1];
+      // Use the index of the seat in the seatNumbers array
+      if (seatIndex !== -1 && seatIndex < booking.foodSelections.length) {
+        foodSelection = booking.foodSelections[seatIndex];
       }
     } else {
-      // For older bookings that use Record<number, Record<string, number>> format
-      foodSelection = (booking.foodSelections as Record<number, Record<string, number>>)[seatNumber];
+      // Handle object format mapping seat numbers to food selections
+      const seatSelections = booking.foodSelections as any;
+      // Try direct access with seatNumber as string key first (common format)
+      if (seatSelections[seatNumber]) {
+        foodSelection = seatSelections[seatNumber];
+      } else if (seatIndex !== -1 && seatSelections[seatIndex]) {
+        // Try using the index as fallback
+        foodSelection = seatSelections[seatIndex];
+      } else {
+        // As last resort, try to find the selection by any available method
+        foodSelection = seatSelections;
+      }
     }
     
     if (!foodSelection) return null;
 
     const itemId = foodSelection[type];
+    if (!itemId) return null;
+    
     return booking.foodItems.find(item => item.id === itemId);
   };
 
