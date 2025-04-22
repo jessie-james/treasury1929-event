@@ -82,7 +82,7 @@ export default function CustomerDashboard() {
                           Seat #{seatNumber} - {booking.guestNames ? (typeof booking.guestNames === 'object' ? (booking.guestNames as Record<number, string>)[seatNumber] || 'Guest' : 'Guest') : 'Guest'}
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          {['salad', 'entree', 'dessert', 'wine'].map(type => {
+                          {['salad', 'entree', 'dessert'].map(type => {
                             const foodItem = getFoodItemByType(booking, seatNumber, type);
                             return (
                               <div key={type}>

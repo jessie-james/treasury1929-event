@@ -15,7 +15,6 @@ interface SeatSelections {
   salad: number | undefined;
   entree: number | undefined;
   dessert: number | undefined;
-  wine: number | undefined;
 }
 
 interface Props {
@@ -23,7 +22,7 @@ interface Props {
   onComplete: (selections: Record<string, number>[], names: Record<number, string>) => void;
 }
 
-const STEPS = ["name", "salad", "entree", "dessert", "wine"] as const;
+const STEPS = ["name", "salad", "entree", "dessert"] as const;
 type Step = typeof STEPS[number];
 
 export function FoodSelection({ selectedSeats, onComplete }: Props) {
@@ -37,7 +36,7 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
     Object.fromEntries(
       selectedSeats.map(seat => [
         seat,
-        { name: "", salad: undefined, entree: undefined, dessert: undefined, wine: undefined }
+        { name: "", salad: undefined, entree: undefined, dessert: undefined }
       ])
     )
   );
@@ -76,7 +75,6 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
         salad: selections[seat].salad!,
         entree: selections[seat].entree!,
         dessert: selections[seat].dessert!,
-        wine: selections[seat].wine!,
       }));
 
       const names = Object.fromEntries(

@@ -17,7 +17,6 @@ interface FoodTotals {
   salads: Record<string, number>;
   entrees: Record<string, number>;
   desserts: Record<string, number>;
-  wines: Record<string, number>;
 }
 
 interface EventFoodTotalsProps {
@@ -41,24 +40,22 @@ export function EventFoodTotals({ eventId }: EventFoodTotalsProps) {
       const count = 
         Object.values(totals.salads).reduce((sum, count) => sum + count, 0) +
         Object.values(totals.entrees).reduce((sum, count) => sum + count, 0) +
-        Object.values(totals.desserts).reduce((sum, count) => sum + count, 0) +
-        Object.values(totals.wines).reduce((sum, count) => sum + count, 0);
+        Object.values(totals.desserts).reduce((sum, count) => sum + count, 0);
       setTotalItems(count);
     }
   }, [totals]);
 
-  const getFoodOptionById = (id: string, type: 'salad' | 'entree' | 'dessert' | 'wine') => {
+  const getFoodOptionById = (id: string, type: 'salad' | 'entree' | 'dessert') => {
     const typeMap = {
       'salad': 'salad',
       'entree': 'entree',
-      'dessert': 'dessert',
-      'wine': 'wine'
+      'dessert': 'dessert'
     };
     
     return foodOptions?.find(o => o.id === parseInt(id) && o.type === typeMap[type]);
   };
   
-  const getFoodNameById = (id: string, type: 'salad' | 'entree' | 'dessert' | 'wine') => {
+  const getFoodNameById = (id: string, type: 'salad' | 'entree' | 'dessert') => {
     const option = getFoodOptionById(id, type);
     return option?.name || `Item ${id}`;
   };
@@ -67,7 +64,7 @@ export function EventFoodTotals({ eventId }: EventFoodTotalsProps) {
     return totalItems > 0 ? (count / totalItems) * 100 : 0;
   };
 
-  const renderFoodSection = (title: string, items: Record<string, number>, type: 'salad' | 'entree' | 'dessert' | 'wine') => {
+  const renderFoodSection = (title: string, items: Record<string, number>, type: 'salad' | 'entree' | 'dessert') => {
     const sortedItems = Object.entries(items)
       .sort(([, countA], [, countB]) => countB - countA);
     
@@ -143,7 +140,6 @@ export function EventFoodTotals({ eventId }: EventFoodTotalsProps) {
         {renderFoodSection("Entrees", totals.entrees, 'entree')}
         {renderFoodSection("Salads", totals.salads, 'salad')}
         {renderFoodSection("Desserts", totals.desserts, 'dessert')}
-        {renderFoodSection("Wines", totals.wines, 'wine')}
       </CardContent>
     </Card>
   );
