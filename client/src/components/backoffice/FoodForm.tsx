@@ -33,7 +33,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { type FoodOption } from "@shared/schema";
 import { Allergen, DietaryRestriction, FoodIconSet, allergenIcons, dietaryIcons } from "@/components/ui/food-icons";
 import { Separator } from "@/components/ui/separator";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ImagePlus, Loader2, RefreshCw, X } from "lucide-react";
 
 // Define the common allergens and dietary restrictions
@@ -43,6 +43,7 @@ const DIETARY_RESTRICTIONS: DietaryRestriction[] = ["vegetarian", "vegan", "hala
 const foodFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
+  // Accept any non-empty string for image (URL or uploaded path)
   image: z.string().min(1, "Image is required"),
   price: z.number().min(0, "Price must be greater than or equal to 0"),
   type: z.enum(["salad", "entree", "dessert"]),
@@ -63,6 +64,13 @@ export function FoodForm({ food, onClose }: Props) {
   const [uploading, setUploading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(food?.image || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Set existing food image as uploaded image on component mount
+  useEffect(() => {
+    if (food?.image) {
+      setUploadedImage(food.image);
+    }
+  }, [food]);
 
   const form = useForm<FoodFormData>({
     resolver: zodResolver(foodFormSchema),
@@ -290,26 +298,25 @@ export function FoodForm({ food, onClose }: Props) {
                         )}
                       </Button>
                       
-                      {/* Hidden input to store the actual URL value */}
+                      {/* Hidden input to store the actual value - this is what gets submitted */}
                       <Input
                         type="hidden"
                         {...field}
                       />
                       
                       {/* Allow direct URL input as alternative */}
-                      <Input
-                        type="url"
-                        placeholder="Or enter image URL"
-                        className="flex-1"
-                        value={field.value}
-                        onChange={(e) => {
-                          field.onChange(e.target.value);
-                          if (e.target.value && e.target.value !== uploadedImage) {
-                            setUploadedImage(null);
-                          }
-                        }}
-                        disabled={uploading}
-                      />
+                      {!uploadedImage && (
+                        <Input
+                          type="url"
+                          placeholder="Or enter image URL"
+                          className="flex-1"
+                          value={field.value}
+                          onChange={(e) => {
+                            field.onChange(e.target.value);
+                          }}
+                          disabled={uploading}
+                        />
+                      )}
                     </div>
                   </div>
                   <FormDescription>
