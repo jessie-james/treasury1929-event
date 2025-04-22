@@ -87,29 +87,16 @@ export default function CustomerDashboard() {
                             return (
                               <div key={type}>
                                 <p className="text-sm font-medium capitalize">{type}</p>
-                                <div className="flex items-center gap-2">
+                                <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
                                     {foodItem?.name || 'Not selected'}
                                   </p>
                                   {foodItem && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <div className="cursor-help">
-                                            <Info className="h-4 w-4 text-muted-foreground" />
-                                          </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent className="w-auto">
-                                          <div className="space-y-2 p-1">
-                                            <FoodIconSet 
-                                              allergens={(foodItem.allergens || []) as Allergen[]} 
-                                              dietaryRestrictions={(foodItem.dietaryRestrictions || []) as DietaryRestriction[]}
-                                              size="sm"
-                                            />
-                                          </div>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
+                                    <FoodIconSet 
+                                      allergens={(foodItem.allergens || []) as Allergen[]} 
+                                      dietaryRestrictions={(foodItem.dietaryRestrictions || []) as DietaryRestriction[]}
+                                      size="sm"
+                                    />
                                   )}
                                 </div>
                               </div>

@@ -11,6 +11,7 @@ import {
 import { type FoodOption } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
 import { Loader2 } from "lucide-react";
+import { FoodIconSet, Allergen, DietaryRestriction } from "@/components/ui/food-icons";
 
 interface FoodTotals {
   salads: Record<string, number>;
@@ -46,7 +47,7 @@ export function EventFoodTotals({ eventId }: EventFoodTotalsProps) {
     }
   }, [totals]);
 
-  const getFoodNameById = (id: string, type: 'salad' | 'entree' | 'dessert' | 'wine') => {
+  const getFoodOptionById = (id: string, type: 'salad' | 'entree' | 'dessert' | 'wine') => {
     const typeMap = {
       'salad': 'salad',
       'entree': 'entree',
@@ -54,7 +55,11 @@ export function EventFoodTotals({ eventId }: EventFoodTotalsProps) {
       'wine': 'wine'
     };
     
-    const option = foodOptions?.find(o => o.id === parseInt(id) && o.type === typeMap[type]);
+    return foodOptions?.find(o => o.id === parseInt(id) && o.type === typeMap[type]);
+  };
+  
+  const getFoodNameById = (id: string, type: 'salad' | 'entree' | 'dessert' | 'wine') => {
+    const option = getFoodOptionById(id, type);
     return option?.name || `Item ${id}`;
   };
 
@@ -78,6 +83,20 @@ export function EventFoodTotals({ eventId }: EventFoodTotalsProps) {
               <span className="font-medium">{count} selections</span>
             </div>
             <Progress value={getPercentage(count)} className="h-2" />
+            {/* Display allergen and dietary icons */}
+            {(() => {
+              const foodOption = getFoodOptionById(id, type);
+              if (foodOption) {
+                return (
+                  <FoodIconSet 
+                    allergens={(foodOption.allergens || []) as Allergen[]} 
+                    dietaryRestrictions={(foodOption.dietaryRestrictions || []) as DietaryRestriction[]}
+                    size="sm"
+                  />
+                );
+              }
+              return null;
+            })()}
           </div>
         ))}
       </div>
