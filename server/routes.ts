@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
@@ -6,6 +6,10 @@ import { insertBookingSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
 import Stripe from "stripe";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { randomUUID } from "crypto";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -14,6 +18,43 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-02-24.acacia", // Use the latest API version available
+});
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer storage for handling file uploads
+const storage_config = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename with original extension
+    const uniqueFilename = `${randomUUID()}${path.extname(file.originalname)}`;
+    cb(null, uniqueFilename);
+  }
+});
+
+// Only allow specific image file types
+const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed."));
+  }
+};
+
+const upload = multer({ 
+  storage: storage_config,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max file size
+  },
+  fileFilter
 });
 
 const clients = new Set<WebSocket>();
@@ -213,6 +254,38 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching bookings:", error);
       res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+  
+  // Serve uploaded images
+  app.use('/uploads', express.static(uploadsDir));
+  
+  // Handle food image uploads
+  app.post("/api/upload/food-image", upload.single('image'), async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No image file provided" });
+      }
+      
+      // Return the path to the uploaded file
+      const filePath = `/uploads/${req.file.filename}`;
+      res.status(201).json({ 
+        path: filePath,
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size 
+      });
+    } catch (error) {
+      console.error("Error uploading food image:", error);
+      res.status(500).json({ 
+        message: "Failed to upload image",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 

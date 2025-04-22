@@ -33,6 +33,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { type FoodOption } from "@shared/schema";
 import { Allergen, DietaryRestriction, FoodIconSet, allergenIcons, dietaryIcons } from "@/components/ui/food-icons";
 import { Separator } from "@/components/ui/separator";
+import { useState, useRef } from "react";
+import { ImagePlus, Loader2, RefreshCw, X } from "lucide-react";
 
 // Define the common allergens and dietary restrictions
 const ALLERGENS: Allergen[] = ["gluten", "dairy", "eggs", "peanuts", "tree_nuts", "soy", "fish", "shellfish", "sesame"];
@@ -41,7 +43,7 @@ const DIETARY_RESTRICTIONS: DietaryRestriction[] = ["vegetarian", "vegan", "hala
 const foodFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
-  image: z.string().url("Must be a valid URL"),
+  image: z.string().min(1, "Image is required"),
   price: z.number().min(0, "Price must be greater than or equal to 0"),
   type: z.enum(["salad", "entree", "dessert"]),
   allergens: z.array(z.string()).optional(),
@@ -58,6 +60,9 @@ interface Props {
 export function FoodForm({ food, onClose }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [uploading, setUploading] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(food?.image || null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<FoodFormData>({
     resolver: zodResolver(foodFormSchema),
@@ -81,6 +86,48 @@ export function FoodForm({ food, onClose }: Props) {
           dietaryRestrictions: [],
         },
   });
+  
+  // Function to handle image upload
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+    
+    setUploading(true);
+    
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+      const response = await fetch('/api/upload/food-image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      const imagePath = data.path;
+      
+      // Update the form field with the new image path
+      form.setValue('image', imagePath);
+      setUploadedImage(imagePath);
+      
+      toast({
+        title: 'Image uploaded successfully',
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Could not upload image. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const { mutate: saveFood, isPending } = useMutation({
     mutationFn: async (data: FoodFormData) => {
@@ -174,10 +221,100 @@ export function FoodForm({ food, onClose }: Props) {
               name="image"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input {...field} type="url" />
-                  </FormControl>
+                  <FormLabel>Food Image</FormLabel>
+                  <div className="flex flex-col items-center gap-4">
+                    {/* Hidden file input controlled by our custom UI */}
+                    <input 
+                      ref={fileInputRef}
+                      type="file" 
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleImageUpload(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    
+                    {/* Image preview */}
+                    {(uploadedImage || field.value) && (
+                      <div className="relative w-full max-w-[300px] h-[200px] rounded-md overflow-hidden bg-muted">
+                        <img 
+                          src={uploadedImage || field.value} 
+                          alt="Food preview" 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Show a placeholder on error
+                            (e.target as HTMLImageElement).src = 'https://placehold.co/300x200?text=Image+Error';
+                          }}
+                        />
+                        {/* Remove image button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            field.onChange('');
+                            setUploadedImage(null);
+                          }}
+                          className="absolute top-2 right-2 p-1 rounded-full bg-destructive text-white"
+                          aria-label="Remove image"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    {/* Upload controls */}
+                    <div className="flex items-center gap-4 w-full">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                      >
+                        {uploading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : uploadedImage || field.value ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Change Image
+                          </>
+                        ) : (
+                          <>
+                            <ImagePlus className="mr-2 h-4 w-4" />
+                            Upload Image
+                          </>
+                        )}
+                      </Button>
+                      
+                      {/* Hidden input to store the actual URL value */}
+                      <Input
+                        type="hidden"
+                        {...field}
+                      />
+                      
+                      {/* Allow direct URL input as alternative */}
+                      <Input
+                        type="url"
+                        placeholder="Or enter image URL"
+                        className="flex-1"
+                        value={field.value}
+                        onChange={(e) => {
+                          field.onChange(e.target.value);
+                          if (e.target.value && e.target.value !== uploadedImage) {
+                            setUploadedImage(null);
+                          }
+                        }}
+                        disabled={uploading}
+                      />
+                    </div>
+                  </div>
+                  <FormDescription>
+                    Upload a photo of the dish or provide a URL to an existing image.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
