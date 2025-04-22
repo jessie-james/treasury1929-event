@@ -27,7 +27,7 @@ export default function EventsPage() {
   const [isReorderMode, setIsReorderMode] = useState(false);
   const { toast } = useToast();
 
-  const { data: events } = useQuery<Event[]>({
+  const { data: events, refetch } = useQuery<Event[]>({
     queryKey: ["/api/events"],
   });
   
@@ -42,6 +42,12 @@ export default function EventsPage() {
         description: "Event display order has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      refetch(); // Explicitly refetch events data
+      
+      // Switch back to non-reordering mode
+      setTimeout(() => {
+        setIsReorderMode(false);
+      }, 500);
     },
     onError: (error: Error) => {
       toast({
