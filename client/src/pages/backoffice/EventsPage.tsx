@@ -18,12 +18,12 @@ import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautif
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-type SortOption = "date-asc" | "date-desc" | "title-asc" | "title-desc" | "seats-asc" | "seats-desc" | "id-asc" | "id-desc";
+type SortOption = "display-order" | "date-asc" | "date-desc" | "title-asc" | "title-desc" | "seats-asc" | "seats-desc" | "id-asc" | "id-desc";
 
 export default function EventsPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("date-asc");
+  const [sortBy, setSortBy] = useState<SortOption>("display-order");
   const [isReorderMode, setIsReorderMode] = useState(false);
   const { toast } = useToast();
 
@@ -44,8 +44,9 @@ export default function EventsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       refetch(); // Explicitly refetch events data
       
-      // Switch back to non-reordering mode
+      // Switch back to non-reordering mode and show custom order
       setTimeout(() => {
+        setSortBy("display-order"); // Set sort to display custom order
         setIsReorderMode(false);
       }, 500);
     },
@@ -61,33 +62,38 @@ export default function EventsPage() {
   const sortedEvents = useMemo(() => {
     if (!events) return [];
     
+    // Create a copy of events to avoid modifying the original data
+    const eventsCopy = [...events];
+    
     if (isReorderMode) {
-      // In reorder mode, sort by display_order
-      return [...events].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+      // In reorder mode, always sort by display_order
+      return eventsCopy.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
     }
     
-    return [...events].sort((a, b) => {
-      switch (sortBy) {
-        case "date-asc":
-          return new Date(a.date).getTime() - new Date(b.date).getTime();
-        case "date-desc":
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        case "title-asc":
-          return a.title.localeCompare(b.title);
-        case "title-desc":
-          return b.title.localeCompare(a.title);
-        case "seats-asc":
-          return a.availableSeats - b.availableSeats;
-        case "seats-desc":
-          return b.availableSeats - a.availableSeats;
-        case "id-asc":
-          return a.id - b.id;
-        case "id-desc":
-          return b.id - a.id;
-        default:
-          return 0;
-      }
-    });
+    // Allow user to choose custom sort order, but we'll add a new display_order sort option
+    switch (sortBy) {
+      case "display-order":
+        return eventsCopy.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+      case "date-asc":
+        return eventsCopy.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      case "date-desc":
+        return eventsCopy.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      case "title-asc":
+        return eventsCopy.sort((a, b) => a.title.localeCompare(b.title));
+      case "title-desc":
+        return eventsCopy.sort((a, b) => b.title.localeCompare(a.title));
+      case "seats-asc":
+        return eventsCopy.sort((a, b) => a.availableSeats - b.availableSeats);
+      case "seats-desc":
+        return eventsCopy.sort((a, b) => b.availableSeats - a.availableSeats);
+      case "id-asc":
+        return eventsCopy.sort((a, b) => a.id - b.id);
+      case "id-desc":
+        return eventsCopy.sort((a, b) => b.id - a.id);
+      default:
+        // Default to display order if no sort is specified
+        return eventsCopy.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    }
   }, [events, sortBy, isReorderMode]);
   
   const handleDragEnd = (result: DropResult) => {
@@ -119,6 +125,7 @@ export default function EventsPage() {
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="display-order">Custom Order</SelectItem>
                       <SelectItem value="date-asc">Date (Earliest first)</SelectItem>
                       <SelectItem value="date-desc">Date (Latest first)</SelectItem>
                       <SelectItem value="title-asc">Name (A-Z)</SelectItem>

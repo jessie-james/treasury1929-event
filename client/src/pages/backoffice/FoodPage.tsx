@@ -25,12 +25,12 @@ import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautif
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-type SortOption = "name-asc" | "name-desc" | "price-asc" | "price-desc" | "id-asc" | "id-desc";
+type SortOption = "display-order" | "name-asc" | "name-desc" | "price-asc" | "price-desc" | "id-asc" | "id-desc";
 
 export default function FoodPage() {
   const [selectedFood, setSelectedFood] = useState<FoodOption | null>(null);
   const [isCreating, setIsCreating] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>("name-asc");
+  const [sortBy, setSortBy] = useState<SortOption>("display-order");
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("salad");
   const { toast } = useToast();
@@ -52,8 +52,9 @@ export default function FoodPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/food-options"] });
       refetch(); // Explicitly refetch food options data
       
-      // Switch back to non-reordering mode
+      // Switch back to non-reordering mode and use custom order
       setTimeout(() => {
+        setSortBy("display-order"); // Set sort to display custom order
         setIsReorderMode(false);
       }, 500);
     },
@@ -104,6 +105,8 @@ export default function FoodPage() {
       } else {
         grouped[type].sort((a, b) => {
           switch (sortBy) {
+            case "display-order":
+              return (a.displayOrder || 0) - (b.displayOrder || 0);
             case "name-asc":
               return a.name.localeCompare(b.name);
             case "name-desc":
@@ -117,7 +120,8 @@ export default function FoodPage() {
             case "id-desc":
               return b.id - a.id;
             default:
-              return 0;
+              // Default to display order if no sort is specified
+              return (a.displayOrder || 0) - (b.displayOrder || 0);
           }
         });
       }
@@ -141,6 +145,7 @@ export default function FoodPage() {
                       <SelectValue placeholder="Sort by" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="display-order">Custom Order</SelectItem>
                       <SelectItem value="name-asc">Name (A-Z)</SelectItem>
                       <SelectItem value="name-desc">Name (Z-A)</SelectItem>
                       <SelectItem value="price-asc">Price (Low to High)</SelectItem>
