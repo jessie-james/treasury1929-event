@@ -1,17 +1,51 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
 import { EventFoodTotals } from "@/components/backoffice/EventFoodTotals";
 import { type Event, type Booking } from "@shared/schema";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { Trash2, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function OrdersPage() {
+  const { toast } = useToast();
+  
   const { data: events } = useQuery<Event[]>({
     queryKey: ["/api/events"],
   });
 
   const { data: bookings } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
+  });
+  
+  // Mutation to clear all bookings (for testing purposes)
+  const clearBookingsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/clear-bookings");
+      return await res.json();
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      
+      toast({
+        title: "Success",
+        description: "All bookings have been cleared and event seats reset",
+        variant: "default",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to clear bookings: ${error.message}`,
+        variant: "destructive",
+      });
+    }
   });
 
   // Calculate totals for each food category
@@ -33,7 +67,25 @@ export default function OrdersPage() {
   return (
     <BackofficeLayout>
       <div className="space-y-8">
-        <h1 className="text-4xl font-bold">Food & Drink Orders</h1>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h1 className="text-4xl font-bold">Food & Drink Orders</h1>
+          
+          {/* Clear Bookings Button (for testing) */}
+          <Button
+            variant="destructive"
+            size="sm"
+            className="flex items-center gap-2"
+            onClick={() => clearBookingsMutation.mutate()}
+            disabled={clearBookingsMutation.isPending}
+          >
+            {clearBookingsMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+            Clear All Bookings
+          </Button>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {foodStats.map((stat) => (

@@ -2,7 +2,7 @@ import express, { type Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertBookingSchema } from "@shared/schema";
+import { insertBookingSchema, bookings, events } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
 import Stripe from "stripe";
@@ -10,6 +10,8 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -72,6 +74,27 @@ const upload = multer({
 });
 
 const clients = new Set<WebSocket>();
+
+// Helper function to reset test data
+async function clearAllBookings() {
+  try {
+    // Clear all bookings
+    await db.delete(bookings);
+    
+    // Reset event available seats to total seats
+    const allEvents = await db.select().from(events);
+    for (const event of allEvents) {
+      await db.update(events)
+        .set({ availableSeats: event.totalSeats })
+        .where(eq(events.id, event.id));
+    }
+    
+    return { success: true, message: "All bookings cleared and event seats reset" };
+  } catch (error) {
+    console.error("Error clearing bookings:", error);
+    return { success: false, message: "Failed to clear bookings" };
+  }
+}
 
 export async function registerRoutes(app: Express) {
   // Set up authentication
@@ -329,6 +352,30 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching bookings:", error);
       res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+  
+  // Admin route to clear all bookings (for testing purposes)
+  app.post("/api/clear-bookings", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(401).json({ message: "Unauthorized: Admin access required" });
+      }
+      
+      const result = await clearAllBookings();
+      
+      if (result.success) {
+        res.status(200).json(result);
+      } else {
+        res.status(500).json(result);
+      }
+    } catch (error) {
+      console.error("Error clearing bookings:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to clear bookings",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
   
