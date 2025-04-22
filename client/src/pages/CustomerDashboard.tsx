@@ -21,7 +21,21 @@ export default function CustomerDashboard() {
   });
 
   const getFoodItemByType = (booking: EnrichedBooking, seatNumber: number, type: string) => {
-    const foodSelection = (booking.foodSelections as Record<number, Record<string, number>>)[seatNumber];
+    // Handle both formats of food selections data
+    let foodSelection;
+    
+    // Check if it's an array format (newer bookings)
+    if (Array.isArray(booking.foodSelections)) {
+      // If seat number is within array bounds
+      if (seatNumber <= booking.foodSelections.length) {
+        // Array index is 0-based, but seat numbers are 1-based, so subtract 1
+        foodSelection = booking.foodSelections[seatNumber - 1];
+      }
+    } else {
+      // For older bookings that use Record<number, Record<string, number>> format
+      foodSelection = (booking.foodSelections as Record<number, Record<string, number>>)[seatNumber];
+    }
+    
     if (!foodSelection) return null;
 
     const itemId = foodSelection[type];
@@ -65,7 +79,7 @@ export default function CustomerDashboard() {
                     {booking.seatNumbers.map((seatNumber) => (
                       <div key={seatNumber} className="space-y-2">
                         <p className="font-medium">
-                          Seat #{seatNumber} - {(booking.guestNames as Record<number, string>)[seatNumber]}
+                          Seat #{seatNumber} - {booking.guestNames ? (typeof booking.guestNames === 'object' ? (booking.guestNames as Record<number, string>)[seatNumber] || 'Guest' : 'Guest') : 'Guest'}
                         </p>
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           {['salad', 'entree', 'dessert', 'wine'].map(type => {
