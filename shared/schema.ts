@@ -56,6 +56,9 @@ export const foodOptions = pgTable("food_options", {
   type: text("type").notNull(),
   description: text("description").notNull(),
   image: text("image").notNull(),
+  price: integer("price").default(0),
+  allergens: text("allergens").array(),
+  dietaryRestrictions: text("dietary_restrictions").array(),
 });
 
 export const bookings = pgTable("bookings", {

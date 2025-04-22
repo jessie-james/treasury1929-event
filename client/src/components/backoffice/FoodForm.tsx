@@ -11,6 +11,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { type FoodOption } from "@shared/schema";
+import { Allergen, DietaryRestriction, FoodIconSet } from "@/components/ui/food-icons";
+import { Separator } from "@/components/ui/separator";
+
+// Define the common allergens and dietary restrictions
+const ALLERGENS: Allergen[] = ["gluten", "dairy", "eggs", "peanuts", "tree_nuts", "soy", "fish", "shellfish", "sesame"];
+const DIETARY_RESTRICTIONS: DietaryRestriction[] = ["vegetarian", "vegan", "halal", "kosher", "low_carb", "keto", "paleo"];
 
 const foodFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -36,6 +44,8 @@ const foodFormSchema = z.object({
   image: z.string().url("Must be a valid URL"),
   price: z.number().min(0, "Price must be greater than or equal to 0"),
   type: z.enum(["salad", "entree", "dessert"]),
+  allergens: z.array(z.string()).optional(),
+  dietaryRestrictions: z.array(z.string()).optional(),
 });
 
 type FoodFormData = z.infer<typeof foodFormSchema>;
@@ -57,6 +67,8 @@ export function FoodForm({ food, onClose }: Props) {
       image: "",
       price: 0,
       type: "salad",
+      allergens: [],
+      dietaryRestrictions: [],
     },
   });
 

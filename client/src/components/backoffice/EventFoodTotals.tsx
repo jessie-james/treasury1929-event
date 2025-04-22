@@ -75,7 +75,7 @@ export function EventFoodTotals({ eventId }: EventFoodTotalsProps) {
           <div key={id} className="space-y-1">
             <div className="flex justify-between text-sm">
               <span>{getFoodNameById(id, type)}</span>
-              <span className="font-medium">{count}</span>
+              <span className="font-medium">{count} selections</span>
             </div>
             <Progress value={getPercentage(count)} className="h-2" />
           </div>
