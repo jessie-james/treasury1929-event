@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
 import { Button } from "@/components/ui/button";
-import { PlusCircle } from "lucide-react";
-import { useState } from "react";
+import { PlusCircle, ArrowUpDown } from "lucide-react";
+import { useState, useMemo } from "react";
 import { FoodForm } from "@/components/backoffice/FoodForm";
 import {
   Card,
@@ -13,32 +13,90 @@ import {
 } from "@/components/ui/card";
 import { type FoodOption } from "@shared/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+
+type SortOption = "name-asc" | "name-desc" | "price-asc" | "price-desc" | "id-asc" | "id-desc";
 
 export default function FoodPage() {
   const [selectedFood, setSelectedFood] = useState<FoodOption | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("name-asc");
 
   const { data: foodOptions } = useQuery<FoodOption[]>({
     queryKey: ["/api/food-options"],
   });
 
-  const foodByType = foodOptions?.reduce((acc, food) => {
-    if (!acc[food.type]) {
-      acc[food.type] = [];
-    }
-    acc[food.type].push(food);
-    return acc;
-  }, {} as Record<string, FoodOption[]>) ?? {};
+  const sortedFoodByType = useMemo(() => {
+    if (!foodOptions) return {};
+    
+    // First, group by type
+    const grouped = foodOptions.reduce((acc, food) => {
+      if (!acc[food.type]) {
+        acc[food.type] = [];
+      }
+      acc[food.type].push(food);
+      return acc;
+    }, {} as Record<string, FoodOption[]>);
+    
+    // Then sort each group
+    Object.keys(grouped).forEach(type => {
+      grouped[type].sort((a, b) => {
+        switch (sortBy) {
+          case "name-asc":
+            return a.name.localeCompare(b.name);
+          case "name-desc":
+            return b.name.localeCompare(a.name);
+          case "price-asc":
+            return (a.price || 0) - (b.price || 0);
+          case "price-desc":
+            return (b.price || 0) - (a.price || 0);
+          case "id-asc":
+            return a.id - b.id;
+          case "id-desc":
+            return b.id - a.id;
+          default:
+            return 0;
+        }
+      });
+    });
+    
+    return grouped;
+  }, [foodOptions, sortBy]);
 
   return (
     <BackofficeLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h1 className="text-3xl font-bold">Food Management</h1>
-          <Button onClick={() => setIsCreating(true)}>
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Add Food Item
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <div className="flex items-center gap-2 w-full sm:w-[200px]">
+              <Label htmlFor="food-sort" className="whitespace-nowrap">Sort by:</Label>
+              <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+                <SelectTrigger id="food-sort">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name-asc">Name (A-Z)</SelectItem>
+                  <SelectItem value="name-desc">Name (Z-A)</SelectItem>
+                  <SelectItem value="price-asc">Price (Low to High)</SelectItem>
+                  <SelectItem value="price-desc">Price (High to Low)</SelectItem>
+                  <SelectItem value="id-asc">Added (Oldest first)</SelectItem>
+                  <SelectItem value="id-desc">Added (Newest first)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={() => setIsCreating(true)} className="whitespace-nowrap">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Add Food Item
+            </Button>
+          </div>
         </div>
 
         {(isCreating || selectedFood) && (
@@ -61,7 +119,7 @@ export default function FoodPage() {
           {["salad", "entree", "dessert"].map((type) => (
             <TabsContent key={type} value={type}>
               <div className="grid gap-6">
-                {foodByType[type]?.map((food) => (
+                {sortedFoodByType[type]?.map((food) => (
                   <Card key={food.id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
