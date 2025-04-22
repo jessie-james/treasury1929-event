@@ -42,7 +42,20 @@ type FilterOptions = {
   minSeats?: number;
 };
 
-interface ExtendedBooking extends Omit<Booking, 'guestNames'> {
+// We need to define a custom type for the booking that comes from the API
+// which has JSON fields converted to objects
+interface ExtendedBooking {
+  id: number;
+  eventId: number;
+  userId: number;
+  tableId: number;
+  seatNumbers: number[];
+  foodSelections: unknown; // We don't directly access this field
+  customerEmail: string;
+  stripePaymentId: string;
+  createdAt: string | Date | null;
+  
+  // Extended fields added by the API
   event: {
     id: number;
     title: string;
