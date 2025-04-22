@@ -35,7 +35,7 @@ export default function FoodPage() {
   const [activeTab, setActiveTab] = useState<string>("salad");
   const { toast } = useToast();
 
-  const { data: foodOptions } = useQuery<FoodOption[]>({
+  const { data: foodOptions, refetch } = useQuery<FoodOption[]>({
     queryKey: ["/api/food-options"],
   });
   
@@ -50,6 +50,12 @@ export default function FoodPage() {
         description: "Food item display order has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/food-options"] });
+      refetch(); // Explicitly refetch food options data
+      
+      // Switch back to non-reordering mode
+      setTimeout(() => {
+        setIsReorderMode(false);
+      }, 500);
     },
     onError: (error: Error) => {
       toast({
