@@ -47,7 +47,7 @@ const dietaryLabels: Record<DietaryRestriction, string> = {
 };
 
 // SVG icons for allergens
-const allergenIcons: Record<Allergen, React.ReactNode> = {
+export const allergenIcons: Record<Allergen, React.ReactNode> = {
   gluten: (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-wheat">
       <path d="M2 22 16 8" />
@@ -121,7 +121,7 @@ const allergenIcons: Record<Allergen, React.ReactNode> = {
 };
 
 // SVG icons for dietary restrictions
-const dietaryIcons: Record<DietaryRestriction, React.ReactNode> = {
+export const dietaryIcons: Record<DietaryRestriction, React.ReactNode> = {
   vegetarian: (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-salad">
       <path d="M7 21h10" />

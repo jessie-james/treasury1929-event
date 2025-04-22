@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { type FoodOption } from "@shared/schema";
-import { Allergen, DietaryRestriction, FoodIconSet } from "@/components/ui/food-icons";
+import { Allergen, DietaryRestriction, FoodIconSet, allergenIcons, dietaryIcons } from "@/components/ui/food-icons";
 import { Separator } from "@/components/ui/separator";
 
 // Define the common allergens and dietary restrictions
@@ -61,15 +61,25 @@ export function FoodForm({ food, onClose }: Props) {
 
   const form = useForm<FoodFormData>({
     resolver: zodResolver(foodFormSchema),
-    defaultValues: food || {
-      name: "",
-      description: "",
-      image: "",
-      price: 0,
-      type: "salad",
-      allergens: [],
-      dietaryRestrictions: [],
-    },
+    defaultValues: food 
+      ? {
+          name: food.name,
+          description: food.description,
+          image: food.image,
+          price: food.price ?? 0,
+          type: food.type as "salad" | "entree" | "dessert",
+          allergens: food.allergens ?? [],
+          dietaryRestrictions: food.dietaryRestrictions ?? [],
+        }
+      : {
+          name: "",
+          description: "",
+          image: "",
+          price: 0,
+          type: "salad",
+          allergens: [],
+          dietaryRestrictions: [],
+        },
   });
 
   const { mutate: saveFood, isPending } = useMutation({
@@ -217,6 +227,107 @@ export function FoodForm({ food, onClose }: Props) {
                 </FormItem>
               )}
             />
+
+            <Separator className="my-4" />
+            
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium">Dietary Information</h3>
+              <p className="text-sm text-muted-foreground">
+                Add allergen warnings and dietary labels to help guests make informed choices.
+              </p>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Allergens */}
+              <FormField
+                control={form.control}
+                name="allergens"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="mb-4">
+                      <FormLabel className="text-base">Allergens</FormLabel>
+                      <FormDescription>
+                        Select all allergens present in this dish
+                      </FormDescription>
+                    </div>
+                    <div className="space-y-2">
+                      {ALLERGENS.map((allergen) => (
+                        <div key={allergen} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`allergen-${allergen}`}
+                            checked={field.value?.includes(allergen)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                field.onChange([...(field.value || []), allergen]);
+                              } else {
+                                field.onChange(field.value?.filter((value) => value !== allergen) || []);
+                              }
+                            }}
+                          />
+                          <div className="grid gap-1.5 leading-none">
+                            <label
+                              htmlFor={`allergen-${allergen}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                            >
+                              <div className="inline-flex items-center justify-center rounded-full bg-destructive/20 text-destructive p-1 w-6 h-6">
+                                <div className="w-4 h-4">{allergenIcons[allergen as Allergen]}</div>
+                              </div>
+                              <span className="capitalize">{allergen.replace('_', ' ')}</span>
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Dietary Restrictions */}
+              <FormField
+                control={form.control}
+                name="dietaryRestrictions"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="mb-4">
+                      <FormLabel className="text-base">Dietary Labels</FormLabel>
+                      <FormDescription>
+                        Select all dietary options this dish is suitable for
+                      </FormDescription>
+                    </div>
+                    <div className="space-y-2">
+                      {DIETARY_RESTRICTIONS.map((restriction) => (
+                        <div key={restriction} className="flex items-center gap-2">
+                          <Checkbox
+                            id={`diet-${restriction}`}
+                            checked={field.value?.includes(restriction)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                field.onChange([...(field.value || []), restriction]);
+                              } else {
+                                field.onChange(field.value?.filter((value) => value !== restriction) || []);
+                              }
+                            }}
+                          />
+                          <div className="grid gap-1.5 leading-none">
+                            <label
+                              htmlFor={`diet-${restriction}`}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                            >
+                              <div className="inline-flex items-center justify-center rounded-full bg-green-500/20 text-green-600 p-1 w-6 h-6">
+                                <div className="w-4 h-4">{dietaryIcons[restriction as DietaryRestriction]}</div>
+                              </div>
+                              <span className="capitalize">{restriction.replace('_', ' ')}</span>
+                            </label>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="flex justify-end gap-2">
               {food && (

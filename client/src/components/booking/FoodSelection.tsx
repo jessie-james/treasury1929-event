@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { type FoodOption } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { FoodIconSet, Allergen, DietaryRestriction } from "@/components/ui/food-icons";
 
 interface SeatSelections {
   name: string;
@@ -189,6 +190,16 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                           <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
                             {option.description}
                           </p>
+                          {/* Display allergen and dietary icons */}
+                          {(option.allergens?.length > 0 || option.dietaryRestrictions?.length > 0) && (
+                            <div className="mt-2">
+                              <FoodIconSet 
+                                allergens={option.allergens as Allergen[] || []} 
+                                dietaryRestrictions={option.dietaryRestrictions as DietaryRestriction[] || []}
+                                size="sm"
+                              />
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     );
