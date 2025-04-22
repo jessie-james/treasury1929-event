@@ -20,6 +20,7 @@ export const events = pgTable("events", {
   availableSeats: integer("available_seats").notNull(),
   totalSeats: integer("total_seats").notNull(),
   venueId: integer("venue_id").notNull(),
+  displayOrder: integer("display_order").default(0),
 });
 
 export const venues = pgTable("venues", {
@@ -59,6 +60,7 @@ export const foodOptions = pgTable("food_options", {
   price: integer("price").default(0),
   allergens: text("allergens").array(),
   dietaryRestrictions: text("dietary_restrictions").array(),
+  displayOrder: integer("display_order").default(0),
 });
 
 export const bookings = pgTable("bookings", {
