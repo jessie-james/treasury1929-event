@@ -68,10 +68,16 @@ export function EventForm({ event, onClose }: Props) {
       });
       
       if (!response.ok) {
-        throw new Error('Upload failed');
+        throw new Error('Upload failed - server returned an error');
       }
       
       const data = await response.json();
+      console.log('Upload response:', data);
+      
+      if (!data || !data.path) {
+        throw new Error('Upload failed - no file path returned');
+      }
+      
       const imagePath = data.path;
       
       // Update the form field with the new image path
@@ -83,9 +89,23 @@ export function EventForm({ event, onClose }: Props) {
       });
     } catch (error) {
       console.error('Error uploading image:', error);
+      let errorMessage = 'Could not upload image. Please try again.';
+      
+      // Try to extract a more specific error message if available
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error instanceof Response) {
+        try {
+          const responseData = await error.json();
+          errorMessage = responseData.error || responseData.message || errorMessage;
+        } catch {
+          // If we can't parse the JSON, use the default message
+        }
+      }
+      
       toast({
         title: 'Upload failed',
-        description: 'Could not upload image. Please try again.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

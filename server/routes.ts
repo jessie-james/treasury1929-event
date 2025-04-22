@@ -40,12 +40,26 @@ const storage_config = multer.diskStorage({
 
 // Only allow specific image file types
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+  // Expanded list of common image MIME types
+  const allowedMimeTypes = [
+    'image/jpeg', 
+    'image/jpg',  // Some browsers/systems might use this variant
+    'image/pjpeg', // Progressive JPEG
+    'image/png', 
+    'image/gif', 
+    'image/webp',
+    'image/svg+xml', // SVG images
+    'image/bmp'     // BMP images
+  ];
+  
+  console.log(`Receiving file upload: ${file.originalname}, MIME type: ${file.mimetype}`);
   
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed."));
+    const error = new Error(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, GIF, WebP, SVG and BMP images are allowed.`);
+    console.error(`File upload rejected: ${error.message}`);
+    cb(error);
   }
 };
 
@@ -260,8 +274,36 @@ export async function registerRoutes(app: Express) {
   // Serve uploaded images
   app.use('/uploads', express.static(uploadsDir));
   
+  // Custom error handler for multer upload errors
+  const handleMulterError = (err: any, req: any, res: any, next: any) => {
+    if (err instanceof multer.MulterError) {
+      // A Multer error occurred when uploading
+      console.error("Multer upload error:", err);
+      return res.status(400).json({
+        message: "Image upload failed",
+        error: err.message,
+        code: err.code
+      });
+    } else if (err) {
+      // A file filter error or other non-multer error
+      console.error("Upload error:", err);
+      return res.status(400).json({
+        message: "Image upload failed",
+        error: err.message
+      });
+    }
+    next();
+  };
+  
   // Handle food image uploads
-  app.post("/api/upload/food-image", upload.single('image'), async (req, res) => {
+  app.post("/api/upload/food-image", (req, res, next) => {
+    upload.single('image')(req, res, function(err) {
+      if (err) {
+        return handleMulterError(err, req, res, next);
+      }
+      next();
+    });
+  }, async (req, res) => {
     try {
       if (!req.isAuthenticated() || req.user?.role === "customer") {
         return res.status(401).json({ message: "Unauthorized" });
@@ -270,6 +312,12 @@ export async function registerRoutes(app: Express) {
       if (!req.file) {
         return res.status(400).json({ message: "No image file provided" });
       }
+      
+      console.log("Food image uploaded successfully:", {
+        filename: req.file.filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
       
       // Return the path to the uploaded file
       const filePath = `/uploads/${req.file.filename}`;
@@ -290,7 +338,14 @@ export async function registerRoutes(app: Express) {
   });
   
   // Handle event image uploads
-  app.post("/api/upload/event-image", upload.single('image'), async (req, res) => {
+  app.post("/api/upload/event-image", (req, res, next) => {
+    upload.single('image')(req, res, function(err) {
+      if (err) {
+        return handleMulterError(err, req, res, next);
+      }
+      next();
+    });
+  }, async (req, res) => {
     try {
       if (!req.isAuthenticated() || req.user?.role === "customer") {
         return res.status(401).json({ message: "Unauthorized" });
@@ -299,6 +354,12 @@ export async function registerRoutes(app: Express) {
       if (!req.file) {
         return res.status(400).json({ message: "No image file provided" });
       }
+      
+      console.log("Event image uploaded successfully:", {
+        filename: req.file.filename,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      });
       
       // Return the path to the uploaded file
       const filePath = `/uploads/${req.file.filename}`;
