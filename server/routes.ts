@@ -135,12 +135,40 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      console.log("Creating event with data:", req.body);
+      // Ensure date is properly formatted as a Date object
+      let formattedDate;
+      try {
+        // Check if date is a string representation
+        if (typeof req.body.date === 'string') {
+          formattedDate = new Date(req.body.date);
+          // Validate that the date was parsed correctly
+          if (isNaN(formattedDate.getTime())) {
+            throw new Error("Invalid date format");
+          }
+        } else {
+          // If it's not a string, try to use it directly
+          formattedDate = new Date(req.body.date);
+        }
+      } catch (dateError) {
+        console.error("Date conversion error:", dateError);
+        return res.status(400).json({
+          message: "Invalid date format",
+          error: String(dateError)
+        });
+      }
+
+      console.log("Creating event with data:", {
+        ...req.body,
+        date: formattedDate.toISOString()
+      });
+      
       const event = await storage.createEvent({
         ...req.body,
+        date: formattedDate,
         totalSeats: Number(req.body.totalSeats),
         venueId: 1, // For now, hardcode to venue 1
       });
+      
       console.log("Event created successfully:", event);
       res.status(201).json(event);
     } catch (error) {
@@ -159,14 +187,47 @@ export async function registerRoutes(app: Express) {
       }
 
       const id = parseInt(req.params.id);
-      const event = await storage.updateEvent(id, req.body);
+      
+      // Handle date formatting if it's being updated
+      let updateData = { ...req.body };
+      
+      if (req.body.date) {
+        try {
+          // Convert string date to Date object
+          const formattedDate = new Date(req.body.date);
+          
+          // Validate date
+          if (isNaN(formattedDate.getTime())) {
+            throw new Error("Invalid date format");
+          }
+          
+          // Update with proper Date object
+          updateData.date = formattedDate;
+          
+        } catch (dateError) {
+          console.error("Date conversion error during update:", dateError);
+          return res.status(400).json({
+            message: "Invalid date format",
+            error: String(dateError)
+          });
+        }
+      }
+
+      console.log("Updating event with data:", updateData);
+      const event = await storage.updateEvent(id, updateData);
+      
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
+      
+      console.log("Event updated successfully:", event);
       res.json(event);
     } catch (error) {
       console.error("Error updating event:", error);
-      res.status(500).json({ message: "Failed to update event" });
+      res.status(500).json({ 
+        message: "Failed to update event",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 

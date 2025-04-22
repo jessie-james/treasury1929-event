@@ -156,11 +156,19 @@ export function EventForm({ event, onClose }: Props) {
   const { mutate: saveEvent, isPending } = useMutation({
     mutationFn: async (data: EventFormData) => {
       // Convert form data to proper types before submission
+      const date = new Date(data.date);
+      
+      // Validate the date
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid date format');
+      }
+      
       const formattedData = {
         ...data,
         totalSeats: Number(data.totalSeats),
-        date: new Date(data.date).toISOString(),
+        date: date.toISOString(), // Ensure we're sending a proper ISO string
       };
+      
       console.log("Submitting event data:", formattedData);
       const endpoint = event ? `/api/events/${event.id}` : "/api/events";
       const method = event ? "PATCH" : "POST";
