@@ -295,86 +295,124 @@ export async function registerRoutes(app: Express) {
     next();
   };
   
-  // Handle food image uploads
+  // Handle food image uploads with improved error handling
   app.post("/api/upload/food-image", (req, res, next) => {
+    // Explicitly wrap multer to catch and handle any errors
+    console.log("Starting food image upload request");
+    
     upload.single('image')(req, res, function(err) {
       if (err) {
+        console.error("Multer upload error in food image:", err);
         return handleMulterError(err, req, res, next);
       }
+      console.log("Multer processed food image request successfully");
       next();
     });
   }, async (req, res) => {
     try {
       if (!req.isAuthenticated() || req.user?.role === "customer") {
+        console.log("Unauthorized access to food image upload");
         return res.status(401).json({ message: "Unauthorized" });
       }
       
       if (!req.file) {
+        console.log("No food image file was received in the request");
         return res.status(400).json({ message: "No image file provided" });
       }
       
       console.log("Food image uploaded successfully:", {
         filename: req.file.filename,
         mimetype: req.file.mimetype,
-        size: req.file.size
+        size: req.file.size,
+        originalname: req.file.originalname
       });
       
       // Return the path to the uploaded file
       const filePath = `/uploads/${req.file.filename}`;
+      
+      // Set appropriate content-type header to ensure JSON response
+      res.setHeader('Content-Type', 'application/json');
+      
+      // Send response
       res.status(201).json({ 
         path: filePath,
         filename: req.file.filename,
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
-        size: req.file.size 
+        size: req.file.size,
+        success: true 
       });
     } catch (error) {
       console.error("Error uploading food image:", error);
+      
+      // Set appropriate content-type header to ensure JSON response
+      res.setHeader('Content-Type', 'application/json');
+      
       res.status(500).json({ 
         message: "Failed to upload image",
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
+        success: false
       });
     }
   });
   
-  // Handle event image uploads
+  // Handle event image uploads with improved error handling
   app.post("/api/upload/event-image", (req, res, next) => {
+    // Explicitly wrap multer to catch and handle any errors
+    console.log("Starting event image upload request");
+    
     upload.single('image')(req, res, function(err) {
       if (err) {
+        console.error("Multer upload error in event image:", err);
         return handleMulterError(err, req, res, next);
       }
+      console.log("Multer processed request successfully");
       next();
     });
   }, async (req, res) => {
     try {
       if (!req.isAuthenticated() || req.user?.role === "customer") {
+        console.log("Unauthorized access to event image upload");
         return res.status(401).json({ message: "Unauthorized" });
       }
       
       if (!req.file) {
+        console.log("No file was received in the request");
         return res.status(400).json({ message: "No image file provided" });
       }
       
       console.log("Event image uploaded successfully:", {
         filename: req.file.filename,
         mimetype: req.file.mimetype,
-        size: req.file.size
+        size: req.file.size,
+        originalname: req.file.originalname
       });
       
       // Return the path to the uploaded file
       const filePath = `/uploads/${req.file.filename}`;
+      
+      // Set appropriate content-type header to ensure JSON response
+      res.setHeader('Content-Type', 'application/json');
+      
+      // Send response
       res.status(201).json({ 
         path: filePath,
         filename: req.file.filename,
         originalname: req.file.originalname,
         mimetype: req.file.mimetype,
-        size: req.file.size 
+        size: req.file.size,
+        success: true 
       });
     } catch (error) {
       console.error("Error uploading event image:", error);
+      
+      // Set appropriate content-type header to ensure JSON response
+      res.setHeader('Content-Type', 'application/json');
+      
       res.status(500).json({ 
         message: "Failed to upload image",
-        error: error instanceof Error ? error.message : String(error)
+        error: error instanceof Error ? error.message : String(error),
+        success: false
       });
     }
   });

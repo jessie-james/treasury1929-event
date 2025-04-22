@@ -61,18 +61,43 @@ export function EventForm({ event, onClose }: Props) {
     formData.append('image', file);
     
     try {
+      console.log('Starting image upload...');
+      console.log('File info:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+      
       const response = await fetch('/api/upload/event-image', {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
       
-      if (!response.ok) {
-        throw new Error('Upload failed - server returned an error');
+      // Get response text first to debug any potential issues
+      const responseText = await response.text();
+      
+      // Check if response starts with HTML or XML markup
+      if (responseText.trim().startsWith('<!DOCTYPE') || 
+          responseText.trim().startsWith('<html') || 
+          responseText.trim().startsWith('<?xml')) {
+        console.error('Server returned HTML/XML instead of JSON:', responseText);
+        throw new Error('Server returned an HTML error page instead of JSON');
       }
       
-      const data = await response.json();
-      console.log('Upload response:', data);
+      // Try to parse as JSON if we got here
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('Upload response:', data);
+      } catch (jsonError) {
+        console.error('Failed to parse server response as JSON:', responseText);
+        throw new Error(`Invalid JSON response: ${responseText.slice(0, 100)}...`);
+      }
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Upload failed - server returned an error');
+      }
       
       if (!data || !data.path) {
         throw new Error('Upload failed - no file path returned');
