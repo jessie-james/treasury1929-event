@@ -5,7 +5,9 @@ import { format } from "date-fns";
 import { Header } from "@/components/Header";
 import { Link } from "wouter";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Ticket } from "lucide-react";
+import { Ticket, Info } from "lucide-react";
+import { FoodIconSet, Allergen, DietaryRestriction } from "@/components/ui/food-icons";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type EnrichedBooking = Booking & {
   event: Event;
@@ -71,9 +73,31 @@ export default function CustomerDashboard() {
                             return (
                               <div key={type}>
                                 <p className="text-sm font-medium capitalize">{type}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {foodItem?.name || 'Not selected'}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm text-muted-foreground">
+                                    {foodItem?.name || 'Not selected'}
+                                  </p>
+                                  {foodItem && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <div className="cursor-help">
+                                            <Info className="h-4 w-4 text-muted-foreground" />
+                                          </div>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="w-auto">
+                                          <div className="space-y-2 p-1">
+                                            <FoodIconSet 
+                                              allergens={(foodItem.allergens || []) as Allergen[]} 
+                                              dietaryRestrictions={(foodItem.dietaryRestrictions || []) as DietaryRestriction[]}
+                                              size="sm"
+                                            />
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
                               </div>
                             );
                           })}

@@ -191,15 +191,13 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                             {option.description}
                           </p>
                           {/* Display allergen and dietary icons */}
-                          {(option.allergens?.length > 0 || option.dietaryRestrictions?.length > 0) && (
-                            <div className="mt-2">
-                              <FoodIconSet 
-                                allergens={option.allergens as Allergen[] || []} 
-                                dietaryRestrictions={option.dietaryRestrictions as DietaryRestriction[] || []}
-                                size="sm"
-                              />
-                            </div>
-                          )}
+                          <div className="mt-2">
+                            <FoodIconSet 
+                              allergens={(option.allergens || []) as Allergen[]} 
+                              dietaryRestrictions={(option.dietaryRestrictions || []) as DietaryRestriction[]}
+                              size="sm"
+                            />
+                          </div>
                         </CardContent>
                       </Card>
                     );
