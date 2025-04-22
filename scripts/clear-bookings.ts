@@ -1,5 +1,6 @@
 import { db } from "../server/db";
-import { bookings, events, eq } from "../shared/schema";
+import { bookings, events } from "../shared/schema";
+import { eq } from "drizzle-orm";
 
 async function clearAllBookings() {
   try {
