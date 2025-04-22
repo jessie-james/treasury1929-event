@@ -42,7 +42,7 @@ type FilterOptions = {
   minSeats?: number;
 };
 
-interface ExtendedBooking extends Booking {
+interface ExtendedBooking extends Omit<Booking, 'guestNames'> {
   event: {
     id: number;
     title: string;
@@ -57,6 +57,7 @@ interface ExtendedBooking extends Booking {
   }>;
   specialRequests?: string;
   allergens?: string;
+  guestNames: Record<string, string>;
 }
 
 interface UserWithBookings extends User {
@@ -198,11 +199,11 @@ export default function UsersPage() {
     result.sort((a, b) => {
       if (sortBy === 'date') {
         // Sort by most recent booking
-        const aDate = a.bookings.length 
-          ? new Date(a.bookings[0].createdAt).getTime()
+        const aDate = a.bookings.length && a.bookings[0].createdAt
+          ? new Date(String(a.bookings[0].createdAt)).getTime()
           : 0;
-        const bDate = b.bookings.length 
-          ? new Date(b.bookings[0].createdAt).getTime()
+        const bDate = b.bookings.length && b.bookings[0].createdAt
+          ? new Date(String(b.bookings[0].createdAt)).getTime()
           : 0;
         return bDate - aDate; // Most recent first
       } else if (sortBy === 'events') {
@@ -495,7 +496,7 @@ export default function UsersPage() {
                         </Badge>
                       </CardTitle>
                       <CardDescription>
-                        Joined {new Date(user.createdAt).toLocaleDateString()}
+                        Joined {user.createdAt ? new Date(String(user.createdAt)).toLocaleDateString() : 'N/A'}
                       </CardDescription>
                     </div>
                     <div className="text-right">
@@ -534,14 +535,16 @@ export default function UsersPage() {
                               <div>
                                 <h4 className="font-medium mb-2">Guests</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                                  {booking.guestNames && Object.entries(booking.guestNames).map(([seatNumber, name]) => (
+                                  {booking.guestNames ? Object.entries(booking.guestNames as Record<string, string>).map(([seatNumber, name]) => (
                                     <div key={seatNumber} className="flex items-center gap-2">
                                       <Badge variant="outline" className="h-6 w-6 flex items-center justify-center p-0 rounded-full">
                                         {seatNumber}
                                       </Badge>
-                                      <span className="text-sm">{name}</span>
+                                      <span className="text-sm">{String(name)}</span>
                                     </div>
-                                  ))}
+                                  )) : (
+                                    <p className="text-sm text-muted-foreground">No guest names provided</p>
+                                  )}
                                 </div>
                               </div>
 
