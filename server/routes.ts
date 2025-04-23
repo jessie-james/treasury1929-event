@@ -2,7 +2,7 @@ import express, { type Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertBookingSchema, bookings, events } from "@shared/schema";
+import { insertBookingSchema, insertAdminLogSchema, bookings, events, adminLogs } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth } from "./auth";
 import Stripe from "stripe";
@@ -363,6 +363,87 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching bookings:", error);
       res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+  
+  // API endpoints for admin logs
+  app.get("/api/admin-logs", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const logs = await storage.getAdminLogs();
+      
+      // Enrich logs with user data
+      const enrichedLogs = await Promise.all(logs.map(async (log) => {
+        const user = await storage.getUser(log.userId);
+        return {
+          ...log,
+          user: user ? { id: user.id, email: user.email, role: user.role } : null
+        };
+      }));
+      
+      res.json(enrichedLogs);
+    } catch (error) {
+      console.error("Error fetching admin logs:", error);
+      res.status(500).json({ message: "Failed to fetch admin logs" });
+    }
+  });
+  
+  app.get("/api/admin-logs/entity/:entityType", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const entityType = req.params.entityType;
+      const logs = await storage.getAdminLogsByEntityType(entityType);
+      
+      // Enrich logs with user data
+      const enrichedLogs = await Promise.all(logs.map(async (log) => {
+        const user = await storage.getUser(log.userId);
+        return {
+          ...log,
+          user: user ? { id: user.id, email: user.email, role: user.role } : null
+        };
+      }));
+      
+      res.json(enrichedLogs);
+    } catch (error) {
+      console.error(`Error fetching admin logs for entity type ${req.params.entityType}:`, error);
+      res.status(500).json({ message: "Failed to fetch admin logs" });
+    }
+  });
+  
+  // Create a manual booking (admin only)
+  app.post("/api/manual-booking", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Validate booking data
+      const bookingData = insertBookingSchema.parse(req.body);
+      
+      // Create the manual booking
+      const booking = await storage.createManualBooking(bookingData, req.user.id);
+      
+      // Create log entry for this action
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "create_manual_booking",
+        entityType: "booking",
+        entityId: booking?.id,
+        details: { booking }
+      });
+      
+      res.status(201).json(booking);
+    } catch (error) {
+      console.error("Error creating manual booking:", error);
+      res.status(500).json({ 
+        message: "Failed to create manual booking",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
   

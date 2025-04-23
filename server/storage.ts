@@ -899,8 +899,7 @@ export class DatabaseStorage implements IStorage {
     try {
       return await db
         .select()
-        .from(adminLogs)
-        .orderBy(adminLogs.createdAt, "desc");
+        .from(adminLogs);
     } catch (error) {
       console.error("Error fetching admin logs:", error);
       throw error;
@@ -912,8 +911,7 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(adminLogs)
-        .where(eq(adminLogs.entityType, entityType))
-        .orderBy(adminLogs.createdAt, "desc");
+        .where(eq(adminLogs.entityType, entityType));
     } catch (error) {
       console.error(`Error fetching admin logs for entity type ${entityType}:`, error);
       throw error;
@@ -925,8 +923,7 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(adminLogs)
-        .where(eq(adminLogs.userId, adminId))
-        .orderBy(adminLogs.createdAt, "desc");
+        .where(eq(adminLogs.userId, adminId));
     } catch (error) {
       console.error(`Error fetching admin logs for admin ID ${adminId}:`, error);
       throw error;
