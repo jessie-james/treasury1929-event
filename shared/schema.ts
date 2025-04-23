@@ -74,7 +74,12 @@ export const bookings = pgTable("bookings", {
   customerEmail: text("customer_email").notNull(),
   stripePaymentId: text("stripe_payment_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-  // Remove status and other fields that don't exist in the database
+  status: text("status").notNull().default("confirmed"), // confirmed, modified, refunded, canceled
+  notes: text("notes"),
+  refundAmount: integer("refund_amount"),
+  refundId: text("refund_id"),
+  lastModified: timestamp("last_modified"),
+  modifiedBy: integer("modified_by"), // User ID of admin who modified the booking
 });
 
 // Create insert schemas

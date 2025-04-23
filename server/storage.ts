@@ -686,8 +686,10 @@ export class DatabaseStorage implements IStorage {
         .update(bookings)
         .set({
           tableId: newTableId,
-          seatNumbers: newSeatNumbers
-          // Removed status, lastModified, and modifiedBy fields
+          seatNumbers: newSeatNumbers,
+          status: "modified",
+          lastModified: new Date(),
+          modifiedBy
         })
         .where(eq(bookings.id, bookingId))
         .returning();
@@ -710,8 +712,10 @@ export class DatabaseStorage implements IStorage {
       const [updated] = await db
         .update(bookings)
         .set({
-          foodSelections: newFoodSelections
-          // Removed status, lastModified, and modifiedBy fields
+          foodSelections: newFoodSelections,
+          status: "modified",
+          lastModified: new Date(),
+          modifiedBy
         })
         .where(eq(bookings.id, bookingId))
         .returning();
@@ -725,16 +729,34 @@ export class DatabaseStorage implements IStorage {
   
   async addBookingNote(bookingId: number, note: string, modifiedBy: number): Promise<Booking | undefined> {
     try {
-      console.log(`Adding note to booking ${bookingId} (this will log only as notes field not in database)`);
+      console.log(`Adding note to booking ${bookingId}`);
       
-      // Get the booking to verify it exists
+      // Get the current booking to append to any existing notes
       const booking = await this.getBookingById(bookingId);
       if (!booking) {
         throw new Error("Booking not found");
       }
       
-      // Since notes column doesn't exist, just return the existing booking
-      return booking;
+      // Format the new note with timestamp and admin info
+      const timestamp = new Date().toISOString();
+      const formattedNote = `[${timestamp}] Admin #${modifiedBy}: ${note}`;
+      
+      // Combine with existing notes or create new notes
+      const updatedNotes = booking.notes 
+        ? `${booking.notes}\n\n${formattedNote}`
+        : formattedNote;
+      
+      const [updated] = await db
+        .update(bookings)
+        .set({
+          notes: updatedNotes,
+          lastModified: new Date(),
+          modifiedBy
+        })
+        .where(eq(bookings.id, bookingId))
+        .returning();
+        
+      return updated;
     } catch (error) {
       console.error("Error adding booking note:", error);
       throw error;
@@ -750,15 +772,19 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Processing refund for booking ${bookingId}, amount: ${refundAmount}, refund ID: ${refundId}`);
       
-      // Get the booking to verify it exists
-      const booking = await this.getBookingById(bookingId);
-      if (!booking) {
-        throw new Error("Booking not found");
-      }
-      
-      // Since refund columns don't exist, just return the existing booking
-      // For a production app, we would need to add these columns to the database
-      return booking;
+      const [updated] = await db
+        .update(bookings)
+        .set({
+          status: "refunded",
+          refundAmount,
+          refundId,
+          lastModified: new Date(),
+          modifiedBy
+        })
+        .where(eq(bookings.id, bookingId))
+        .returning();
+        
+      return updated;
     } catch (error) {
       console.error("Error processing refund:", error);
       throw error;
@@ -786,9 +812,18 @@ export class DatabaseStorage implements IStorage {
       // Update event seat availability
       await this.updateEventAvailability(booking.eventId, -(booking.seatNumbers as number[]).length);
       
-      // Since we don't have status field in the database, we'll leave the booking
-      // record as is but seats will be released
-      return booking;
+      // Update the booking record
+      const [updated] = await db
+        .update(bookings)
+        .set({
+          status: "canceled",
+          lastModified: new Date(),
+          modifiedBy
+        })
+        .where(eq(bookings.id, bookingId))
+        .returning();
+        
+      return updated;
     } catch (error) {
       console.error("Error canceling booking:", error);
       throw error;
