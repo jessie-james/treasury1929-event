@@ -476,6 +476,11 @@ export class DatabaseStorage implements IStorage {
       };
 
       bookingResults.forEach(booking => {
+        // Skip canceled or refunded bookings
+        if (booking.status === 'canceled' || booking.status === 'refunded') {
+          return;
+        }
+        
         const selections = booking.foodSelections as Record<string, Record<string, number>>;
         Object.values(selections).forEach(selection => {
           if (selection.salad) {

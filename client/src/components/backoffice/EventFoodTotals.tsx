@@ -8,15 +8,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { type FoodOption } from "@shared/schema";
+import { type FoodOption, type Booking } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 import { FoodIconSet, Allergen, DietaryRestriction } from "@/components/ui/food-icons";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface FoodTotals {
   salads: Record<string, number>;
   entrees: Record<string, number>;
   desserts: Record<string, number>;
+  wines?: Record<string, number>;
 }
 
 interface EventFoodTotalsProps {
