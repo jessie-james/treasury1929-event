@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   BookOpenCheck,
+  History,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -60,6 +61,12 @@ export function BackofficeLayout({ children }: Props) {
       name: "Users",
       href: "/backoffice/users",
       icon: Users,
+      roles: ['admin'],
+    },
+    {
+      name: "Logs",
+      href: "/backoffice/logs",
+      icon: History,
       roles: ['admin'],
     },
     {

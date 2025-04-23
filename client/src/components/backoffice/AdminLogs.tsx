@@ -34,7 +34,8 @@ type EnrichedAdminLog = AdminLog & {
   };
 };
 
-const formatDate = (date: string | Date) => {
+const formatDate = (date: string | Date | null) => {
+  if (!date) return '';
   return new Date(date).toLocaleString();
 };
 
@@ -68,7 +69,7 @@ export function AdminLogs() {
     : logs;
   
   // Get unique entity types for the filter dropdown
-  const entityTypes = [...new Set(logs?.map(log => log.entityType) || [])];
+  const entityTypes = logs ? Array.from(new Set(logs.map(log => log.entityType))) : [];
   
   if (isLoading) {
     return (

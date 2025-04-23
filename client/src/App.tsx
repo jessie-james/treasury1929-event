@@ -14,6 +14,7 @@ import OrdersPage from "@/pages/backoffice/OrdersPage";
 import EventsPage from "@/pages/backoffice/EventsPage";
 import FoodPage from "@/pages/backoffice/FoodPage";
 import UsersPage from "@/pages/backoffice/UsersPage";
+import LogsPage from "@/pages/backoffice/LogsPage";
 import BookingManagementPage from "@/pages/backoffice/BookingManagementPage";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 
@@ -30,6 +31,7 @@ function Router() {
       <ProtectedRoute path="/backoffice/events" component={EventsPage} />
       <ProtectedRoute path="/backoffice/food" component={FoodPage} />
       <ProtectedRoute path="/backoffice/users" component={UsersPage} requiredRole="admin" />
+      <ProtectedRoute path="/backoffice/logs" component={LogsPage} requiredRole="admin" />
       <ProtectedRoute path="/dashboard" component={CustomerDashboard} />
       <Route component={NotFound} />
     </Switch>
