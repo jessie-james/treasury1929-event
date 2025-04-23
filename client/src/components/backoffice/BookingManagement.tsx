@@ -15,7 +15,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import * as TableUI from "@/components/ui/table";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -271,28 +278,28 @@ export function BookingManagement() {
       </div>
       
       <div className="bg-card rounded-md shadow">
-        <TableUI.Table>
-          <TableUI.TableHeader>
-            <TableUI.TableRow>
-              <TableUI.TableHead>ID</TableUI.TableHead>
-              <TableUI.TableHead>Event</TableUI.TableHead>
-              <TableUI.TableHead>Customer</TableUI.TableHead>
-              <TableUI.TableHead>Seats</TableUI.TableHead>
-              <TableUI.TableHead>Status</TableUI.TableHead>
-              <TableUI.TableHead>Date</TableUI.TableHead>
-              <TableUI.TableHead className="text-right">Actions</TableUI.TableHead>
-            </TableUI.TableRow>
-          </TableUI.TableHeader>
-          <TableUI.TableBody>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID</TableHead>
+              <TableHead>Event</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Seats</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {filteredBookings?.map((booking) => (
-              <TableUI.TableRow key={booking.id}>
-                <TableUI.TableCell className="font-medium">#{booking.id}</TableUI.TableCell>
-                <TableUI.TableCell>{booking.event.title}</TableUI.TableCell>
-                <TableUI.TableCell>{booking.user.email}</TableUI.TableCell>
-                <TableUI.TableCell>{booking.seatNumbers.length} seats</TableUI.TableCell>
-                <TableUI.TableCell>{getStatusBadge(booking.status)}</TableUI.TableCell>
-                <TableUI.TableCell>{booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "N/A"}</TableUI.TableCell>
-                <TableUI.TableCell className="text-right">
+              <TableRow key={booking.id}>
+                <TableCell className="font-medium">#{booking.id}</TableCell>
+                <TableCell>{booking.event.title}</TableCell>
+                <TableCell>{booking.user.email}</TableCell>
+                <TableCell>{booking.seatNumbers.length} seats</TableCell>
+                <TableCell>{getStatusBadge(booking.status)}</TableCell>
+                <TableCell>{booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "N/A"}</TableCell>
+                <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button 
                       variant="outline" 
@@ -359,19 +366,19 @@ export function BookingManagement() {
                       Cancel
                     </Button>
                   </div>
-                </TableUI.TableCell>
-              </TableUI.TableRow>
+                </TableCell>
+              </TableRow>
             ))}
             
             {filteredBookings?.length === 0 && (
-              <TableUI.TableRow>
-                <TableUI.TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No bookings found matching your criteria.
-                </TableUI.TableCell>
-              </TableUI.TableRow>
+                </TableCell>
+              </TableRow>
             )}
-          </TableUI.TableBody>
-        </TableUI.Table>
+          </TableBody>
+        </Table>
       </div>
       
       {/* Add Note Dialog */}
@@ -488,6 +495,249 @@ export function BookingManagement() {
                 <>
                   <DollarSign className="mr-2 h-4 w-4" />
                   Process Refund
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Seats Modification Dialog */}
+      <Dialog open={isSeatsDialogOpen} onOpenChange={setIsSeatsDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Change Seats for Booking #{selectedBooking?.id}</DialogTitle>
+            <DialogDescription>
+              Modify seat assignments for this booking. Current table: {selectedBooking?.tableId}, 
+              Seats: {selectedBooking?.seatNumbers.join(", ")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="font-medium mb-2">Select Table</h3>
+                <Select 
+                  value={selectedTableId.toString()} 
+                  onValueChange={(value) => setSelectedTableId(parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a table" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Table 1</SelectItem>
+                    <SelectItem value="2">Table 2</SelectItem>
+                    <SelectItem value="3">Table 3</SelectItem>
+                    <SelectItem value="4">Table 4</SelectItem>
+                    <SelectItem value="5">Table 5</SelectItem>
+                    <SelectItem value="6">Table 6</SelectItem>
+                    <SelectItem value="7">Table 7</SelectItem>
+                    <SelectItem value="8">Table 8</SelectItem>
+                    <SelectItem value="9">Table 9</SelectItem>
+                    <SelectItem value="10">Table 10</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <h3 className="font-medium mb-2">Select Seats</h3>
+                <div className="flex flex-wrap gap-2">
+                  {[1, 2, 3, 4].map((seatNumber) => (
+                    <div key={seatNumber} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`seat-${seatNumber}`}
+                        checked={selectedSeatNumbers.includes(seatNumber)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedSeatNumbers(prev => [...prev, seatNumber]);
+                          } else {
+                            setSelectedSeatNumbers(prev => prev.filter(num => num !== seatNumber));
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`seat-${seatNumber}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        Seat {seatNumber}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <h3 className="font-medium mb-2">Booking Information</h3>
+              <div className="text-sm text-muted-foreground">
+                <p>Event: {selectedBooking?.event.title}</p>
+                <p>Original Table: {selectedBooking?.tableId}</p>
+                <p>Original Seats: {selectedBooking?.seatNumbers.join(", ")}</p>
+                <p>Status: {selectedBooking?.status}</p>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSeatsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (selectedBooking && selectedTableId && selectedSeatNumbers.length > 0) {
+                  changeSeatsBookingMutation.mutate({
+                    bookingId: selectedBooking.id,
+                    tableId: selectedTableId,
+                    seatNumbers: selectedSeatNumbers
+                  });
+                }
+              }}
+              disabled={!selectedTableId || selectedSeatNumbers.length === 0 || changeSeatsBookingMutation.isPending}
+            >
+              {changeSeatsBookingMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Update Seats
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Food Modification Dialog */}
+      <Dialog open={isFoodDialogOpen} onOpenChange={setIsFoodDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Modify Food Selections for Booking #{selectedBooking?.id}</DialogTitle>
+            <DialogDescription>
+              Update food selections for each seat in this booking.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {selectedBooking?.seatNumbers.map((seatNumber, index) => (
+              <div key={seatNumber} className="space-y-3 p-3 border rounded-md">
+                <h3 className="font-medium">Seat {seatNumber}</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <h4 className="text-sm mb-1">Salad</h4>
+                    <Select 
+                      value={(foodSelections[`seat-${seatNumber}`]?.salad || "0").toString()} 
+                      onValueChange={(value) => {
+                        setFoodSelections(prev => ({
+                          ...prev,
+                          [`seat-${seatNumber}`]: {
+                            ...prev[`seat-${seatNumber}`] || {},
+                            salad: parseInt(value)
+                          }
+                        }))
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a salad" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">None</SelectItem>
+                        <SelectItem value="1">Garden Salad</SelectItem>
+                        <SelectItem value="2">Caesar Salad</SelectItem>
+                        <SelectItem value="3">Greek Salad</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm mb-1">Entrée</h4>
+                    <Select 
+                      value={(foodSelections[`seat-${seatNumber}`]?.entree || "0").toString()} 
+                      onValueChange={(value) => {
+                        setFoodSelections(prev => ({
+                          ...prev,
+                          [`seat-${seatNumber}`]: {
+                            ...prev[`seat-${seatNumber}`] || {},
+                            entree: parseInt(value)
+                          }
+                        }))
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select an entrée" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">None</SelectItem>
+                        <SelectItem value="4">Grilled Chicken</SelectItem>
+                        <SelectItem value="5">Beef Tenderloin</SelectItem>
+                        <SelectItem value="6">Vegetable Risotto</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm mb-1">Dessert</h4>
+                    <Select 
+                      value={(foodSelections[`seat-${seatNumber}`]?.dessert || "0").toString()} 
+                      onValueChange={(value) => {
+                        setFoodSelections(prev => ({
+                          ...prev,
+                          [`seat-${seatNumber}`]: {
+                            ...prev[`seat-${seatNumber}`] || {},
+                            dessert: parseInt(value)
+                          }
+                        }))
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a dessert" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="0">None</SelectItem>
+                        <SelectItem value="7">Chocolate Cake</SelectItem>
+                        <SelectItem value="8">Cheesecake</SelectItem>
+                        <SelectItem value="9">Fruit Tart</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            ))}
+            
+            <div className="text-sm text-muted-foreground mt-4">
+              <p>Event: {selectedBooking?.event.title}</p>
+              <p>Seats: {selectedBooking?.seatNumbers.join(", ")}</p>
+              <p>Status: {selectedBooking?.status}</p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFoodDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (selectedBooking && Object.keys(foodSelections).length > 0) {
+                  changeFoodBookingMutation.mutate({
+                    bookingId: selectedBooking.id,
+                    foodSelections: foodSelections
+                  });
+                }
+              }}
+              disabled={Object.keys(foodSelections).length === 0 || changeFoodBookingMutation.isPending}
+            >
+              {changeFoodBookingMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Check className="mr-2 h-4 w-4" />
+                  Update Food Selections
                 </>
               )}
             </Button>
