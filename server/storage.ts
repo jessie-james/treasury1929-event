@@ -370,64 +370,20 @@ export class DatabaseStorage implements IStorage {
     console.log("Creating new booking with data:", JSON.stringify(booking, null, 2));
     
     try {
-      // Use a transaction to ensure both booking and seat updates happen atomically
-      return await db.transaction(async (tx) => {
-        // First try to insert the booking
-        console.log("Inserting booking record...");
-        const [created] = await tx.insert(bookings).values(booking).returning();
-        console.log("Booking record inserted successfully:", JSON.stringify(created, null, 2));
+      // Create the booking record first
+      console.log("Inserting booking record...");
+      const [created] = await db.insert(bookings).values(booking).returning();
+      console.log("Booking created successfully:", JSON.stringify(created, null, 2));
 
-        // Then update seat availability
-        console.log("Updating seat availability...");
-        
-        // Get all the seats for this table
-        const tableSeatsResult = await tx
-          .select()
-          .from(seats)
-          .where(eq(seats.tableId, booking.tableId));
-        
-        // Get the seat IDs for the selected seat numbers
-        const selectedSeatIds = tableSeatsResult
-          .filter(seat => booking.seatNumbers.includes(seat.seatNumber))
-          .map(seat => seat.id);
-        
-        console.log(`Found ${selectedSeatIds.length} seat IDs for the selected seat numbers`);
+      // Then update seat availability as a separate operation
+      await this.updateSeatAvailability(
+        booking.tableId,
+        booking.seatNumbers,
+        booking.eventId,
+        true
+      );
 
-        // Update seat bookings to mark them as booked
-        for (const seatId of selectedSeatIds) {
-          const [existingBooking] = await tx
-            .select()
-            .from(seatBookings)
-            .where(and(
-              eq(seatBookings.seatId, seatId),
-              eq(seatBookings.eventId, booking.eventId)
-            ));
-
-          if (existingBooking) {
-            // Update existing seat booking
-            await tx
-              .update(seatBookings)
-              .set({ isBooked: true, bookingId: created.id })
-              .where(and(
-                eq(seatBookings.seatId, seatId),
-                eq(seatBookings.eventId, booking.eventId)
-              ));
-          } else {
-            // Create new seat booking
-            await tx
-              .insert(seatBookings)
-              .values({
-                seatId,
-                eventId: booking.eventId,
-                isBooked: true,
-                bookingId: created.id
-              });
-          }
-        }
-        
-        console.log("Seat availability updated successfully");
-        return created;
-      });
+      return created;
     } catch (error) {
       console.error("Error creating booking:", error);
       // Add more context to the error for debugging
