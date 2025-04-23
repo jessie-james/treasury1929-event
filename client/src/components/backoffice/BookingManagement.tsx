@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { type Booking, type Event, type FoodOption, type User } from "@shared/schema";
+import { type Booking, type Event, type FoodOption, type User, type Table, type Seat } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Table,
+  Table as TableComponent,
   TableBody,
   TableCell,
   TableHead,
@@ -31,8 +31,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Pencil, Ban, RefreshCw, DollarSign, MessageSquare, Check } from "lucide-react";
+import { Loader2, Pencil, Ban, RefreshCw, DollarSign, MessageSquare, Check, RotateCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 
 type EnrichedBooking = Booking & { 
@@ -51,6 +52,13 @@ export function BookingManagement() {
   const [noteText, setNoteText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  
+  // State for seat selection management
+  const [selectedTableId, setSelectedTableId] = useState<number>(0);
+  const [selectedSeatNumbers, setSelectedSeatNumbers] = useState<number[]>([]);
+  
+  // State for food selection management
+  const [foodSelections, setFoodSelections] = useState<Record<string, Record<string, number>>>({});
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -140,6 +148,69 @@ export function BookingManagement() {
     }
   });
   
+  const changeSeatsBookingMutation = useMutation({
+    mutationFn: async ({ 
+      bookingId, 
+      tableId, 
+      seatNumbers 
+    }: { 
+      bookingId: number; 
+      tableId: number; 
+      seatNumbers: number[] 
+    }) => {
+      const res = await apiRequest("POST", `/api/bookings/${bookingId}/change-seats`, { 
+        tableId, seatNumbers, eventId: selectedBooking?.eventId 
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Seats updated",
+        description: "The seat assignments have been successfully updated",
+      });
+      setSelectedTableId(0);
+      setSelectedSeatNumbers([]);
+      setIsSeatsDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update seats",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const changeFoodBookingMutation = useMutation({
+    mutationFn: async ({ 
+      bookingId, 
+      foodSelections 
+    }: { 
+      bookingId: number; 
+      foodSelections: Record<string, Record<string, number>> 
+    }) => {
+      const res = await apiRequest("POST", `/api/bookings/${bookingId}/change-food`, { foodSelections });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Food selections updated",
+        description: "The food selections have been successfully updated",
+      });
+      setFoodSelections({});
+      setIsFoodDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update food selections",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
   // Filter bookings based on search query and status
   const filteredBookings = bookings?.filter(booking => {
     const matchesSearch = 
@@ -207,7 +278,7 @@ export function BookingManagement() {
       </div>
       
       <div className="bg-card rounded-md shadow">
-        <Table>
+        <TableComponent>
           <TableHeader>
             <TableRow>
               <TableHead>ID</TableHead>
@@ -307,7 +378,7 @@ export function BookingManagement() {
               </TableRow>
             )}
           </TableBody>
-        </Table>
+        </TableComponent>
       </div>
       
       {/* Add Note Dialog */}
