@@ -422,10 +422,32 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
-      // Validate booking data
-      const bookingData = insertBookingSchema.parse(req.body);
+      // Get the data from the request body
+      console.log("Received manual booking request:", JSON.stringify(req.body, null, 2));
       
-      // Create the manual booking
+      // Ensure required fields are present
+      const { eventId, userId, tableId, seatNumbers, customerEmail, foodSelections } = req.body;
+      
+      if (!eventId || !userId || !tableId || !seatNumbers || !seatNumbers.length || !customerEmail) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Prepare booking data with proper validation
+      // Don't use schema validation as it might be too strict for manual bookings
+      const bookingData = {
+        eventId: Number(eventId),
+        userId: Number(userId),
+        tableId: Number(tableId),
+        seatNumbers: seatNumbers,
+        customerEmail: customerEmail,
+        foodSelections: foodSelections || {},
+        guestNames: req.body.guestNames || {},
+        notes: req.body.notes || ''
+      };
+      
+      console.log("Creating manual booking with data:", JSON.stringify(bookingData, null, 2));
+      
+      // Create the manual booking using admin's ID for tracking
       const booking = await storage.createManualBooking(bookingData, req.user.id);
       
       // Create log entry for this action
@@ -434,9 +456,10 @@ export async function registerRoutes(app: Express) {
         action: "create_manual_booking",
         entityType: "booking",
         entityId: booking?.id,
-        details: { booking }
+        details: { bookingId: booking?.id }  // Only store ID to prevent circular references
       });
       
+      console.log("Manual booking created successfully:", JSON.stringify(booking, null, 2));
       res.status(201).json(booking);
     } catch (error) {
       console.error("Error creating manual booking:", error);

@@ -928,11 +928,18 @@ export class DatabaseStorage implements IStorage {
   // Admin Logs Methods
   async createAdminLog(log: InsertAdminLog): Promise<AdminLog> {
     try {
-      console.log(`Creating admin log for action: ${log.action}`);
+      console.log(`Creating admin log for action: ${log.action}`, JSON.stringify(log, null, 2));
+      // Make sure details is a valid JSON object, not undefined
+      if (!log.details) {
+        log.details = {};
+      }
+      
       const [created] = await db.insert(adminLogs).values(log).returning();
+      console.log("Admin log created successfully:", JSON.stringify(created, null, 2));
       return created;
     } catch (error) {
       console.error("Error creating admin log:", error);
+      console.error("Log data that caused error:", JSON.stringify(log, null, 2));
       throw error;
     }
   }

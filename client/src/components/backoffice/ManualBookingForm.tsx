@@ -153,7 +153,36 @@ export function ManualBookingForm() {
   
   // Handle form submission
   const onSubmit = (values: BookingFormValues) => {
-    createManualBooking.mutate(values);
+    // Ensure food selections is properly formatted before submission
+    const foodSelections = values.foodSelections || {};
+    
+    // Create proper structure for each seat
+    values.seatNumbers.forEach(seatNumber => {
+      const seatKey = seatNumber.toString();
+      
+      // If this seat doesn't have food selections yet, initialize it
+      if (!foodSelections[seatKey]) {
+        // Get the first available food item of each type
+        const salads = getFoodItemsByType("salad");
+        const entrees = getFoodItemsByType("entree");
+        const desserts = getFoodItemsByType("dessert");
+        
+        foodSelections[seatKey] = {
+          salad: salads.length > 0 ? salads[0].id : 0,
+          entree: entrees.length > 0 ? entrees[0].id : 0,
+          dessert: desserts.length > 0 ? desserts[0].id : 0
+        };
+      }
+    });
+    
+    // Update the values before submitting
+    const updatedValues = {
+      ...values,
+      foodSelections: foodSelections
+    };
+    
+    console.log("Submitting manual booking with data:", updatedValues);
+    createManualBooking.mutate(updatedValues);
   };
   
   // Function to get salads, entrees, and desserts
