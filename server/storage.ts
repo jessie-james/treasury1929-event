@@ -49,6 +49,34 @@ export interface IStorage {
     desserts: Record<number, number>;
     wines: Record<number, number>;
   }>;
+  
+  // Booking Management (Admin)
+  getBookingById(id: number): Promise<Booking | undefined>;
+  getBookingWithDetails(id: number): Promise<(Booking & { event: Event, foodItems: FoodOption[], user: User }) | undefined>;
+  updateBooking(
+    id: number, 
+    updates: Partial<Booking>, 
+    modifiedBy: number
+  ): Promise<Booking | undefined>;
+  changeBookingSeats(
+    bookingId: number, 
+    newTableId: number, 
+    newSeatNumbers: number[], 
+    modifiedBy: number
+  ): Promise<Booking | undefined>;
+  updateBookingFoodSelections(
+    bookingId: number, 
+    newFoodSelections: Record<string, Record<string, number>>, 
+    modifiedBy: number
+  ): Promise<Booking | undefined>;
+  addBookingNote(bookingId: number, note: string, modifiedBy: number): Promise<Booking | undefined>;
+  processRefund(
+    bookingId: number, 
+    refundAmount: number, 
+    refundId: string, 
+    modifiedBy: number
+  ): Promise<Booking | undefined>;
+  cancelBooking(bookingId: number, modifiedBy: number): Promise<Booking | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {

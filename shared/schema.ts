@@ -70,10 +70,16 @@ export const bookings = pgTable("bookings", {
   tableId: integer("table_id").notNull(),
   seatNumbers: integer("seat_numbers").array().notNull(),
   foodSelections: jsonb("food_selections").notNull(),
-  guestNames: jsonb("guest_names").notNull(), // Add this field
+  guestNames: jsonb("guest_names").notNull(),
   customerEmail: text("customer_email").notNull(),
   stripePaymentId: text("stripe_payment_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+  status: text("status").notNull().default("confirmed"), // confirmed, modified, refunded, canceled
+  notes: text("notes"),
+  refundAmount: integer("refund_amount"),
+  refundId: text("refund_id"),
+  lastModified: timestamp("last_modified"),
+  modifiedBy: integer("modified_by"), // User ID of admin who modified the booking
 });
 
 // Create insert schemas
