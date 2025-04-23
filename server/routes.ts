@@ -1254,6 +1254,72 @@ export async function registerRoutes(app: Express) {
       });
     }
   });
+  
+  // Get admin logs (admin only)
+  app.get("/api/admin-logs", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const logs = await storage.getAdminLogs();
+      
+      // Enrich logs with user data
+      const enrichedLogs = await Promise.all(
+        logs.map(async (log) => {
+          try {
+            const user = await storage.getUser(log.userId);
+            return {
+              ...log,
+              user: user ? {
+                id: user.id,
+                email: user.email,
+                role: user.role
+              } : undefined
+            };
+          } catch (err) {
+            console.error(`Error enriching log ${log.id} with user data:`, err);
+            return log;
+          }
+        })
+      );
+      
+      res.json(enrichedLogs);
+    } catch (error) {
+      console.error("Error fetching admin logs:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch admin logs",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Create manual booking (admin only)
+  app.post("/api/manual-booking", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Validate the booking data
+      const bookingData = req.body;
+      
+      // Create the manual booking
+      const booking = await storage.createManualBooking(bookingData, req.user.id);
+      
+      if (!booking) {
+        return res.status(400).json({ message: "Failed to create manual booking" });
+      }
+      
+      res.status(201).json(booking);
+    } catch (error) {
+      console.error("Error creating manual booking:", error);
+      res.status(500).json({ 
+        message: "Failed to create manual booking",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   return httpServer;
 }
