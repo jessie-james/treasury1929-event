@@ -1,7 +1,8 @@
 import { 
   type Event, type FoodOption, type Booking, type Table, type Seat,
   type InsertBooking, type User, type InsertUser, type SeatBooking,
-  events, foodOptions, bookings, tables, seats, users, seatBookings
+  type AdminLog, type InsertAdminLog,
+  events, foodOptions, bookings, tables, seats, users, seatBookings, adminLogs
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
@@ -54,6 +55,7 @@ export interface IStorage {
   // Booking Management (Admin)
   getBookingById(id: number): Promise<Booking | undefined>;
   getBookingWithDetails(id: number): Promise<(Booking & { event: Event, foodItems: FoodOption[], user: User }) | undefined>;
+  createManualBooking(booking: InsertBooking, adminId: number): Promise<Booking | undefined>;
   updateBooking(
     id: number, 
     updates: Partial<Booking>, 
@@ -78,6 +80,12 @@ export interface IStorage {
     modifiedBy: number
   ): Promise<Booking | undefined>;
   cancelBooking(bookingId: number, modifiedBy: number): Promise<Booking | undefined>;
+  
+  // Admin Logs
+  createAdminLog(log: InsertAdminLog): Promise<AdminLog>;
+  getAdminLogs(): Promise<AdminLog[]>;
+  getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]>;
+  getAdminLogsByAdmin(adminId: number): Promise<AdminLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -827,10 +835,100 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(bookings.id, bookingId))
         .returning();
+      
+      // Log this action
+      await this.createAdminLog({
+        userId: modifiedBy,
+        action: "cancel_booking",
+        entityType: "booking",
+        entityId: bookingId,
+        details: { bookingData: booking },
+      });
         
       return updated;
     } catch (error) {
       console.error("Error canceling booking:", error);
+      throw error;
+    }
+  }
+  
+  async createManualBooking(booking: InsertBooking, adminId: number): Promise<Booking | undefined> {
+    try {
+      console.log(`Creating manual booking by admin ${adminId}`);
+      
+      // Set default status for manual bookings
+      const manualBooking: InsertBooking = {
+        ...booking,
+        status: "confirmed",
+        createdAt: new Date(),
+        stripePaymentId: `manual-${Date.now()}-${adminId}`, // Create a pseudo payment ID for tracking
+      };
+      
+      // Create the booking
+      const createdBooking = await this.createBooking(manualBooking);
+      
+      // Log this action
+      await this.createAdminLog({
+        userId: adminId,
+        action: "create_manual_booking",
+        entityType: "booking",
+        entityId: createdBooking.id,
+        details: { bookingData: createdBooking },
+      });
+      
+      return createdBooking;
+    } catch (error) {
+      console.error("Error creating manual booking:", error);
+      throw error;
+    }
+  }
+  
+  // Admin Logs Methods
+  async createAdminLog(log: InsertAdminLog): Promise<AdminLog> {
+    try {
+      console.log(`Creating admin log for action: ${log.action}`);
+      const [created] = await db.insert(adminLogs).values(log).returning();
+      return created;
+    } catch (error) {
+      console.error("Error creating admin log:", error);
+      throw error;
+    }
+  }
+  
+  async getAdminLogs(): Promise<AdminLog[]> {
+    try {
+      return await db
+        .select()
+        .from(adminLogs)
+        .orderBy(adminLogs.createdAt, "desc");
+    } catch (error) {
+      console.error("Error fetching admin logs:", error);
+      throw error;
+    }
+  }
+  
+  async getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]> {
+    try {
+      return await db
+        .select()
+        .from(adminLogs)
+        .where(eq(adminLogs.entityType, entityType))
+        .orderBy(adminLogs.createdAt, "desc");
+    } catch (error) {
+      console.error(`Error fetching admin logs for entity type ${entityType}:`, error);
+      throw error;
+    }
+  }
+  
+  async getAdminLogsByAdmin(adminId: number): Promise<AdminLog[]> {
+    try {
+      return await db
+        .select()
+        .from(adminLogs)
+        .where(eq(adminLogs.userId, adminId))
+        .orderBy(adminLogs.createdAt, "desc");
+    } catch (error) {
+      console.error(`Error fetching admin logs for admin ID ${adminId}:`, error);
       throw error;
     }
   }

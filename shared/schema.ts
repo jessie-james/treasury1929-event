@@ -110,3 +110,18 @@ export type InsertSeat = z.infer<typeof insertSeatSchema>;
 export type InsertSeatBooking = z.infer<typeof insertSeatBookingSchema>;
 export type InsertFoodOption = z.infer<typeof insertFoodOptionSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
+
+// Admin logs
+export const adminLogs = pgTable("admin_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // Admin who performed the action
+  action: text("action").notNull(), // Type of action performed
+  entityType: text("entity_type").notNull(), // Type of entity affected (booking, event, etc.)
+  entityId: integer("entity_id"), // ID of the affected entity, if applicable
+  details: jsonb("details"), // Additional details about the action
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAdminLogSchema = createInsertSchema(adminLogs);
+export type AdminLog = typeof adminLogs.$inferSelect;
+export type InsertAdminLog = z.infer<typeof insertAdminLogSchema>;
