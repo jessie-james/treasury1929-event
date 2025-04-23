@@ -1256,33 +1256,7 @@ export async function registerRoutes(app: Express) {
   });
   
   // Admin logs are already handled by the endpoint at line ~370
-  
-  // Create manual booking (admin only)
-  app.post("/api/manual-booking", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager"].includes(req.user?.role || "")) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      // Validate the booking data
-      const bookingData = req.body;
-      
-      // Create the manual booking
-      const booking = await storage.createManualBooking(bookingData, req.user.id);
-      
-      if (!booking) {
-        return res.status(400).json({ message: "Failed to create manual booking" });
-      }
-      
-      res.status(201).json(booking);
-    } catch (error) {
-      console.error("Error creating manual booking:", error);
-      res.status(500).json({ 
-        message: "Failed to create manual booking",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
+  // Manual booking endpoint is already defined at line ~419
 
   return httpServer;
 }
