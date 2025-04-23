@@ -227,7 +227,7 @@ export function BookingManagement() {
                 <TableCell>{booking.user.email}</TableCell>
                 <TableCell>{booking.seatNumbers.length} seats</TableCell>
                 <TableCell>{getStatusBadge(booking.status)}</TableCell>
-                <TableCell>{new Date(booking.createdAt).toLocaleDateString()}</TableCell>
+                <TableCell>{booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "N/A"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button 
@@ -395,7 +395,7 @@ export function BookingManagement() {
             <div className="text-sm text-muted-foreground">
               <p>Customer: {selectedBooking?.user.email}</p>
               <p>Event: {selectedBooking?.event.title}</p>
-              <p>Date: {selectedBooking && new Date(selectedBooking.createdAt).toLocaleDateString()}</p>
+              <p>Date: {selectedBooking?.createdAt ? new Date(selectedBooking.createdAt).toLocaleDateString() : "N/A"}</p>
               <p>Status: {selectedBooking?.status}</p>
             </div>
           </div>

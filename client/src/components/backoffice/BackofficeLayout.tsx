@@ -39,6 +39,12 @@ export function BackofficeLayout({ children }: Props) {
       roles: ['admin', 'venue_owner', 'venue_manager'],
     },
     {
+      name: "Bookings",
+      href: "/backoffice/bookings",
+      icon: BookOpenCheck,
+      roles: ['admin', 'venue_owner', 'venue_manager'],
+    },
+    {
       name: "Events",
       href: "/backoffice/events",
       icon: Calendar,
