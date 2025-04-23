@@ -555,6 +555,264 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+  
+  // Booking Management Methods
+  async getBookingById(id: number): Promise<Booking | undefined> {
+    try {
+      console.log(`Fetching booking with ID: ${id}`);
+      const [booking] = await db.select().from(bookings).where(eq(bookings.id, id));
+      return booking;
+    } catch (error) {
+      console.error("Error fetching booking:", error);
+      throw error;
+    }
+  }
+  
+  async getBookingWithDetails(id: number): Promise<(Booking & { event: Event, foodItems: FoodOption[], user: User }) | undefined> {
+    try {
+      console.log(`Fetching detailed booking with ID: ${id}`);
+      const booking = await this.getBookingById(id);
+      
+      if (!booking) {
+        return undefined;
+      }
+      
+      const event = await this.getEvent(booking.eventId);
+      const user = await this.getUser(booking.userId);
+      
+      if (!event || !user) {
+        throw new Error("Unable to find event or user associated with booking");
+      }
+      
+      // Extract food IDs from the selections
+      const foodSelections = booking.foodSelections as Record<string, Record<string, number>>;
+      const foodIdsArray: number[] = [];
+      
+      Object.values(foodSelections).forEach(selections => {
+        Object.values(selections).forEach(id => {
+          if (id && !foodIdsArray.includes(id)) {
+            foodIdsArray.push(id);
+          }
+        });
+      });
+      
+      const foodItems = await this.getFoodOptionsByIds(foodIdsArray);
+      
+      return {
+        ...booking,
+        event,
+        foodItems,
+        user
+      };
+    } catch (error) {
+      console.error("Error fetching booking with details:", error);
+      throw error;
+    }
+  }
+  
+  async updateBooking(id: number, updates: Partial<Booking>, modifiedBy: number): Promise<Booking | undefined> {
+    try {
+      console.log(`Updating booking ${id} with:`, updates);
+      
+      // Add modification tracking data
+      const updatedData = {
+        ...updates,
+        lastModified: new Date(),
+        modifiedBy
+      };
+      
+      const [updated] = await db
+        .update(bookings)
+        .set(updatedData)
+        .where(eq(bookings.id, id))
+        .returning();
+        
+      return updated;
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      throw error;
+    }
+  }
+  
+  async changeBookingSeats(
+    bookingId: number, 
+    newTableId: number, 
+    newSeatNumbers: number[], 
+    modifiedBy: number
+  ): Promise<Booking | undefined> {
+    try {
+      console.log(`Changing seats for booking ${bookingId} to table ${newTableId}, seats ${newSeatNumbers.join(", ")}`);
+      
+      // Get the original booking
+      const booking = await this.getBookingById(bookingId);
+      if (!booking) {
+        throw new Error("Booking not found");
+      }
+      
+      // Release the old seat allocations
+      await this.updateSeatAvailability(
+        booking.tableId,
+        booking.seatNumbers as number[],
+        booking.eventId,
+        false
+      );
+      
+      // Allocate the new seats
+      await this.updateSeatAvailability(
+        newTableId,
+        newSeatNumbers,
+        booking.eventId,
+        true
+      );
+      
+      // Update the booking record
+      const [updated] = await db
+        .update(bookings)
+        .set({
+          tableId: newTableId,
+          seatNumbers: newSeatNumbers,
+          status: "modified",
+          lastModified: new Date(),
+          modifiedBy
+        })
+        .where(eq(bookings.id, bookingId))
+        .returning();
+        
+      return updated;
+    } catch (error) {
+      console.error("Error changing booking seats:", error);
+      throw error;
+    }
+  }
+  
+  async updateBookingFoodSelections(
+    bookingId: number, 
+    newFoodSelections: Record<string, Record<string, number>>, 
+    modifiedBy: number
+  ): Promise<Booking | undefined> {
+    try {
+      console.log(`Updating food selections for booking ${bookingId}`);
+      
+      const [updated] = await db
+        .update(bookings)
+        .set({
+          foodSelections: newFoodSelections,
+          status: "modified",
+          lastModified: new Date(),
+          modifiedBy
+        })
+        .where(eq(bookings.id, bookingId))
+        .returning();
+        
+      return updated;
+    } catch (error) {
+      console.error("Error updating booking food selections:", error);
+      throw error;
+    }
+  }
+  
+  async addBookingNote(bookingId: number, note: string, modifiedBy: number): Promise<Booking | undefined> {
+    try {
+      console.log(`Adding note to booking ${bookingId}`);
+      
+      // Get the current booking to append to any existing notes
+      const booking = await this.getBookingById(bookingId);
+      if (!booking) {
+        throw new Error("Booking not found");
+      }
+      
+      // Format the new note with timestamp and admin info
+      const timestamp = new Date().toISOString();
+      const formattedNote = `[${timestamp}] Admin #${modifiedBy}: ${note}`;
+      
+      // Combine with existing notes or create new notes
+      const updatedNotes = booking.notes 
+        ? `${booking.notes}\n\n${formattedNote}`
+        : formattedNote;
+      
+      const [updated] = await db
+        .update(bookings)
+        .set({
+          notes: updatedNotes,
+          lastModified: new Date(),
+          modifiedBy
+        })
+        .where(eq(bookings.id, bookingId))
+        .returning();
+        
+      return updated;
+    } catch (error) {
+      console.error("Error adding booking note:", error);
+      throw error;
+    }
+  }
+  
+  async processRefund(
+    bookingId: number, 
+    refundAmount: number, 
+    refundId: string, 
+    modifiedBy: number
+  ): Promise<Booking | undefined> {
+    try {
+      console.log(`Processing refund for booking ${bookingId}, amount: ${refundAmount}, refund ID: ${refundId}`);
+      
+      const [updated] = await db
+        .update(bookings)
+        .set({
+          status: "refunded",
+          refundAmount,
+          refundId,
+          lastModified: new Date(),
+          modifiedBy
+        })
+        .where(eq(bookings.id, bookingId))
+        .returning();
+        
+      return updated;
+    } catch (error) {
+      console.error("Error processing refund:", error);
+      throw error;
+    }
+  }
+  
+  async cancelBooking(bookingId: number, modifiedBy: number): Promise<Booking | undefined> {
+    try {
+      console.log(`Canceling booking ${bookingId}`);
+      
+      // Get the booking to release seats
+      const booking = await this.getBookingById(bookingId);
+      if (!booking) {
+        throw new Error("Booking not found");
+      }
+      
+      // Release the seat allocations
+      await this.updateSeatAvailability(
+        booking.tableId,
+        booking.seatNumbers as number[],
+        booking.eventId,
+        false
+      );
+      
+      // Update event seat availability
+      await this.updateEventAvailability(booking.eventId, -(booking.seatNumbers as number[]).length);
+      
+      // Update the booking record
+      const [updated] = await db
+        .update(bookings)
+        .set({
+          status: "canceled",
+          lastModified: new Date(),
+          modifiedBy
+        })
+        .where(eq(bookings.id, bookingId))
+        .returning();
+        
+      return updated;
+    } catch (error) {
+      console.error("Error canceling booking:", error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

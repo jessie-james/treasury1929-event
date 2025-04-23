@@ -744,6 +744,279 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch food totals" });
     }
   });
+  
+  // BOOKING MANAGEMENT ENDPOINTS
+  
+  // Get detailed booking info
+  app.get("/api/bookings/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const bookingId = parseInt(req.params.id);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+      
+      const booking = await storage.getBookingWithDetails(bookingId);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      res.json(booking);
+    } catch (error) {
+      console.error("Error fetching booking details:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch booking details",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Update booking (generic updates)
+  app.patch("/api/bookings/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const bookingId = parseInt(req.params.id);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+      
+      const updates = req.body;
+      const updatedBooking = await storage.updateBooking(bookingId, updates, req.user.id);
+      
+      if (!updatedBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      res.json(updatedBooking);
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      res.status(500).json({ 
+        message: "Failed to update booking",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Change booking seats
+  app.post("/api/bookings/:id/change-seats", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const bookingId = parseInt(req.params.id);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+      
+      const { tableId, seatNumbers } = req.body;
+      
+      if (!tableId || !seatNumbers || !Array.isArray(seatNumbers) || seatNumbers.length === 0) {
+        return res.status(400).json({ message: "Invalid request body. Required: tableId and seatNumbers array" });
+      }
+      
+      // Check if the new seats are available
+      const seats = await storage.getTableSeats(tableId);
+      const seatBookings = await storage.getTableSeatsAvailability(tableId, req.body.eventId);
+      
+      // Filter out seats that are already booked
+      const selectedSeats = seats.filter(seat => seatNumbers.includes(seat.seatNumber));
+      
+      if (selectedSeats.length !== seatNumbers.length) {
+        return res.status(400).json({ message: "One or more selected seats not found" });
+      }
+      
+      const bookedSeats = seatBookings.filter(sb => sb.isBooked);
+      if (selectedSeats.some(seat => bookedSeats.some(bs => bs.seatId === seat.id))) {
+        return res.status(400).json({ message: "One or more selected seats are not available" });
+      }
+      
+      const updatedBooking = await storage.changeBookingSeats(
+        bookingId,
+        tableId,
+        seatNumbers,
+        req.user.id
+      );
+      
+      if (!updatedBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      res.json(updatedBooking);
+    } catch (error) {
+      console.error("Error changing booking seats:", error);
+      res.status(500).json({ 
+        message: "Failed to change booking seats",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Update food selections
+  app.post("/api/bookings/:id/change-food", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const bookingId = parseInt(req.params.id);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+      
+      const { foodSelections } = req.body;
+      
+      if (!foodSelections || typeof foodSelections !== 'object') {
+        return res.status(400).json({ message: "Invalid request body. Required: foodSelections object" });
+      }
+      
+      const updatedBooking = await storage.updateBookingFoodSelections(
+        bookingId,
+        foodSelections,
+        req.user.id
+      );
+      
+      if (!updatedBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      res.json(updatedBooking);
+    } catch (error) {
+      console.error("Error updating food selections:", error);
+      res.status(500).json({ 
+        message: "Failed to update food selections",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Add a note to a booking
+  app.post("/api/bookings/:id/add-note", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const bookingId = parseInt(req.params.id);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+      
+      const { note } = req.body;
+      
+      if (!note || typeof note !== 'string' || note.trim() === '') {
+        return res.status(400).json({ message: "Invalid request body. Required: non-empty note" });
+      }
+      
+      const updatedBooking = await storage.addBookingNote(
+        bookingId,
+        note,
+        req.user.id
+      );
+      
+      if (!updatedBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      res.json(updatedBooking);
+    } catch (error) {
+      console.error("Error adding booking note:", error);
+      res.status(500).json({ 
+        message: "Failed to add booking note",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Process a refund
+  app.post("/api/bookings/:id/refund", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const bookingId = parseInt(req.params.id);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+      
+      const { amount } = req.body;
+      
+      if (typeof amount !== 'number' || amount <= 0) {
+        return res.status(400).json({ message: "Invalid request body. Required: positive amount" });
+      }
+      
+      // Get the booking to process refund
+      const booking = await storage.getBookingById(bookingId);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      // Process the refund with Stripe
+      try {
+        const refund = await stripe.refunds.create({
+          payment_intent: booking.stripePaymentId,
+          amount: Math.round(amount * 100), // Convert to cents
+        });
+        
+        // Update booking record with refund info
+        const updatedBooking = await storage.processRefund(
+          bookingId,
+          amount,
+          refund.id,
+          req.user.id
+        );
+        
+        res.json(updatedBooking);
+      } catch (stripeError: any) {
+        console.error("Stripe refund error:", stripeError);
+        return res.status(400).json({
+          message: "Failed to process refund with Stripe",
+          error: stripeError.message
+        });
+      }
+    } catch (error) {
+      console.error("Error processing refund:", error);
+      res.status(500).json({ 
+        message: "Failed to process refund",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Cancel a booking
+  app.post("/api/bookings/:id/cancel", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const bookingId = parseInt(req.params.id);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+      
+      const updatedBooking = await storage.cancelBooking(bookingId, req.user.id);
+      
+      if (!updatedBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      res.json(updatedBooking);
+    } catch (error) {
+      console.error("Error canceling booking:", error);
+      res.status(500).json({ 
+        message: "Failed to cancel booking",
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
 
   // Add these routes after the existing event routes
   app.post("/api/food-options", async (req, res) => {

@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Menu,
   X,
+  BookOpenCheck,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
