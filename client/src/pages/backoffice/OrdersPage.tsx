@@ -14,7 +14,12 @@ export default function OrdersPage() {
     queryKey: ["/api/bookings"],
   });
 
-  // Calculate totals for each food category
+  // Calculate totals for each food category and booking status
+  const confirmedBookingsCount = bookings?.filter(b => b.status === "confirmed").length || 0;
+  const modifiedBookingsCount = bookings?.filter(b => b.status === "modified").length || 0;
+  const refundedBookingsCount = bookings?.filter(b => b.status === "refunded").length || 0;
+  const canceledBookingsCount = bookings?.filter(b => b.status === "canceled").length || 0;
+  
   const foodStats = [
     {
       name: "Total Events",
@@ -27,6 +32,22 @@ export default function OrdersPage() {
     {
       name: "Active Events",
       value: events?.filter(e => e.availableSeats < e.totalSeats).length || 0,
+    },
+    {
+      name: "Confirmed Bookings",
+      value: confirmedBookingsCount,
+    },
+    {
+      name: "Modified Bookings",
+      value: modifiedBookingsCount,
+    },
+    {
+      name: "Refunded Bookings",
+      value: refundedBookingsCount,
+    },
+    {
+      name: "Canceled Bookings",
+      value: canceledBookingsCount,
     },
   ];
 
