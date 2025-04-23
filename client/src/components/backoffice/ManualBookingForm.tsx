@@ -8,6 +8,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { Event, User, Table, Seat, FoodOption } from "@shared/schema";
+
+interface SeatWithAvailability extends Seat {
+  isAvailable: boolean;
+}
 
 import {
   Dialog,
@@ -72,17 +77,17 @@ export function ManualBookingForm() {
   const queryClient = useQueryClient();
   
   // Get events for dropdown
-  const { data: events } = useQuery({
+  const { data: events } = useQuery<Event[]>({
     queryKey: ["/api/events"],
   });
   
   // Get users for dropdown
-  const { data: users } = useQuery({
+  const { data: users } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
   
   // Get tables for dropdown
-  const { data: tables } = useQuery({
+  const { data: tables } = useQuery<Table[]>({
     queryKey: ["/api/tables"],
   });
   
@@ -101,13 +106,13 @@ export function ManualBookingForm() {
   const watchTableId = form.watch("tableId");
   
   // Get seats for selected table
-  const { data: seats, isLoading: isLoadingSeats } = useQuery({
+  const { data: seats, isLoading: isLoadingSeats } = useQuery<Seat[]>({
     queryKey: ["/api/tables", watchTableId, "seats", { eventId: watchEventId }],
     enabled: !!watchEventId && !!watchTableId,
   });
   
   // Get food options
-  const { data: foodOptions } = useQuery({
+  const { data: foodOptions } = useQuery<FoodOption[]>({
     queryKey: ["/api/food-options"],
   });
   
@@ -265,7 +270,7 @@ export function ManualBookingForm() {
                       <SelectContent>
                         {tables?.map((table) => (
                           <SelectItem key={table.id} value={table.id.toString()}>
-                            Table {table.number}
+                            Table {table.tableNumber}
                           </SelectItem>
                         ))}
                       </SelectContent>
