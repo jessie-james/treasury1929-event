@@ -108,6 +108,11 @@ export function ManualBookingForm() {
   // Get seats for selected table
   const { data: seats, isLoading: isLoadingSeats } = useQuery<SeatWithAvailability[]>({
     queryKey: ["/api/tables", watchTableId, "seats", { eventId: watchEventId }],
+    queryFn: async () => {
+      if (!watchTableId || !watchEventId) return [];
+      const response = await fetch(`/api/tables/${watchTableId}/seats?eventId=${watchEventId}`);
+      return await response.json();
+    },
     enabled: !!watchEventId && !!watchTableId,
   });
   
