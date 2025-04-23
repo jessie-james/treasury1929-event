@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { type Booking, type Event, type FoodOption, type User, type Table, type Seat } from "@shared/schema";
+import { type Booking, type Event, type FoodOption, type User, type Table as DbTable, type Seat } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,14 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table as TableComponent,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import * as TableUI from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -278,28 +271,28 @@ export function BookingManagement() {
       </div>
       
       <div className="bg-card rounded-md shadow">
-        <TableComponent>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Event</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Seats</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
+        <TableUI.Table>
+          <TableUI.TableHeader>
+            <TableUI.TableRow>
+              <TableUI.TableHead>ID</TableUI.TableHead>
+              <TableUI.TableHead>Event</TableUI.TableHead>
+              <TableUI.TableHead>Customer</TableUI.TableHead>
+              <TableUI.TableHead>Seats</TableUI.TableHead>
+              <TableUI.TableHead>Status</TableUI.TableHead>
+              <TableUI.TableHead>Date</TableUI.TableHead>
+              <TableUI.TableHead className="text-right">Actions</TableUI.TableHead>
+            </TableUI.TableRow>
+          </TableUI.TableHeader>
+          <TableUI.TableBody>
             {filteredBookings?.map((booking) => (
-              <TableRow key={booking.id}>
-                <TableCell className="font-medium">#{booking.id}</TableCell>
-                <TableCell>{booking.event.title}</TableCell>
-                <TableCell>{booking.user.email}</TableCell>
-                <TableCell>{booking.seatNumbers.length} seats</TableCell>
-                <TableCell>{getStatusBadge(booking.status)}</TableCell>
-                <TableCell>{booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "N/A"}</TableCell>
-                <TableCell className="text-right">
+              <TableUI.TableRow key={booking.id}>
+                <TableUI.TableCell className="font-medium">#{booking.id}</TableUI.TableCell>
+                <TableUI.TableCell>{booking.event.title}</TableUI.TableCell>
+                <TableUI.TableCell>{booking.user.email}</TableUI.TableCell>
+                <TableUI.TableCell>{booking.seatNumbers.length} seats</TableUI.TableCell>
+                <TableUI.TableCell>{getStatusBadge(booking.status)}</TableUI.TableCell>
+                <TableUI.TableCell>{booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "N/A"}</TableUI.TableCell>
+                <TableUI.TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button 
                       variant="outline" 
@@ -366,19 +359,19 @@ export function BookingManagement() {
                       Cancel
                     </Button>
                   </div>
-                </TableCell>
-              </TableRow>
+                </TableUI.TableCell>
+              </TableUI.TableRow>
             ))}
             
             {filteredBookings?.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+              <TableUI.TableRow>
+                <TableUI.TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                   No bookings found matching your criteria.
-                </TableCell>
-              </TableRow>
+                </TableUI.TableCell>
+              </TableUI.TableRow>
             )}
-          </TableBody>
-        </TableComponent>
+          </TableUI.TableBody>
+        </TableUI.Table>
       </div>
       
       {/* Add Note Dialog */}
