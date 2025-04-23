@@ -1255,44 +1255,7 @@ export async function registerRoutes(app: Express) {
     }
   });
   
-  // Get admin logs (admin only)
-  app.get("/api/admin-logs", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || req.user?.role !== "admin") {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      
-      const logs = await storage.getAdminLogs();
-      
-      // Enrich logs with user data
-      const enrichedLogs = await Promise.all(
-        logs.map(async (log) => {
-          try {
-            const user = await storage.getUser(log.userId);
-            return {
-              ...log,
-              user: user ? {
-                id: user.id,
-                email: user.email,
-                role: user.role
-              } : undefined
-            };
-          } catch (err) {
-            console.error(`Error enriching log ${log.id} with user data:`, err);
-            return log;
-          }
-        })
-      );
-      
-      res.json(enrichedLogs);
-    } catch (error) {
-      console.error("Error fetching admin logs:", error);
-      res.status(500).json({ 
-        message: "Failed to fetch admin logs",
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
+  // Admin logs are already handled by the endpoint at line ~370
   
   // Create manual booking (admin only)
   app.post("/api/manual-booking", async (req, res) => {
