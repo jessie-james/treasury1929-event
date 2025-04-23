@@ -332,6 +332,47 @@ export function ManualBookingForm() {
               />
             )}
             
+            {/* Default Food Selections - Adding minimal required food selections */}
+            {watchEventId && form.watch("seatNumbers").length > 0 && (
+              <div className="p-4 border rounded-md">
+                <h3 className="text-lg font-medium mb-2">Default Food Selections</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Basic food selections will be added to the booking. These can be modified later.
+                </p>
+                
+                {form.watch("seatNumbers").map((seatNumber) => {
+                  // Set default food selections for this seat
+                  const salads = getFoodItemsByType("salad");
+                  const entrees = getFoodItemsByType("entree");
+                  const desserts = getFoodItemsByType("dessert");
+                  
+                  // Use the first food item of each type if available
+                  if (salads.length > 0 && entrees.length > 0 && desserts.length > 0) {
+                    const seatKey = seatNumber.toString();
+                    const foodSelections = form.getValues("foodSelections") || {};
+                    
+                    // Initialize food selections for this seat if not already set
+                    if (!foodSelections[seatKey]) {
+                      foodSelections[seatKey] = {
+                        salad: salads[0].id,
+                        entree: entrees[0].id,
+                        dessert: desserts[0].id
+                      };
+                      
+                      // Update the form with default food selections
+                      form.setValue("foodSelections", foodSelections);
+                    }
+                  }
+                  
+                  return (
+                    <div key={seatNumber} className="mb-2">
+                      <Badge variant="outline">Seat {seatNumber}: Default menu assigned</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
             {/* Notes */}
             <FormField
               control={form.control}

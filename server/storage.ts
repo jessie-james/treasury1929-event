@@ -856,6 +856,46 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Creating manual booking by admin ${adminId}`);
       
+      // Make sure guestNames is an object (even if empty)
+      if (!booking.guestNames) {
+        booking.guestNames = {};
+      }
+      
+      // Make sure foodSelections is an object with entries for each seat
+      if (!booking.foodSelections || Object.keys(booking.foodSelections).length === 0) {
+        const foodSelections: Record<string, Record<string, number>> = {};
+        
+        // Get first food item of each type
+        const salads = await db
+          .select()
+          .from(foodOptions)
+          .where(eq(foodOptions.type, "salad"))
+          .limit(1);
+          
+        const entrees = await db
+          .select()
+          .from(foodOptions)
+          .where(eq(foodOptions.type, "entree"))
+          .limit(1);
+          
+        const desserts = await db
+          .select()
+          .from(foodOptions)
+          .where(eq(foodOptions.type, "dessert"))
+          .limit(1);
+          
+        // Assign default food selections for each seat
+        for (const seatNumber of booking.seatNumbers) {
+          foodSelections[seatNumber.toString()] = {
+            salad: salads.length > 0 ? salads[0].id : 0,
+            entree: entrees.length > 0 ? entrees[0].id : 0,
+            dessert: desserts.length > 0 ? desserts[0].id : 0
+          };
+        }
+        
+        booking.foodSelections = foodSelections;
+      }
+      
       // Set default status for manual bookings
       const manualBooking: InsertBooking = {
         ...booking,
@@ -863,6 +903,8 @@ export class DatabaseStorage implements IStorage {
         createdAt: new Date(),
         stripePaymentId: `manual-${Date.now()}-${adminId}`, // Create a pseudo payment ID for tracking
       };
+      
+      console.log("Creating manual booking with data:", JSON.stringify(manualBooking, null, 2));
       
       // Create the booking
       const createdBooking = await this.createBooking(manualBooking);
