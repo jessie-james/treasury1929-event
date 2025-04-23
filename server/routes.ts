@@ -655,15 +655,30 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      console.log("Creating booking with data:", req.body);
-      const booking = insertBookingSchema.parse(req.body);
+      console.log("Creating booking with data:", JSON.stringify(req.body, null, 2));
+      
+      // Validate the incoming data
+      try {
+        var booking = insertBookingSchema.parse(req.body);
+      } catch (zodError) {
+        if (zodError instanceof z.ZodError) {
+          console.error("Validation error:", zodError.errors);
+          return res.status(400).json({ 
+            message: "Invalid booking data", 
+            errors: zodError.errors
+          });
+        }
+        throw zodError;
+      }
 
       // First check if the event has enough seats
       const event = await storage.getEvent(booking.eventId);
       if (!event) {
+        console.log(`Event not found: ${booking.eventId}`);
         return res.status(404).json({ message: "Event not found" });
       }
 
+      console.log(`Event available seats: ${event.availableSeats}, requested: ${booking.seatNumbers.length}`);
       if (event.availableSeats < booking.seatNumbers.length) {
         return res.status(400).json({ 
           message: "Not enough available seats for this booking" 
@@ -672,13 +687,18 @@ export async function registerRoutes(app: Express) {
 
       // Then check if all selected seats are available
       const seats = await storage.getTableSeats(booking.tableId);
+      console.log(`Found ${seats.length} seats for table ${booking.tableId}`);
+      
       const seatBookings = await storage.getTableSeatsAvailability(booking.tableId, booking.eventId);
+      console.log(`Current seat bookings for table ${booking.tableId}, event ${booking.eventId}:`, 
+        JSON.stringify(seatBookings, null, 2));
 
       // Filter out seats that are already booked
       const selectedSeats = seats.filter(
         seat => booking.seatNumbers.includes(seat.seatNumber)
       );
 
+      console.log(`Selected seats found: ${selectedSeats.length}, requested: ${booking.seatNumbers.length}`);
       if (selectedSeats.length !== booking.seatNumbers.length) {
         return res.status(400).json({ 
           message: "One or more selected seats not found" 
@@ -686,38 +706,44 @@ export async function registerRoutes(app: Express) {
       }
 
       const bookedSeats = seatBookings.filter(sb => sb.isBooked);
-      if (selectedSeats.some(seat => 
+      console.log(`Booked seats count: ${bookedSeats.length}`);
+      
+      const unavailableSeats = selectedSeats.filter(seat => 
         bookedSeats.some(bs => bs.seatId === seat.id)
-      )) {
+      );
+      
+      if (unavailableSeats.length > 0) {
+        console.log(`Found unavailable seats: ${unavailableSeats.map(s => s.seatNumber).join(', ')}`);
         return res.status(400).json({ 
-          message: "One or more selected seats are not available" 
+          message: `These seats are not available: ${unavailableSeats.map(s => s.seatNumber).join(', ')}` 
         });
       }
 
       console.log("Creating booking in database...");
-      const created = await storage.createBooking(booking);
-      console.log("Booking created:", created);
+      try {
+        const created = await storage.createBooking(booking);
+        console.log("Booking created:", JSON.stringify(created, null, 2));
 
-      console.log("Updating event availability...");
-      await storage.updateEventAvailability(
-        booking.eventId,
-        booking.seatNumbers.length
-      );
-      console.log("Event availability updated");
+        console.log("Updating event availability...");
+        await storage.updateEventAvailability(
+          booking.eventId,
+          booking.seatNumbers.length
+        );
+        console.log("Event availability updated");
 
-      // Broadcast the update to all clients
-      await broadcastAvailability(booking.eventId);
+        // Broadcast the update to all clients
+        await broadcastAvailability(booking.eventId);
 
-      res.status(201).json(created);
-    } catch (error) {
-      console.error("Error creating booking:", error);
-      if (error instanceof z.ZodError) {
-        res.status(400).json({ 
-          message: "Invalid booking data",
-          errors: error.errors 
+        res.status(201).json(created);
+      } catch (dbError) {
+        console.error("Database error during booking creation:", dbError);
+        res.status(500).json({
+          message: "Database error during booking creation",
+          error: dbError instanceof Error ? dbError.message : String(dbError)
         });
-        return;
       }
+    } catch (error) {
+      console.error("Unexpected error creating booking:", error);
       res.status(500).json({ 
         message: "Failed to create booking",
         error: error instanceof Error ? error.message : String(error)

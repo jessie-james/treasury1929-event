@@ -90,18 +90,40 @@ function StripeCheckoutForm({
           userId: user.id,
         };
 
-        await apiRequest("POST", "/api/bookings", booking);
+        console.log("Creating booking with:", booking);
         
-        toast({
-          title: "Booking Confirmed!",
-          description: "Your payment was successful. Enjoy the event!",
-        });
-        
-        onSuccess();
-      } catch (err) {
+        // Using try/catch with more detailed error handling
+        try {
+          const response = await apiRequest("POST", "/api/bookings", booking);
+          
+          if (!response.ok) {
+            // Read the error response from the server
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Server error during booking creation");
+          }
+          
+          const bookingData = await response.json();
+          console.log("Booking created successfully:", bookingData);
+          
+          toast({
+            title: "Booking Confirmed!",
+            description: "Your payment was successful. Enjoy the event!",
+          });
+          
+          onSuccess();
+        } catch (apiError: any) {
+          console.error("API Error during booking creation:", apiError);
+          toast({
+            title: "Booking Failed",
+            description: `Payment successful but booking failed: ${apiError.message}`,
+            variant: "destructive",
+          });
+        }
+      } catch (err: any) {
+        console.error("Error in booking process:", err);
         toast({
           title: "Booking Failed",
-          description: "Payment successful but booking failed to save. Please contact support.",
+          description: `Payment successful but booking failed: ${err.message}`,
           variant: "destructive",
         });
       }
