@@ -106,7 +106,7 @@ export function ManualBookingForm() {
   const watchTableId = form.watch("tableId");
   
   // Get seats for selected table
-  const { data: seats, isLoading: isLoadingSeats } = useQuery<Seat[]>({
+  const { data: seats, isLoading: isLoadingSeats } = useQuery<SeatWithAvailability[]>({
     queryKey: ["/api/tables", watchTableId, "seats", { eventId: watchEventId }],
     enabled: !!watchEventId && !!watchTableId,
   });
@@ -157,7 +157,7 @@ export function ManualBookingForm() {
   };
   
   // Get available seats
-  const availableSeats = seats?.filter(seat => seat.isAvailable) || [];
+  const availableSeats = seats?.filter(seat => 'isAvailable' in seat && seat.isAvailable) || [];
   
   return (
     <Dialog open={open} onOpenChange={setOpen}>
