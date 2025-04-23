@@ -657,9 +657,20 @@ export async function registerRoutes(app: Express) {
 
       console.log("Creating booking with data:", JSON.stringify(req.body, null, 2));
       
-      // Validate the incoming data
       try {
-        var booking = insertBookingSchema.parse(req.body);
+        // Get the actual database fields to avoid trying to insert non-existent fields
+        const bookingData = {
+          eventId: req.body.eventId,
+          userId: req.body.userId,
+          tableId: req.body.tableId,
+          seatNumbers: req.body.seatNumbers,
+          foodSelections: req.body.foodSelections,
+          guestNames: req.body.guestNames,
+          customerEmail: req.body.customerEmail,
+          stripePaymentId: req.body.stripePaymentId
+        };
+        
+        var booking = insertBookingSchema.parse(bookingData);
       } catch (zodError) {
         if (zodError instanceof z.ZodError) {
           console.error("Validation error:", zodError.errors);
