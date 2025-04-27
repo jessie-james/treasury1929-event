@@ -4,6 +4,7 @@ import { Table, Seat, SeatBooking } from '@shared/schema';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { TableSelectionPanel } from './TableSelectionPanel';
 
 interface FloorPlanProps {
   eventId: number;
@@ -59,6 +60,12 @@ export function FloorPlan({
     });
   }, [tableSeats, seatAvailability]);
 
+  // Find the selected table object
+  const selectedTableObject = React.useMemo(() => {
+    if (!tables || !selectedTable) return null;
+    return tables.find(table => table.id === selectedTable) || null;
+  }, [tables, selectedTable]);
+
   if (tablesLoading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -72,185 +79,123 @@ export function FloorPlan({
   }
 
   return (
-    <div className="space-y-4">
-      <Tabs
-        defaultValue="main"
-        value={currentFloor}
-        onValueChange={setCurrentFloor}
-        className="w-full"
-      >
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="main">Main Floor</TabsTrigger>
-          <TabsTrigger value="mezzanine">Mezzanine</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="main" className="pt-4">
-          <Card>
-            <CardContent className="p-1 sm:p-6">
-              <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
-                {/* Main Floor PNG */}
-                <img 
-                  src="/uploads/main-floor.png" 
-                  alt="Main Floor Layout" 
-                  className="absolute inset-0 w-full h-full object-contain"
-                />
-                
-                {/* Interactive layer */}
-                <div className="relative w-full h-full">
-                  {/* Clickable areas over each table on the PNG */}
-                  {tables.map((table) => (
-                    <div 
-                      key={table.id}
-                      className="absolute cursor-pointer"
-                      style={{ 
-                        left: `${table.x}px`, 
-                        top: `${table.y}px`,
-                        width: '40px',
-                        height: '40px',
-                        transform: 'translate(-50%, -50%)',
-                        borderRadius: '50%',
-                        border: table.id === selectedTable ? '3px solid #3b82f6' : '1px dashed transparent',
-                        backgroundColor: table.id === selectedTable ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                        zIndex: 10
-                      }}
-                      onClick={() => onTableSelect(table.id)}
-                    >
-                      {/* Table selection indicator */}
-                      {table.id === selectedTable && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-xs font-bold text-blue-600 bg-white px-1.5 py-0.5 rounded-full border border-blue-600">
-                            {table.tableNumber}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Seat selection UI appears when a table is selected */}
-                      {table.id === selectedTable && !tableSeatsLoading && !seatsLoading && (
-                        <div className="absolute" style={{ top: '30px', left: '50%', transform: 'translateX(-50%)' }}>
-                          <div className="bg-white bg-opacity-90 rounded-md p-2 shadow-md border border-gray-300">
-                            <div className="text-center text-xs font-semibold mb-1">Select seats</div>
-                            <div className="flex flex-wrap gap-1 justify-center" style={{ maxWidth: '100px' }}>
-                              {seatsWithAvailability.map(seat => (
-                                <div
-                                  key={seat.id}
-                                  className={`w-7 h-7 rounded-sm cursor-pointer flex items-center justify-center text-xs font-medium
-                                    ${selectedSeats.includes(seat.seatNumber)
-                                      ? 'bg-blue-500 text-white'
-                                      : seat.isAvailable
-                                        ? 'bg-white hover:bg-blue-100 border border-gray-300'
-                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    }`}
-                                  onClick={() => 
-                                    seat.isAvailable || selectedSeats.includes(seat.seatNumber) 
-                                      ? onSeatSelect(table.id, seat.seatNumber, !seat.isAvailable)
-                                      : undefined
-                                  }
-                                >
-                                  {seat.seatNumber}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="mezzanine" className="pt-4">
-          <Card>
-            <CardContent className="p-1 sm:p-6">
-              <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
-                {/* Mezzanine Floor PNG */}
-                <img 
-                  src="/uploads/mezzanine.png" 
-                  alt="Mezzanine Floor Layout" 
-                  className="absolute inset-0 w-full h-full object-contain"
-                />
-                
-                {/* Interactive layer */}
-                <div className="relative w-full h-full">
-                  {/* Clickable areas over each table on the PNG */}
-                  {tables.map((table) => (
-                    <div 
-                      key={table.id}
-                      className="absolute cursor-pointer"
-                      style={{ 
-                        left: `${table.x}px`, 
-                        top: `${table.y}px`,
-                        width: '40px',
-                        height: '40px',
-                        transform: 'translate(-50%, -50%)',
-                        borderRadius: '50%',
-                        border: table.id === selectedTable ? '3px solid #3b82f6' : '1px dashed transparent',
-                        backgroundColor: table.id === selectedTable ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                        zIndex: 10
-                      }}
-                      onClick={() => onTableSelect(table.id)}
-                    >
-                      {/* Table selection indicator */}
-                      {table.id === selectedTable && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-xs font-bold text-blue-600 bg-white px-1.5 py-0.5 rounded-full border border-blue-600">
-                            {table.tableNumber}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Seat selection UI appears when a table is selected */}
-                      {table.id === selectedTable && !tableSeatsLoading && !seatsLoading && (
-                        <div className="absolute" style={{ top: '30px', left: '50%', transform: 'translateX(-50%)' }}>
-                          <div className="bg-white bg-opacity-90 rounded-md p-2 shadow-md border border-gray-300">
-                            <div className="text-center text-xs font-semibold mb-1">Select seats</div>
-                            <div className="flex flex-wrap gap-1 justify-center" style={{ maxWidth: '100px' }}>
-                              {seatsWithAvailability.map(seat => (
-                                <div
-                                  key={seat.id}
-                                  className={`w-7 h-7 rounded-sm cursor-pointer flex items-center justify-center text-xs font-medium
-                                    ${selectedSeats.includes(seat.seatNumber)
-                                      ? 'bg-blue-500 text-white'
-                                      : seat.isAvailable
-                                        ? 'bg-white hover:bg-blue-100 border border-gray-300'
-                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    }`}
-                                  onClick={() => 
-                                    seat.isAvailable || selectedSeats.includes(seat.seatNumber) 
-                                      ? onSeatSelect(table.id, seat.seatNumber, !seat.isAvailable)
-                                      : undefined
-                                  }
-                                >
-                                  {seat.seatNumber}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+    <div>
+      {/* Table and seat selection panel - above the floor plan */}
+      <TableSelectionPanel 
+        tables={tables}
+        selectedTable={selectedTableObject}
+        selectedSeats={selectedSeats}
+        seatsWithAvailability={seatsWithAvailability}
+        onTableSelect={onTableSelect}
+        onSeatSelect={onSeatSelect}
+        isLoading={tableSeatsLoading || seatsLoading}
+      />
       
-      <div className="flex items-center justify-center gap-4 text-sm">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-green-100 border border-green-300"></div>
-          <span>Available</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300"></div>
-          <span>Booked</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-full bg-primary border border-primary"></div>
-          <span>Selected</span>
+      {/* Floor plan visualization */}
+      <div className="mt-6 space-y-4">
+        <Tabs
+          defaultValue="main"
+          value={currentFloor}
+          onValueChange={setCurrentFloor}
+          className="w-full"
+        >
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="main">Main Floor</TabsTrigger>
+            <TabsTrigger value="mezzanine">Mezzanine</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="main" className="pt-4">
+            <Card>
+              <CardContent className="p-1 sm:p-6">
+                <div className="relative w-full h-[600px] overflow-auto bg-white border rounded-lg">
+                  {/* Main Floor PNG */}
+                  <img 
+                    src="/uploads/main-floor.png" 
+                    alt="Main Floor Layout" 
+                    className="absolute inset-0 w-full h-full object-contain"
+                  />
+                  
+                  {/* Highlight selected table on the floor plan */}
+                  {selectedTable && tables.map(table => {
+                    if (table.id === selectedTable) {
+                      return (
+                        <div 
+                          key={table.id}
+                          className="absolute"
+                          style={{ 
+                            left: `${table.x}px`, 
+                            top: `${table.y}px`,
+                            width: '60px',
+                            height: '60px',
+                            transform: 'translate(-50%, -50%)',
+                            border: '3px solid #3b82f6',
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                            zIndex: 10
+                          }}
+                        />
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="mezzanine" className="pt-4">
+            <Card>
+              <CardContent className="p-1 sm:p-6">
+                <div className="relative w-full h-[600px] overflow-auto bg-white border rounded-lg">
+                  {/* Mezzanine Floor PNG */}
+                  <img 
+                    src="/uploads/mezzanine.png" 
+                    alt="Mezzanine Floor Layout" 
+                    className="absolute inset-0 w-full h-full object-contain"
+                  />
+                  
+                  {/* Highlight selected table on the floor plan */}
+                  {selectedTable && tables.map(table => {
+                    if (table.id === selectedTable) {
+                      return (
+                        <div 
+                          key={table.id}
+                          className="absolute"
+                          style={{ 
+                            left: `${table.x}px`, 
+                            top: `${table.y}px`,
+                            width: '60px',
+                            height: '60px',
+                            transform: 'translate(-50%, -50%)',
+                            border: '3px solid #3b82f6',
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                            zIndex: 10
+                          }}
+                        />
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+        
+        <div className="flex items-center justify-center gap-4 text-sm my-4">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded-full bg-green-100 border border-green-300"></div>
+            <span>Available</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300"></div>
+            <span>Booked</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded-full bg-primary border border-primary"></div>
+            <span>Selected</span>
+          </div>
         </div>
       </div>
     </div>
