@@ -7,7 +7,9 @@ import { type Table, type Seat } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, User2 } from "lucide-react";
+import { FloorPlan } from "./FloorPlan";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Props {
   eventId: number;
@@ -20,27 +22,17 @@ interface SeatWithAvailability extends Seat {
 }
 
 export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props) {
+  const isMobile = useIsMobile();
+  const [selectedTable, setSelectedTable] = useState<number | undefined>(undefined);
   const [selectedSeats, setSelectedSeats] = useState<Array<{ tableId: number; seatNumber: number }>>([]);
 
-  const { data: tables, isLoading: tablesLoading } = useQuery<Table[]>({
-    queryKey: ["/api/tables"],
-  });
+  const handleTableSelect = (tableId: number) => {
+    setSelectedTable(tableId);
+  };
 
-  const { data: allSeats, isLoading: seatsLoading } = useQuery<Record<number, SeatWithAvailability[]>>({
-    queryKey: ["/api/tables/seats", { eventId }],
-    queryFn: async () => {
-      if (!tables) return {};
-      const seatsMap: Record<number, SeatWithAvailability[]> = {};
-      for (const table of tables) {
-        const response = await fetch(`/api/tables/${table.id}/seats?eventId=${eventId}`);
-        seatsMap[table.id] = await response.json();
-      }
-      return seatsMap;
-    },
-    enabled: !!tables,
-  });
-
-  const handleSeatToggle = (tableId: number, seatNumber: number) => {
+  const handleSeatToggle = (tableId: number, seatNumber: number, isAvailable: boolean) => {
+    if (!isAvailable) return;
+    
     const existingSeatIndex = selectedSeats.findIndex(
       s => s.tableId === tableId && s.seatNumber === seatNumber
     );
@@ -70,26 +62,11 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
       setSelectedSeats([...selectedSeats, { tableId, seatNumber }]);
     }
   };
-
-  const isSeatSelected = (tableId: number, seatNumber: number) => {
-    return selectedSeats.some(s => s.tableId === tableId && s.seatNumber === seatNumber);
-  };
-
-  if (tablesLoading || seatsLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 bg-muted rounded" />
-          <div className="h-4 w-96 bg-muted rounded" />
-          <div className="grid grid-cols-2 gap-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-48 bg-muted rounded" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  
+  // Get the selected seat numbers for the currently selected table
+  const selectedSeatNumbers = selectedSeats
+    .filter(seat => seat.tableId === selectedTable)
+    .map(seat => seat.seatNumber);
 
   return (
     <div className="space-y-6">
@@ -104,7 +81,10 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
             </AlertDescription>
           </Alert>
         )}
-        <div className="flex items-center justify-between">
+        <div className={cn(
+          "flex items-center", 
+          isMobile ? "flex-col space-y-4" : "justify-between"
+        )}>
           <h2 className="text-2xl font-bold">Select Your Seats</h2>
           <Button
             onClick={() => {
@@ -114,6 +94,7 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
               onComplete({ tableId, seatNumbers });
             }}
             disabled={selectedSeats.length === 0}
+            className={isMobile ? "w-full" : ""}
           >
             Continue to Guest Details
           </Button>
@@ -121,59 +102,49 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
         <p className="text-muted-foreground">
           Choose up to 4 seats from a single table
         </p>
-        <p className="text-sm font-medium text-primary">
-          {selectedSeats.length} seats selected
-        </p>
+        <div className="flex items-center space-x-2 text-sm font-medium text-primary">
+          <User2 className="h-4 w-4" />
+          <span>{selectedSeats.length} seats selected</span>
+        </div>
       </div>
 
-      {/* Tables Grid */}
-      <ScrollArea className="h-[calc(100vh-250px)] w-full rounded-md border p-4">
-        <div className="grid grid-cols-2 gap-6">
-          {tables?.map((table) => {
-            const tableSeats = allSeats?.[table.id] || [];
-
-            return (
-              <Card key={table.id} className={cn(
-                "overflow-hidden",
-                selectedSeats.some(s => s.tableId === table.id) && "border-primary"
-              )}>
-                <CardContent className="p-4">
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Table {table.tableNumber}</h3>
-                    <div className="grid grid-cols-2 gap-2 relative">
-                      {/* Visual table representation */}
-                      <div className="absolute inset-4 border-2 border-muted-foreground/20 rounded-lg" />
-
-                      {tableSeats.map((seat) => {
-                        const isSelected = isSeatSelected(table.id, seat.seatNumber);
-                        const seatPosition = seat.seatNumber % 2 === 0 ? "justify-self-end" : "justify-self-start";
-
-                        return (
-                          <Button
-                            key={seat.id}
-                            variant={isSelected ? "default" : seat.isAvailable ? "secondary" : "ghost"}
-                            className={cn(
-                              "h-12 relative z-10",
-                              seatPosition,
-                              isSelected && "bg-primary hover:bg-primary/90",
-                              !isSelected && seat.isAvailable && "bg-green-500/10 hover:bg-green-500/20 text-green-600",
-                              !isSelected && !seat.isAvailable && "bg-muted/50 text-muted-foreground hover:bg-muted/50 cursor-not-allowed"
-                            )}
-                            disabled={!seat.isAvailable && !isSelected}
-                            onClick={() => handleSeatToggle(table.id, seat.seatNumber)}
-                          >
-                            Seat {seat.seatNumber}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </ScrollArea>
+      {/* Floor plan */}
+      <div className="px-1">
+        <FloorPlan 
+          eventId={eventId}
+          selectedTable={selectedTable}
+          selectedSeats={selectedSeatNumbers}
+          onTableSelect={handleTableSelect}
+          onSeatSelect={handleSeatToggle}
+        />
+      </div>
+      
+      {/* Selected Seats Summary */}
+      {selectedSeats.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="font-semibold text-lg mb-2">Selected Seats</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {selectedSeats.map((seat, index) => (
+                <div 
+                  key={`${seat.tableId}-${seat.seatNumber}`}
+                  className="p-2 rounded-md bg-primary/10 flex items-center justify-between"
+                >
+                  <span className="font-medium">Table {seat.tableId}, Seat {seat.seatNumber}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 rounded-full" 
+                    onClick={() => handleSeatToggle(seat.tableId, seat.seatNumber, true)}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
