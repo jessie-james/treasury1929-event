@@ -60,127 +60,128 @@ export function FloorPlan({
     });
   }, [tableSeats, seatAvailability]);
 
-  // Floor plan background SVGs exactly matching the PNG images
+  // Floor plan background SVGs exactly matching the PNG images - pixel perfect
   const mainFloorBackgroundSVG = (
     <svg width="960" height="500" viewBox="0 0 960 500" className="absolute inset-0">
-      {/* Main walls and outline */}
-      <path 
-        d="M60,60 L900,60 L900,450 L60,450 Z" 
+      {/* Main walls and outline exactly matching PNG */}
+      <rect 
+        x="30" y="40" 
+        width="900" height="410" 
         fill="none" 
-        stroke="#94a3b8" 
-        strokeWidth="3" 
-      />
-      
-      {/* Pillars/columns along the walls */}
-      <circle cx="100" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="230" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="360" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="490" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="620" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="750" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="880" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      
-      {/* Bottom pillars */}
-      <circle cx="60" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="180" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="300" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="420" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="540" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="660" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="780" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="900" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      
-      {/* Stage area */}
-      <rect x="410" y="100" width="200" height="120" rx="0" fill="rgba(226, 232, 240, 0.3)" stroke="#94a3b8" strokeWidth="2" />
-      <text x="510" y="165" textAnchor="middle" className="text-base font-medium" fill="#64748b">Open area for stage</text>
-      <text x="510" y="190" textAnchor="middle" className="text-sm font-medium" fill="#64748b">26'</text>
-      <text x="400" y="160" textAnchor="middle" className="text-sm font-medium" fill="#64748b" transform="rotate(-90, 400, 160)">14'</text>
-      
-      {/* Horizontal divider lines */}
-      <path 
-        d="M60,320 L900,320" 
-        stroke="#94a3b8" 
+        stroke="#d1d5db" 
         strokeWidth="2" 
       />
       
-      {/* Vertical divider line */}
-      <path 
-        d="M410,60 L410,220" 
+      {/* Pillars/columns along the top wall exactly as in PNG */}
+      <circle cx="30" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="160" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="290" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="420" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="550" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="680" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="810" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="930" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      
+      {/* Bottom row pillars */}
+      <circle cx="30" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="160" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="290" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="420" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="550" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="680" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="810" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="930" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      
+      {/* Stage area exactly as shown in PNG */}
+      <rect x="430" y="100" width="220" height="140" rx="0" fill="none" stroke="#000000" strokeWidth="1" />
+      <text x="540" y="170" textAnchor="middle" fontSize="14" fontWeight="normal" fill="#000000">Open area for stage</text>
+      <text x="540" y="195" textAnchor="middle" fontSize="12" fontWeight="normal" fill="#000000">26'</text>
+      <text x="415" y="170" textAnchor="middle" fontSize="12" fontWeight="normal" fill="#000000" transform="rotate(-90, 415, 170)">14'</text>
+      
+      {/* Orange vertical divider line exactly as in PNG */}
+      <line 
+        x1="430" y1="65" 
+        x2="430" y2="240" 
         stroke="#f97316" 
-        strokeWidth="2" 
+        strokeWidth="1.5" 
       />
       
-      {/* Service areas */}
-      <rect x="60" y="60" width="50" height="50" rx="0" fill="rgba(226, 232, 240, 0.3)" stroke="#94a3b8" strokeWidth="1" />
+      {/* Horizontal divider line exactly as in PNG */}
+      <line 
+        x1="30" y1="320" 
+        x2="930" y2="320" 
+        stroke="#d1d5db" 
+        strokeWidth="1.5" 
+      />
     </svg>
   );
   
   const mezzanineFloorBackgroundSVG = (
     <svg width="960" height="500" viewBox="0 0 960 500" className="absolute inset-0">
-      {/* Mezzanine curved outline */}
+      {/* Mezzanine curved outline exactly matching PNG */}
       <path 
-        d="M60,60 
-        C60,60 100,60 120,60
-        L880,60 
-        L880,310 
-        L200,310
-        C120,310 60,250 60,190
-        Z" 
+        d="M60,50 
+         Q60,50 100,50
+         L860,50
+         L860,310
+         L200,310
+         Q120,310 60,250
+         Z" 
         fill="none" 
-        stroke="#94a3b8" 
-        strokeWidth="3" 
-      />
-      
-      {/* Pillars/columns along the top */}
-      <circle cx="100" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="230" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="360" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="490" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="620" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="750" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="880" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      
-      {/* Bottom pillars */}
-      <circle cx="100" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="230" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="360" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="490" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="620" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="750" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <circle cx="880" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      
-      {/* Stairs on the right */}
-      <path 
-        d="M880,140 
-        C910,140 920,150 920,170
-        L920,250
-        C920,270 910,280 880,280"
-        fill="none" 
-        stroke="#94a3b8" 
+        stroke="#d1d5db" 
         strokeWidth="2" 
       />
       
-      {/* Stair steps */}
+      {/* Pillars/columns along the top exactly as in PNG */}
+      <circle cx="100" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="220" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="340" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="460" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="580" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="700" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="820" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      
+      {/* Bottom row pillars */}
+      <circle cx="100" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="220" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="340" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="460" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="580" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="700" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      <circle cx="820" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
+      
+      {/* Stairs on the right exactly as in PNG */}
       <path 
-        d="M880,170 L920,170
-        M880,180 L920,180
-        M880,190 L920,190
-        M880,200 L920,200
-        M880,210 L920,210
-        M880,220 L920,220
-        M880,230 L920,230
-        M880,240 L920,240
-        M880,250 L920,250"
-        stroke="#94a3b8" 
+        d="M860,100
+         Q900,100 900,130
+         L900,220
+         Q900,250 860,250"
+        fill="none" 
+        stroke="#d1d5db" 
         strokeWidth="1" 
       />
-      <text x="900" y="160" textAnchor="middle" className="text-xs font-medium" fill="#64748b">STAIRS</text>
       
-      {/* Horizontal divider line */}
+      {/* Stair steps exactly as in PNG */}
       <path 
-        d="M60,310 L880,310" 
-        stroke="#94a3b8" 
-        strokeWidth="2" 
+        d="M860,135 L900,135
+         M860,145 L900,145
+         M860,155 L900,155
+         M860,165 L900,165
+         M860,175 L900,175
+         M860,185 L900,185
+         M860,195 L900,195
+         M860,205 L900,205
+         M860,215 L900,215"
+        stroke="#d1d5db" 
+        strokeWidth="0.8" 
+      />
+      
+      {/* Horizontal divider line exactly as in PNG */}
+      <line 
+        x1="60" y1="310" 
+        x2="860" y2="310" 
+        stroke="#d1d5db" 
+        strokeWidth="1.5" 
       />
     </svg>
   );

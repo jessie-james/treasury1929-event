@@ -18,31 +18,40 @@ export function RoundTable({ isSelected, onClick, tableNumber, className }: Shap
       )}
       onClick={onClick}
     >
-      {/* Table background */}
-      <svg width="60" height="60" viewBox="0 0 60 60">
+      {/* Table background - Matching exactly the round table in the PNG */}
+      <svg width="40" height="40" viewBox="0 0 40 40">
         <circle 
-          cx="30" cy="30" r="28" 
+          cx="20" cy="20" r="15" 
           fill={isSelected ? 'rgb(226, 232, 240)' : 'white'} 
-          stroke="rgb(100, 116, 139)" 
-          strokeWidth="1.5"
+          stroke="rgb(0, 0, 0)" 
+          strokeWidth="1"
         />
         
         {/* Table number */}
         <text 
-          x="30" y="32" 
+          x="20" y="22" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          className="text-xs font-semibold"
-          fill="#334155"
+          fontSize="10"
+          fontWeight="bold"
+          fill="#000000"
         >
           {tableNumber}
         </text>
         
-        {/* Small circles for seat positions */}
-        <circle cx="30" cy="7" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="53" cy="30" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="30" cy="53" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="7" cy="30" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        {/* Small circles for seat positions exactly as shown in PNG */}
+        <circle cx="20" cy="5" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="25" cy="8" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="30" cy="14" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="35" cy="20" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="30" cy="26" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="25" cy="32" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="20" cy="35" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="15" cy="32" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="10" cy="26" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="5" cy="20" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="10" cy="14" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="15" cy="8" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
       </svg>
     </div>
   );
@@ -58,35 +67,40 @@ export function RectangularTable({ isSelected, onClick, tableNumber, className }
       )}
       onClick={onClick}
     >
-      <svg width="70" height="60" viewBox="0 0 70 60">
-        {/* Table background */}
+      {/* Table background - Matching exactly the rectangular table in the PNG */}
+      <svg width="45" height="30" viewBox="0 0 45 30">
         <rect 
-          x="1" y="1" 
-          width="68" height="58" 
-          rx="4" ry="4" 
+          x="2" y="2" 
+          width="41" height="26" 
+          rx="2" ry="2" 
           fill={isSelected ? 'rgb(226, 232, 240)' : 'white'} 
-          stroke="rgb(100, 116, 139)" 
-          strokeWidth="1.5"
+          stroke="rgb(0, 0, 0)" 
+          strokeWidth="1"
         />
         
         {/* Table number */}
         <text 
-          x="35" y="30" 
+          x="22.5" y="17" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          className="text-xs font-semibold"
-          fill="#334155"
+          fontSize="10"
+          fontWeight="bold"
+          fill="#000000"
         >
           {tableNumber}
         </text>
         
-        {/* Small circles for seat positions */}
-        <circle cx="35" cy="5" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="65" cy="20" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="65" cy="40" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="35" cy="55" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="5" cy="40" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="5" cy="20" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        {/* Small circles for seat positions exactly as shown in PNG */}
+        <circle cx="13" cy="2" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="22.5" cy="2" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="32" cy="2" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="43" cy="10" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="43" cy="20" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="32" cy="28" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="22.5" cy="28" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="13" cy="28" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="2" cy="20" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="2" cy="10" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
       </svg>
     </div>
   );
@@ -102,35 +116,38 @@ export function SquareTable({ isSelected, onClick, tableNumber, className }: Sha
       )}
       onClick={onClick}
     >
-      <svg width="60" height="60" viewBox="0 0 60 60">
-        {/* Table background */}
+      {/* Table background - Matching exactly the square table in the PNG */}
+      <svg width="35" height="35" viewBox="0 0 35 35">
         <rect 
-          x="1" y="1" 
-          width="58" height="58" 
-          rx="4" ry="4" 
+          x="2" y="2" 
+          width="31" height="31" 
+          rx="2" ry="2" 
           fill={isSelected ? 'rgb(226, 232, 240)' : 'white'} 
-          stroke="rgb(100, 116, 139)" 
-          strokeWidth="1.5"
+          stroke="rgb(0, 0, 0)" 
+          strokeWidth="1"
         />
         
         {/* Table number */}
         <text 
-          x="30" y="30" 
+          x="17.5" y="19" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          className="text-xs font-semibold"
-          fill="#334155"
+          fontSize="10"
+          fontWeight="bold"
+          fill="#000000"
         >
           {tableNumber}
         </text>
         
-        {/* Small circles for seat positions */}
-        <circle cx="30" cy="5" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="55" cy="15" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="55" cy="45" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="30" cy="55" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="5" cy="45" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="5" cy="15" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        {/* Small circles for seat positions exactly as shown in PNG */}
+        <circle cx="10" cy="2" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="25" cy="2" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="33" cy="10" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="33" cy="25" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="25" cy="33" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="10" cy="33" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="2" cy="25" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="2" cy="10" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
       </svg>
     </div>
   );
@@ -146,31 +163,38 @@ export function OvalTable({ isSelected, onClick, tableNumber, className }: Shape
       )}
       onClick={onClick}
     >
-      <svg width="70" height="50" viewBox="0 0 70 50">
-        {/* Table background */}
+      {/* Table background - Matching exactly the oval table in the PNG */}
+      <svg width="50" height="35" viewBox="0 0 50 35">
         <ellipse 
-          cx="35" cy="25" rx="33" ry="23" 
+          cx="25" cy="17.5" rx="23" ry="15.5" 
           fill={isSelected ? 'rgb(226, 232, 240)' : 'white'} 
-          stroke="rgb(100, 116, 139)" 
-          strokeWidth="1.5"
+          stroke="rgb(0, 0, 0)" 
+          strokeWidth="1"
         />
         
         {/* Table number */}
         <text 
-          x="35" y="25" 
+          x="25" y="19" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          className="text-xs font-semibold"
-          fill="#334155"
+          fontSize="10"
+          fontWeight="bold"
+          fill="#000000"
         >
           {tableNumber}
         </text>
         
-        {/* Small circles for seat positions */}
-        <circle cx="35" cy="5" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="60" cy="25" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="35" cy="45" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
-        <circle cx="10" cy="25" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        {/* Small circles for seat positions exactly as shown in PNG */}
+        <circle cx="13" cy="3" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="25" cy="3" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="37" cy="3" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="47" cy="12" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="47" cy="23" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="37" cy="32" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="25" cy="32" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="13" cy="32" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="3" cy="23" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <circle cx="3" cy="12" r="3" fill="white" stroke="#000000" strokeWidth="0.5" />
       </svg>
     </div>
   );
@@ -195,12 +219,18 @@ export function Seat({
   className,
   style
 }: SeatProps) {
-  const seatColor = isSelected 
-    ? "fill-primary stroke-primary-foreground" 
+  // Seat colors matching the exact seat appearance from PNG
+  // while still indicating availability
+  const fillColor = isSelected 
+    ? "#3b82f6" // primary blue when selected
     : isAvailable 
-      ? "fill-green-100 stroke-green-500 hover:fill-green-200" 
-      : "fill-gray-200 stroke-gray-500";
-
+      ? "#ffffff" // white like in PNG when available
+      : "#e5e7eb"; // light gray when unavailable
+  
+  const strokeColor = isSelected
+    ? "#1d4ed8" // darker blue for selected seats
+    : "#000000"; // black outline like in PNG
+  
   return (
     <div 
       className={cn("absolute", className)} 
@@ -210,28 +240,29 @@ export function Seat({
       }}
     >
       <svg 
-        width="20" 
-        height="20" 
-        viewBox="0 0 20 20" 
+        width="14" 
+        height="14" 
+        viewBox="0 0 14 14" 
         className={cn(
           "cursor-pointer transition-colors",
-          !isAvailable && !isSelected && "cursor-not-allowed opacity-60"
+          !isAvailable && !isSelected && "cursor-not-allowed opacity-80"
         )}
         onClick={isAvailable || isSelected ? onClick : undefined}
       >
         <circle 
-          cx="10" 
-          cy="10" 
-          r="9" 
-          className={seatColor}
-          strokeWidth="1.5"
+          cx="7" 
+          cy="7" 
+          r="6" 
+          fill={fillColor}
+          stroke={strokeColor}
+          strokeWidth="0.5"
         />
         <text 
-          x="10" 
-          y="10" 
+          x="7" 
+          y="7.5" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          fontSize="10" 
+          fontSize="7" 
           fontWeight="bold"
           fill={isSelected ? "white" : "black"}
         >
