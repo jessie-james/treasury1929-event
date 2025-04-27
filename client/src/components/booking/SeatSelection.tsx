@@ -73,7 +73,7 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
       {/* Header with progress */}
       <div className="space-y-2">
         {hasExistingBooking && (
-          <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
+          <Alert className="bg-yellow-50 border-yellow-200">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
             <AlertTitle className="text-yellow-800">Existing Booking</AlertTitle>
             <AlertDescription className="text-yellow-700">
