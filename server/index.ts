@@ -70,9 +70,49 @@ app.use((req, res, next) => {
     log("Setting up routes...");
     const server = await registerRoutes(app);
 
-    // Error handling middleware
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    // Error logging middleware
+    app.use(async (err: any, req: Request, res: Response, next: NextFunction) => {
       console.error("Server error:", err);
+      
+      try {
+        // Log the error to admin logs if user is authenticated
+        if (req.isAuthenticated && req.isAuthenticated() && req.user?.id) {
+          await storage.createAdminLog({
+            userId: req.user.id,
+            action: "api_error",
+            entityType: "system",
+            entityId: 0,
+            details: {
+              path: req.path,
+              method: req.method,
+              error: err.message,
+              stack: process.env.NODE_ENV === "production" ? undefined : err.stack,
+              statusCode: err.status || err.statusCode || 500,
+              timestamp: new Date().toISOString(),
+              requestBody: req.body ? JSON.stringify(req.body).substring(0, 500) : undefined // Truncate long bodies
+            }
+          });
+        } else {
+          // Log unauthenticated errors with user ID 0 (system)
+          await storage.createAdminLog({
+            userId: 0, // System user ID for unauthenticated errors
+            action: "system_error",
+            entityType: "system",
+            entityId: 0,
+            details: {
+              path: req.path,
+              method: req.method,
+              error: err.message,
+              timestamp: new Date().toISOString(),
+              ipAddress: req.ip
+            }
+          });
+        }
+      } catch (loggingError) {
+        console.error("Failed to log error:", loggingError);
+      }
+      
+      // Continue with regular error handling
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
       res.status(status).json({ message });
