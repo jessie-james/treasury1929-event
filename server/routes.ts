@@ -2,9 +2,9 @@ import express, { type Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertBookingSchema, insertAdminLogSchema, bookings, events, adminLogs } from "@shared/schema";
+import { insertBookingSchema, insertAdminLogSchema, bookings, events, adminLogs, InsertUser, User } from "@shared/schema";
 import { z } from "zod";
-import { setupAuth } from "./auth";
+import { setupAuth, hashPassword } from "./auth";
 import Stripe from "stripe";
 import multer from "multer";
 import path from "path";
@@ -830,6 +830,17 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
+      // Log user access to admin logs
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "view_users",
+        entityType: "user",
+        details: {
+          adminEmail: req.user.email,
+          timestamp: new Date().toISOString()
+        }
+      });
+
       // Get users and their bookings
       const users = await storage.getUsers();
       const allBookings = await storage.getBookingDetails();
@@ -846,6 +857,199 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
+  
+  // Add endpoint to create new users (admin only)
+  app.post("/api/users", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const { email, password, role } = req.body;
+      
+      if (!email || !password || !role) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+      
+      // Hash the password
+      const hashedPassword = await hashPassword(password);
+      
+      // Create the user
+      const newUser = await storage.createUser({
+        email,
+        password: hashedPassword,
+        role
+      });
+      
+      // Log user creation
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "create_user",
+        entityType: "user",
+        entityId: newUser.id,
+        details: {
+          email: newUser.email,
+          role: newUser.role,
+          createdBy: req.user.email,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      // Hide password in response
+      const { password: _, ...userResponse } = newUser;
+      
+      res.status(201).json(userResponse);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ 
+        message: "Failed to create user",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Add endpoint to update a user (admin only)
+  app.patch("/api/users/:userId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Get existing user
+      const existingUser = await storage.getUser(userId);
+      if (!existingUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const updates: Partial<Omit<InsertUser, "id">> = {};
+      const changedFields: Record<string, { from: any, to: any }> = {};
+      
+      // Handle potential updates
+      if (req.body.email && req.body.email !== existingUser.email) {
+        // Check if new email already exists
+        const userWithEmail = await storage.getUserByEmail(req.body.email);
+        if (userWithEmail && userWithEmail.id !== userId) {
+          return res.status(400).json({ message: "Email already in use" });
+        }
+        updates.email = req.body.email;
+        changedFields.email = { 
+          from: existingUser.email, 
+          to: req.body.email 
+        };
+      }
+      
+      if (req.body.role && req.body.role !== existingUser.role) {
+        updates.role = req.body.role;
+        changedFields.role = { 
+          from: existingUser.role, 
+          to: req.body.role 
+        };
+      }
+      
+      if (req.body.password) {
+        updates.password = await hashPassword(req.body.password);
+        changedFields.password = { 
+          from: "********", 
+          to: "********" 
+        };
+      }
+      
+      // If no updates, return existing user
+      if (Object.keys(updates).length === 0) {
+        // Hide password in response
+        const { password: userPassword, ...userResponse } = existingUser;
+        return res.json(userResponse);
+      }
+      
+      // Update the user
+      const updatedUser = await storage.updateUser(userId, updates);
+      
+      // Log user update
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "update_user",
+        entityType: "user",
+        entityId: userId,
+        details: {
+          changedFields,
+          updatedBy: req.user.email,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      // Hide password in response
+      const { password: updatedPassword, ...userResponse } = updatedUser;
+      
+      res.json(userResponse);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ 
+        message: "Failed to update user",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  // Add endpoint to delete a user (admin only)
+  app.delete("/api/users/:userId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      // Don't allow deleting self
+      if (userId === req.user.id) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+      
+      // Get user to be deleted for logging
+      const userToDelete = await storage.getUser(userId);
+      if (!userToDelete) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Delete the user
+      await storage.deleteUser(userId);
+      
+      // Log user deletion
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "delete_user",
+        entityType: "user",
+        entityId: userId,
+        details: {
+          deletedEmail: userToDelete.email,
+          deletedRole: userToDelete.role,
+          deletedBy: req.user.email,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      res.status(200).json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ 
+        message: "Failed to delete user",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
 
   app.get("/api/user/:userId/bookings", async (req, res) => {
     try {
@@ -854,6 +1058,19 @@ export async function registerRoutes(app: Express) {
       }
 
       const userId = parseInt(req.params.userId);
+      
+      // Log admin viewing user bookings
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "view_user_bookings",
+        entityType: "user",
+        entityId: userId,
+        details: {
+          adminEmail: req.user.email,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
       const allBookings = await storage.getBookingDetails();
       const userBookings = allBookings.filter(booking => booking.userId === userId);
       res.json(userBookings);
@@ -955,6 +1172,22 @@ export async function registerRoutes(app: Express) {
           booking.seatNumbers.length
         );
         console.log("Event availability updated");
+        
+        // Log the customer booking
+        await storage.createAdminLog({
+          userId: req.user.id,
+          action: "customer_booking_created",
+          entityType: "booking",
+          entityId: created.id,
+          details: {
+            eventId: booking.eventId,
+            tableId: booking.tableId,
+            seatCount: booking.seatNumbers.length,
+            totalAmount: req.body.amount || 0,
+            customerEmail: booking.customerEmail,
+            date: new Date().toISOString()
+          }
+        });
 
         // Broadcast the update to all clients
         await broadcastAvailability(booking.eventId);

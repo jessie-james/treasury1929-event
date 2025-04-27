@@ -14,6 +14,8 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
+  deleteUser(id: number): Promise<void>;
   getUsers(): Promise<User[]>; // Added getUsers method
 
   // Events
@@ -128,6 +130,41 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(users);
     } catch (error) {
       console.error("Error fetching users:", error);
+      throw error;
+    }
+  }
+  
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+    try {
+      console.log(`Updating user ${id} with:`, { ...updates, password: updates.password ? "[REDACTED]" : undefined });
+      const [updated] = await db
+        .update(users)
+        .set(updates)
+        .where(eq(users.id, id))
+        .returning();
+      
+      if (!updated) {
+        throw new Error(`User with ID ${id} not found`);
+      }
+      
+      console.log(`User ${id} updated successfully`);
+      return updated;
+    } catch (error) {
+      console.error(`Error updating user ${id}:`, error);
+      throw error;
+    }
+  }
+  
+  async deleteUser(id: number): Promise<void> {
+    try {
+      console.log(`Deleting user ${id}`);
+      const result = await db
+        .delete(users)
+        .where(eq(users.id, id));
+      
+      console.log(`User ${id} deleted successfully`);
+    } catch (error) {
+      console.error(`Error deleting user ${id}:`, error);
       throw error;
     }
   }
