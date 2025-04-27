@@ -89,7 +89,7 @@ export function FloorPlan({
             <CardContent className="p-1 sm:p-6">
               <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
                 <img 
-                  src="/main-floor.png" 
+                  src="/uploads/main-floor.png" 
                   alt="Main Floor Layout" 
                   className="absolute inset-0 w-full h-full object-contain" 
                 />
@@ -164,7 +164,7 @@ export function FloorPlan({
             <CardContent className="p-1 sm:p-6">
               <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
                 <img 
-                  src="/mezzanine.png" 
+                  src="/uploads/mezzanine.png" 
                   alt="Mezzanine Floor Layout" 
                   className="absolute inset-0 w-full h-full object-contain" 
                 />
