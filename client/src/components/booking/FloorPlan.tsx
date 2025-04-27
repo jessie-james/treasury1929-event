@@ -1,183 +1,268 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Table, Seat, SeatBooking } from '@shared/schema';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-interface Table {
-  id: number;
-  tableNumber: number;
-  capacity: number;
-  floor: string;
-  x: number;
-  y: number;
-  shape: string;
-}
-
-interface Seat {
-  id: number;
-  tableId: number;
-  seatNumber: number;
-  position: string;
-  x: number;
-  y: number;
-  isAvailable: boolean;
-}
+import { Card, CardContent } from '@/components/ui/card';
+import { TableWithSeats } from './TableShapes';
+import { Loader2 } from 'lucide-react';
 
 interface FloorPlanProps {
   eventId: number;
-  selectedTable?: number;
-  selectedSeats?: number[];
-  onTableSelect?: (tableId: number) => void;
-  onSeatSelect?: (tableId: number, seatNumber: number, isAvailable: boolean) => void;
-  className?: string;
+  selectedTable: number | null;
+  selectedSeats: number[];
+  onTableSelect: (tableId: number) => void;
+  onSeatSelect: (tableId: number, seatNumber: number, isBooked: boolean) => void;
 }
 
 export function FloorPlan({
   eventId,
   selectedTable,
-  selectedSeats = [],
+  selectedSeats,
   onTableSelect,
   onSeatSelect,
-  className
 }: FloorPlanProps) {
-  const [activeFloor, setActiveFloor] = useState<string>('main');
+  const [currentFloor, setCurrentFloor] = useState<string>("main");
   
-  // Fetch tables by floor
-  const tablesQuery = useQuery({
-    queryKey: ['/api/tables', activeFloor],
-    queryFn: async () => {
-      const response = await fetch(`/api/tables?floor=${activeFloor}`);
-      if (!response.ok) throw new Error('Failed to fetch tables');
-      return response.json() as Promise<Table[]>;
-    }
+  // Get all tables for the current floor
+  const { data: tables, isLoading: tablesLoading } = useQuery<Table[]>({
+    queryKey: ['/api/tables', { floor: currentFloor }],
   });
   
-  // Fetch seats for the selected table
-  const seatsQuery = useQuery({
-    queryKey: ['/api/tables', selectedTable, 'seats', eventId],
-    queryFn: async () => {
-      if (!selectedTable) return [];
-      const response = await fetch(`/api/tables/${selectedTable}/seats?eventId=${eventId}`);
-      if (!response.ok) throw new Error('Failed to fetch seats');
-      return response.json() as Promise<Seat[]>;
-    },
-    enabled: !!selectedTable
+  // Get all seat availability for the selected table and event
+  const { data: seatAvailability, isLoading: seatsLoading } = useQuery<SeatBooking[]>({
+    queryKey: ['/api/tables/seats/availability', { tableId: selectedTable, eventId }],
+    enabled: selectedTable !== null,
   });
+
+  // Get the seats for the selected table
+  const { data: tableSeats, isLoading: tableSeatsLoading } = useQuery<Seat[]>({
+    queryKey: ['/api/tables/seats', { tableId: selectedTable }],
+    enabled: selectedTable !== null,
+  });
+
+  // Combine the table seats with their availability
+  const seatsWithAvailability = React.useMemo(() => {
+    if (!tableSeats || !seatAvailability) return [];
+    
+    return tableSeats.map(seat => {
+      const booking = seatAvailability.find(
+        booking => booking.seatId === seat.id
+      );
+      
+      return {
+        id: seat.id,
+        seatNumber: seat.seatNumber,
+        position: seat.position,
+        x: seat.x !== null ? seat.x : 0,
+        y: seat.y !== null ? seat.y : 0,
+        isAvailable: !booking || !booking.isBooked,
+      };
+    });
+  }, [tableSeats, seatAvailability]);
+
+  // Floor plan background SVGs matching the PNG images
+  const mainFloorBackgroundSVG = (
+    <svg width="960" height="500" viewBox="0 0 960 500" className="absolute inset-0">
+      {/* Main room outline */}
+      <path 
+        d="M70,40 L890,40 L890,450 L70,450 Z" 
+        fill="rgba(245, 247, 250, 0.4)" 
+        stroke="#94a3b8" 
+        strokeWidth="2" 
+      />
+      
+      {/* Stage area at the top */}
+      <rect x="380" y="40" width="200" height="80" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <text x="480" y="85" textAnchor="middle" className="text-xs font-medium" fill="#64748b">STAGE</text>
+      
+      {/* Left bar area */}
+      <rect x="70" y="40" width="120" height="70" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <text x="130" y="75" textAnchor="middle" className="text-xs font-medium" fill="#64748b">BAR</text>
+      
+      {/* Right entrance area */}
+      <rect x="750" y="40" width="140" height="70" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <text x="820" y="75" textAnchor="middle" className="text-xs font-medium" fill="#64748b">ENTRANCE</text>
+      
+      {/* Dance floor in the center */}
+      <rect x="400" y="200" width="160" height="140" rx="4" fill="#f1f5f9" stroke="#94a3b8" strokeWidth="1" />
+      <text x="480" y="270" textAnchor="middle" className="text-sm font-medium" fill="#64748b">DANCE FLOOR</text>
+      
+      {/* Service areas and additional details */}
+      <rect x="70" y="140" width="100" height="60" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <text x="120" y="170" textAnchor="middle" className="text-xs font-medium" fill="#64748b">SERVICE</text>
+      
+      {/* Indicated walkways/aisles */}
+      <path 
+        d="M170,195 L400,195 M560,195 L770,195 M480,140 L480,200 M480,340 L480,450" 
+        stroke="#cbd5e1" 
+        strokeWidth="5" 
+        strokeDasharray="5,5" 
+      />
+    </svg>
+  );
   
-  // Scale factor for visual layout
-  const scaleFactor = 0.8;
-  
+  const mezzanineFloorBackgroundSVG = (
+    <svg width="960" height="500" viewBox="0 0 960 500" className="absolute inset-0">
+      {/* Mezzanine outline with the curved shape */}
+      <path 
+        d="M380,120 L880,120 L880,400 L450,400 C420,350 380,350 380,300 Z" 
+        fill="rgba(245, 247, 250, 0.4)" 
+        stroke="#94a3b8" 
+        strokeWidth="2" 
+      />
+      
+      {/* Mezzanine stage view at the top */}
+      <rect x="380" y="70" width="200" height="50" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <text x="480" y="100" textAnchor="middle" className="text-xs font-medium" fill="#64748b">STAGE VIEW</text>
+      
+      {/* Bar area on the right side */}
+      <rect x="780" y="150" width="100" height="60" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <text x="830" y="180" textAnchor="middle" className="text-xs font-medium" fill="#64748b">BAR</text>
+      
+      {/* Stairs on the left side */}
+      <rect x="380" y="250" width="40" height="80" rx="0" fill="#f1f5f9" stroke="#94a3b8" strokeWidth="1" />
+      <line x1="380" y1="260" x2="420" y2="260" stroke="#94a3b8" strokeWidth="1" />
+      <line x1="380" y1="270" x2="420" y2="270" stroke="#94a3b8" strokeWidth="1" />
+      <line x1="380" y1="280" x2="420" y2="280" stroke="#94a3b8" strokeWidth="1" />
+      <line x1="380" y1="290" x2="420" y2="290" stroke="#94a3b8" strokeWidth="1" />
+      <line x1="380" y1="300" x2="420" y2="300" stroke="#94a3b8" strokeWidth="1" />
+      <line x1="380" y1="310" x2="420" y2="310" stroke="#94a3b8" strokeWidth="1" />
+      <line x1="380" y1="320" x2="420" y2="320" stroke="#94a3b8" strokeWidth="1" />
+      <text x="400" y="240" textAnchor="middle" className="text-xs font-medium" fill="#64748b">STAIRS</text>
+      
+      {/* Indicated walkways/aisles */}
+      <path 
+        d="M420,250 L700,250 M660,250 L660,400" 
+        stroke="#cbd5e1" 
+        strokeWidth="5" 
+        strokeDasharray="5,5" 
+      />
+      
+      {/* Railing along the view edge */}
+      <path 
+        d="M450,150 L880,150" 
+        stroke="#94a3b8" 
+        strokeWidth="2" 
+        strokeDasharray="8,4" 
+      />
+      <text x="500" y="170" textAnchor="middle" className="text-xs font-medium" fill="#64748b">RAILING</text>
+    </svg>
+  );
+
+  if (tablesLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!tables || tables.length === 0) {
+    return <div className="text-center p-6">No tables found for this floor</div>;
+  }
+
   return (
-    <div className={cn("w-full flex flex-col gap-4", className)}>
-      <Tabs defaultValue="main" onValueChange={setActiveFloor}>
+    <div className="space-y-4">
+      <Tabs
+        defaultValue="main"
+        value={currentFloor}
+        onValueChange={setCurrentFloor}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="main">Main Floor</TabsTrigger>
           <TabsTrigger value="mezzanine">Mezzanine</TabsTrigger>
         </TabsList>
         
-        {['main', 'mezzanine'].map(floor => (
-          <TabsContent key={floor} value={floor} className="h-full">
-            <div className="relative w-full overflow-auto border rounded-md bg-gray-50 h-[500px]">
-              {/* Stage area for main floor */}
-              {floor === 'main' && (
-                <div 
-                  className="absolute bg-gray-200 border border-gray-400 flex items-center justify-center" 
-                  style={{
-                    left: 430 * scaleFactor,
-                    top: 165 * scaleFactor,
-                    width: 260 * scaleFactor,
-                    height: 140 * scaleFactor
-                  }}
-                >
-                  <p className="text-gray-600 font-medium">Stage</p>
-                </div>
-              )}
-              
-              {/* Loading state */}
-              {tablesQuery.isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              )}
-              
-              {/* Error state */}
-              {tablesQuery.isError && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <p className="text-destructive">Failed to load tables. Please try again.</p>
-                </div>
-              )}
-              
-              {/* Tables */}
-              {tablesQuery.data?.map(table => (
-                <div 
-                  key={table.id}
-                  className={cn(
-                    "absolute cursor-pointer transition-all duration-200 flex flex-col items-center justify-center",
-                    selectedTable === table.id ? "ring-2 ring-primary" : "hover:ring-2 hover:ring-primary/50"
-                  )}
-                  style={{
-                    left: table.x * scaleFactor,
-                    top: table.y * scaleFactor,
-                    width: (table.shape === 'round' ? 50 : 60) * scaleFactor,
-                    height: (table.shape === 'round' ? 50 : 60) * scaleFactor,
-                    borderRadius: table.shape === 'round' ? '50%' : '4px',
-                    backgroundColor: selectedTable === table.id ? 'rgb(226, 232, 240)' : 'white',
-                    border: '1px solid rgb(203, 213, 225)'
-                  }}
-                  onClick={() => onTableSelect && onTableSelect(table.id)}
-                >
-                  <span className="text-xs font-semibold">{table.tableNumber}</span>
-                  
-                  {/* Only show seats if this table is selected */}
-                  {selectedTable === table.id && seatsQuery.data?.map(seat => (
-                    <div
-                      key={seat.id}
-                      className={cn(
-                        "absolute w-4 h-4 rounded-full cursor-pointer",
-                        "flex items-center justify-center text-[10px]",
-                        selectedSeats.includes(seat.seatNumber) 
-                          ? "bg-primary text-primary-foreground"
-                          : seat.isAvailable 
-                            ? "bg-green-100 border border-green-300 hover:bg-green-200"
-                            : "bg-gray-200 border border-gray-300 cursor-not-allowed"
-                      )}
-                      style={{
-                        left: '50%',
-                        top: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        marginLeft: seat.x * scaleFactor,
-                        marginTop: seat.y * scaleFactor
-                      }}
-                      onClick={() => {
-                        if (seat.isAvailable && onSeatSelect) {
-                          onSeatSelect(table.id, seat.seatNumber, seat.isAvailable);
-                        }
+        <TabsContent value="main" className="pt-4">
+          <Card>
+            <CardContent className="p-1 sm:p-6">
+              <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
+                {mainFloorBackgroundSVG}
+                <div className="relative w-full h-full">
+                  {tables.map((table) => (
+                    <div 
+                      key={table.id}
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                      style={{ 
+                        left: `${table.x}px`, 
+                        top: `${table.y}px`,
                       }}
                     >
-                      {seat.seatNumber}
+                      <TableWithSeats 
+                        shape={table.shape as any}
+                        tableNumber={table.tableNumber}
+                        seats={
+                          table.id === selectedTable && !tableSeatsLoading && !seatsLoading
+                            ? seatsWithAvailability
+                            : []
+                        }
+                        selectedSeats={selectedSeats}
+                        isTableSelected={table.id === selectedTable}
+                        onTableSelect={() => onTableSelect(table.id)}
+                        onSeatSelect={(seatNumber, isAvailable) => 
+                          onSeatSelect(table.id, seatNumber, !isAvailable)
+                        }
+                      />
                     </div>
                   ))}
                 </div>
-              ))}
-            </div>
-          </TabsContent>
-        ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="mezzanine" className="pt-4">
+          <Card>
+            <CardContent className="p-1 sm:p-6">
+              <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
+                {mezzanineFloorBackgroundSVG}
+                <div className="relative w-full h-full">
+                  {tables.map((table) => (
+                    <div 
+                      key={table.id}
+                      className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                      style={{ 
+                        left: `${table.x}px`, 
+                        top: `${table.y}px`,
+                      }}
+                    >
+                      <TableWithSeats 
+                        shape={table.shape as any}
+                        tableNumber={table.tableNumber}
+                        seats={
+                          table.id === selectedTable && !tableSeatsLoading && !seatsLoading
+                            ? seatsWithAvailability
+                            : []
+                        }
+                        selectedSeats={selectedSeats}
+                        isTableSelected={table.id === selectedTable}
+                        onTableSelect={() => onTableSelect(table.id)}
+                        onSeatSelect={(seatNumber, isAvailable) => 
+                          onSeatSelect(table.id, seatNumber, !isAvailable)
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
       
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center gap-4 text-sm">
+        <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-green-100 border border-green-300"></div>
           <span>Available</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-primary"></div>
-          <span>Selected</span>
-        </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300"></div>
-          <span>Unavailable</span>
+          <span>Booked</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded-full bg-primary border border-primary"></div>
+          <span>Selected</span>
         </div>
       </div>
     </div>
