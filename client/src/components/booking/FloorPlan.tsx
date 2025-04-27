@@ -60,130 +60,23 @@ export function FloorPlan({
     });
   }, [tableSeats, seatAvailability]);
 
-  // Floor plan background SVGs exactly matching the PNG images - pixel perfect
-  const mainFloorBackgroundSVG = (
-    <svg width="960" height="500" viewBox="0 0 960 500" className="absolute inset-0">
-      {/* Main walls and outline exactly matching PNG */}
-      <rect 
-        x="30" y="40" 
-        width="900" height="410" 
-        fill="none" 
-        stroke="#d1d5db" 
-        strokeWidth="2" 
-      />
-      
-      {/* Pillars/columns along the top wall exactly as in PNG */}
-      <circle cx="30" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="160" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="290" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="420" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="550" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="680" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="810" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="930" cy="65" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      
-      {/* Bottom row pillars */}
-      <circle cx="30" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="160" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="290" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="420" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="550" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="680" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="810" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="930" cy="330" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      
-      {/* Stage area exactly as shown in PNG */}
-      <rect x="430" y="100" width="220" height="140" rx="0" fill="none" stroke="#000000" strokeWidth="1" />
-      <text x="540" y="170" textAnchor="middle" fontSize="14" fontWeight="normal" fill="#000000">Open area for stage</text>
-      <text x="540" y="195" textAnchor="middle" fontSize="12" fontWeight="normal" fill="#000000">26'</text>
-      <text x="415" y="170" textAnchor="middle" fontSize="12" fontWeight="normal" fill="#000000" transform="rotate(-90, 415, 170)">14'</text>
-      
-      {/* Orange vertical divider line exactly as in PNG */}
-      <line 
-        x1="430" y1="65" 
-        x2="430" y2="240" 
-        stroke="#f97316" 
-        strokeWidth="1.5" 
-      />
-      
-      {/* Horizontal divider line exactly as in PNG */}
-      <line 
-        x1="30" y1="320" 
-        x2="930" y2="320" 
-        stroke="#d1d5db" 
-        strokeWidth="1.5" 
-      />
-    </svg>
+  // Use actual PNG images as backgrounds instead of SVG
+  const MainFloorBackground = () => (
+    <img 
+      src="/assets/Main Floor.png" 
+      alt="Main Floor Layout" 
+      className="absolute inset-0 w-full h-full object-contain" 
+      style={{ zIndex: 0 }}
+    />
   );
   
-  const mezzanineFloorBackgroundSVG = (
-    <svg width="960" height="500" viewBox="0 0 960 500" className="absolute inset-0">
-      {/* Mezzanine curved outline exactly matching PNG */}
-      <path 
-        d="M60,50 
-         Q60,50 100,50
-         L860,50
-         L860,310
-         L200,310
-         Q120,310 60,250
-         Z" 
-        fill="none" 
-        stroke="#d1d5db" 
-        strokeWidth="2" 
-      />
-      
-      {/* Pillars/columns along the top exactly as in PNG */}
-      <circle cx="100" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="220" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="340" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="460" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="580" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="700" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="820" cy="50" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      
-      {/* Bottom row pillars */}
-      <circle cx="100" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="220" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="340" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="460" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="580" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="700" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      <circle cx="820" cy="310" r="12" fill="#f3f4f6" stroke="#d1d5db" strokeWidth="1" />
-      
-      {/* Stairs on the right exactly as in PNG */}
-      <path 
-        d="M860,100
-         Q900,100 900,130
-         L900,220
-         Q900,250 860,250"
-        fill="none" 
-        stroke="#d1d5db" 
-        strokeWidth="1" 
-      />
-      
-      {/* Stair steps exactly as in PNG */}
-      <path 
-        d="M860,135 L900,135
-         M860,145 L900,145
-         M860,155 L900,155
-         M860,165 L900,165
-         M860,175 L900,175
-         M860,185 L900,185
-         M860,195 L900,195
-         M860,205 L900,205
-         M860,215 L900,215"
-        stroke="#d1d5db" 
-        strokeWidth="0.8" 
-      />
-      
-      {/* Horizontal divider line exactly as in PNG */}
-      <line 
-        x1="60" y1="310" 
-        x2="860" y2="310" 
-        stroke="#d1d5db" 
-        strokeWidth="1.5" 
-      />
-    </svg>
+  const MezzanineFloorBackground = () => (
+    <img 
+      src="/assets/Mezzanine.png" 
+      alt="Mezzanine Floor Layout" 
+      className="absolute inset-0 w-full h-full object-contain" 
+      style={{ zIndex: 0 }}
+    />
   );
 
   if (tablesLoading) {
@@ -215,32 +108,66 @@ export function FloorPlan({
           <Card>
             <CardContent className="p-1 sm:p-6">
               <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
-                {mainFloorBackgroundSVG}
-                <div className="relative w-full h-full">
+                <MainFloorBackground />
+                <div className="relative w-full h-full" style={{ pointerEvents: 'none' }}>
                   {tables.map((table) => (
                     <div 
                       key={table.id}
-                      className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                      className="absolute"
                       style={{ 
                         left: `${table.x}px`, 
                         top: `${table.y}px`,
+                        pointerEvents: 'auto'  // Allow clicks on table elements only
                       }}
                     >
-                      <TableWithSeats 
-                        shape={table.shape as any}
-                        tableNumber={table.tableNumber}
-                        seats={
-                          table.id === selectedTable && !tableSeatsLoading && !seatsLoading
-                            ? seatsWithAvailability
-                            : []
-                        }
-                        selectedSeats={selectedSeats}
-                        isTableSelected={table.id === selectedTable}
-                        onTableSelect={() => onTableSelect(table.id)}
-                        onSeatSelect={(seatNumber, isAvailable) => 
-                          onSeatSelect(table.id, seatNumber, !isAvailable)
-                        }
-                      />
+                      <div 
+                        className="cursor-pointer bg-transparent"
+                        style={{ 
+                          width: '25px', 
+                          height: '25px', 
+                          borderRadius: '50%', 
+                          position: 'relative',
+                          border: table.id === selectedTable ? '2px solid #3b82f6' : 'none'
+                        }}
+                        onClick={() => onTableSelect(table.id)}
+                      >
+                        {/* Display table number in a way that doesn't obstruct the PNG background */}
+                        <div className="absolute -bottom-6 -right-6 bg-white bg-opacity-50 px-1 rounded-full">
+                          <span className="text-xs font-bold">{table.tableNumber}</span>
+                        </div>
+                        
+                        {/* Display seats only when table is selected */}
+                        {table.id === selectedTable && !tableSeatsLoading && !seatsLoading && (
+                          <div className="absolute top-0 left-0">
+                            {seatsWithAvailability.map(seat => (
+                              <div
+                                key={seat.id}
+                                className={`absolute w-5 h-5 rounded-sm cursor-pointer border border-black ${
+                                  selectedSeats.includes(seat.seatNumber)
+                                    ? 'bg-blue-500'
+                                    : seat.isAvailable
+                                    ? 'bg-white'
+                                    : 'bg-gray-300 cursor-not-allowed'
+                                }`}
+                                style={{
+                                  left: seat.x - 60, // Offset to correctly position relative to table
+                                  top: seat.y - 60,  // Offset to correctly position relative to table
+                                  transform: 'scale(0.8)'
+                                }}
+                                onClick={() => 
+                                  seat.isAvailable || selectedSeats.includes(seat.seatNumber) 
+                                    ? onSeatSelect(table.id, seat.seatNumber, !seat.isAvailable)
+                                    : undefined
+                                }
+                              >
+                                <span className="flex items-center justify-center text-xs h-full">
+                                  {seat.seatNumber}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -253,32 +180,66 @@ export function FloorPlan({
           <Card>
             <CardContent className="p-1 sm:p-6">
               <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
-                {mezzanineFloorBackgroundSVG}
-                <div className="relative w-full h-full">
+                <MezzanineFloorBackground />
+                <div className="relative w-full h-full" style={{ pointerEvents: 'none' }}>
                   {tables.map((table) => (
                     <div 
                       key={table.id}
-                      className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                      className="absolute"
                       style={{ 
                         left: `${table.x}px`, 
                         top: `${table.y}px`,
+                        pointerEvents: 'auto' // Allow clicks on table elements only
                       }}
                     >
-                      <TableWithSeats 
-                        shape={table.shape as any}
-                        tableNumber={table.tableNumber}
-                        seats={
-                          table.id === selectedTable && !tableSeatsLoading && !seatsLoading
-                            ? seatsWithAvailability
-                            : []
-                        }
-                        selectedSeats={selectedSeats}
-                        isTableSelected={table.id === selectedTable}
-                        onTableSelect={() => onTableSelect(table.id)}
-                        onSeatSelect={(seatNumber, isAvailable) => 
-                          onSeatSelect(table.id, seatNumber, !isAvailable)
-                        }
-                      />
+                      <div 
+                        className="cursor-pointer bg-transparent"
+                        style={{ 
+                          width: '25px', 
+                          height: '25px', 
+                          borderRadius: '50%', 
+                          position: 'relative',
+                          border: table.id === selectedTable ? '2px solid #3b82f6' : 'none'
+                        }}
+                        onClick={() => onTableSelect(table.id)}
+                      >
+                        {/* Display table number in a way that doesn't obstruct the PNG background */}
+                        <div className="absolute -bottom-6 -right-6 bg-white bg-opacity-50 px-1 rounded-full">
+                          <span className="text-xs font-bold">{table.tableNumber}</span>
+                        </div>
+                        
+                        {/* Display seats only when table is selected */}
+                        {table.id === selectedTable && !tableSeatsLoading && !seatsLoading && (
+                          <div className="absolute top-0 left-0">
+                            {seatsWithAvailability.map(seat => (
+                              <div
+                                key={seat.id}
+                                className={`absolute w-5 h-5 rounded-sm cursor-pointer border border-black ${
+                                  selectedSeats.includes(seat.seatNumber)
+                                    ? 'bg-blue-500'
+                                    : seat.isAvailable
+                                    ? 'bg-white'
+                                    : 'bg-gray-300 cursor-not-allowed'
+                                }`}
+                                style={{
+                                  left: seat.x - 60, // Offset to correctly position relative to table
+                                  top: seat.y - 60,  // Offset to correctly position relative to table
+                                  transform: 'scale(0.8)'
+                                }}
+                                onClick={() => 
+                                  seat.isAvailable || selectedSeats.includes(seat.seatNumber) 
+                                    ? onSeatSelect(table.id, seat.seatNumber, !seat.isAvailable)
+                                    : undefined
+                                }
+                              >
+                                <span className="flex items-center justify-center text-xs h-full">
+                                  {seat.seatNumber}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
