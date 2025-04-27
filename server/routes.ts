@@ -202,6 +202,21 @@ export async function registerRoutes(app: Express) {
       });
       
       console.log("Event created successfully:", event);
+      
+      // Create detailed admin log
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "create_event",
+        entityType: "event",
+        entityId: event.id,
+        details: {
+          title: event.title,
+          date: event.date,
+          totalSeats: event.totalSeats,
+          image: event.image
+        }
+      });
+      
       res.status(201).json(event);
     } catch (error) {
       console.error("Error creating event:", error);
@@ -253,6 +268,21 @@ export async function registerRoutes(app: Express) {
       }
       
       console.log("Event updated successfully:", event);
+      
+      // Create detailed admin log for event update
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "update_event",
+        entityType: "event",
+        entityId: id,
+        details: {
+          title: event.title,
+          date: event.date,
+          updates: Object.keys(updateData),
+          image: event.image
+        }
+      });
+      
       res.json(event);
     } catch (error) {
       console.error("Error updating event:", error);
@@ -270,7 +300,27 @@ export async function registerRoutes(app: Express) {
       }
 
       const id = parseInt(req.params.id);
+      
+      // Get event details before deletion for logging
+      const event = await storage.getEvent(id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
       await storage.deleteEvent(id);
+      
+      // Create detailed admin log for event deletion
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "delete_event",
+        entityType: "event",
+        entityId: id,
+        details: {
+          title: event.title,
+          date: event.date
+        }
+      });
+      
       res.sendStatus(200);
     } catch (error) {
       console.error("Error deleting event:", error);
@@ -450,13 +500,22 @@ export async function registerRoutes(app: Express) {
       // Create the manual booking using admin's ID for tracking
       const booking = await storage.createManualBooking(bookingData, req.user.id);
       
-      // Create log entry for this action
+      // Create detailed log entry for this action
       await storage.createAdminLog({
         userId: req.user.id,
         action: "create_manual_booking",
         entityType: "booking",
         entityId: booking?.id,
-        details: { bookingId: booking?.id }  // Only store ID to prevent circular references
+        details: { 
+          bookingData: {
+            id: booking?.id,
+            eventId: Number(eventId),
+            tableId: Number(tableId),
+            seatNumbers: seatNumbers,
+            customerEmail: customerEmail,
+            userId: Number(userId)
+          }
+        }
       });
       
       console.log("Manual booking created successfully:", JSON.stringify(booking, null, 2));
@@ -512,6 +571,17 @@ export async function registerRoutes(app: Express) {
       const { orderedIds } = validationResult.data;
       await storage.updateEventsOrder(orderedIds);
       
+      // Create detailed admin log for event ordering
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "update_events_order",
+        entityType: "event",
+        entityId: 0,  // Not tied to a specific event
+        details: {
+          orderedIds: orderedIds
+        }
+      });
+      
       res.status(200).json({ success: true, message: "Events order updated successfully" });
     } catch (error) {
       console.error("Error updating events order:", error);
@@ -540,6 +610,17 @@ export async function registerRoutes(app: Express) {
       
       const { orderedIds } = validationResult.data;
       await storage.updateFoodOptionsOrder(orderedIds);
+      
+      // Create detailed admin log for food options ordering
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "update_food_options_order",
+        entityType: "food_option",
+        entityId: 0,  // Not tied to a specific food option
+        details: {
+          orderedIds: orderedIds
+        }
+      });
       
       res.status(200).json({ success: true, message: "Food options order updated successfully" });
     } catch (error) {
