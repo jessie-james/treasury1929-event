@@ -18,32 +18,32 @@ export function RoundTable({ isSelected, onClick, tableNumber, className }: Shap
       )}
       onClick={onClick}
     >
-      {/* Table shape exactly matching PNG - half circle table */}
-      <svg width="50" height="40" viewBox="0 0 50 40">
-        {/* Half-circle table */}
+      {/* Table shape exactly matching PNG - half circle table with proper proportions */}
+      <svg width="60" height="40" viewBox="0 0 60 40">
+        {/* Half-circle table with proportions exactly like PNG */}
         <path 
-          d="M5,20 A20,20 0 0,1 45,20 L45,35 L5,35 Z" 
+          d="M5,25 A25,25 0 0,1 55,25 L55,35 L5,35 Z" 
           fill={isSelected ? 'rgb(240, 240, 240)' : 'white'} 
           stroke="rgb(0, 0, 0)" 
-          strokeWidth="1"
+          strokeWidth="0.75"
         />
         
-        {/* Table number */}
+        {/* Table number positioned as in PNG */}
         <text 
-          x="25" y="28" 
+          x="30" y="31" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          fontSize="10"
+          fontSize="8"
           fontWeight="bold"
           fill="#000000"
         >
           {tableNumber}
         </text>
         
-        {/* Rectangular seats exactly as shown in PNG */}
-        <rect x="11" y="5" width="8" height="6" fill="white" stroke="#000000" strokeWidth="0.5" />
-        <rect x="21" y="3" width="8" height="6" fill="white" stroke="#000000" strokeWidth="0.5" />
-        <rect x="31" y="5" width="8" height="6" fill="white" stroke="#000000" strokeWidth="0.5" />
+        {/* Rectangular seats with proportions exactly as shown in PNG */}
+        <rect x="14" y="8" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <rect x="26" y="5" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <rect x="38" y="8" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
       </svg>
     </div>
   );
@@ -59,32 +59,32 @@ export function RectangularTable({ isSelected, onClick, tableNumber, className }
       )}
       onClick={onClick}
     >
-      {/* Half-circle table shape rotated - matching exactly table #7 in PNG */}
-      <svg width="50" height="40" viewBox="0 0 50 40">
-        {/* Half-circle table rotated to match PNG */}
+      {/* Half-circle table shape rotated sideways - matching exactly table #7 in PNG */}
+      <svg width="60" height="45" viewBox="0 0 60 45">
+        {/* Half-circle table facing right exactly like in PNG */}
         <path 
-          d="M20,5 A20,15 0 0,0 20,35 L40,35 L40,5 Z" 
+          d="M10,5 L40,5 A20,17.5 0 0,1 40,40 L10,40 Z" 
           fill={isSelected ? 'rgb(240, 240, 240)' : 'white'} 
           stroke="rgb(0, 0, 0)" 
-          strokeWidth="1"
+          strokeWidth="0.75"
         />
         
-        {/* Table number */}
+        {/* Table number positioned as in PNG */}
         <text 
-          x="30" y="20" 
+          x="25" y="25" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          fontSize="10"
+          fontSize="8"
           fontWeight="bold"
           fill="#000000"
         >
           {tableNumber}
         </text>
         
-        {/* Rectangular seats exactly as shown in PNG */}
-        <rect x="5" y="14" width="6" height="8" fill="white" stroke="#000000" strokeWidth="0.5" />
-        <rect x="40" y="9" width="6" height="8" fill="white" stroke="#000000" strokeWidth="0.5" />
-        <rect x="40" y="23" width="6" height="8" fill="white" stroke="#000000" strokeWidth="0.5" />
+        {/* Rectangular seats with exact proportions from PNG */}
+        <rect x="3" y="18" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <rect x="44" y="12" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <rect x="44" y="28" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
       </svg>
     </div>
   );
@@ -101,31 +101,31 @@ export function SquareTable({ isSelected, onClick, tableNumber, className }: Sha
       onClick={onClick}
     >
       {/* Triangle-shaped table (tables #23, #25, etc.) */}
-      <svg width="45" height="40" viewBox="0 0 45 40">
-        {/* Triangle table shape exactly as in PNG */}
+      <svg width="50" height="45" viewBox="0 0 50 45">
+        {/* Triangle table shape exactly as in PNG - used for tables 23, 25, etc. */}
         <path 
-          d="M5,10 L40,10 L22.5,35 Z" 
+          d="M5,10 L45,10 L25,35 Z" 
           fill={isSelected ? 'rgb(240, 240, 240)' : 'white'} 
           stroke="rgb(0, 0, 0)" 
-          strokeWidth="1"
+          strokeWidth="0.75"
         />
         
-        {/* Table number */}
+        {/* Table number positioned as in PNG */}
         <text 
-          x="22.5" y="20" 
+          x="25" y="20" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          fontSize="10"
+          fontSize="8"
           fontWeight="bold"
           fill="#000000"
         >
           {tableNumber}
         </text>
         
-        {/* Rectangular seats exactly as shown in PNG */}
-        <rect x="8" y="4" width="8" height="6" fill="white" stroke="#000000" strokeWidth="0.5" />
-        <rect x="30" y="4" width="8" height="6" fill="white" stroke="#000000" strokeWidth="0.5" />
-        <rect x="18" y="35" width="8" height="6" fill="white" stroke="#000000" strokeWidth="0.5" />
+        {/* Rectangular seats with exact proportions from PNG */}
+        <rect x="10" y="4" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <rect x="33" y="4" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <rect x="22" y="35" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
       </svg>
     </div>
   );
@@ -141,33 +141,33 @@ export function OvalTable({ isSelected, onClick, tableNumber, className }: Shape
       )}
       onClick={onClick}
     >
-      {/* Complex shape table (like table #18) */}
-      <svg width="50" height="45" viewBox="0 0 50 45">
-        {/* Table shape matching table #18 in PNG */}
+      {/* Complex shape table (like table #18) with exact proportions */}
+      <svg width="60" height="50" viewBox="0 0 60 50">
+        {/* Table shape matching table #18 in PNG exactly */}
         <path 
-          d="M5,15 A15,15 0 0,1 35,15 L35,35 L5,35 Z" 
+          d="M5,15 A25,15 0 0,1 55,15 L55,40 L5,40 Z" 
           fill={isSelected ? 'rgb(240, 240, 240)' : 'white'} 
           stroke="rgb(0, 0, 0)" 
-          strokeWidth="1"
+          strokeWidth="0.75"
         />
         
-        {/* Table number */}
+        {/* Table number positioned as in PNG */}
         <text 
-          x="20" y="25" 
+          x="30" y="28" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          fontSize="10"
+          fontSize="8"
           fontWeight="bold"
           fill="#000000"
         >
           {tableNumber}
         </text>
         
-        {/* Rectangular seats exactly as shown in PNG */}
-        <rect x="5" y="10" width="6" height="8" fill="white" stroke="#000000" strokeWidth="0.5" />
-        <rect x="17" y="2" width="8" height="6" fill="white" stroke="#000000" strokeWidth="0.5" />
-        <rect x="29" y="10" width="6" height="8" fill="white" stroke="#000000" strokeWidth="0.5" />
-        <rect x="17" y="35" width="8" height="6" fill="white" stroke="#000000" strokeWidth="0.5" />
+        {/* Rectangular seats with exact proportions from PNG */}
+        <rect x="5" y="10" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <rect x="27" y="3" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <rect x="48" y="10" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
+        <rect x="27" y="40" width="7" height="4" fill="white" stroke="#000000" strokeWidth="0.5" />
       </svg>
     </div>
   );
