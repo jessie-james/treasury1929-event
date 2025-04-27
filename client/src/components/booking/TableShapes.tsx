@@ -59,23 +59,34 @@ export function RectangularTable({ isSelected, onClick, tableNumber, className }
       onClick={onClick}
     >
       <svg width="70" height="60" viewBox="0 0 70 60">
+        {/* Table background */}
         <rect 
           x="1" y="1" 
           width="68" height="58" 
           rx="4" ry="4" 
           fill={isSelected ? 'rgb(226, 232, 240)' : 'white'} 
-          stroke="rgb(203, 213, 225)" 
+          stroke="rgb(100, 116, 139)" 
           strokeWidth="1.5"
         />
+        
+        {/* Table number */}
         <text 
           x="35" y="30" 
           textAnchor="middle" 
           dominantBaseline="middle" 
           className="text-xs font-semibold"
-          fill="currentColor"
+          fill="#334155"
         >
           {tableNumber}
         </text>
+        
+        {/* Small circles for seat positions */}
+        <circle cx="35" cy="5" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="65" cy="20" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="65" cy="40" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="35" cy="55" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="5" cy="40" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="5" cy="20" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
       </svg>
     </div>
   );
@@ -92,23 +103,34 @@ export function SquareTable({ isSelected, onClick, tableNumber, className }: Sha
       onClick={onClick}
     >
       <svg width="60" height="60" viewBox="0 0 60 60">
+        {/* Table background */}
         <rect 
           x="1" y="1" 
           width="58" height="58" 
           rx="4" ry="4" 
           fill={isSelected ? 'rgb(226, 232, 240)' : 'white'} 
-          stroke="rgb(203, 213, 225)" 
+          stroke="rgb(100, 116, 139)" 
           strokeWidth="1.5"
         />
+        
+        {/* Table number */}
         <text 
           x="30" y="30" 
           textAnchor="middle" 
           dominantBaseline="middle" 
           className="text-xs font-semibold"
-          fill="currentColor"
+          fill="#334155"
         >
           {tableNumber}
         </text>
+        
+        {/* Small circles for seat positions */}
+        <circle cx="30" cy="5" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="55" cy="15" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="55" cy="45" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="30" cy="55" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="5" cy="45" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="5" cy="15" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
       </svg>
     </div>
   );
@@ -125,21 +147,30 @@ export function OvalTable({ isSelected, onClick, tableNumber, className }: Shape
       onClick={onClick}
     >
       <svg width="70" height="50" viewBox="0 0 70 50">
+        {/* Table background */}
         <ellipse 
           cx="35" cy="25" rx="33" ry="23" 
           fill={isSelected ? 'rgb(226, 232, 240)' : 'white'} 
-          stroke="rgb(203, 213, 225)" 
+          stroke="rgb(100, 116, 139)" 
           strokeWidth="1.5"
         />
+        
+        {/* Table number */}
         <text 
           x="35" y="25" 
           textAnchor="middle" 
           dominantBaseline="middle" 
           className="text-xs font-semibold"
-          fill="currentColor"
+          fill="#334155"
         >
           {tableNumber}
         </text>
+        
+        {/* Small circles for seat positions */}
+        <circle cx="35" cy="5" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="60" cy="25" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="35" cy="45" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="10" cy="25" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
       </svg>
     </div>
   );
