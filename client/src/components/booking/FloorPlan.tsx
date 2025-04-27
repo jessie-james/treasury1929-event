@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Table, Seat, SeatBooking } from '@shared/schema';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { TableWithSeats } from './TableShapes';
 import { Loader2 } from 'lucide-react';
 
 interface FloorPlanProps {
@@ -60,25 +59,6 @@ export function FloorPlan({
     });
   }, [tableSeats, seatAvailability]);
 
-  // Use actual PNG images as backgrounds instead of SVG
-  const MainFloorBackground = () => (
-    <img 
-      src="/assets/Main Floor.png" 
-      alt="Main Floor Layout" 
-      className="absolute inset-0 w-full h-full object-contain" 
-      style={{ zIndex: 0 }}
-    />
-  );
-  
-  const MezzanineFloorBackground = () => (
-    <img 
-      src="/assets/Mezzanine.png" 
-      alt="Mezzanine Floor Layout" 
-      className="absolute inset-0 w-full h-full object-contain" 
-      style={{ zIndex: 0 }}
-    />
-  );
-
   if (tablesLoading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -108,7 +88,12 @@ export function FloorPlan({
           <Card>
             <CardContent className="p-1 sm:p-6">
               <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
-                <MainFloorBackground />
+                <img 
+                  src="/static/main-floor.png" 
+                  alt="Main Floor Layout" 
+                  className="absolute inset-0 w-full h-full object-contain" 
+                />
+                
                 <div className="relative w-full h-full" style={{ pointerEvents: 'none' }}>
                   {tables.map((table) => (
                     <div 
@@ -117,7 +102,7 @@ export function FloorPlan({
                       style={{ 
                         left: `${table.x}px`, 
                         top: `${table.y}px`,
-                        pointerEvents: 'auto'  // Allow clicks on table elements only
+                        pointerEvents: 'auto'
                       }}
                     >
                       <div 
@@ -131,12 +116,10 @@ export function FloorPlan({
                         }}
                         onClick={() => onTableSelect(table.id)}
                       >
-                        {/* Display table number in a way that doesn't obstruct the PNG background */}
                         <div className="absolute -bottom-6 -right-6 bg-white bg-opacity-50 px-1 rounded-full">
                           <span className="text-xs font-bold">{table.tableNumber}</span>
                         </div>
                         
-                        {/* Display seats only when table is selected */}
                         {table.id === selectedTable && !tableSeatsLoading && !seatsLoading && (
                           <div className="absolute top-0 left-0">
                             {seatsWithAvailability.map(seat => (
@@ -150,8 +133,8 @@ export function FloorPlan({
                                     : 'bg-gray-300 cursor-not-allowed'
                                 }`}
                                 style={{
-                                  left: seat.x - 60, // Offset to correctly position relative to table
-                                  top: seat.y - 60,  // Offset to correctly position relative to table
+                                  left: seat.x - 60,
+                                  top: seat.y - 60,
                                   transform: 'scale(0.8)'
                                 }}
                                 onClick={() => 
@@ -180,7 +163,12 @@ export function FloorPlan({
           <Card>
             <CardContent className="p-1 sm:p-6">
               <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
-                <MezzanineFloorBackground />
+                <img 
+                  src="/static/mezzanine.png" 
+                  alt="Mezzanine Floor Layout" 
+                  className="absolute inset-0 w-full h-full object-contain" 
+                />
+                
                 <div className="relative w-full h-full" style={{ pointerEvents: 'none' }}>
                   {tables.map((table) => (
                     <div 
@@ -189,7 +177,7 @@ export function FloorPlan({
                       style={{ 
                         left: `${table.x}px`, 
                         top: `${table.y}px`,
-                        pointerEvents: 'auto' // Allow clicks on table elements only
+                        pointerEvents: 'auto'
                       }}
                     >
                       <div 
@@ -203,12 +191,10 @@ export function FloorPlan({
                         }}
                         onClick={() => onTableSelect(table.id)}
                       >
-                        {/* Display table number in a way that doesn't obstruct the PNG background */}
                         <div className="absolute -bottom-6 -right-6 bg-white bg-opacity-50 px-1 rounded-full">
                           <span className="text-xs font-bold">{table.tableNumber}</span>
                         </div>
                         
-                        {/* Display seats only when table is selected */}
                         {table.id === selectedTable && !tableSeatsLoading && !seatsLoading && (
                           <div className="absolute top-0 left-0">
                             {seatsWithAvailability.map(seat => (
@@ -222,8 +208,8 @@ export function FloorPlan({
                                     : 'bg-gray-300 cursor-not-allowed'
                                 }`}
                                 style={{
-                                  left: seat.x - 60, // Offset to correctly position relative to table
-                                  top: seat.y - 60,  // Offset to correctly position relative to table
+                                  left: seat.x - 60,
+                                  top: seat.y - 60,
                                   transform: 'scale(0.8)'
                                 }}
                                 onClick={() => 
