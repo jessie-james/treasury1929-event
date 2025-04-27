@@ -1055,15 +1055,30 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid request body. Required: non-empty note" });
       }
       
+      // Get the booking before updating to capture changes for detailed logs
+      const originalBooking = await storage.getBookingById(bookingId);
+      if (!originalBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
       const updatedBooking = await storage.addBookingNote(
         bookingId,
         note,
         req.user.id
       );
       
-      if (!updatedBooking) {
-        return res.status(404).json({ message: "Booking not found" });
-      }
+      // Create detailed admin log
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "add_booking_note",
+        entityType: "booking",
+        entityId: bookingId,
+        details: {
+          note: note,
+          eventId: originalBooking.eventId,
+          customerEmail: originalBooking.customerEmail
+        }
+      });
       
       res.json(updatedBooking);
     } catch (error) {

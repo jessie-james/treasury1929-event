@@ -148,12 +148,55 @@ export function AdminLogs() {
                 <TableHead>Admin</TableHead>
                 <TableHead>Action</TableHead>
                 <TableHead>Entity</TableHead>
-                <TableHead>ID</TableHead>
+                <TableHead>Details</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredLogs?.map((log) => {
                 const actionDisplay = getActionDisplay(log.action);
+                
+                // Extract useful details from the log
+                const details = log.details as any;
+                let detailsText = "";
+                
+                if (log.action === "create_manual_booking") {
+                  const bookingData = details?.bookingData;
+                  if (bookingData) {
+                    detailsText = `Created booking #${bookingData.id} for event #${bookingData.eventId}. ` +
+                      `Table ${bookingData.tableId}, seats: ${bookingData.seatNumbers?.join(", ")}`;
+                  }
+                } else if (log.action === "cancel_booking") {
+                  detailsText = `Booking #${log.entityId} was canceled`;
+                  if (details?.reason) {
+                    detailsText += ` - Reason: ${details.reason}`;
+                  }
+                } else if (log.action === "process_refund") {
+                  detailsText = `Refund of $${details?.amount || 0} processed for booking #${log.entityId}`;
+                  if (details?.refundId) {
+                    detailsText += ` (${details.refundId})`;
+                  }
+                } else if (log.action === "add_booking_note") {
+                  detailsText = `Note added to booking #${log.entityId}: "${details?.note || ""}"`;
+                } else if (log.action === "change_booking_seats") {
+                  if (details?.from && details?.to) {
+                    detailsText = `Changed seats for booking #${log.entityId} ` +
+                      `from Table ${details.from.tableId} seats ${details.from.seatNumbers?.join(", ")} ` +
+                      `to Table ${details.to.tableId} seats ${details.to.seatNumbers?.join(", ")}`;
+                  }
+                } else if (log.action === "update_booking_food") {
+                  detailsText = `Updated food selection for booking #${log.entityId}`;
+                } else if (details) {
+                  // Generic fallback for other actions
+                  detailsText = `${log.entityType} #${log.entityId} - ` + 
+                    JSON.stringify(details)
+                      .replace(/[{}"\\]/g, '')
+                      .replace(/,/g, ', ')
+                      .slice(0, 100);
+                }
+                
+                if (!detailsText) {
+                  detailsText = `${log.entityType.charAt(0).toUpperCase() + log.entityType.slice(1)} #${log.entityId}`;
+                }
                 
                 return (
                   <TableRow key={log.id}>
@@ -171,7 +214,7 @@ export function AdminLogs() {
                     <TableCell>
                       {log.entityType.charAt(0).toUpperCase() + log.entityType.slice(1)}
                     </TableCell>
-                    <TableCell>{log.entityId}</TableCell>
+                    <TableCell className="max-w-md text-sm break-words">{detailsText}</TableCell>
                   </TableRow>
                 );
               })}
