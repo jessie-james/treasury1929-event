@@ -23,7 +23,7 @@ interface SeatWithAvailability extends Seat {
 
 export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props) {
   const isMobile = useIsMobile();
-  const [selectedTable, setSelectedTable] = useState<number | undefined>(undefined);
+  const [selectedTable, setSelectedTable] = useState<number | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Array<{ tableId: number; seatNumber: number }>>([]);
 
   const handleTableSelect = (tableId: number) => {
@@ -64,9 +64,11 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
   };
   
   // Get the selected seat numbers for the currently selected table
-  const selectedSeatNumbers = selectedSeats
-    .filter(seat => seat.tableId === selectedTable)
-    .map(seat => seat.seatNumber);
+  const selectedSeatNumbers = selectedTable 
+    ? selectedSeats
+        .filter(seat => seat.tableId === selectedTable)
+        .map(seat => seat.seatNumber)
+    : [];
 
   return (
     <div className="space-y-6">

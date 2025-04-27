@@ -60,92 +60,128 @@ export function FloorPlan({
     });
   }, [tableSeats, seatAvailability]);
 
-  // Floor plan background SVGs matching the PNG images
+  // Floor plan background SVGs exactly matching the PNG images
   const mainFloorBackgroundSVG = (
     <svg width="960" height="500" viewBox="0 0 960 500" className="absolute inset-0">
-      {/* Main room outline */}
+      {/* Main walls and outline */}
       <path 
-        d="M70,40 L890,40 L890,450 L70,450 Z" 
-        fill="rgba(245, 247, 250, 0.4)" 
+        d="M60,60 L900,60 L900,450 L60,450 Z" 
+        fill="none" 
+        stroke="#94a3b8" 
+        strokeWidth="3" 
+      />
+      
+      {/* Pillars/columns along the walls */}
+      <circle cx="100" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="230" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="360" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="490" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="620" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="750" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="880" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      
+      {/* Bottom pillars */}
+      <circle cx="60" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="180" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="300" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="420" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="540" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="660" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="780" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="900" cy="320" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      
+      {/* Stage area */}
+      <rect x="410" y="100" width="200" height="120" rx="0" fill="rgba(226, 232, 240, 0.3)" stroke="#94a3b8" strokeWidth="2" />
+      <text x="510" y="165" textAnchor="middle" className="text-base font-medium" fill="#64748b">Open area for stage</text>
+      <text x="510" y="190" textAnchor="middle" className="text-sm font-medium" fill="#64748b">26'</text>
+      <text x="400" y="160" textAnchor="middle" className="text-sm font-medium" fill="#64748b" transform="rotate(-90, 400, 160)">14'</text>
+      
+      {/* Horizontal divider lines */}
+      <path 
+        d="M60,320 L900,320" 
         stroke="#94a3b8" 
         strokeWidth="2" 
       />
       
-      {/* Stage area at the top */}
-      <rect x="380" y="40" width="200" height="80" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <text x="480" y="85" textAnchor="middle" className="text-xs font-medium" fill="#64748b">STAGE</text>
-      
-      {/* Left bar area */}
-      <rect x="70" y="40" width="120" height="70" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <text x="130" y="75" textAnchor="middle" className="text-xs font-medium" fill="#64748b">BAR</text>
-      
-      {/* Right entrance area */}
-      <rect x="750" y="40" width="140" height="70" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <text x="820" y="75" textAnchor="middle" className="text-xs font-medium" fill="#64748b">ENTRANCE</text>
-      
-      {/* Dance floor in the center */}
-      <rect x="400" y="200" width="160" height="140" rx="4" fill="#f1f5f9" stroke="#94a3b8" strokeWidth="1" />
-      <text x="480" y="270" textAnchor="middle" className="text-sm font-medium" fill="#64748b">DANCE FLOOR</text>
-      
-      {/* Service areas and additional details */}
-      <rect x="70" y="140" width="100" height="60" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <text x="120" y="170" textAnchor="middle" className="text-xs font-medium" fill="#64748b">SERVICE</text>
-      
-      {/* Indicated walkways/aisles */}
+      {/* Vertical divider line */}
       <path 
-        d="M170,195 L400,195 M560,195 L770,195 M480,140 L480,200 M480,340 L480,450" 
-        stroke="#cbd5e1" 
-        strokeWidth="5" 
-        strokeDasharray="5,5" 
+        d="M410,60 L410,220" 
+        stroke="#f97316" 
+        strokeWidth="2" 
       />
+      
+      {/* Service areas */}
+      <rect x="60" y="60" width="50" height="50" rx="0" fill="rgba(226, 232, 240, 0.3)" stroke="#94a3b8" strokeWidth="1" />
     </svg>
   );
   
   const mezzanineFloorBackgroundSVG = (
     <svg width="960" height="500" viewBox="0 0 960 500" className="absolute inset-0">
-      {/* Mezzanine outline with the curved shape */}
+      {/* Mezzanine curved outline */}
       <path 
-        d="M380,120 L880,120 L880,400 L450,400 C420,350 380,350 380,300 Z" 
-        fill="rgba(245, 247, 250, 0.4)" 
+        d="M60,60 
+        C60,60 100,60 120,60
+        L880,60 
+        L880,310 
+        L200,310
+        C120,310 60,250 60,190
+        Z" 
+        fill="none" 
+        stroke="#94a3b8" 
+        strokeWidth="3" 
+      />
+      
+      {/* Pillars/columns along the top */}
+      <circle cx="100" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="230" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="360" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="490" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="620" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="750" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="880" cy="60" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      
+      {/* Bottom pillars */}
+      <circle cx="100" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="230" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="360" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="490" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="620" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="750" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      <circle cx="880" cy="310" r="15" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
+      
+      {/* Stairs on the right */}
+      <path 
+        d="M880,140 
+        C910,140 920,150 920,170
+        L920,250
+        C920,270 910,280 880,280"
+        fill="none" 
         stroke="#94a3b8" 
         strokeWidth="2" 
       />
       
-      {/* Mezzanine stage view at the top */}
-      <rect x="380" y="70" width="200" height="50" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <text x="480" y="100" textAnchor="middle" className="text-xs font-medium" fill="#64748b">STAGE VIEW</text>
-      
-      {/* Bar area on the right side */}
-      <rect x="780" y="150" width="100" height="60" rx="4" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="1" />
-      <text x="830" y="180" textAnchor="middle" className="text-xs font-medium" fill="#64748b">BAR</text>
-      
-      {/* Stairs on the left side */}
-      <rect x="380" y="250" width="40" height="80" rx="0" fill="#f1f5f9" stroke="#94a3b8" strokeWidth="1" />
-      <line x1="380" y1="260" x2="420" y2="260" stroke="#94a3b8" strokeWidth="1" />
-      <line x1="380" y1="270" x2="420" y2="270" stroke="#94a3b8" strokeWidth="1" />
-      <line x1="380" y1="280" x2="420" y2="280" stroke="#94a3b8" strokeWidth="1" />
-      <line x1="380" y1="290" x2="420" y2="290" stroke="#94a3b8" strokeWidth="1" />
-      <line x1="380" y1="300" x2="420" y2="300" stroke="#94a3b8" strokeWidth="1" />
-      <line x1="380" y1="310" x2="420" y2="310" stroke="#94a3b8" strokeWidth="1" />
-      <line x1="380" y1="320" x2="420" y2="320" stroke="#94a3b8" strokeWidth="1" />
-      <text x="400" y="240" textAnchor="middle" className="text-xs font-medium" fill="#64748b">STAIRS</text>
-      
-      {/* Indicated walkways/aisles */}
+      {/* Stair steps */}
       <path 
-        d="M420,250 L700,250 M660,250 L660,400" 
-        stroke="#cbd5e1" 
-        strokeWidth="5" 
-        strokeDasharray="5,5" 
+        d="M880,170 L920,170
+        M880,180 L920,180
+        M880,190 L920,190
+        M880,200 L920,200
+        M880,210 L920,210
+        M880,220 L920,220
+        M880,230 L920,230
+        M880,240 L920,240
+        M880,250 L920,250"
+        stroke="#94a3b8" 
+        strokeWidth="1" 
       />
+      <text x="900" y="160" textAnchor="middle" className="text-xs font-medium" fill="#64748b">STAIRS</text>
       
-      {/* Railing along the view edge */}
+      {/* Horizontal divider line */}
       <path 
-        d="M450,150 L880,150" 
+        d="M60,310 L880,310" 
         stroke="#94a3b8" 
         strokeWidth="2" 
-        strokeDasharray="8,4" 
       />
-      <text x="500" y="170" textAnchor="middle" className="text-xs font-medium" fill="#64748b">RAILING</text>
     </svg>
   );
 

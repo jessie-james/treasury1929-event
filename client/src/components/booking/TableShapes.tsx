@@ -18,22 +18,31 @@ export function RoundTable({ isSelected, onClick, tableNumber, className }: Shap
       )}
       onClick={onClick}
     >
+      {/* Table background */}
       <svg width="60" height="60" viewBox="0 0 60 60">
         <circle 
           cx="30" cy="30" r="28" 
           fill={isSelected ? 'rgb(226, 232, 240)' : 'white'} 
-          stroke="rgb(203, 213, 225)" 
+          stroke="rgb(100, 116, 139)" 
           strokeWidth="1.5"
         />
+        
+        {/* Table number */}
         <text 
           x="30" y="32" 
           textAnchor="middle" 
           dominantBaseline="middle" 
           className="text-xs font-semibold"
-          fill="currentColor"
+          fill="#334155"
         >
           {tableNumber}
         </text>
+        
+        {/* Small circles for seat positions */}
+        <circle cx="30" cy="7" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="53" cy="30" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="30" cy="53" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
+        <circle cx="7" cy="30" r="4" fill="none" stroke="#94a3b8" strokeWidth="1" />
       </svg>
     </div>
   );
@@ -158,8 +167,8 @@ export function Seat({
   const seatColor = isSelected 
     ? "fill-primary stroke-primary-foreground" 
     : isAvailable 
-      ? "fill-green-100 stroke-green-300 hover:fill-green-200" 
-      : "fill-gray-200 stroke-gray-300";
+      ? "fill-green-100 stroke-green-500 hover:fill-green-200" 
+      : "fill-gray-200 stroke-gray-500";
 
   return (
     <div 
@@ -170,9 +179,9 @@ export function Seat({
       }}
     >
       <svg 
-        width="16" 
-        height="16" 
-        viewBox="0 0 16 16" 
+        width="20" 
+        height="20" 
+        viewBox="0 0 20 20" 
         className={cn(
           "cursor-pointer transition-colors",
           !isAvailable && !isSelected && "cursor-not-allowed opacity-60"
@@ -180,18 +189,18 @@ export function Seat({
         onClick={isAvailable || isSelected ? onClick : undefined}
       >
         <circle 
-          cx="8" 
-          cy="8" 
-          r="7" 
+          cx="10" 
+          cy="10" 
+          r="9" 
           className={seatColor}
-          strokeWidth="1"
+          strokeWidth="1.5"
         />
         <text 
-          x="8" 
-          y="8" 
+          x="10" 
+          y="10" 
           textAnchor="middle" 
           dominantBaseline="middle" 
-          fontSize="8" 
+          fontSize="10" 
           fontWeight="bold"
           fill={isSelected ? "white" : "black"}
         >
