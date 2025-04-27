@@ -492,7 +492,8 @@ export async function registerRoutes(app: Express) {
         customerEmail: customerEmail,
         foodSelections: foodSelections || {},
         guestNames: req.body.guestNames || {},
-        notes: req.body.notes || ''
+        notes: req.body.notes || '',
+        stripePaymentId: `manual-${Date.now()}-${req.user.id}`
       };
       
       console.log("Creating manual booking with data:", JSON.stringify(bookingData, null, 2));
@@ -692,6 +693,20 @@ export async function registerRoutes(app: Express) {
       // Return the path to the uploaded file
       const filePath = `/uploads/${req.file.filename}`;
       
+      // Create detailed admin log for food image upload
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "upload_food_image",
+        entityType: "food_option",
+        entityId: 0, // Not tied to a specific food option yet
+        details: {
+          filename: req.file.filename,
+          originalname: req.file.originalname,
+          filePath: filePath,
+          size: req.file.size
+        }
+      });
+      
       // Set appropriate content-type header to ensure JSON response
       res.setHeader('Content-Type', 'application/json');
       
@@ -752,6 +767,20 @@ export async function registerRoutes(app: Express) {
       
       // Return the path to the uploaded file
       const filePath = `/uploads/${req.file.filename}`;
+      
+      // Create detailed admin log for event image upload
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "upload_event_image",
+        entityType: "event",
+        entityId: 0, // Not tied to a specific event yet
+        details: {
+          filename: req.file.filename,
+          originalname: req.file.originalname,
+          filePath: filePath,
+          size: req.file.size
+        }
+      });
       
       // Set appropriate content-type header to ensure JSON response
       res.setHeader('Content-Type', 'application/json');
@@ -1355,6 +1384,22 @@ export async function registerRoutes(app: Express) {
       console.log("Creating food option with data:", req.body);
       const foodOption = await storage.createFoodOption(req.body);
       console.log("Food option created successfully:", foodOption);
+      
+      // Create detailed admin log for food option creation
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "create_food_option",
+        entityType: "food_option",
+        entityId: foodOption.id,
+        details: {
+          name: foodOption.name,
+          type: foodOption.type,
+          allergens: foodOption.allergens,
+          dietaryRestrictions: foodOption.dietaryRestrictions,
+          price: foodOption.price
+        }
+      });
+      
       res.status(201).json(foodOption);
     } catch (error) {
       console.error("Error creating food option:", error);
@@ -1372,10 +1417,32 @@ export async function registerRoutes(app: Express) {
       }
 
       const id = parseInt(req.params.id);
-      const foodOption = await storage.updateFoodOption(id, req.body);
-      if (!foodOption) {
+      
+      // Get original food option before updates for better logging
+      const originalFoodOption = await storage.getFoodOptionsByIds([id]);
+      if (!originalFoodOption || originalFoodOption.length === 0) {
         return res.status(404).json({ message: "Food option not found" });
       }
+      
+      const foodOption = await storage.updateFoodOption(id, req.body);
+      if (!foodOption) {
+        return res.status(404).json({ message: "Food option not found after update" });
+      }
+      
+      // Create detailed admin log for food option update
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "update_food_option",
+        entityType: "food_option",
+        entityId: id,
+        details: {
+          name: foodOption.name,
+          type: foodOption.type,
+          updatedFields: Object.keys(req.body),
+          originalName: originalFoodOption[0].name
+        }
+      });
+      
       res.json(foodOption);
     } catch (error) {
       console.error("Error updating food option:", error);
@@ -1390,7 +1457,27 @@ export async function registerRoutes(app: Express) {
       }
 
       const id = parseInt(req.params.id);
+      
+      // Get food option before deletion for logging
+      const foodOption = await storage.getFoodOptionsByIds([id]);
+      if (!foodOption || foodOption.length === 0) {
+        return res.status(404).json({ message: "Food option not found" });
+      }
+      
       await storage.deleteFoodOption(id);
+      
+      // Create detailed admin log for food option deletion
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "delete_food_option",
+        entityType: "food_option",
+        entityId: id,
+        details: {
+          name: foodOption[0].name,
+          type: foodOption[0].type
+        }
+      });
+      
       res.sendStatus(200);
     } catch (error) {
       console.error("Error deleting food option:", error);
