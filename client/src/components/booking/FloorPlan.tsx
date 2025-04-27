@@ -88,69 +88,71 @@ export function FloorPlan({
           <Card>
             <CardContent className="p-1 sm:p-6">
               <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
+                {/* Main Floor PNG */}
                 <img 
                   src="/uploads/main-floor.png" 
                   alt="Main Floor Layout" 
-                  className="absolute inset-0 w-full h-full object-contain" 
+                  className="absolute inset-0 w-full h-full object-contain"
                 />
                 
-                <div className="relative w-full h-full" style={{ pointerEvents: 'none' }}>
+                {/* Interactive layer */}
+                <div className="relative w-full h-full">
+                  {/* Clickable areas over each table on the PNG */}
                   {tables.map((table) => (
                     <div 
                       key={table.id}
-                      className="absolute"
+                      className="absolute cursor-pointer"
                       style={{ 
                         left: `${table.x}px`, 
                         top: `${table.y}px`,
-                        pointerEvents: 'auto'
+                        width: '40px',
+                        height: '40px',
+                        transform: 'translate(-50%, -50%)',
+                        borderRadius: '50%',
+                        border: table.id === selectedTable ? '3px solid #3b82f6' : '1px dashed transparent',
+                        backgroundColor: table.id === selectedTable ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                        zIndex: 10
                       }}
+                      onClick={() => onTableSelect(table.id)}
                     >
-                      <div 
-                        className="cursor-pointer bg-transparent"
-                        style={{ 
-                          width: '25px', 
-                          height: '25px', 
-                          borderRadius: '50%', 
-                          position: 'relative',
-                          border: table.id === selectedTable ? '2px solid #3b82f6' : 'none'
-                        }}
-                        onClick={() => onTableSelect(table.id)}
-                      >
-                        <div className="absolute -bottom-6 -right-6 bg-white bg-opacity-50 px-1 rounded-full">
-                          <span className="text-xs font-bold">{table.tableNumber}</span>
-                        </div>
-                        
-                        {table.id === selectedTable && !tableSeatsLoading && !seatsLoading && (
-                          <div className="absolute top-0 left-0">
-                            {seatsWithAvailability.map(seat => (
-                              <div
-                                key={seat.id}
-                                className={`absolute w-5 h-5 rounded-sm cursor-pointer border border-black ${
-                                  selectedSeats.includes(seat.seatNumber)
-                                    ? 'bg-blue-500'
-                                    : seat.isAvailable
-                                    ? 'bg-white'
-                                    : 'bg-gray-300 cursor-not-allowed'
-                                }`}
-                                style={{
-                                  left: seat.x - 60,
-                                  top: seat.y - 60,
-                                  transform: 'scale(0.8)'
-                                }}
-                                onClick={() => 
-                                  seat.isAvailable || selectedSeats.includes(seat.seatNumber) 
-                                    ? onSeatSelect(table.id, seat.seatNumber, !seat.isAvailable)
-                                    : undefined
-                                }
-                              >
-                                <span className="flex items-center justify-center text-xs h-full">
-                                  {seat.seatNumber}
-                                </span>
-                              </div>
-                            ))}
+                      {/* Table selection indicator */}
+                      {table.id === selectedTable && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-xs font-bold text-blue-600 bg-white px-1.5 py-0.5 rounded-full border border-blue-600">
+                            {table.tableNumber}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                      
+                      {/* Seat selection UI appears when a table is selected */}
+                      {table.id === selectedTable && !tableSeatsLoading && !seatsLoading && (
+                        <div className="absolute" style={{ top: '30px', left: '50%', transform: 'translateX(-50%)' }}>
+                          <div className="bg-white bg-opacity-90 rounded-md p-2 shadow-md border border-gray-300">
+                            <div className="text-center text-xs font-semibold mb-1">Select seats</div>
+                            <div className="flex flex-wrap gap-1 justify-center" style={{ maxWidth: '100px' }}>
+                              {seatsWithAvailability.map(seat => (
+                                <div
+                                  key={seat.id}
+                                  className={`w-7 h-7 rounded-sm cursor-pointer flex items-center justify-center text-xs font-medium
+                                    ${selectedSeats.includes(seat.seatNumber)
+                                      ? 'bg-blue-500 text-white'
+                                      : seat.isAvailable
+                                        ? 'bg-white hover:bg-blue-100 border border-gray-300'
+                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    }`}
+                                  onClick={() => 
+                                    seat.isAvailable || selectedSeats.includes(seat.seatNumber) 
+                                      ? onSeatSelect(table.id, seat.seatNumber, !seat.isAvailable)
+                                      : undefined
+                                  }
+                                >
+                                  {seat.seatNumber}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -163,69 +165,71 @@ export function FloorPlan({
           <Card>
             <CardContent className="p-1 sm:p-6">
               <div className="relative w-full h-[500px] overflow-auto bg-white border rounded-lg">
+                {/* Mezzanine Floor PNG */}
                 <img 
                   src="/uploads/mezzanine.png" 
                   alt="Mezzanine Floor Layout" 
-                  className="absolute inset-0 w-full h-full object-contain" 
+                  className="absolute inset-0 w-full h-full object-contain"
                 />
                 
-                <div className="relative w-full h-full" style={{ pointerEvents: 'none' }}>
+                {/* Interactive layer */}
+                <div className="relative w-full h-full">
+                  {/* Clickable areas over each table on the PNG */}
                   {tables.map((table) => (
                     <div 
                       key={table.id}
-                      className="absolute"
+                      className="absolute cursor-pointer"
                       style={{ 
                         left: `${table.x}px`, 
                         top: `${table.y}px`,
-                        pointerEvents: 'auto'
+                        width: '40px',
+                        height: '40px',
+                        transform: 'translate(-50%, -50%)',
+                        borderRadius: '50%',
+                        border: table.id === selectedTable ? '3px solid #3b82f6' : '1px dashed transparent',
+                        backgroundColor: table.id === selectedTable ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                        zIndex: 10
                       }}
+                      onClick={() => onTableSelect(table.id)}
                     >
-                      <div 
-                        className="cursor-pointer bg-transparent"
-                        style={{ 
-                          width: '25px', 
-                          height: '25px', 
-                          borderRadius: '50%', 
-                          position: 'relative',
-                          border: table.id === selectedTable ? '2px solid #3b82f6' : 'none'
-                        }}
-                        onClick={() => onTableSelect(table.id)}
-                      >
-                        <div className="absolute -bottom-6 -right-6 bg-white bg-opacity-50 px-1 rounded-full">
-                          <span className="text-xs font-bold">{table.tableNumber}</span>
-                        </div>
-                        
-                        {table.id === selectedTable && !tableSeatsLoading && !seatsLoading && (
-                          <div className="absolute top-0 left-0">
-                            {seatsWithAvailability.map(seat => (
-                              <div
-                                key={seat.id}
-                                className={`absolute w-5 h-5 rounded-sm cursor-pointer border border-black ${
-                                  selectedSeats.includes(seat.seatNumber)
-                                    ? 'bg-blue-500'
-                                    : seat.isAvailable
-                                    ? 'bg-white'
-                                    : 'bg-gray-300 cursor-not-allowed'
-                                }`}
-                                style={{
-                                  left: seat.x - 60,
-                                  top: seat.y - 60,
-                                  transform: 'scale(0.8)'
-                                }}
-                                onClick={() => 
-                                  seat.isAvailable || selectedSeats.includes(seat.seatNumber) 
-                                    ? onSeatSelect(table.id, seat.seatNumber, !seat.isAvailable)
-                                    : undefined
-                                }
-                              >
-                                <span className="flex items-center justify-center text-xs h-full">
-                                  {seat.seatNumber}
-                                </span>
-                              </div>
-                            ))}
+                      {/* Table selection indicator */}
+                      {table.id === selectedTable && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="text-xs font-bold text-blue-600 bg-white px-1.5 py-0.5 rounded-full border border-blue-600">
+                            {table.tableNumber}
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
+                      
+                      {/* Seat selection UI appears when a table is selected */}
+                      {table.id === selectedTable && !tableSeatsLoading && !seatsLoading && (
+                        <div className="absolute" style={{ top: '30px', left: '50%', transform: 'translateX(-50%)' }}>
+                          <div className="bg-white bg-opacity-90 rounded-md p-2 shadow-md border border-gray-300">
+                            <div className="text-center text-xs font-semibold mb-1">Select seats</div>
+                            <div className="flex flex-wrap gap-1 justify-center" style={{ maxWidth: '100px' }}>
+                              {seatsWithAvailability.map(seat => (
+                                <div
+                                  key={seat.id}
+                                  className={`w-7 h-7 rounded-sm cursor-pointer flex items-center justify-center text-xs font-medium
+                                    ${selectedSeats.includes(seat.seatNumber)
+                                      ? 'bg-blue-500 text-white'
+                                      : seat.isAvailable
+                                        ? 'bg-white hover:bg-blue-100 border border-gray-300'
+                                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    }`}
+                                  onClick={() => 
+                                    seat.isAvailable || selectedSeats.includes(seat.seatNumber) 
+                                      ? onSeatSelect(table.id, seat.seatNumber, !seat.isAvailable)
+                                      : undefined
+                                  }
+                                >
+                                  {seat.seatNumber}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
