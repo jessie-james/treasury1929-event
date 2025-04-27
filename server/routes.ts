@@ -261,6 +261,13 @@ export async function registerRoutes(app: Express) {
       }
 
       console.log("Updating event with data:", updateData);
+      
+      // Get original event data for comparison
+      const originalEvent = await storage.getEvent(id);
+      if (!originalEvent) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
       const event = await storage.updateEvent(id, updateData);
       
       if (!event) {
@@ -268,6 +275,18 @@ export async function registerRoutes(app: Express) {
       }
       
       console.log("Event updated successfully:", event);
+      
+      // Track specific changes for more detailed logging
+      const changes: Record<string, { from: any, to: any }> = {};
+      for (const key of Object.keys(updateData)) {
+        if (JSON.stringify(originalEvent[key as keyof typeof originalEvent]) !== 
+            JSON.stringify(event[key as keyof typeof event])) {
+          changes[key] = {
+            from: originalEvent[key as keyof typeof originalEvent],
+            to: event[key as keyof typeof event]
+          };
+        }
+      }
       
       // Create detailed admin log for event update
       await storage.createAdminLog({
@@ -278,7 +297,7 @@ export async function registerRoutes(app: Express) {
         details: {
           title: event.title,
           date: event.date,
-          updates: Object.keys(updateData),
+          changes: changes,
           image: event.image
         }
       });
@@ -1525,10 +1544,35 @@ export async function registerRoutes(app: Express) {
           req.user.id
         );
         
-        // Create detailed admin log
+        // Create detailed payment transaction log
         await storage.createAdminLog({
           userId: req.user.id,
           action: "process_refund",
+          entityType: "payment",
+          entityId: bookingId,
+          details: {
+            amount: amount,
+            refundId: refund.id,
+            paymentIntentId: booking.stripePaymentId,
+            customerEmail: booking.customerEmail,
+            eventId: booking.eventId,
+            bookingId: bookingId,
+            date: new Date().toISOString(),
+            reason: req.body.reason || "Manual refund by admin",
+            status: refund.status,
+            processingDetails: {
+              processor: "stripe",
+              amountInCents: Math.round(amount * 100),
+              currency: "usd",
+              processorResponseCode: refund.status
+            }
+          }
+        });
+        
+        // Create a booking-specific log as well
+        await storage.createAdminLog({
+          userId: req.user.id,
+          action: "booking_refunded",
           entityType: "booking",
           entityId: bookingId,
           details: {
@@ -1536,7 +1580,8 @@ export async function registerRoutes(app: Express) {
             refundId: refund.id,
             customerEmail: booking.customerEmail,
             eventId: booking.eventId,
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            bookingStatus: "refunded"
           }
         });
         
@@ -1662,7 +1707,19 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "Food option not found after update" });
       }
       
-      // Create detailed admin log for food option update
+      // Track specific changes for more detailed logging
+      const changes: Record<string, { from: any, to: any }> = {};
+      for (const key of Object.keys(req.body)) {
+        if (JSON.stringify(originalFoodOption[0][key as keyof typeof originalFoodOption[0]]) !== 
+            JSON.stringify(foodOption[key as keyof typeof foodOption])) {
+          changes[key] = {
+            from: originalFoodOption[0][key as keyof typeof originalFoodOption[0]],
+            to: foodOption[key as keyof typeof foodOption]
+          };
+        }
+      }
+      
+      // Create detailed admin log for food option update with specific changes
       await storage.createAdminLog({
         userId: req.user.id,
         action: "update_food_option",
@@ -1671,8 +1728,8 @@ export async function registerRoutes(app: Express) {
         details: {
           name: foodOption.name,
           type: foodOption.type,
-          updatedFields: Object.keys(req.body),
-          originalName: originalFoodOption[0].name
+          changes: changes,
+          price: foodOption.price
         }
       });
       
@@ -1749,6 +1806,23 @@ export async function registerRoutes(app: Express) {
         automatic_payment_methods: {
           enabled: true,
         },
+      });
+      
+      // Create payment transaction log
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "create_payment_intent",
+        entityType: "payment",
+        entityId: 0, // No specific entity ID for the payment intent yet
+        details: {
+          paymentIntentId: paymentIntent.id,
+          amount: amount / 100, // Convert cents to dollars for readability
+          currency: "usd",
+          customerEmail: req.user.email,
+          metadata: metadata,
+          createdAt: new Date().toISOString(),
+          status: paymentIntent.status
+        }
       });
       
       // Return only the client secret to the client to complete the payment

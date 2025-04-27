@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, log, serveStatic } from "./vite";
+import { storage } from "./storage";
 
 const app = express();
 app.use(express.json());
@@ -11,7 +12,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "healthy" });
 });
 
-// Add request logging middleware
+// Performance tracking and request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -23,14 +24,38 @@ app.use((req, res, next) => {
     return originalResJson.apply(res, [bodyJson, ...args]);
   };
 
-  res.on("finish", () => {
+  res.on("finish", async () => {
     const duration = Date.now() - start;
+    
+    // Log all API requests
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
       log(logLine);
+      
+      // Log performance issues (slow requests over 500ms)
+      if (duration > 500 && req.isAuthenticated && req.isAuthenticated() && req.user?.id) {
+        try {
+          await storage.createAdminLog({
+            userId: req.user.id,
+            action: "performance_warning",
+            entityType: "system",
+            entityId: 0,
+            details: {
+              path: path,
+              method: req.method,
+              durationMs: duration,
+              status: res.statusCode,
+              timestamp: new Date().toISOString()
+            }
+          });
+          console.warn(`[PERFORMANCE] Slow request: ${req.method} ${path} - ${duration}ms`);
+        } catch (err) {
+          console.error("Failed to log performance data:", err);
+        }
+      }
     }
   });
 
