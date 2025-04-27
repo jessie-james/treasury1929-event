@@ -156,28 +156,90 @@ export function setupAuth(app: Express) {
   app.post("/api/login", async (req, res, next) => {
     console.log("Login attempt for:", req.body.email);
 
-    passport.authenticate("local", (err: any, user: User | false) => {
+    passport.authenticate("local", async (err: any, user: User | false) => {
       if (err) {
         console.error("Authentication error:", err);
+        // Log failed login with error
+        if (req.body.email) {
+          await storage.createAdminLog({
+            userId: -1, // We don't have a user ID for failed logins
+            action: "FAILED_LOGIN_ERROR",
+            entityType: "auth",
+            details: { 
+              email: req.body.email,
+              error: err.message || "Authentication error"
+            }
+          });
+        }
         return next(err);
       }
       if (!user) {
         console.log("Authentication failed");
+        // Log failed login with invalid credentials
+        if (req.body.email) {
+          await storage.createAdminLog({
+            userId: -1, // We don't have a user ID for failed logins
+            action: "FAILED_LOGIN",
+            entityType: "auth",
+            details: { 
+              email: req.body.email,
+              reason: "Invalid credentials"
+            }
+          });
+        }
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      req.login(user, (err) => {
+      req.login(user, async (err) => {
         if (err) {
           console.error("Login error:", err);
+          // Log failed login during session creation
+          await storage.createAdminLog({
+            userId: user.id,
+            action: "FAILED_LOGIN_SESSION",
+            entityType: "auth",
+            details: { 
+              email: user.email,
+              error: err.message || "Session error"
+            }
+          });
           return next(err);
         }
         console.log("Login successful for user:", user.email);
+        
+        // Log successful login
+        if (user.role !== 'customer') {
+          await storage.createAdminLog({
+            userId: user.id,
+            action: "LOGIN",
+            entityType: "auth",
+            details: { 
+              email: user.email,
+              role: user.role
+            }
+          });
+        }
+        
         res.json(user);
       });
     })(req, res, next);
   });
 
-  app.post("/api/logout", (req, res) => {
+  app.post("/api/logout", async (req, res) => {
+    // Only log logout for admin users
+    if (req.isAuthenticated() && req.user && req.user.role !== 'customer') {
+      const user = req.user as User;
+      await storage.createAdminLog({
+        userId: user.id,
+        action: "LOGOUT",
+        entityType: "auth",
+        details: { 
+          email: user.email,
+          role: user.role
+        }
+      });
+    }
+    
     req.logout(() => {
       res.sendStatus(200);
     });
