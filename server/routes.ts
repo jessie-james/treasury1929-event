@@ -962,6 +962,16 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid request body. Required: tableId and seatNumbers array" });
       }
       
+      // Get the original booking first for tracking changes
+      const originalBooking = await storage.getBookingById(bookingId);
+      if (!originalBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      // Store original seat information for logging
+      const originalTableId = originalBooking.tableId;
+      const originalSeatNumbers = originalBooking.seatNumbers;
+      
       // Check if the new seats are available
       const seats = await storage.getTableSeats(tableId);
       const seatBookings = await storage.getTableSeatsAvailability(tableId, req.body.eventId);
@@ -988,6 +998,26 @@ export async function registerRoutes(app: Express) {
       if (!updatedBooking) {
         return res.status(404).json({ message: "Booking not found" });
       }
+      
+      // Create detailed admin log
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "change_booking_seats",
+        entityType: "booking",
+        entityId: bookingId,
+        details: {
+          from: {
+            tableId: originalTableId,
+            seatNumbers: originalSeatNumbers,
+          },
+          to: {
+            tableId: tableId,
+            seatNumbers: seatNumbers,
+          },
+          eventId: originalBooking.eventId,
+          customerEmail: originalBooking.customerEmail
+        }
+      });
       
       res.json(updatedBooking);
     } catch (error) {
@@ -1017,6 +1047,15 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid request body. Required: foodSelections object" });
       }
       
+      // Get the original booking to track changes
+      const originalBooking = await storage.getBookingById(bookingId);
+      if (!originalBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      // Store original food selections for comparison
+      const originalFoodSelections = originalBooking.foodSelections;
+      
       const updatedBooking = await storage.updateBookingFoodSelections(
         bookingId,
         foodSelections,
@@ -1026,6 +1065,20 @@ export async function registerRoutes(app: Express) {
       if (!updatedBooking) {
         return res.status(404).json({ message: "Booking not found" });
       }
+      
+      // Create detailed admin log
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "update_booking_food",
+        entityType: "booking",
+        entityId: bookingId,
+        details: {
+          from: originalFoodSelections,
+          to: foodSelections,
+          eventId: originalBooking.eventId,
+          customerEmail: originalBooking.customerEmail
+        }
+      });
       
       res.json(updatedBooking);
     } catch (error) {
@@ -1129,6 +1182,21 @@ export async function registerRoutes(app: Express) {
           req.user.id
         );
         
+        // Create detailed admin log
+        await storage.createAdminLog({
+          userId: req.user.id,
+          action: "process_refund",
+          entityType: "booking",
+          entityId: bookingId,
+          details: {
+            amount: amount,
+            refundId: refund.id,
+            customerEmail: booking.customerEmail,
+            eventId: booking.eventId,
+            date: new Date().toISOString()
+          }
+        });
+        
         res.json(updatedBooking);
       } catch (stripeError: any) {
         console.error("Stripe refund error:", stripeError);
@@ -1158,11 +1226,33 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid booking ID" });
       }
       
+      // Get the original booking first
+      const originalBooking = await storage.getBookingById(bookingId);
+      if (!originalBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
       const updatedBooking = await storage.cancelBooking(bookingId, req.user.id);
       
       if (!updatedBooking) {
         return res.status(404).json({ message: "Booking not found" });
       }
+      
+      // Create detailed admin log
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "cancel_booking",
+        entityType: "booking",
+        entityId: bookingId,
+        details: {
+          reason: req.body.reason || "Administrative cancellation",
+          customerEmail: originalBooking.customerEmail,
+          eventId: originalBooking.eventId,
+          tableId: originalBooking.tableId,
+          seatNumbers: originalBooking.seatNumbers,
+          date: new Date().toISOString()
+        }
+      });
       
       res.json(updatedBooking);
     } catch (error) {
