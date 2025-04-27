@@ -334,16 +334,20 @@ async function setupVenueLayout() {
   try {
     console.log("Starting venue layout setup...");
     
-    // Clear existing tables and seats
-    console.log("Clearing existing tables and seats...");
+    // Get existing tables to update them rather than deleting
+    console.log("Fetching existing tables...");
+    const existingTables = await db.select().from(tables);
+    console.log(`Found ${existingTables.length} existing tables`);
+    
+    // Clear only seats since they don't have dependencies
+    console.log("Clearing existing seats...");
     await db.delete(seats);
-    await db.delete(tables);
     
-    console.log("Creating main floor tables...");
-    await createTablesAndSeats(mainFloorTables);
+    console.log("Setting up main floor tables...");
+    await updateOrCreateTablesAndSeats(mainFloorTables, existingTables, "main");
     
-    console.log("Creating mezzanine tables...");
-    await createTablesAndSeats(mezzanineTables);
+    console.log("Setting up mezzanine tables...");
+    await updateOrCreateTablesAndSeats(mezzanineTables, existingTables, "mezzanine");
     
     console.log("Venue layout setup complete!");
   } catch (error) {
@@ -353,38 +357,84 @@ async function setupVenueLayout() {
   }
 }
 
-async function createTablesAndSeats(tablesData: TableData[]) {
+async function updateOrCreateTablesAndSeats(
+  tablesData: TableData[], 
+  existingTables: any[], 
+  floor: string
+) {
+  // Keep track of updated tables to create new ones if needed
+  const updatedTableIds = new Set<number>();
+  
   for (const tableData of tablesData) {
-    console.log(`Creating table ${tableData.tableNumber} on ${tableData.floor} floor...`);
+    // Look for an existing table with the same table number to update
+    let matchingTable = existingTables.find(t => 
+      t.tableNumber === tableData.tableNumber && updatedTableIds.has(t.id) === false
+    );
     
-    // Create the table
-    const tableToInsert: InsertTable = {
-      venueId: DEFAULT_VENUE_ID,
-      tableNumber: tableData.tableNumber,
-      capacity: tableData.capacity,
-      floor: tableData.floor,
-      x: tableData.x,
-      y: tableData.y,
-      shape: tableData.shape,
-    };
-    
-    const [newTable] = await db.insert(tables).values(tableToInsert).returning();
-    
-    // Create seats for the table
-    for (let i = 0; i < tableData.capacity; i++) {
-      const seatPosition = tableData.seatPositions[i];
-      const seatToInsert: InsertSeat = {
-        tableId: newTable.id,
-        seatNumber: i + 1,
-        position: seatPosition.position,
-        x: seatPosition.x,
-        y: seatPosition.y,
+    if (matchingTable) {
+      console.log(`Updating existing table ${tableData.tableNumber} (ID: ${matchingTable.id}) on ${floor} floor...`);
+      
+      // Update the existing table with new properties
+      await db.update(tables)
+        .set({
+          floor: tableData.floor,
+          x: tableData.x,
+          y: tableData.y,
+          shape: tableData.shape,
+          capacity: tableData.capacity
+        })
+        .where(eq(tables.id, matchingTable.id));
+      
+      updatedTableIds.add(matchingTable.id);
+      
+      // Create seats for the table
+      for (let i = 0; i < tableData.capacity; i++) {
+        const seatPosition = tableData.seatPositions[i];
+        const seatToInsert: InsertSeat = {
+          tableId: matchingTable.id,
+          seatNumber: i + 1,
+          position: seatPosition.position,
+          x: seatPosition.x,
+          y: seatPosition.y,
+        };
+        
+        await db.insert(seats).values(seatToInsert);
+      }
+      
+      console.log(`Updated table ${tableData.tableNumber} with ${tableData.capacity} seats`);
+    } else {
+      // Create a new table if no matching table was found
+      console.log(`Creating new table ${tableData.tableNumber} on ${floor} floor...`);
+      
+      const tableToInsert: InsertTable = {
+        venueId: DEFAULT_VENUE_ID,
+        tableNumber: tableData.tableNumber,
+        capacity: tableData.capacity,
+        floor: tableData.floor,
+        x: tableData.x,
+        y: tableData.y,
+        shape: tableData.shape,
       };
       
-      await db.insert(seats).values(seatToInsert);
+      const [newTable] = await db.insert(tables).values(tableToInsert).returning();
+      updatedTableIds.add(newTable.id);
+      
+      // Create seats for the table
+      for (let i = 0; i < tableData.capacity; i++) {
+        const seatPosition = tableData.seatPositions[i];
+        const seatToInsert: InsertSeat = {
+          tableId: newTable.id,
+          seatNumber: i + 1,
+          position: seatPosition.position,
+          x: seatPosition.x,
+          y: seatPosition.y,
+        };
+        
+        await db.insert(seats).values(seatToInsert);
+      }
+      
+      console.log(`Created new table ${tableData.tableNumber} with ${tableData.capacity} seats`);
     }
-    
-    console.log(`Created table ${tableData.tableNumber} with ${tableData.capacity} seats`);
   }
 }
 
