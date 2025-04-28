@@ -87,26 +87,11 @@
       visibility: visible;
       opacity: 1;
     }
-
-    /* Table labels for clarity */
-    .table-label {
-      position: absolute;
-      font-size: 12px;
-      font-weight: bold;
-      background-color: rgba(0, 0, 0, 0.6);
-      color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      transform: translate(-50%, -50%);
-      z-index: 5;
-    }
   </style>
 </head>
 <body>
   <div class="container">
     <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan" id="floorPlan">
-    
-    <!-- Seats will be added by JavaScript -->
   </div>
   
   <script>
@@ -215,20 +200,6 @@
 
       let selectedSeats = [];
       
-      // Example unavailable seats - in a real app, this would come from your backend
-      const unavailableSeats = [
-        { tableId: 2, seatNumber: 2 },
-        { tableId: 5, seatNumber: 1 },
-        { tableId: 7, seatNumber: 1 }
-      ];
-      
-      // Function to check if a seat is unavailable
-      function isSeatUnavailable(tableId, seatNumber) {
-        return unavailableSeats.some(
-          seat => seat.tableId === tableId && seat.seatNumber === seatNumber
-        );
-      }
-      
       // Add seats to the container
       seatPositions.forEach(pos => {
         const seat = document.createElement('div');
@@ -238,54 +209,39 @@
         seat.style.left = pos.left + 'px';
         seat.style.top = pos.top + 'px';
         
-        // Check if this seat is unavailable
-        const isUnavailable = isSeatUnavailable(pos.tableId, pos.seatNumber);
-        
-        if (isUnavailable) {
-          seat.classList.add('unavailable');
+        // Add click event listener for all seats
+        seat.addEventListener('click', function() {
+          const tableId = parseInt(this.getAttribute('data-table'));
+          const seatNumber = parseInt(this.getAttribute('data-seat'));
+          const key = `${tableId}-${seatNumber}`;
           
-          // Add tooltip for unavailable seats
-          const tooltip = document.createElement('div');
-          tooltip.className = 'tooltip';
-          tooltip.textContent = 'Seat unavailable';
-          seat.appendChild(tooltip);
-        } else {
-          // Only add click event listener if seat is available
-          seat.addEventListener('click', function() {
-            if (this.classList.contains('unavailable')) return;
-            
-            const tableId = parseInt(this.getAttribute('data-table'));
-            const seatNumber = parseInt(this.getAttribute('data-seat'));
-            const key = `${tableId}-${seatNumber}`;
-            
-            // Check if already selected
-            const index = selectedSeats.findIndex(s => s.key === key);
-            
-            if (index >= 0) {
-              // Remove if already selected
-              selectedSeats.splice(index, 1);
-              this.classList.remove('selected');
-              this.textContent = '';
-            } else {
-              // Add if not selected (max 4)
-              if (selectedSeats.length < 4) {
-                selectedSeats.push({
-                  key,
-                  tableId,
-                  seatNumber
-                });
-                this.classList.add('selected');
-                this.textContent = seatNumber;
-              }
+          // Check if already selected
+          const index = selectedSeats.findIndex(s => s.key === key);
+          
+          if (index >= 0) {
+            // Remove if already selected
+            selectedSeats.splice(index, 1);
+            this.classList.remove('selected');
+            this.textContent = '';
+          } else {
+            // Add if not selected (max 4)
+            if (selectedSeats.length < 4) {
+              selectedSeats.push({
+                key,
+                tableId,
+                seatNumber
+              });
+              this.classList.add('selected');
+              this.textContent = seatNumber;
             }
-            
-            // Send message to parent window
-            window.parent.postMessage({
-              type: 'SEAT_SELECTION',
-              selection: selectedSeats
-            }, '*');
-          });
-        }
+          }
+          
+          // Send message to parent window
+          window.parent.postMessage({
+            type: 'SEAT_SELECTION',
+            selection: selectedSeats
+          }, '*');
+        });
         
         container.appendChild(seat);
       });
