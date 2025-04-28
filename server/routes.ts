@@ -536,12 +536,24 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid booking ID" });
       }
       
-      console.log(`Processing check-in for booking ${bookingId} by staff ${req.user.id}`);
+      // Check if an event ID was provided to validate booking
+      const eventId = req.query.eventId ? parseInt(req.query.eventId as string) : null;
+      
+      console.log(`Processing check-in for booking ${bookingId} by staff ${req.user.id}${eventId ? ` for event ${eventId}` : ''}`);
       
       // Get booking first to determine if it's already checked in
       const existingBooking = await storage.getBookingById(bookingId);
       if (!existingBooking) {
         return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      // Verify that the booking belongs to the specified event (if an event ID was provided)
+      if (eventId !== null && existingBooking.eventId !== eventId) {
+        return res.status(400).json({ 
+          message: "Booking is for a different event",
+          booking: existingBooking,
+          eventId: existingBooking.eventId
+        });
       }
       
       if (existingBooking.checkedIn) {

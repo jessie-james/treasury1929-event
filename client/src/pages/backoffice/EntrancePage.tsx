@@ -110,7 +110,7 @@ export default function EntrancePage() {
     mutationFn: (bookingId: number) => {
       return apiRequest({
         method: "POST",
-        url: `/api/bookings/${bookingId}/check-in`
+        url: `/api/bookings/${bookingId}/check-in${selectedEventId ? `?eventId=${selectedEventId}` : ''}`
       });
     },
     onSuccess: async (data, bookingId) => {
@@ -156,20 +156,30 @@ export default function EntrancePage() {
         }
       }, 1500);
     },
-    onError: (error, bookingId) => {
+    onError: (error: any, bookingId) => {
+      // Get error response data if available
+      let errorMessage = error.message || "Failed to check in ticket. It may have been already checked in.";
+      
+      // Handle 'booking is for a different event' error specifically
+      if (error.data?.booking?.eventId) {
+        const wrongEventId = error.data.booking.eventId as number;
+        const eventName = events?.find(e => e.id === wrongEventId)?.title || `Event #${wrongEventId}`;
+        errorMessage = `This ticket is for ${eventName}, not the selected event`;
+      }
+      
       // Show toast notification
       toast({
         title: "Error",
-        description: error.message || "Failed to check in ticket. It may have been already checked in.",
+        description: errorMessage,
         variant: "destructive"
       });
       
-      // Add to scan log
+      // Add to scan log with a more specific error message
       setScanLog(prev => [{
         timestamp: new Date(),
         bookingId,
         status: 'error',
-        message: error.message || "Failed to check in ticket"
+        message: errorMessage
       }, ...prev.slice(0, 9)]); // Keep only the 10 most recent entries
     }
   });
@@ -177,6 +187,17 @@ export default function EntrancePage() {
   // Handle manual booking ID submission
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if an event is selected
+    if (!selectedEventId) {
+      toast({
+        title: "No Event Selected",
+        description: "Please select an event before checking in tickets.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     if (manualBookingId && !isNaN(parseInt(manualBookingId))) {
       checkInMutation.mutate(parseInt(manualBookingId));
     } else {
@@ -191,6 +212,16 @@ export default function EntrancePage() {
   // Handle QR code scan
   const handleQrCodeScanned = (data: string) => {
     try {
+      // Check if an event is selected
+      if (!selectedEventId) {
+        toast({
+          title: "No Event Selected",
+          description: "Please select an event before scanning tickets.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // Extract booking ID from QR code data
       // QR code data format would be something like "booking:123" or just "123"
       const bookingId = parseInt(data.includes("booking:") ? data.split("booking:")[1] : data);
