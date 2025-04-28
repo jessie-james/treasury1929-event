@@ -493,7 +493,7 @@ export default function OnboardingPage() {
               <CardHeader>
                 <div className="flex items-center mb-2">
                   <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">2</div>
-                  <CardTitle>Select Preferences</CardTitle>
+                  <CardTitle>Almost Done, {firstName}!</CardTitle>
                 </div>
                 <CardDescription>
                   Check any dietary preferences you follow
@@ -538,7 +538,7 @@ export default function OnboardingPage() {
                   onClick={handleNext} 
                   disabled={updateDietaryMutation.isPending}
                 >
-                  {updateDietaryMutation.isPending ? "Saving..." : "Continue"}
+                  {updateDietaryMutation.isPending ? "Saving..." : "Finish & Explore Events"}
                   <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </CardFooter>
