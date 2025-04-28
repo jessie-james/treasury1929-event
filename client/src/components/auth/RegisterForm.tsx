@@ -56,7 +56,10 @@ export function RegisterForm() {
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit((data) => registerMutation.mutate(data))}
+        onSubmit={form.handleSubmit((data) => {
+          console.log('Submitting registration form with data:', data);
+          registerMutation.mutate(data);
+        })}
         className="space-y-4"
       >
         <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm flex items-start gap-2 mb-4">
