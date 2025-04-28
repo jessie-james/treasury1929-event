@@ -29,14 +29,31 @@ async function throwIfResNotOk(res: Response) {
 }
 
 export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
+  urlOrOptions: string | { method: string; url?: string; data?: unknown },
+  urlOrData?: string | unknown,
+  data?: unknown
 ): Promise<Response> {
+  // Handle overloaded function parameters
+  let method: string;
+  let url: string;
+  let bodyData: unknown | undefined;
+  
+  if (typeof urlOrOptions === 'string') {
+    // First form: apiRequest('GET', '/api/data') or apiRequest('POST', '/api/data', { name: 'test' })
+    method = urlOrOptions;
+    url = urlOrData as string;
+    bodyData = data;
+  } else {
+    // Second form: apiRequest({ method: 'POST', url: '/api/data', data: { name: 'test' } })
+    method = urlOrOptions.method;
+    url = urlOrOptions.url || urlOrData as string;
+    bodyData = urlOrOptions.data;
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    headers: bodyData ? { "Content-Type": "application/json" } : {},
+    body: bodyData ? JSON.stringify(bodyData) : undefined,
     credentials: "include",
   });
 

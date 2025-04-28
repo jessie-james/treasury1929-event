@@ -65,9 +65,10 @@ export function QrScanner({ onScan, isLoading = false }: QrScannerProps) {
     }
     
     if (videoRef.current && videoRef.current.srcObject) {
-      // @ts-ignore - TypeScript doesn't recognize srcObject as a MediaStream
-      const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach(track => track.stop());
+      // TypeScript doesn't recognize srcObject as a MediaStream
+      const stream = videoRef.current.srcObject as MediaStream;
+      const tracks = stream.getTracks();
+      tracks.forEach((track: MediaStreamTrack) => track.stop());
       videoRef.current.srcObject = null;
     }
     
