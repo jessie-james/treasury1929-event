@@ -33,6 +33,16 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     return () => window.removeEventListener('message', handleMessage);
   }, []);
   
+  // Send event ID updates to the iframe
+  useEffect(() => {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: 'SET_EVENT_ID',
+        eventId: eventId
+      }, '*');
+    }
+  }, [eventId]);
+  
   // Format selected seats for display
   const formatSelectedSeats = () => {
     // Group seats by table
@@ -106,10 +116,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       <Card>
         <CardContent className="p-4 relative">
           <div className="overflow-auto">
-            {/* Use an iframe to load the seat selection HTML */}
+            {/* Use an iframe to load the seat selection HTML with eventId */}
             <iframe
               ref={iframeRef}
-              src="/permanent-mezzanine-seats.html"
+              src={`/permanent-mezzanine-seats.html?eventId=${eventId}`}
               className="w-full border-none overflow-auto"
               title="Mezzanine Seating"
               style={{ minHeight: '600px', height: '600px', overflow: 'auto' }}

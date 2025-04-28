@@ -98,6 +98,13 @@
     document.addEventListener('DOMContentLoaded', function() {
       const container = document.querySelector('.container');
       
+      // Get event ID from URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const eventId = urlParams.get('eventId') || 1; // Default to event 1 if not specified
+      
+      // Map to track seat availability
+      const seatAvailability = {};
+      
       // PERMANENT SEAT POSITIONS - These are the exact coordinates from the user
       const seatPositions = [
         {
@@ -199,6 +206,59 @@
       ];
 
       let selectedSeats = [];
+      let seatElements = [];
+      
+      // Function to fetch seat availability from API
+      async function fetchSeatAvailability() {
+        try {
+          // Create a map to store all unique table IDs
+          const tableIds = [...new Set(seatPositions.map(pos => pos.tableId))];
+          
+          // Fetch availability for each table
+          for (const tableId of tableIds) {
+            const response = await fetch(`/api/tables/${tableId}/seats?eventId=${eventId}`);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch availability for table ${tableId}`);
+            }
+            const seats = await response.json();
+            
+            // Store availability information
+            for (const seat of seats) {
+              const key = `${tableId}-${seat.seatNumber}`;
+              seatAvailability[key] = seat.isAvailable;
+            }
+          }
+          
+          // Now update the UI with availability
+          updateSeatAvailability();
+        } catch (error) {
+          console.error('Error fetching seat availability:', error);
+        }
+      }
+      
+      // Function to update seat UI based on availability
+      function updateSeatAvailability() {
+        seatElements.forEach(element => {
+          const tableId = parseInt(element.getAttribute('data-table'));
+          const seatNumber = parseInt(element.getAttribute('data-seat'));
+          const key = `${tableId}-${seatNumber}`;
+          
+          if (seatAvailability[key] === false) {
+            // Mark as unavailable
+            element.classList.add('unavailable');
+            
+            // Add tooltip to show this seat is unavailable
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip';
+            tooltip.textContent = 'Seat unavailable';
+            element.appendChild(tooltip);
+            
+            // Remove any click event listeners for unavailable seats
+            const newElement = element.cloneNode(true);
+            element.parentNode.replaceChild(newElement, element);
+          }
+        });
+      }
       
       // Add seats to the container
       seatPositions.forEach(pos => {
@@ -211,6 +271,11 @@
         
         // Add click event listener for all seats
         seat.addEventListener('click', function() {
+          // Skip if seat is unavailable
+          if (this.classList.contains('unavailable')) {
+            return;
+          }
+          
           const tableId = parseInt(this.getAttribute('data-table'));
           const seatNumber = parseInt(this.getAttribute('data-seat'));
           const key = `${tableId}-${seatNumber}`;
@@ -244,7 +309,23 @@
         });
         
         container.appendChild(seat);
+        seatElements.push(seat);
       });
+      
+      // Listen for messages from parent window to get event ID
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'SET_EVENT_ID') {
+          const newEventId = event.data.eventId;
+          if (newEventId && newEventId !== eventId) {
+            // Reset and refetch with new event ID
+            selectedSeats = [];
+            fetchSeatAvailability();
+          }
+        }
+      });
+      
+      // Fetch availability data on page load
+      fetchSeatAvailability();
     });
   </script>
 </body>
