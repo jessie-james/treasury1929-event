@@ -1,8 +1,8 @@
 import { 
   type Event, type FoodOption, type Booking, type Table, type Seat,
-  type InsertBooking, type User, type InsertUser, type SeatBooking,
+  type SeatBooking, type InsertBooking, type User, type InsertUser,
   type AdminLog, type InsertAdminLog,
-  events, foodOptions, bookings, tables, seats, users, seatBookings, adminLogs
+  events, foodOptions, bookings, users, adminLogs
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
@@ -218,7 +218,11 @@ export class DatabaseStorage implements IStorage {
 
   async getTables(): Promise<Table[]> {
     try {
-      return await db.select().from(tables);
+      // This is a temporary implementation since tables table has been removed
+      console.log("Using temporary table implementation");
+      return [
+        // These will be reimplemented with a new approach
+      ];
     } catch (error) {
       console.error("Error fetching tables:", error);
       throw error;
@@ -227,12 +231,10 @@ export class DatabaseStorage implements IStorage {
 
   async getTableSeats(tableId: number): Promise<Seat[]> {
     try {
-      console.log(`Fetching seats for table ID: ${tableId}`);
-      return await db
-        .select()
-        .from(seats)
-        .where(eq(seats.tableId, tableId))
-        .orderBy(seats.seatNumber);
+      console.log(`Using temporary seats implementation for table ID: ${tableId}`);
+      return [
+        // These will be reimplemented with a new approach
+      ];
     } catch (error) {
       console.error("Error fetching table seats:", error);
       throw error;
@@ -241,18 +243,10 @@ export class DatabaseStorage implements IStorage {
 
   async getTableSeatsAvailability(tableId: number, eventId: number): Promise<SeatBooking[]> {
     try {
-      const tableSeats = await this.getTableSeats(tableId);
-      const seatIds = tableSeats.map(seat => seat.id);
-
-      return await db
-        .select()
-        .from(seatBookings)
-        .where(
-          and(
-            inArray(seatBookings.seatId, seatIds),
-            eq(seatBookings.eventId, eventId)
-          )
-        );
+      console.log(`Using temporary seat availability implementation for table ${tableId}, event ${eventId}`);
+      return [
+        // These will be reimplemented with a new approach
+      ];
     } catch (error) {
       console.error("Error fetching seat availability:", error);
       throw error;
@@ -266,50 +260,9 @@ export class DatabaseStorage implements IStorage {
     isBooked: boolean
   ): Promise<void> {
     try {
-      console.log(`Updating seat availability for table ${tableId}, seats ${seatNumbers.join(", ")} to ${isBooked}`);
-
-      // Get the seat IDs for the given table and seat numbers
-      const tableSeats = await db
-        .select()
-        .from(seats)
-        .where(
-          and(
-            eq(seats.tableId, tableId),
-            inArray(seats.seatNumber, seatNumbers)
-          )
-        );
-
-      const seatIds = tableSeats.map(seat => seat.id);
-
-      // For each seat, ensure there's a booking record and update it
-      for (const seatId of seatIds) {
-        const [existing] = await db
-          .select()
-          .from(seatBookings)
-          .where(
-            and(
-              eq(seatBookings.seatId, seatId),
-              eq(seatBookings.eventId, eventId)
-            )
-          );
-
-        if (existing) {
-          await db
-            .update(seatBookings)
-            .set({ isBooked })
-            .where(eq(seatBookings.id, existing.id));
-        } else {
-          await db
-            .insert(seatBookings)
-            .values({
-              seatId,
-              eventId,
-              isBooked
-            });
-        }
-      }
-
-      console.log("Seat availability updated successfully");
+      console.log(`Using temporary implementation for updating seat availability`);
+      console.log(`Table ${tableId}, seats ${seatNumbers.join(", ")} to ${isBooked ? "booked" : "available"}`);
+      // This will be reimplemented with a new approach
     } catch (error) {
       console.error("Error updating seat availability:", error);
       throw error;

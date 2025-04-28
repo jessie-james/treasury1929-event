@@ -30,26 +30,8 @@ export const venues = pgTable("venues", {
   managerId: integer("manager_id").notNull(), // References users with role 'venue_manager'
 });
 
-export const tables = pgTable("tables", {
-  id: serial("id").primaryKey(),
-  venueId: integer("venue_id").notNull(),
-  tableNumber: integer("table_number").notNull(),
-  capacity: integer("capacity").notNull().default(4),
-});
-
-export const seats = pgTable("seats", {
-  id: serial("id").primaryKey(),
-  tableId: integer("table_id").notNull(),
-  seatNumber: integer("seat_number").notNull(),
-});
-
-// New table to track event-specific seat availability
-export const seatBookings = pgTable("seat_bookings", {
-  id: serial("id").primaryKey(),
-  seatId: integer("seat_id").notNull(),
-  eventId: integer("event_id").notNull(),
-  isBooked: boolean("is_booked").notNull().default(false),
-});
+// Tables and seats have been removed and will be reimplemented with a new approach
+// Removing these tables requires adjusting the booking schema to accommodate a new approach
 
 export const foodOptions = pgTable("food_options", {
   id: serial("id").primaryKey(),
@@ -86,9 +68,6 @@ export const bookings = pgTable("bookings", {
 export const insertUserSchema = createInsertSchema(users);
 export const insertEventSchema = createInsertSchema(events);
 export const insertVenueSchema = createInsertSchema(venues);
-export const insertTableSchema = createInsertSchema(tables);
-export const insertSeatSchema = createInsertSchema(seats);
-export const insertSeatBookingSchema = createInsertSchema(seatBookings);
 export const insertFoodOptionSchema = createInsertSchema(foodOptions);
 export const insertBookingSchema = createInsertSchema(bookings);
 
@@ -96,18 +75,32 @@ export const insertBookingSchema = createInsertSchema(bookings);
 export type User = typeof users.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
-export type Table = typeof tables.$inferSelect;
-export type Seat = typeof seats.$inferSelect;
-export type SeatBooking = typeof seatBookings.$inferSelect;
 export type FoodOption = typeof foodOptions.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
+
+// These types will be reimplemented with a new approach
+export interface Table {
+  id: number;
+  tableNumber: number;
+  capacity: number;
+}
+
+export interface Seat {
+  id: number;
+  tableId: number;
+  seatNumber: number;
+}
+
+export interface SeatBooking {
+  id: number;
+  seatId: number;
+  eventId: number;
+  isBooked: boolean;
+}
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type InsertVenue = z.infer<typeof insertVenueSchema>;
-export type InsertTable = z.infer<typeof insertTableSchema>;
-export type InsertSeat = z.infer<typeof insertSeatSchema>;
-export type InsertSeatBooking = z.infer<typeof insertSeatBookingSchema>;
 export type InsertFoodOption = z.infer<typeof insertFoodOptionSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 
