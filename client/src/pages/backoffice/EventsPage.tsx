@@ -251,7 +251,7 @@ export default function EventsPage() {
                                 <h3 className="font-medium">{event.title}</h3>
                                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                                   <CalendarDays className="h-3 w-3" />
-                                  {new Date(event.date).toLocaleDateString()}
+                                  {new Date(event.date).toLocaleDateString('en-US')}
                                 </p>
                               </div>
                             </div>

@@ -36,7 +36,7 @@ type EnrichedAdminLog = AdminLog & {
 
 const formatDate = (date: string | Date | null) => {
   if (!date) return '';
-  return new Date(date).toLocaleString();
+  return new Date(date).toLocaleString('en-US');
 };
 
 const getActionDisplay = (action: string) => {

@@ -48,7 +48,7 @@ export default function OrdersPage() {
                       <div>
                         <CardTitle className="text-xl mb-1">{event.title}</CardTitle>
                         <CardDescription>
-                          {new Date(event.date).toLocaleDateString(undefined, {
+                          {new Date(event.date).toLocaleDateString('en-US', {
                             weekday: 'long',
                             year: 'numeric',
                             month: 'long',
@@ -82,7 +82,7 @@ export default function OrdersPage() {
                         <div>
                           <CardTitle className="text-xl mb-1">{event.title}</CardTitle>
                           <CardDescription>
-                            {new Date(event.date).toLocaleDateString(undefined, {
+                            {new Date(event.date).toLocaleDateString('en-US', {
                               weekday: 'long',
                               year: 'numeric',
                               month: 'long',
