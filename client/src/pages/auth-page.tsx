@@ -46,7 +46,7 @@ export default function AuthPage() {
       <div className="hidden md:flex flex-col justify-center p-8 bg-primary/5">
         <div className="space-y-6">
           <div>
-            <h1 className="text-4xl font-bold text-primary">Welcome to Venue Booking</h1>
+            <h1 className="text-4xl font-bold text-primary">The Treasury 1929 Events</h1>
             <p className="text-xl mt-2">Your personal event experience</p>
           </div>
           

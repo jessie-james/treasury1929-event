@@ -56,7 +56,7 @@ export function RegisterForm() {
         <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm flex items-start gap-2 mb-4">
           <InfoIcon className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
           <p>
-            Create an account to book events and set your dining preferences. After registering, you'll be guided through a quick onboarding process.
+            Create an account to book events and set your dining preferences at The Treasury 1929 Events.
           </p>
         </div>
 

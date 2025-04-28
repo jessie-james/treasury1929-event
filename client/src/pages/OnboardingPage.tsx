@@ -2,11 +2,10 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,9 +13,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { 
   ChevronRight, 
+  ChevronLeft,
   ArrowRight, 
   Check, 
   User, 
+  PhoneCall,
   CalendarDays, 
   MapPin, 
   Pizza, 
@@ -29,18 +30,44 @@ import {
   type DietaryRestriction 
 } from "@/components/ui/food-icons";
 
-type OnboardingStep = "welcome" | "profile" | "dietary" | "events";
+// Detailed step breakdown
+type OnboardingStep = 
+  // Welcome/intro slide
+  "welcome" | 
+  // Profile steps (broken down by field)
+  "firstName" | "lastName" | "phone" | 
+  // Dietary preference steps
+  "allergensIntro" | "allergens" | "dietaryIntro" | "dietary" | 
+  // Events exploration
+  "eventsIntro" | "eventsList";
 
 // Define lists of allergens and dietary restrictions
 const ALLERGENS: Allergen[] = ["gluten", "dairy", "eggs", "peanuts", "tree_nuts", "soy", "fish", "shellfish", "sesame"];
 const DIETARY_RESTRICTIONS: DietaryRestriction[] = ["vegetarian", "vegan", "halal", "kosher", "low_carb", "keto", "paleo"];
 
+// Step progression
+const STEP_SEQUENCE: OnboardingStep[] = [
+  "welcome", 
+  "firstName", "lastName", "phone",
+  "allergensIntro", "allergens", "dietaryIntro", "dietary",
+  "eventsIntro", "eventsList"
+];
+
 export default function OnboardingPage() {
-  const [step, setStep] = useState<OnboardingStep>("welcome");
+  // Track current step index for sequential navigation
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const currentStep = STEP_SEQUENCE[currentStepIndex];
+  
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Get events for the final step
+  const { data: events } = useQuery({
+    queryKey: ['/api/events'],
+    enabled: currentStep === 'eventsList',
+  });
   
   // Initialize states for form data
   const [firstName, setFirstName] = useState("");
@@ -66,7 +93,6 @@ export default function OnboardingPage() {
         description: "Your profile information has been saved.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      setStep("dietary");
     },
     onError: (error) => {
       toast({
@@ -88,7 +114,6 @@ export default function OnboardingPage() {
         description: "Your dietary preferences have been saved.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      setStep("events");
     },
     onError: (error) => {
       toast({
@@ -121,308 +146,531 @@ export default function OnboardingPage() {
     });
   };
   
-  // Handle navigation between steps
+  // Handle next step with appropriate actions
   const handleNext = () => {
-    switch (step) {
-      case "welcome":
-        setStep("profile");
-        break;
-      case "profile":
-        updateProfileMutation.mutate({ firstName, lastName, phone });
-        break;
-      case "dietary":
-        updateDietaryMutation.mutate({
-          allergens: selectedAllergens,
-          dietaryRestrictions: selectedDietaryRestrictions
-        });
-        break;
-      case "events":
-        setLocation("/");
-        break;
+    // Execute any save actions needed for the current step
+    if (currentStep === "phone") {
+      // Save all profile data at once
+      updateProfileMutation.mutate({ 
+        firstName, 
+        lastName, 
+        phone 
+      });
     }
+    
+    if (currentStep === "dietary") {
+      // Save dietary preferences
+      updateDietaryMutation.mutate({
+        allergens: selectedAllergens,
+        dietaryRestrictions: selectedDietaryRestrictions
+      });
+    }
+    
+    if (currentStep === "eventsList") {
+      // We've reached the end - go to homepage
+      setLocation("/");
+      return;
+    }
+    
+    // Move to next step
+    setCurrentStepIndex(prev => Math.min(prev + 1, STEP_SEQUENCE.length - 1));
   };
   
-  // Handle skip
-  const handleSkip = () => {
-    switch (step) {
-      case "profile":
-        setStep("dietary");
-        break;
-      case "dietary":
-        setStep("events");
-        break;
-      default:
-        setLocation("/");
-    }
+  // Go back to previous step
+  const handleBack = () => {
+    setCurrentStepIndex(prev => Math.max(prev - 1, 0));
   };
   
-  // Calculate progress
-  const progressMap = {
-    welcome: 0,
-    profile: 33,
-    dietary: 66,
-    events: 100
+  // Calculate progress percentage
+  const getProgressPercentage = () => {
+    return (currentStepIndex / (STEP_SEQUENCE.length - 1)) * 100;
   };
   
   return (
-    <div className="container max-w-2xl mx-auto px-4 py-8">
-      <Progress value={progressMap[step]} className="h-2 mb-8" />
-      
-      {step === "welcome" && (
+    <div className="min-h-screen bg-gray-50 pt-8 px-4">
+      <div className="container max-w-md mx-auto">
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-bold text-primary">The Treasury 1929 Events</h1>
+          <p className="text-muted-foreground">Complete your profile setup</p>
+        </div>
+        
+        <Progress value={getProgressPercentage()} className="h-2 mb-6" />
+        
         <Card className="border-none shadow-lg">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl">Welcome to Venue Booking!</CardTitle>
-            <CardDescription className="text-lg mt-2">
-              Let's set up your account to enhance your booking experience.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-8">
-            <div className="flex items-center gap-4 p-4 rounded-lg bg-primary/10">
-              <User className="h-10 w-10 text-primary" />
-              <div>
-                <h3 className="font-semibold">Complete your profile</h3>
-                <p className="text-sm text-muted-foreground">Tell us your name and contact information</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4 p-4 rounded-lg bg-primary/10">
-              <Pizza className="h-10 w-10 text-primary" />
-              <div>
-                <h3 className="font-semibold">Dietary preferences</h3>
-                <p className="text-sm text-muted-foreground">Set your dietary restrictions and allergens</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4 p-4 rounded-lg bg-primary/10">
-              <CalendarDays className="h-10 w-10 text-primary" />
-              <div>
-                <h3 className="font-semibold">Explore events</h3>
-                <p className="text-sm text-muted-foreground">Discover upcoming events and book your seats</p>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full" onClick={handleNext}>
-              Get Started <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-      
-      {step === "profile" && (
-        <Card className="border-none shadow-lg">
-          <CardHeader>
-            <CardTitle>Complete Your Profile</CardTitle>
-            <CardDescription>
-              Add your personal details to make bookings easier.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input 
-                id="firstName" 
-                value={firstName} 
-                onChange={(e) => setFirstName(e.target.value)} 
-                placeholder="Enter your first name"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input 
-                id="lastName" 
-                value={lastName} 
-                onChange={(e) => setLastName(e.target.value)} 
-                placeholder="Enter your last name"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" value={user.email} disabled />
-              <p className="text-xs text-muted-foreground">This is the email you registered with</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input 
-                id="phone" 
-                value={phone} 
-                onChange={(e) => setPhone(e.target.value)} 
-                placeholder="Enter your phone number"
-              />
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="ghost" onClick={handleSkip}>
-              Skip for now
-            </Button>
-            <Button onClick={handleNext} disabled={updateProfileMutation.isPending}>
-              {updateProfileMutation.isPending ? "Saving..." : "Continue"}
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-      
-      {step === "dietary" && (
-        <Card className="border-none shadow-lg">
-          <CardHeader>
-            <CardTitle>Dietary Preferences</CardTitle>
-            <CardDescription>
-              Set up your dietary restrictions and allergens. This information will be used to recommend menu items and warn you about dishes that may contain allergens.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
-                <div>
-                  <h3 className="font-medium text-amber-800">Important</h3>
-                  <p className="text-sm text-amber-700">
-                    While we'll try to highlight dishes that may contain allergens, 
-                    please always inform venue staff about your allergies when attending events.
+          {/* Welcome Step */}
+          {currentStep === "welcome" && (
+            <>
+              <CardHeader className="text-center">
+                <CardTitle className="text-2xl">Welcome!</CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Let's set up your account in a few simple steps
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6 pb-8">
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
+                  <div className="flex flex-col items-center text-center gap-4">
+                    <div className="bg-blue-100 p-3 rounded-full">
+                      <User className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-blue-800">Your Personal Experience</h3>
+                      <p className="text-sm text-blue-700 mt-1">
+                        Complete this quick setup to enhance your event experience at The Treasury 1929
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium">1</div>
+                    <div>
+                      <h4 className="font-medium">Complete profile details</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Add your name and contact information
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium">2</div>
+                    <div>
+                      <h4 className="font-medium">Set dietary preferences</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Tell us about any allergies or dietary restrictions
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium">3</div>
+                    <div>
+                      <h4 className="font-medium">Explore upcoming events</h4>
+                      <p className="text-sm text-muted-foreground">
+                        See what's happening at The Treasury 1929
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button className="w-full" onClick={handleNext}>
+                  Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </>
+          )}
+          
+          {/* First Name Step */}
+          {currentStep === "firstName" && (
+            <>
+              <CardHeader>
+                <div className="flex items-center mb-2">
+                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">1</div>
+                  <CardTitle>First Name</CardTitle>
+                </div>
+                <CardDescription>
+                  How should we address you?
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Input 
+                    id="firstName" 
+                    value={firstName} 
+                    onChange={(e) => setFirstName(e.target.value)} 
+                    placeholder="Enter your first name"
+                    className="text-lg py-6"
+                  />
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button onClick={handleNext}>
+                  Continue <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </>
+          )}
+          
+          {/* Last Name Step */}
+          {currentStep === "lastName" && (
+            <>
+              <CardHeader>
+                <div className="flex items-center mb-2">
+                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">1</div>
+                  <CardTitle>Last Name</CardTitle>
+                </div>
+                <CardDescription>
+                  Please enter your last name
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Input 
+                    id="lastName" 
+                    value={lastName} 
+                    onChange={(e) => setLastName(e.target.value)} 
+                    placeholder="Enter your last name"
+                    className="text-lg py-6"
+                  />
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button onClick={handleNext}>
+                  Continue <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </>
+          )}
+          
+          {/* Phone Step */}
+          {currentStep === "phone" && (
+            <>
+              <CardHeader>
+                <div className="flex items-center mb-2">
+                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">1</div>
+                  <CardTitle>Phone Number</CardTitle>
+                </div>
+                <CardDescription>
+                  How can we reach you for important event updates?
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <PhoneCall className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input 
+                      id="phone" 
+                      value={phone} 
+                      onChange={(e) => setPhone(e.target.value)} 
+                      placeholder="(555) 123-4567"
+                      className="pl-10 text-lg py-6"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    We'll only use this for important event notifications and updates
                   </p>
                 </div>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="text-lg font-medium mb-2">Allergens</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Select any allergens you want to avoid.
-              </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {ALLERGENS.map((allergen: Allergen) => (
-                  <div key={allergen} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`allergen-${allergen}`} 
-                      checked={selectedAllergens.includes(allergen)}
-                      onCheckedChange={() => toggleAllergen(allergen)}
-                    />
-                    <label
-                      htmlFor={`allergen-${allergen}`}
-                      className="text-sm font-medium leading-none flex items-center gap-2"
-                    >
-                      <div className="inline-flex items-center justify-center rounded-full bg-destructive/20 text-destructive p-1 w-6 h-6">
-                        <div className="w-4 h-4">{allergenIcons[allergen]}</div>
-                      </div>
-                      <span className="capitalize">{allergen.replace('_', ' ')}</span>
-                    </label>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button onClick={handleNext} disabled={updateProfileMutation.isPending}>
+                  {updateProfileMutation.isPending ? "Saving..." : "Continue"}
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </>
+          )}
+          
+          {/* Allergens Intro Step */}
+          {currentStep === "allergensIntro" && (
+            <>
+              <CardHeader>
+                <div className="flex items-center mb-2">
+                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">2</div>
+                  <CardTitle>Food Allergies</CardTitle>
+                </div>
+                <CardDescription>
+                  Help us understand your dietary needs
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-medium text-amber-800">Important Notice</h3>
+                      <p className="text-sm text-amber-700">
+                        While we'll highlight dishes that may contain allergens, 
+                        please always inform venue staff about your allergies when attending events.
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-            
-            <Separator />
-            
-            <div>
-              <h3 className="text-lg font-medium mb-2">Dietary Restrictions</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Select any dietary preferences you follow.
-              </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {DIETARY_RESTRICTIONS.map((restriction: DietaryRestriction) => (
-                  <div key={restriction} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`restriction-${restriction}`}
-                      checked={selectedDietaryRestrictions.includes(restriction)}
-                      onCheckedChange={() => toggleDietaryRestriction(restriction)}
-                    />
-                    <label
-                      htmlFor={`restriction-${restriction}`}
-                      className="text-sm font-medium leading-none flex items-center gap-2"
-                    >
-                      <div className="inline-flex items-center justify-center rounded-full bg-primary/20 text-primary p-1 w-6 h-6">
-                        <div className="w-4 h-4">{dietaryIcons[restriction]}</div>
+                </div>
+                
+                <div className="text-center mt-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    On the next screen, you'll be able to select any allergies you have.
+                  </p>
+                  <div className="flex justify-center gap-2 flex-wrap mt-4">
+                    {ALLERGENS.slice(0, 5).map((allergen) => (
+                      <div key={allergen} className="inline-flex items-center justify-center rounded-full bg-destructive/20 text-destructive p-1 w-8 h-8">
+                        <div className="w-5 h-5">{allergenIcons[allergen]}</div>
                       </div>
-                      <span className="capitalize">{restriction.replace('_', ' ')}</span>
-                    </label>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="ghost" onClick={handleSkip}>
-              Skip for now
-            </Button>
-            <Button 
-              onClick={handleNext} 
-              disabled={updateDietaryMutation.isPending}
-            >
-              {updateDietaryMutation.isPending ? "Saving..." : "Continue"}
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-      
-      {step === "events" && (
-        <Card className="border-none shadow-lg">
-          <CardHeader>
-            <CardTitle>You're all set!</CardTitle>
-            <CardDescription>
-              Your profile is now complete. Let's explore upcoming events.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="p-4 rounded-lg bg-green-50 border border-green-100 flex items-center gap-3">
-              <div className="bg-green-100 p-2 rounded-full">
-                <Check className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <h3 className="font-medium text-green-800">Profile Complete</h3>
-                <p className="text-sm text-green-700">
-                  Your profile has been set up successfully.
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button onClick={handleNext}>
+                  Continue <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </>
+          )}
+          
+          {/* Allergens Selection Step */}
+          {currentStep === "allergens" && (
+            <>
+              <CardHeader>
+                <div className="flex items-center mb-2">
+                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">2</div>
+                  <CardTitle>Select Allergens</CardTitle>
+                </div>
+                <CardDescription>
+                  Check any ingredients you need to avoid
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-3">
+                  {ALLERGENS.map((allergen: Allergen) => (
+                    <div 
+                      key={allergen}
+                      className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedAllergens.includes(allergen) 
+                          ? 'bg-destructive/10 border-destructive/30' 
+                          : 'hover:bg-muted'
+                      }`}
+                      onClick={() => toggleAllergen(allergen)}
+                    >
+                      <Checkbox 
+                        id={`allergen-${allergen}`} 
+                        checked={selectedAllergens.includes(allergen)}
+                        onCheckedChange={() => toggleAllergen(allergen)}
+                        className="mr-3"
+                      />
+                      <label
+                        htmlFor={`allergen-${allergen}`}
+                        className="text-sm font-medium leading-none flex items-center gap-2 cursor-pointer flex-1"
+                      >
+                        <div className="inline-flex items-center justify-center rounded-full bg-destructive/20 text-destructive p-1 w-6 h-6">
+                          <div className="w-4 h-4">{allergenIcons[allergen]}</div>
+                        </div>
+                        <span className="capitalize">{allergen.replace('_', ' ')}</span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button onClick={handleNext}>
+                  Continue <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </>
+          )}
+          
+          {/* Dietary Intro Step */}
+          {currentStep === "dietaryIntro" && (
+            <>
+              <CardHeader>
+                <div className="flex items-center mb-2">
+                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">2</div>
+                  <CardTitle>Dietary Preferences</CardTitle>
+                </div>
+                <CardDescription>
+                  Let us know about any special diets you follow
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-center text-muted-foreground">
+                  This information helps us recommend appropriate menu items for events you attend.
                 </p>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">What's next?</h3>
-              
-              <div className="flex items-start gap-3 p-3 rounded-lg border">
-                <CalendarDays className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <h4 className="font-medium">Browse Events</h4>
+                
+                <div className="text-center mt-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    On the next screen, you'll be able to select your dietary preferences.
+                  </p>
+                  <div className="flex justify-center gap-2 flex-wrap mt-4">
+                    {DIETARY_RESTRICTIONS.slice(0, 4).map((restriction) => (
+                      <div key={restriction} className="inline-flex items-center justify-center rounded-full bg-primary/20 text-primary p-1 w-8 h-8">
+                        <div className="w-5 h-5">{dietaryIcons[restriction]}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button onClick={handleNext}>
+                  Continue <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </>
+          )}
+          
+          {/* Dietary Selection Step */}
+          {currentStep === "dietary" && (
+            <>
+              <CardHeader>
+                <div className="flex items-center mb-2">
+                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">2</div>
+                  <CardTitle>Select Preferences</CardTitle>
+                </div>
+                <CardDescription>
+                  Check any dietary preferences you follow
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 gap-3">
+                  {DIETARY_RESTRICTIONS.map((restriction: DietaryRestriction) => (
+                    <div 
+                      key={restriction}
+                      className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                        selectedDietaryRestrictions.includes(restriction) 
+                          ? 'bg-primary/10 border-primary/30' 
+                          : 'hover:bg-muted'
+                      }`}
+                      onClick={() => toggleDietaryRestriction(restriction)}
+                    >
+                      <Checkbox 
+                        id={`restriction-${restriction}`}
+                        checked={selectedDietaryRestrictions.includes(restriction)}
+                        onCheckedChange={() => toggleDietaryRestriction(restriction)}
+                        className="mr-3"
+                      />
+                      <label
+                        htmlFor={`restriction-${restriction}`}
+                        className="text-sm font-medium leading-none flex items-center gap-2 cursor-pointer flex-1"
+                      >
+                        <div className="inline-flex items-center justify-center rounded-full bg-primary/20 text-primary p-1 w-6 h-6">
+                          <div className="w-4 h-4">{dietaryIcons[restriction]}</div>
+                        </div>
+                        <span className="capitalize">{restriction.replace('_', ' ')}</span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button 
+                  onClick={handleNext} 
+                  disabled={updateDietaryMutation.isPending}
+                >
+                  {updateDietaryMutation.isPending ? "Saving..." : "Continue"}
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </>
+          )}
+          
+          {/* Events Intro Step */}
+          {currentStep === "eventsIntro" && (
+            <>
+              <CardHeader>
+                <div className="flex items-center mb-2">
+                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">3</div>
+                  <CardTitle>Almost Done!</CardTitle>
+                </div>
+                <CardDescription>
+                  Your profile is now complete
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="p-4 rounded-lg bg-green-50 border border-green-100 flex items-center gap-3">
+                  <div className="bg-green-100 p-2 rounded-full">
+                    <Check className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-green-800">Profile Complete</h3>
+                    <p className="text-sm text-green-700">
+                      Your settings have been saved successfully.
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  <h3 className="font-medium mb-2">It's time to explore events!</h3>
                   <p className="text-sm text-muted-foreground">
-                    Explore upcoming events and find one that interests you.
+                    On the next screen, you'll see upcoming events at The Treasury 1929.
                   </p>
                 </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-3 rounded-lg border">
-                <MapPin className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <h4 className="font-medium">Select Your Seats</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Choose your preferred seats from the interactive seating chart.
-                  </p>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button onClick={handleNext}>
+                  See Events <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </>
+          )}
+          
+          {/* Events List Step */}
+          {currentStep === "eventsList" && (
+            <>
+              <CardHeader>
+                <div className="flex items-center mb-2">
+                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">3</div>
+                  <CardTitle>Upcoming Events</CardTitle>
                 </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-3 rounded-lg border">
-                <Pizza className="h-5 w-5 text-primary mt-0.5" />
-                <div>
-                  <h4 className="font-medium">Customize Your Experience</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Select from food options that match your dietary preferences.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button className="w-full" onClick={handleNext}>
-              Start Exploring <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </CardFooter>
+                <CardDescription>
+                  Check out what's happening at The Treasury 1929
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {events?.map((event: any) => (
+                  <div key={event.id} className="border rounded-lg overflow-hidden">
+                    <div className="h-32 bg-gray-200 overflow-hidden">
+                      <img 
+                        src={event.image} 
+                        alt={event.title} 
+                        className="w-full h-full object-cover" 
+                      />
+                    </div>
+                    <div className="p-3">
+                      <h3 className="font-bold text-lg">{event.title}</h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        {new Date(event.date).toLocaleDateString(undefined, {
+                          weekday: 'short',
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </p>
+                      <p className="text-sm line-clamp-2">{event.description}</p>
+                    </div>
+                  </div>
+                ))}
+                
+                {!events?.length && (
+                  <div className="text-center py-6">
+                    <p className="text-muted-foreground">Loading events...</p>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button onClick={handleNext}>
+                  Finish <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </>
+          )}
         </Card>
-      )}
+      </div>
     </div>
   );
 }
