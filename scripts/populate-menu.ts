@@ -1,5 +1,27 @@
 
-import { apiRequest } from "../client/src/lib/queryClient";
+// Using direct fetch instead of apiRequest since we're outside the client context
+import fetch from 'node-fetch';
+
+// Server runs on port 5000
+const API_URL = 'http://localhost:5000';
+
+async function apiRequest(method: string, endpoint: string, data?: any) {
+  const url = `${API_URL}${endpoint}`;
+  const response = await fetch(url, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: data ? JSON.stringify(data) : undefined,
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API request failed: ${response.status} ${errorText}`);
+  }
+  
+  return response;
+}
 
 const foodItems = [
   // Salads
