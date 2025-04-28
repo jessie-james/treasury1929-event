@@ -251,4 +251,33 @@ export function setupAuth(app: Express) {
     }
     res.json(req.user);
   });
+  
+  // User preferences endpoint - to update allergens and dietary restrictions
+  app.patch("/api/user/preferences", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const { allergens, dietaryRestrictions } = req.body;
+      
+      // Validate the data
+      if (!Array.isArray(allergens) || !Array.isArray(dietaryRestrictions)) {
+        return res.status(400).json({ error: "Invalid data format" });
+      }
+      
+      // Update the user preferences
+      const updatedUser = await storage.updateUser(req.user!.id, {
+        allergens,
+        dietaryRestrictions
+      });
+      
+      // Don't send the password hash to the client
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error updating user preferences:", error);
+      res.status(500).json({ error: "Failed to update preferences" });
+    }
+  });
 }

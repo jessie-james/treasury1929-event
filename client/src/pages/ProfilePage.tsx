@@ -33,14 +33,7 @@ export default function ProfilePage() {
   // Set up mutation to update user preferences
   const updateUserMutation = useMutation({
     mutationFn: async (data: { allergens: Allergen[], dietaryRestrictions: DietaryRestriction[] }) => {
-      const response = await apiRequest(
-        "/api/user/preferences",
-        {
-          method: "PATCH",
-          body: JSON.stringify(data),
-          headers: { "Content-Type": "application/json" }
-        }
-      );
+      const response = await apiRequest("PATCH", "/api/user/preferences", data);
       return response;
     },
     onSuccess: () => {
