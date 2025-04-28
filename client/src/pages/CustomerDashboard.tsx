@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { type Booking, type Event, type FoodOption } from "@shared/schema";
 import { format } from "date-fns";
-import { Header } from "@/components/Header";
 import { Link } from "wouter";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Ticket, Info, Check, RefreshCw, DollarSign, Ban } from "lucide-react";
@@ -99,7 +98,6 @@ export default function CustomerDashboard() {
 
   return (
     <div>
-      <Header />
       <div className="container py-8 space-y-6">
         <h1 className="text-3xl font-bold">My Tickets</h1>
 
