@@ -395,17 +395,33 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "eventId query parameter is required" });
       }
 
-      console.log(`Using temporary implementation for /api/tables/${tableId}/seats?eventId=${eventId}`);
+      console.log(`Getting seat availability for table ${tableId}, event ${eventId}`);
       
-      // Return seats with availability - temporary implementation
-      const tempSeats = Array.from({ length: 4 }, (_, i) => ({
+      // Get all bookings for this event
+      const allBookings = await storage.getBookings();
+      const eventBookings = allBookings.filter(
+        booking => booking.eventId === eventId && 
+                  booking.status !== "canceled" && 
+                  booking.status !== "refunded"
+      );
+      
+      // Find which seats are booked for this table
+      const bookedSeats = new Set<number>();
+      eventBookings.forEach(booking => {
+        if (booking.tableId === tableId) {
+          booking.seatNumbers.forEach(seatNum => bookedSeats.add(seatNum));
+        }
+      });
+      
+      // For this implementation, assume each table has seats 1-4
+      const tableSeats = Array.from({ length: 4 }, (_, i) => ({
         id: i + 1,
         tableId: tableId,
         seatNumber: i + 1,
-        isAvailable: true
+        isAvailable: !bookedSeats.has(i + 1)
       }));
 
-      res.json(tempSeats);
+      res.json(tableSeats);
     } catch (error) {
       console.error("Error fetching seats:", error);
       res.status(500).json({ message: "Failed to fetch seats" });
