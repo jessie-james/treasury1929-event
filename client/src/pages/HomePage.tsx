@@ -1,10 +1,8 @@
 import { EventList } from "@/components/events/EventList";
-import { Header } from "@/components/Header";
 
 export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
       <main className="flex-1">
         <div className="container mx-auto py-8 space-y-8 px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-2 max-w-3xl mx-auto">
