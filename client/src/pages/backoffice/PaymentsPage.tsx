@@ -551,9 +551,11 @@ export default function PaymentsPage() {
                                   <p className="text-sm text-muted-foreground">
                                     {booking.customerEmail}
                                   </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {format(parseISO(booking.createdAt.toString()), "MMM dd, yyyy h:mm a")}
-                                  </p>
+                                  {booking.createdAt && (
+                                    <p className="text-sm text-muted-foreground">
+                                      {format(parseISO(booking.createdAt.toString()), "MMM dd, yyyy h:mm a")}
+                                    </p>
+                                  )}
                                   <p className="text-sm font-medium mt-2">
                                     Total Amount: ${finalAmount.toFixed(2)}
                                   </p>
