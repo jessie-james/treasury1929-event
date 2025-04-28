@@ -26,6 +26,7 @@ export const events = pgTable("events", {
   totalSeats: integer("total_seats").notNull(),
   venueId: integer("venue_id").notNull(),
   displayOrder: integer("display_order").default(0),
+  isActive: boolean("is_active").default(true),
 });
 
 export const venues = pgTable("venues", {

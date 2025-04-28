@@ -17,7 +17,10 @@ export function EventList() {
   const sortedEvents = useMemo(() => {
     if (!events) return [];
     
-    return [...events].sort((a, b) => {
+    // Only show active events to the customer
+    const activeEvents = events.filter(event => event.isActive !== false);
+    
+    return [...activeEvents].sort((a, b) => {
       switch (sortBy) {
         case "date-asc":
           return new Date(a.date).getTime() - new Date(b.date).getTime();

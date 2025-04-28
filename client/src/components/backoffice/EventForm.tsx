@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { type Event } from "@shared/schema";
 import { useState, useRef, useEffect } from "react";
 import { ImagePlus, Loader2, RefreshCw, X } from "lucide-react";
@@ -28,6 +29,7 @@ const eventFormSchema = z.object({
   date: z.string().min(1, "Date is required"),
   totalSeats: z.number().min(1, "Must have at least 1 seat"),
   venueId: z.number().default(1), // For now, hardcode to venue 1
+  isActive: z.boolean().default(true),
 });
 
 type EventFormData = z.infer<typeof eventFormSchema>;
@@ -143,6 +145,7 @@ export function EventForm({ event, onClose }: Props) {
     defaultValues: event ? {
       ...event,
       date: new Date(event.date).toISOString().split('T')[0],
+      isActive: event.isActive !== undefined ? event.isActive : true,
     } : {
       title: "",
       description: "",
@@ -150,6 +153,7 @@ export function EventForm({ event, onClose }: Props) {
       date: new Date().toISOString().split('T')[0],
       totalSeats: 80,
       venueId: 1,
+      isActive: true,
     },
   });
 
@@ -370,6 +374,29 @@ export function EventForm({ event, onClose }: Props) {
                     />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Active Event
+                    </FormLabel>
+                    <FormDescription>
+                      Whether this event is active and should be displayed to customers
+                    </FormDescription>
+                  </div>
                 </FormItem>
               )}
             />
