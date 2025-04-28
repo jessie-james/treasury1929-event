@@ -1,0 +1,160 @@
+
+import { apiRequest } from "../client/src/lib/queryClient";
+
+const foodItems = [
+  // Salads
+  {
+    name: "Mixed Green Salad",
+    description: "Citrus vinaigrette, crispy potato sticks, Pecorino Romano cheese",
+    type: "salad",
+    image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd",
+    allergens: ["dairy"],
+    dietaryRestrictions: ["vegetarian"],
+    price: 1500
+  },
+  {
+    name: "Caesar Salad",
+    description: "Tossed with traditional Caesar dressing, garlic crouton, Parmigiano Reggiano",
+    type: "salad",
+    image: "https://images.unsplash.com/photo-1550304943-4f24f54ddde9",
+    allergens: ["dairy", "gluten"],
+    dietaryRestrictions: ["vegetarian"],
+    price: 1500
+  },
+  {
+    name: "Grape & Walnut Salad",
+    description: "Mixed greens, gorgonzola crumbles, citrus walnut vinaigrette",
+    type: "salad",
+    image: "https://images.unsplash.com/photo-1604497181015-76590d828b75",
+    allergens: ["dairy", "tree_nuts"],
+    dietaryRestrictions: ["vegetarian"],
+    price: 1600
+  },
+
+  // Entrees
+  {
+    name: "Fresh Branzino Francaise",
+    description: "Sautéed in light batter, lemon Pinot Grigio sauce, vegetable rice",
+    type: "entree",
+    image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2",
+    allergens: ["fish", "eggs"],
+    dietaryRestrictions: [],
+    price: 3200
+  },
+  {
+    name: "Eggplant Lasagna",
+    description: "Layers of eggplant, tomato & besciamella sauce, baked with fontina cheese, side of sautéed veggies",
+    type: "entree",
+    image: "https://images.unsplash.com/photo-1572715376701-98568319fd0b",
+    allergens: ["dairy"],
+    dietaryRestrictions: ["vegetarian"],
+    price: 2800
+  },
+  {
+    name: "Crab Filled Chicken Breast",
+    description: "Demi-glace cream sauce with vegetable rice",
+    type: "entree",
+    image: "https://images.unsplash.com/photo-1532550907401-a500c9a57435",
+    allergens: ["dairy", "shellfish"],
+    dietaryRestrictions: [],
+    price: 3000
+  },
+  {
+    name: "Grilled Chicken Eggplant & Mushrooms",
+    description: "Grilled eggplant, maitake mushrooms, balsamic reduction, vegetable pasta",
+    type: "entree",
+    image: "https://images.unsplash.com/photo-1555939594-58d7cb561ad1",
+    allergens: ["gluten"],
+    dietaryRestrictions: [],
+    price: 2800
+  },
+  {
+    name: "Penne With Sausage",
+    description: "Roasted red peppers, tomato sauce, baked fontina cheese",
+    type: "entree",
+    image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9",
+    allergens: ["gluten", "dairy"],
+    dietaryRestrictions: [],
+    price: 2600
+  },
+  {
+    name: "Vegan Bolognese",
+    description: "Plant-based meat & mushroom bolognese sauce, gf penne pasta, vegan parmesan cheese",
+    type: "entree",
+    image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9",
+    allergens: [],
+    dietaryRestrictions: ["vegan", "vegetarian"],
+    price: 2800
+  },
+  {
+    name: "Cabernet Braised Short Ribs",
+    description: "Vegetable tomato-beef broth over creamy polenta",
+    type: "entree",
+    image: "https://images.unsplash.com/photo-1544025162-d76694265947",
+    allergens: ["dairy"],
+    dietaryRestrictions: [],
+    price: 3400
+  },
+  {
+    name: "Breaded Stuffed Pork Medallions",
+    description: "Spinach-fontina cheese filling, Marsala wine sauce, garlic potato puree",
+    type: "entree",
+    image: "https://images.unsplash.com/photo-1432139555190-58524dae6a55",
+    allergens: ["dairy", "gluten"],
+    dietaryRestrictions: [],
+    price: 3000
+  },
+
+  // Desserts
+  {
+    name: "Tiramisu",
+    description: "Espresso soaked lady fingers, mascarpone, cocoa",
+    type: "dessert",
+    image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9",
+    allergens: ["dairy", "gluten", "eggs"],
+    dietaryRestrictions: ["vegetarian"],
+    price: 1200
+  },
+  {
+    name: "Gelato Bar",
+    description: "Selection of assorted toppings",
+    type: "dessert",
+    image: "https://images.unsplash.com/photo-1559703248-dcaaec9fab78",
+    allergens: ["dairy"],
+    dietaryRestrictions: ["vegetarian"],
+    price: 1000
+  },
+  {
+    name: "Warm Bread Pudding",
+    description: "Croissants, apple, Tuaca caramel sauce, whipped cream & berries on side",
+    type: "dessert",
+    image: "https://images.unsplash.com/photo-1624353365286-3f8d62daad51",
+    allergens: ["dairy", "gluten", "eggs"],
+    dietaryRestrictions: ["vegetarian"],
+    price: 1200
+  },
+  {
+    name: "Chocolate Custard Cake",
+    description: "Served warm with fresh whipped cream & berries on side",
+    type: "dessert",
+    image: "https://images.unsplash.com/photo-1588195538326-c5b1e9f80a1b",
+    allergens: ["dairy", "gluten", "eggs"],
+    dietaryRestrictions: ["vegetarian"],
+    price: 1200
+  }
+];
+
+async function populateMenu() {
+  try {
+    for (const item of foodItems) {
+      console.log(`Creating food item: ${item.name}`);
+      const response = await apiRequest("POST", "/api/food-options", item);
+      console.log(`Created: ${response.id}`);
+    }
+    console.log("Menu population complete!");
+  } catch (error) {
+    console.error("Error populating menu:", error);
+  }
+}
+
+populateMenu();
