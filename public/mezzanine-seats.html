@@ -21,8 +21,8 @@
     }
     .seat {
       position: absolute;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       background-color: transparent;
       transform: translate(-50%, -50%);
@@ -40,10 +40,10 @@
     .seat::before {
       content: '';
       position: absolute;
-      width: 24px;
-      height: 24px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
-      background-color: rgba(255, 255, 255, 0);
+      background-color: rgba(255, 255, 255, 0.2);
       z-index: -1;
       transition: all 0.2s ease;
     }
@@ -51,7 +51,7 @@
       border: 1px dashed rgba(255, 255, 255, 0.7);
     }
     .seat:hover::before {
-      background-color: rgba(255, 255, 255, 0.3);
+      background-color: rgba(255, 255, 255, 0.4);
     }
     .seat.selected {
       background-color: rgba(59, 130, 246, 0.9);
@@ -67,33 +67,33 @@
     <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" id="floor-plan">
     
     <!-- Table 1 (Top right) -->
-    <div class="seat" style="left: 951px; top: 284px;" data-table="1" data-seat="1"></div>
-    <div class="seat" style="left: 967px; top: 313px;" data-table="1" data-seat="2"></div>
-    <div class="seat" style="left: 953px; top: 348px;" data-table="1" data-seat="3"></div>
+    <div class="seat" style="left: 951px; top: 274px;" data-table="1" data-seat="1"></div>
+    <div class="seat" style="left: 967px; top: 303px;" data-table="1" data-seat="2"></div>
+    <div class="seat" style="left: 953px; top: 338px;" data-table="1" data-seat="3"></div>
     
     <!-- Table 2 (Right bottom) -->
-    <div class="seat" style="left: 853px; top: 402px;" data-table="2" data-seat="1"></div>
-    <div class="seat" style="left: 815px; top: 402px;" data-table="2" data-seat="2"></div>
+    <div class="seat" style="left: 853px; top: 392px;" data-table="2" data-seat="1"></div>
+    <div class="seat" style="left: 815px; top: 392px;" data-table="2" data-seat="2"></div>
     
     <!-- Table 3 (Middle right) -->
-    <div class="seat" style="left: 693px; top: 401px;" data-table="3" data-seat="1"></div>
-    <div class="seat" style="left: 653px; top: 401px;" data-table="3" data-seat="2"></div>
+    <div class="seat" style="left: 693px; top: 391px;" data-table="3" data-seat="1"></div>
+    <div class="seat" style="left: 653px; top: 391px;" data-table="3" data-seat="2"></div>
     
     <!-- Table 4 (Middle left) -->
-    <div class="seat" style="left: 537px; top: 401px;" data-table="4" data-seat="1"></div>
-    <div class="seat" style="left: 494px; top: 401px;" data-table="4" data-seat="2"></div>
+    <div class="seat" style="left: 537px; top: 391px;" data-table="4" data-seat="1"></div>
+    <div class="seat" style="left: 494px; top: 391px;" data-table="4" data-seat="2"></div>
     
     <!-- Table 5 (Far left bottom) -->
-    <div class="seat" style="left: 369px; top: 401px;" data-table="5" data-seat="1"></div>
-    <div class="seat" style="left: 328px; top: 401px;" data-table="5" data-seat="2"></div>
+    <div class="seat" style="left: 369px; top: 391px;" data-table="5" data-seat="1"></div>
+    <div class="seat" style="left: 328px; top: 391px;" data-table="5" data-seat="2"></div>
     
     <!-- Table 6 (Far left) -->
-    <div class="seat" style="left: 167px; top: 421px;" data-table="6" data-seat="1"></div>
-    <div class="seat" style="left: 139px; top: 393px;" data-table="6" data-seat="2"></div>
+    <div class="seat" style="left: 167px; top: 411px;" data-table="6" data-seat="1"></div>
+    <div class="seat" style="left: 139px; top: 383px;" data-table="6" data-seat="2"></div>
     
     <!-- Table 7 (Upper left) -->
-    <div class="seat" style="left: 46px; top: 353px;" data-table="7" data-seat="1"></div>
-    <div class="seat" style="left: 31px; top: 316px;" data-table="7" data-seat="2"></div>
+    <div class="seat" style="left: 46px; top: 343px;" data-table="7" data-seat="1"></div>
+    <div class="seat" style="left: 31px; top: 306px;" data-table="7" data-seat="2"></div>
   </div>
 
   <script>
