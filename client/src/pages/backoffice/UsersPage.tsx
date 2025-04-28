@@ -85,6 +85,7 @@ export default function UsersPage() {
 
   const { data: users, isLoading: usersLoading, error: usersError } = useQuery<UserWithBookings[]>({
     queryKey: ["/api/users"],
+    queryFn: getQueryFn({ on401: "throw" }),
   });
 
   const { data: events } = useQuery<Event[]>({
