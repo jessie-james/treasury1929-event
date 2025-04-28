@@ -1906,5 +1906,105 @@ export async function registerRoutes(app: Express) {
   // Admin logs are already handled by the endpoint at line ~370
   // Manual booking endpoint is already defined at line ~419
 
+  // Ticket check-in endpoints
+  app.get("/api/bookings/:bookingId/scan", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const bookingId = parseInt(req.params.bookingId);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+
+      const booking = await storage.getBookingByQRCode(bookingId);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      res.json(booking);
+    } catch (error) {
+      console.error("Error scanning booking:", error);
+      res.status(500).json({ message: "Failed to scan booking" });
+    }
+  });
+
+  app.post("/api/bookings/:bookingId/check-in", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const bookingId = parseInt(req.params.bookingId);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+
+      const updatedBooking = await storage.checkInBooking(bookingId, req.user.id);
+      if (!updatedBooking) {
+        return res.status(404).json({ message: "Booking not found or already checked in" });
+      }
+
+      // Broadcast check-in update to all connected clients
+      const message = JSON.stringify({
+        type: 'check_in_update',
+        bookingId: updatedBooking.id,
+        eventId: updatedBooking.eventId,
+        checkedIn: updatedBooking.checkedIn,
+        checkedInAt: updatedBooking.checkedInAt
+      });
+
+      clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+
+      res.json(updatedBooking);
+    } catch (error) {
+      console.error("Error checking in booking:", error);
+      res.status(500).json({ message: "Failed to check in booking" });
+    }
+  });
+
+  app.get("/api/events/:eventId/check-in-stats", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const stats = await storage.getEventCheckInStats(eventId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting check-in stats:", error);
+      res.status(500).json({ message: "Failed to get check-in stats" });
+    }
+  });
+
+  app.get("/api/events/:eventId/checked-in-bookings", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const checkedInBookings = await storage.getCheckedInBookings(eventId);
+      res.json(checkedInBookings);
+    } catch (error) {
+      console.error("Error getting checked-in bookings:", error);
+      res.status(500).json({ message: "Failed to get checked-in bookings" });
+    }
+  });
+
   return httpServer;
 }

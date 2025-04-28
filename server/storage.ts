@@ -1082,6 +1082,206 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+
+  // Ticket Check-in Methods
+  async checkInBooking(bookingId: number, staffId: number): Promise<Booking | undefined> {
+    try {
+      console.log(`Checking in booking ${bookingId} by staff ${staffId}`);
+      
+      // Get booking details before update
+      const booking = await this.getBookingById(bookingId);
+      if (!booking) {
+        console.error(`Booking ${bookingId} not found for check-in`);
+        return undefined;
+      }
+      
+      // Verify booking is not already checked in
+      if (booking.checkedIn) {
+        console.warn(`Booking ${bookingId} is already checked in`);
+        return booking;
+      }
+      
+      // Update booking check-in status
+      const [updatedBooking] = await db
+        .update(bookings)
+        .set({
+          checkedIn: true,
+          checkedInAt: new Date(),
+          checkedInBy: staffId,
+          lastModified: new Date(),
+          modifiedBy: staffId,
+        })
+        .where(eq(bookings.id, bookingId))
+        .returning();
+      
+      if (!updatedBooking) {
+        throw new Error(`Failed to update booking ${bookingId}`);
+      }
+      
+      // Log the check-in in admin logs
+      await this.createAdminLog({
+        userId: staffId,
+        action: "check_in_booking",
+        entityType: "booking",
+        entityId: bookingId,
+        details: {
+          bookingId,
+          eventId: booking.eventId,
+          seatNumbers: booking.seatNumbers,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+      console.log(`Booking ${bookingId} checked in successfully`);
+      return updatedBooking;
+    } catch (error) {
+      console.error(`Error checking in booking ${bookingId}:`, error);
+      throw error;
+    }
+  }
+  
+  async getBookingByQRCode(bookingId: number): Promise<(Booking & { event: Event, foodItems: FoodOption[], user: User }) | undefined> {
+    try {
+      console.log(`Getting booking details for QR code scanning, booking ID: ${bookingId}`);
+      return await this.getBookingWithDetails(bookingId);
+    } catch (error) {
+      console.error(`Error getting booking by QR code ${bookingId}:`, error);
+      throw error;
+    }
+  }
+  
+  async getCheckedInBookings(eventId: number): Promise<Booking[]> {
+    try {
+      console.log(`Getting checked-in bookings for event ${eventId}`);
+      const checkedInBookings = await db
+        .select()
+        .from(bookings)
+        .where(and(
+          eq(bookings.eventId, eventId),
+          eq(bookings.checkedIn, true)
+        ));
+      
+      return checkedInBookings;
+    } catch (error) {
+      console.error(`Error getting checked-in bookings for event ${eventId}:`, error);
+      throw error;
+    }
+  }
+  
+  async getEventCheckInStats(eventId: number): Promise<{
+    totalBookings: number;
+    checkedInBookings: number;
+    checkedInPercentage: number;
+    foodStats: {
+      salads: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+      entrees: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+      desserts: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+      wines: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+    };
+  }> {
+    try {
+      console.log(`Getting check-in stats for event ${eventId}`);
+      
+      // Get all bookings for this event
+      const eventBookings = await db
+        .select()
+        .from(bookings)
+        .where(eq(bookings.eventId, eventId));
+      
+      // Filter checked-in bookings
+      const checkedInBookings = eventBookings.filter(booking => booking.checkedIn);
+      
+      // Get all food options
+      const allFoodOptions = await this.getFoodOptions();
+      
+      // Initialize food stats
+      const foodStats = {
+        salads: { total: 0, checkedIn: 0, percentage: 0, byItem: {} as Record<number, { total: number; checkedIn: number; percentage: number; }> },
+        entrees: { total: 0, checkedIn: 0, percentage: 0, byItem: {} as Record<number, { total: number; checkedIn: number; percentage: number; }> },
+        desserts: { total: 0, checkedIn: 0, percentage: 0, byItem: {} as Record<number, { total: number; checkedIn: number; percentage: number; }> },
+        wines: { total: 0, checkedIn: 0, percentage: 0, byItem: {} as Record<number, { total: number; checkedIn: number; percentage: number; }> }
+      };
+      
+      // Initialize byItem for each food option
+      allFoodOptions.forEach(option => {
+        const type = option.type === 'entree' ? 'entrees' : 
+                     option.type === 'salad' ? 'salads' : 
+                     option.type === 'dessert' ? 'desserts' : 
+                     option.type === 'wine' ? 'wines' : null;
+                     
+        if (type) {
+          foodStats[type].byItem[option.id] = { 
+            total: 0, 
+            checkedIn: 0, 
+            percentage: 0 
+          };
+        }
+      });
+      
+      // Process food selections for all bookings
+      eventBookings.forEach(booking => {
+        const isCheckedIn = booking.checkedIn;
+        
+        // Process each seat's food selection
+        booking.seatNumbers.forEach(seatNumber => {
+          const seatSelections = (booking.foodSelections as any)[seatNumber.toString()];
+          if (!seatSelections) return;
+          
+          // Process each food type
+          Object.entries(seatSelections).forEach(([type, foodId]) => {
+            if (!foodId) return;
+            
+            const mappedType = type === 'entree' ? 'entrees' : 
+                              type === 'salad' ? 'salads' : 
+                              type === 'dessert' ? 'desserts' : 
+                              type === 'wine' ? 'wines' : null;
+                              
+            if (mappedType && typeof foodId === 'number') {
+              // Increment total counts
+              foodStats[mappedType].total++;
+              
+              if (foodStats[mappedType].byItem[foodId]) {
+                foodStats[mappedType].byItem[foodId].total++;
+              
+                // If booking is checked in, increment checked-in counts
+                if (isCheckedIn) {
+                  foodStats[mappedType].checkedIn++;
+                  foodStats[mappedType].byItem[foodId].checkedIn++;
+                }
+              }
+            }
+          });
+        });
+      });
+      
+      // Calculate percentages
+      Object.keys(foodStats).forEach(type => {
+        const stats = foodStats[type as keyof typeof foodStats];
+        stats.percentage = stats.total > 0 ? Math.round((stats.checkedIn / stats.total) * 100) : 0;
+        
+        // Calculate percentages for each item
+        Object.keys(stats.byItem).forEach(itemId => {
+          const item = stats.byItem[Number(itemId)];
+          item.percentage = item.total > 0 ? Math.round((item.checkedIn / item.total) * 100) : 0;
+        });
+      });
+      
+      // Calculate overall stats
+      const totalBookings = eventBookings.length;
+      const totalCheckedIn = checkedInBookings.length;
+      const checkedInPercentage = totalBookings > 0 ? Math.round((totalCheckedIn / totalBookings) * 100) : 0;
+      
+      return {
+        totalBookings,
+        checkedInBookings: totalCheckedIn,
+        checkedInPercentage,
+        foodStats
+      };
+    } catch (error) {
+      console.error(`Error getting check-in stats for event ${eventId}:`, error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
