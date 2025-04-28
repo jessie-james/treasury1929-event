@@ -77,20 +77,6 @@ export default function OnboardingPage() {
   const updateProfileMutation = useMutation({
     mutationFn: async (data: { firstName?: string, lastName?: string, phone?: string }) => {
       return await apiRequest("PATCH", "/api/user/profile", data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Profile updated",
-        description: "Your profile information has been saved.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update your profile. Please try again.",
-        variant: "destructive",
-      });
     }
   });
   
@@ -98,20 +84,6 @@ export default function OnboardingPage() {
   const updateDietaryMutation = useMutation({
     mutationFn: async (data: { allergens: Allergen[], dietaryRestrictions: DietaryRestriction[] }) => {
       return await apiRequest("PATCH", "/api/user/preferences", data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Preferences updated",
-        description: "Your dietary preferences have been saved.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update your preferences. Please try again.",
-        variant: "destructive",
-      });
     }
   });
   
@@ -146,7 +118,30 @@ export default function OnboardingPage() {
         firstName, 
         lastName, 
         phone 
+      }, {
+        onSuccess: () => {
+          // Invalidate user query to refresh user data
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+          
+          // Show success message
+          toast({
+            title: "Profile updated",
+            description: "Your personal information has been saved.",
+          });
+          
+          // Move to next step only after successful update
+          setCurrentStepIndex(prev => Math.min(prev + 1, STEP_SEQUENCE.length - 1));
+        },
+        onError: (error) => {
+          console.error("Profile update error:", error);
+          toast({
+            title: "Error",
+            description: "Failed to update your profile. Please try again.",
+            variant: "destructive",
+          });
+        }
       });
+      return; // Don't advance to next step yet - wait for API response
     }
     
     if (currentStep === "dietary") {
@@ -156,6 +151,9 @@ export default function OnboardingPage() {
         dietaryRestrictions: selectedDietaryRestrictions
       }, {
         onSuccess: () => {
+          // Invalidate user query to refresh user data
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+          
           // Show a welcome message with the user's first name
           toast({
             title: `Welcome ${firstName}!`,
@@ -164,11 +162,20 @@ export default function OnboardingPage() {
           
           // Redirect to homepage after saving preferences
           setLocation("/");
+        },
+        onError: (error) => {
+          console.error("Preferences update error:", error);
+          toast({
+            title: "Error",
+            description: "Failed to update your preferences. Please try again.",
+            variant: "destructive",
+          });
         }
       });
+      return; // Don't advance or redirect yet - wait for API response
     }
     
-    // Move to next step
+    // For other steps, just move to next step
     setCurrentStepIndex(prev => Math.min(prev + 1, STEP_SEQUENCE.length - 1));
   };
   
@@ -537,9 +544,11 @@ export default function OnboardingPage() {
                 <Button 
                   onClick={handleNext} 
                   disabled={updateDietaryMutation.isPending}
+                  className="bg-green-600 hover:bg-green-700"
                 >
-                  {updateDietaryMutation.isPending ? "Saving..." : "Finish & Explore Events"}
-                  <ChevronRight className="ml-1 h-4 w-4" />
+                  {updateDietaryMutation.isPending ? "Saving..." : (
+                    <>Finish & Explore Events <CheckCircle2 className="ml-1 h-4 w-4" /></>
+                  )}
                 </Button>
               </CardFooter>
             </>

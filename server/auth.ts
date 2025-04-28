@@ -255,15 +255,18 @@ export function setupAuth(app: Express) {
   // User preferences endpoint - to update allergens and dietary restrictions
   app.patch("/api/user/preferences", async (req, res) => {
     if (!req.isAuthenticated()) {
+      console.log("Preferences update rejected: User not authenticated");
       return res.status(401).json({ error: "Not authenticated" });
     }
     
     try {
+      console.log(`Updating preferences for user ${req.user!.id}:`, req.body);
       const { allergens, dietaryRestrictions } = req.body;
       
       // Validate the data
       if (!Array.isArray(allergens) || !Array.isArray(dietaryRestrictions)) {
-        return res.status(400).json({ error: "Invalid data format" });
+        console.log("Invalid preference data format:", req.body);
+        return res.status(400).json({ error: "Invalid data format", details: "Both allergens and dietaryRestrictions must be arrays" });
       }
       
       // Update the user preferences
@@ -272,23 +275,42 @@ export function setupAuth(app: Express) {
         dietaryRestrictions
       });
       
+      console.log(`Successfully updated preferences for user ${req.user!.id}`);
+      
       // Don't send the password hash to the client
       const { password, ...userWithoutPassword } = updatedUser;
       res.json(userWithoutPassword);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user preferences:", error);
-      res.status(500).json({ error: "Failed to update preferences" });
+      const errorMessage = error.message || "Failed to update preferences";
+      res.status(500).json({ 
+        error: "Failed to update preferences", 
+        details: errorMessage
+      });
     }
   });
   
   // User profile endpoint - to update personal information
   app.patch("/api/user/profile", async (req, res) => {
     if (!req.isAuthenticated()) {
+      console.log("Profile update rejected: User not authenticated");
       return res.status(401).json({ error: "Not authenticated" });
     }
     
     try {
+      console.log(`Updating profile for user ${req.user!.id}:`, {
+        ...req.body,
+        // Redact any sensitive fields if they were to be included
+        password: req.body.password ? "[REDACTED]" : undefined
+      });
+      
       const { firstName, lastName, phone } = req.body;
+      
+      // Validate required fields
+      if (firstName === "" || lastName === "") {
+        console.log("Invalid profile data - empty required fields");
+        return res.status(400).json({ error: "Invalid data", details: "First name and last name cannot be empty" });
+      }
       
       // Update the user profile information
       const updatedUser = await storage.updateUser(req.user!.id, {
@@ -297,12 +319,18 @@ export function setupAuth(app: Express) {
         phone
       });
       
+      console.log(`Successfully updated profile for user ${req.user!.id}`);
+      
       // Don't send the password hash to the client
       const { password, ...userWithoutPassword } = updatedUser;
       res.json(userWithoutPassword);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating user profile:", error);
-      res.status(500).json({ error: "Failed to update profile" });
+      const errorMessage = error.message || "Failed to update profile";
+      res.status(500).json({ 
+        error: "Failed to update profile",
+        details: errorMessage
+      });
     }
   });
 }
