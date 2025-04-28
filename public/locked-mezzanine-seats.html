@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mezzanine Seat Selection</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+      background-color: #fafafa;
+    }
+    
+    .container {
+      position: relative;
+      width: 1000px;
+      margin: 0 auto;
+      overflow: auto;
+    }
+    
+    .floor-plan {
+      display: block;
+      width: 1000px;
+      height: auto;
+    }
+    
+    .seat {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+      border: 2px solid transparent;
+      box-sizing: border-box;
+      background-color: rgba(34, 197, 94, 0.5);
+    }
+    
+    .seat:hover {
+      background-color: rgba(34, 197, 94, 0.7);
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    
+    .seat.selected {
+      background-color: rgba(59, 130, 246, 0.8);
+      border: 2px solid white;
+    }
+
+    /* Table labels for clarity */
+    .table-label {
+      position: absolute;
+      font-size: 12px;
+      font-weight: bold;
+      background-color: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan" id="floorPlan">
+    
+    <!-- Table labels -->
+    <div class="table-label" style="left: 950px; top: 310px;">Table 1</div>
+    <div class="table-label" style="left: 830px; top: 402px;">Table 2</div>
+    <div class="table-label" style="left: 673px; top: 402px;">Table 3</div>
+    <div class="table-label" style="left: 515px; top: 402px;">Table 4</div>
+    <div class="table-label" style="left: 348px; top: 402px;">Table 5</div>
+    <div class="table-label" style="left: 153px; top: 407px;">Table 6</div>
+    <div class="table-label" style="left: 49px; top: 333px;">Table 7</div>
+    
+    <!-- Seats will be added by JavaScript -->
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const container = document.querySelector('.container');
+      
+      // PERMANENT SEAT POSITIONS - DO NOT MODIFY
+      const seatPositions = [
+        // Table 1 (Top right) - these are precise coordinates
+        { tableId: 1, seatNumber: 1, left: 475, top: 142 },
+        { tableId: 1, seatNumber: 2, left: 484, top: 156 },
+        { tableId: 1, seatNumber: 3, left: 477, top: 174 },
+        
+        // Table 2 (Right bottom)
+        { tableId: 2, seatNumber: 1, left: 427, top: 201 },
+        { tableId: 2, seatNumber: 2, left: 407, top: 201 },
+        
+        // Table 3 (Middle right)
+        { tableId: 3, seatNumber: 1, left: 347, top: 201 },
+        { tableId: 3, seatNumber: 2, left: 327, top: 201 },
+        
+        // Table 4 (Middle left)
+        { tableId: 4, seatNumber: 1, left: 268, top: 201 },
+        { tableId: 4, seatNumber: 2, left: 247, top: 201 },
+        
+        // Table 5 (Far left bottom)
+        { tableId: 5, seatNumber: 1, left: 184, top: 201 },
+        { tableId: 5, seatNumber: 2, left: 164, top: 201 },
+        
+        // Table 6 (Far left)
+        { tableId: 6, seatNumber: 1, left: 83, top: 211 },
+        { tableId: 6, seatNumber: 2, left: 70, top: 197 },
+        
+        // Table 7 (Upper left)
+        { tableId: 7, seatNumber: 1, left: 23, top: 176 },
+        { tableId: 7, seatNumber: 2, left: 16, top: 158 }
+      ];
+
+      let selectedSeats = [];
+      
+      // Add seats to the container
+      seatPositions.forEach(pos => {
+        const seat = document.createElement('div');
+        seat.className = 'seat';
+        seat.setAttribute('data-table', pos.tableId);
+        seat.setAttribute('data-seat', pos.seatNumber);
+        seat.style.left = pos.left + 'px';
+        seat.style.top = pos.top + 'px';
+        
+        // Add click event listener
+        seat.addEventListener('click', function() {
+          const tableId = parseInt(this.getAttribute('data-table'));
+          const seatNumber = parseInt(this.getAttribute('data-seat'));
+          const key = `${tableId}-${seatNumber}`;
+          
+          // Check if already selected
+          const index = selectedSeats.findIndex(s => s.key === key);
+          
+          if (index >= 0) {
+            // Remove if already selected
+            selectedSeats.splice(index, 1);
+            this.classList.remove('selected');
+            this.textContent = '';
+          } else {
+            // Add if not selected (max 4)
+            if (selectedSeats.length < 4) {
+              selectedSeats.push({
+                key,
+                tableId,
+                seatNumber
+              });
+              this.classList.add('selected');
+              this.textContent = seatNumber;
+            }
+          }
+          
+          // Send message to parent window
+          window.parent.postMessage({
+            type: 'SEAT_SELECTION',
+            selection: selectedSeats
+          }, '*');
+        });
+        
+        container.appendChild(seat);
+      });
+    });
+  </script>
+</body>
+</html>
