@@ -36,9 +36,7 @@ type OnboardingStep =
   // Profile steps (broken down by field)
   "firstName" | "lastName" | "email" | "phone" | 
   // Dietary preference steps
-  "allergensIntro" | "allergens" | "dietaryIntro" | "dietary" | 
-  // Events exploration
-  "eventsList";
+  "allergensIntro" | "allergens" | "dietaryIntro" | "dietary";
 
 // Define lists of allergens and dietary restrictions
 const ALLERGENS: Allergen[] = ["gluten", "dairy", "eggs", "peanuts", "tree_nuts", "soy", "fish", "shellfish", "sesame"];
@@ -47,8 +45,7 @@ const DIETARY_RESTRICTIONS: DietaryRestriction[] = ["vegetarian", "vegan", "hala
 // Step progression
 const STEP_SEQUENCE: OnboardingStep[] = [
   "firstName", "lastName", "email", "phone",
-  "allergensIntro", "allergens", "dietaryIntro", "dietary",
-  "eventsList"
+  "allergensIntro", "allergens", "dietaryIntro", "dietary"
 ];
 
 export default function OnboardingPage() {
@@ -61,11 +58,7 @@ export default function OnboardingPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Get events for the final step
-  const { data: events = [] } = useQuery<any[]>({
-    queryKey: ['/api/events'],
-    enabled: currentStep === 'eventsList',
-  });
+  // We removed events from the onboarding flow
   
   // Initialize states for form data
   const [firstName, setFirstName] = useState("");
@@ -157,17 +150,22 @@ export default function OnboardingPage() {
     }
     
     if (currentStep === "dietary") {
-      // Save dietary preferences
+      // Save dietary preferences and redirect to homepage with a welcome toast
       updateDietaryMutation.mutate({
         allergens: selectedAllergens,
         dietaryRestrictions: selectedDietaryRestrictions
+      }, {
+        onSuccess: () => {
+          // Show a welcome message with the user's first name
+          toast({
+            title: `Welcome ${firstName}!`,
+            description: "Your profile is all set. Explore our upcoming events.",
+          });
+          
+          // Redirect to homepage after saving preferences
+          setLocation("/");
+        }
       });
-    }
-    
-    if (currentStep === "eventsList") {
-      // We've reached the end - go to homepage
-      setLocation("/");
-      return;
     }
     
     // Move to next step
@@ -542,60 +540,6 @@ export default function OnboardingPage() {
                 >
                   {updateDietaryMutation.isPending ? "Saving..." : "Continue"}
                   <ChevronRight className="ml-1 h-4 w-4" />
-                </Button>
-              </CardFooter>
-            </>
-          )}
-          
-          {/* Events List Step */}
-          {currentStep === "eventsList" && (
-            <>
-              <CardHeader>
-                <div className="flex items-center mb-2">
-                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">3</div>
-                  <CardTitle>Upcoming Events</CardTitle>
-                </div>
-                <CardDescription>
-                  Check out what's happening at The Treasury 1929
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {events.map((event: any) => (
-                  <div key={event.id} className="border rounded-lg overflow-hidden">
-                    <div className="h-32 bg-gray-200 overflow-hidden">
-                      <img 
-                        src={event.image} 
-                        alt={event.title} 
-                        className="w-full h-full object-cover" 
-                      />
-                    </div>
-                    <div className="p-3">
-                      <h3 className="font-bold text-lg">{event.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {new Date(event.date).toLocaleDateString(undefined, {
-                          weekday: 'short',
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </p>
-                      <p className="text-sm line-clamp-2">{event.description}</p>
-                    </div>
-                  </div>
-                ))}
-                
-                {events.length === 0 && (
-                  <div className="text-center py-6">
-                    <p className="text-muted-foreground">Loading events...</p>
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={handleBack}>
-                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
-                </Button>
-                <Button onClick={handleNext}>
-                  Finish <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </CardFooter>
             </>
