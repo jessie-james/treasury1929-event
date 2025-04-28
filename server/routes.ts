@@ -564,15 +564,22 @@ export async function registerRoutes(app: Express) {
 
       // For each event
       for (const event of allEvents) {
-        // Count only confirmed bookings for this event
+        // Get only confirmed bookings for this event
         const eventBookings = allBookings.filter(b => b.eventId === event.id);
-        const bookedSeats = eventBookings.reduce((total, booking) => total + booking.seatNumbers.length, 0);
         
-        // Reset available seats based on actual confirmed bookings
-        const newAvailableSeats = event.totalSeats - bookedSeats;
-        await db.update(events)
-          .set({ availableSeats: newAvailableSeats })
-          .where(eq(events.id, event.id));
+        if (eventBookings.length === 0) {
+          // If no bookings at all, reset available seats to total seats
+          await db.update(events)
+            .set({ availableSeats: event.totalSeats })
+            .where(eq(events.id, event.id));
+        } else {
+          // Count actual booked seats
+          const bookedSeats = eventBookings.reduce((total, booking) => total + booking.seatNumbers.length, 0);
+          const newAvailableSeats = event.totalSeats - bookedSeats;
+          await db.update(events)
+            .set({ availableSeats: newAvailableSeats })
+            .where(eq(events.id, event.id));
+        }
         
         // Log the reset
         await storage.createAdminLog({
