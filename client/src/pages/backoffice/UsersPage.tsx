@@ -1,6 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
+import { getQueryFn } from "@/lib/queryClient";
 import {
   Card,
   CardContent,

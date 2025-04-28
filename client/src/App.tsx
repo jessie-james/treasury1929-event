@@ -9,6 +9,7 @@ import HomePage from "@/pages/HomePage";
 import EventPage from "@/pages/EventPage";
 import BookingPage from "@/pages/BookingPage";
 import AuthPage from "@/pages/auth-page";
+import AdminLoginPage from "@/pages/AdminLoginPage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import DashboardPage from "@/pages/backoffice/DashboardPage";
 import OrdersPage from "@/pages/backoffice/OrdersPage";
@@ -42,6 +43,7 @@ function Router() {
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/auth" component={AuthPage} />
+        <Route path="/admin-login" component={AdminLoginPage} />
         <Route path="/events/:id" component={EventPage} />
         <ProtectedRoute path="/events/:id/book" component={BookingPage} />
         <ProtectedRoute path="/onboarding" component={OnboardingPage} />
