@@ -11,6 +11,7 @@ import BookingPage from "@/pages/BookingPage";
 import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/backoffice/DashboardPage";
 import OrdersPage from "@/pages/backoffice/OrdersPage";
+import PaymentsPage from "@/pages/backoffice/PaymentsPage";
 import EventsPage from "@/pages/backoffice/EventsPage";
 import FoodPage from "@/pages/backoffice/FoodPage";
 import UsersPage from "@/pages/backoffice/UsersPage";
@@ -44,6 +45,7 @@ function Router() {
         <ProtectedRoute path="/events/:id/book" component={BookingPage} />
         <ProtectedRoute path="/backoffice" component={DashboardPage} />
         <ProtectedRoute path="/backoffice/orders" component={OrdersPage} />
+        <ProtectedRoute path="/backoffice/payments" component={PaymentsPage} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/entrance" component={EntrancePage} />
         <ProtectedRoute path="/backoffice/bookings" component={BookingManagementPage} />
         <ProtectedRoute path="/backoffice/events" component={EventsPage} />
