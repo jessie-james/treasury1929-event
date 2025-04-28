@@ -34,7 +34,7 @@ function Router() {
   const showNavigation = !isBackoffice;
   
   return (
-    <div className={showNavigation ? "pb-16" : ""}>
+    <div className="pb-16">
       {showNavigation && <Header />}
       
       <Switch>
@@ -55,7 +55,7 @@ function Router() {
         <Route component={NotFound} />
       </Switch>
       
-      {showNavigation && <BottomNavigation />}
+      <BottomNavigation />
     </div>
   );
 }
