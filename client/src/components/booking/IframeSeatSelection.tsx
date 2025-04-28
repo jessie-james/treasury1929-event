@@ -88,7 +88,11 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
         )}
         
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Select Your Seats</h2>
+          <div>
+            <p className="text-muted-foreground">
+              Click on green circles to select up to 4 seats (max 4 per booking)
+            </p>
+          </div>
           <Button
             onClick={() => {
               const submission = getGroupedSeatsForSubmission();
@@ -101,10 +105,6 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
             Continue to Guest Details
           </Button>
         </div>
-        
-        <p className="text-muted-foreground">
-          Click on green circles to select up to 4 seats (max 4 per booking)
-        </p>
         
         <div className="flex items-center justify-end">
           <Badge variant="secondary" className="text-xs">
