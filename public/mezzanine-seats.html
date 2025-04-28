@@ -5,134 +5,147 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mezzanine Seating</title>
   <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
     .container {
       position: relative;
       display: inline-block;
       margin: 0;
       padding: 0;
-      line-height: 0; /* Remove any line height spacing */
+      line-height: 0;
     }
     #floor-plan {
       display: block;
-      width: 1000px; /* Fixed width matching the PNG dimensions */
+      max-width: 100%;
+      width: 1000px;
       height: auto;
       margin: 0;
       padding: 0;
     }
-    .seat {
+    /* Targets for each green circle - these will be completely transparent but clickable */
+    .seat-target {
       position: absolute;
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
-      background-color: transparent;
       transform: translate(-50%, -50%);
       cursor: pointer;
+      border: 2px solid transparent;
+      z-index: 5;
+    }
+    /* Visible marker that appears when seat is selected */
+    .seat-marker {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background-color: rgba(59, 130, 246, 0.8);
+      transform: translate(-50%, -50%);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 10px;
       font-weight: bold;
       color: white;
-      z-index: 10;
-      box-sizing: border-box;
-      border: 1px dashed rgba(255, 255, 255, 0);
-    }
-    .seat::before {
-      content: '';
-      position: absolute;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background-color: rgba(255, 255, 255, 0);
-      z-index: -1;
-      transition: all 0.2s ease;
-    }
-    .seat:hover {
-      border: 1px dashed rgba(255, 255, 255, 0.7);
-    }
-    .seat:hover::before {
-      background-color: rgba(255, 255, 255, 0.3);
-    }
-    .seat.selected {
-      background-color: rgba(59, 130, 246, 0.9);
       border: 2px solid white;
-    }
-    .seat.selected::before {
-      background-color: rgba(255, 255, 255, 0);
+      z-index: 10;
+      pointer-events: none;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
     }
   </style>
 </head>
-<body style="margin: 0; padding: 0; overflow: auto;">
+<body>
   <div class="container">
     <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" id="floor-plan">
     
     <!-- Table 1 (Top right) -->
-    <div class="seat" style="left: 951px; top: 284px;" data-table="1" data-seat="1"></div>
-    <div class="seat" style="left: 967px; top: 313px;" data-table="1" data-seat="2"></div>
-    <div class="seat" style="left: 953px; top: 348px;" data-table="1" data-seat="3"></div>
+    <div class="seat-target" style="left: 951px; top: 284px;" data-table="1" data-seat="1"></div>
+    <div class="seat-target" style="left: 967px; top: 313px;" data-table="1" data-seat="2"></div>
+    <div class="seat-target" style="left: 953px; top: 348px;" data-table="1" data-seat="3"></div>
     
     <!-- Table 2 (Right bottom) -->
-    <div class="seat" style="left: 853px; top: 402px;" data-table="2" data-seat="1"></div>
-    <div class="seat" style="left: 815px; top: 402px;" data-table="2" data-seat="2"></div>
+    <div class="seat-target" style="left: 853px; top: 402px;" data-table="2" data-seat="1"></div>
+    <div class="seat-target" style="left: 814px; top: 402px;" data-table="2" data-seat="2"></div>
     
     <!-- Table 3 (Middle right) -->
-    <div class="seat" style="left: 693px; top: 401px;" data-table="3" data-seat="1"></div>
-    <div class="seat" style="left: 653px; top: 401px;" data-table="3" data-seat="2"></div>
+    <div class="seat-target" style="left: 693px; top: 401px;" data-table="3" data-seat="1"></div>
+    <div class="seat-target" style="left: 653px; top: 401px;" data-table="3" data-seat="2"></div>
     
     <!-- Table 4 (Middle left) -->
-    <div class="seat" style="left: 537px; top: 401px;" data-table="4" data-seat="1"></div>
-    <div class="seat" style="left: 494px; top: 401px;" data-table="4" data-seat="2"></div>
+    <div class="seat-target" style="left: 536px; top: 401px;" data-table="4" data-seat="1"></div>
+    <div class="seat-target" style="left: 494px; top: 401px;" data-table="4" data-seat="2"></div>
     
     <!-- Table 5 (Far left bottom) -->
-    <div class="seat" style="left: 369px; top: 401px;" data-table="5" data-seat="1"></div>
-    <div class="seat" style="left: 328px; top: 401px;" data-table="5" data-seat="2"></div>
+    <div class="seat-target" style="left: 368px; top: 401px;" data-table="5" data-seat="1"></div>
+    <div class="seat-target" style="left: 327px; top: 401px;" data-table="5" data-seat="2"></div>
     
     <!-- Table 6 (Far left) -->
-    <div class="seat" style="left: 167px; top: 421px;" data-table="6" data-seat="1"></div>
-    <div class="seat" style="left: 139px; top: 393px;" data-table="6" data-seat="2"></div>
+    <div class="seat-target" style="left: 167px; top: 420px;" data-table="6" data-seat="1"></div>
+    <div class="seat-target" style="left: 138px; top: 393px;" data-table="6" data-seat="2"></div>
     
     <!-- Table 7 (Upper left) -->
-    <div class="seat" style="left: 46px; top: 353px;" data-table="7" data-seat="1"></div>
-    <div class="seat" style="left: 31px; top: 316px;" data-table="7" data-seat="2"></div>
+    <div class="seat-target" style="left: 46px; top: 352px;" data-table="7" data-seat="1"></div>
+    <div class="seat-target" style="left: 31px; top: 316px;" data-table="7" data-seat="2"></div>
   </div>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      const seats = document.querySelectorAll('.seat');
+      const container = document.querySelector('.container');
+      const seatTargets = document.querySelectorAll('.seat-target');
       let selectedSeats = [];
       
-      seats.forEach(seat => {
-        seat.addEventListener('click', function() {
-          const tableId = this.getAttribute('data-table');
-          const seatNumber = this.getAttribute('data-seat');
-          const key = `${tableId}-${seatNumber}`;
-          
-          // Check if already selected
-          const index = selectedSeats.findIndex(s => s.key === key);
-          
-          if (index >= 0) {
-            // Remove if already selected
-            selectedSeats.splice(index, 1);
-            this.classList.remove('selected');
-            this.textContent = '';
-          } else {
-            // Add if not selected (max 4)
-            if (selectedSeats.length < 4) {
-              selectedSeats.push({
-                key,
-                tableId: parseInt(tableId),
-                seatNumber: parseInt(seatNumber)
-              });
-              this.classList.add('selected');
-              this.textContent = seatNumber;
+      // Function to toggle seat selection
+      function toggleSeat(target) {
+        const tableId = parseInt(target.getAttribute('data-table'));
+        const seatNumber = parseInt(target.getAttribute('data-seat'));
+        const key = `${tableId}-${seatNumber}`;
+        
+        // Look for existing selection
+        const index = selectedSeats.findIndex(s => s.key === key);
+        
+        // Get marker ID and check if it exists
+        const markerId = `marker-${key}`;
+        let marker = document.getElementById(markerId);
+        
+        if (index >= 0) {
+          // Remove if already selected
+          selectedSeats.splice(index, 1);
+          if (marker) marker.remove();
+        } else {
+          // Add if not selected (max 4)
+          if (selectedSeats.length < 4) {
+            selectedSeats.push({
+              key,
+              tableId,
+              seatNumber
+            });
+            
+            // Create visual marker if it doesn't exist
+            if (!marker) {
+              marker = document.createElement('div');
+              marker.id = markerId;
+              marker.className = 'seat-marker';
+              marker.style.left = target.style.left;
+              marker.style.top = target.style.top;
+              marker.textContent = seatNumber;
+              container.appendChild(marker);
             }
           }
-          
-          // Send message to parent window
-          window.parent.postMessage({
-            type: 'SEAT_SELECTION',
-            selection: selectedSeats
-          }, '*');
+        }
+        
+        // Send message to parent window
+        window.parent.postMessage({
+          type: 'SEAT_SELECTION',
+          selection: selectedSeats
+        }, '*');
+      }
+      
+      // Add click handlers to all seat targets
+      seatTargets.forEach(target => {
+        target.addEventListener('click', function() {
+          toggleSeat(this);
         });
       });
     });
