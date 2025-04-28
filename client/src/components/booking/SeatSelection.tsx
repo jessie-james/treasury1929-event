@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -93,7 +94,6 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
 
   return (
     <div className="space-y-6">
-      {/* Header with progress */}
       <div className="space-y-2">
         {hasExistingBooking && (
           <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
@@ -126,52 +126,110 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
         </p>
       </div>
 
-      {/* Tables Grid */}
       <ScrollArea className="h-[calc(100vh-250px)] w-full rounded-md border p-4">
-        <div className="grid grid-cols-2 gap-6">
-          {tables?.map((table) => {
-            const tableSeats = allSeats?.[table.id] || [];
+        <div className="space-y-8">
+          {/* Main Floor */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Main Floor</h3>
+            <div className="relative p-4">
+              {/* Stage Area */}
+              <div className="w-full h-24 bg-muted/30 flex items-center justify-center mb-8 rounded-lg">
+                <span className="text-lg font-medium text-muted-foreground">STAGE</span>
+              </div>
+              
+              <div className="grid grid-cols-8 gap-4">
+                {tables?.filter(t => t.tableNumber <= 32).map((table) => {
+                  const tableSeats = allSeats?.[table.id] || [];
+                  return (
+                    <Card 
+                      key={table.id} 
+                      className={cn(
+                        "overflow-hidden",
+                        selectedSeats.some(s => s.tableId === table.id) && "border-primary"
+                      )}
+                    >
+                      <CardContent className="p-2">
+                        <div className="space-y-2">
+                          <div className="text-center font-medium">Table {table.tableNumber}</div>
+                          <div className="grid grid-cols-2 gap-1">
+                            {tableSeats.map((seat) => {
+                              const isSelected = isSeatSelected(table.id, seat.seatNumber);
+                              return (
+                                <Button
+                                  key={seat.id}
+                                  size="sm"
+                                  variant={isSelected ? "default" : seat.isAvailable ? "secondary" : "ghost"}
+                                  className={cn(
+                                    "h-8 relative",
+                                    isSelected && "bg-primary hover:bg-primary/90",
+                                    !isSelected && seat.isAvailable && "bg-green-500/10 hover:bg-green-500/20 text-green-600",
+                                    !isSelected && !seat.isAvailable && "bg-muted/50 text-muted-foreground hover:bg-muted/50 cursor-not-allowed"
+                                  )}
+                                  disabled={!seat.isAvailable && !isSelected}
+                                  onClick={() => handleSeatToggle(table.id, seat.seatNumber)}
+                                >
+                                  {seat.seatNumber}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
-            return (
-              <Card key={table.id} className={cn(
-                "overflow-hidden",
-                selectedSeats.some(s => s.tableId === table.id) && "border-primary"
-              )}>
-                <CardContent className="p-4">
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Table {table.tableNumber}</h3>
-                    <div className="grid grid-cols-2 gap-2 relative">
-                      {/* Visual table representation */}
-                      <div className="absolute inset-4 border-2 border-muted-foreground/20 rounded-lg" />
-
-                      {tableSeats.map((seat) => {
-                        const isSelected = isSeatSelected(table.id, seat.seatNumber);
-                        const seatPosition = seat.seatNumber % 2 === 0 ? "justify-self-end" : "justify-self-start";
-
-                        return (
-                          <Button
-                            key={seat.id}
-                            variant={isSelected ? "default" : seat.isAvailable ? "secondary" : "ghost"}
-                            className={cn(
-                              "h-12 relative z-10",
-                              seatPosition,
-                              isSelected && "bg-primary hover:bg-primary/90",
-                              !isSelected && seat.isAvailable && "bg-green-500/10 hover:bg-green-500/20 text-green-600",
-                              !isSelected && !seat.isAvailable && "bg-muted/50 text-muted-foreground hover:bg-muted/50 cursor-not-allowed"
-                            )}
-                            disabled={!seat.isAvailable && !isSelected}
-                            onClick={() => handleSeatToggle(table.id, seat.seatNumber)}
-                          >
-                            Seat {seat.seatNumber}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {/* Mezzanine */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Mezzanine</h3>
+            <div className="relative p-4">
+              <div className="grid grid-cols-8 gap-4">
+                {tables?.filter(t => t.tableNumber > 32).map((table) => {
+                  const tableSeats = allSeats?.[table.id] || [];
+                  return (
+                    <Card 
+                      key={table.id} 
+                      className={cn(
+                        "overflow-hidden",
+                        selectedSeats.some(s => s.tableId === table.id) && "border-primary"
+                      )}
+                    >
+                      <CardContent className="p-2">
+                        <div className="space-y-2">
+                          <div className="text-center font-medium">Table {table.tableNumber}</div>
+                          <div className="grid grid-cols-2 gap-1">
+                            {tableSeats.map((seat) => {
+                              const isSelected = isSeatSelected(table.id, seat.seatNumber);
+                              return (
+                                <Button
+                                  key={seat.id}
+                                  size="sm"
+                                  variant={isSelected ? "default" : seat.isAvailable ? "secondary" : "ghost"}
+                                  className={cn(
+                                    "h-8 relative",
+                                    isSelected && "bg-primary hover:bg-primary/90",
+                                    !isSelected && seat.isAvailable && "bg-green-500/10 hover:bg-green-500/20 text-green-600",
+                                    !isSelected && !seat.isAvailable && "bg-muted/50 text-muted-foreground hover:bg-muted/50 cursor-not-allowed"
+                                  )}
+                                  disabled={!seat.isAvailable && !isSelected}
+                                  onClick={() => handleSeatToggle(table.id, seat.seatNumber)}
+                                >
+                                  {seat.seatNumber}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </ScrollArea>
     </div>
