@@ -211,7 +211,7 @@ export function BookingManagement() {
     }
   });
   
-  // Filter bookings based on search query and status
+  // Filter and sort bookings based on search query and status
   const filteredBookings = bookings?.filter(booking => {
     const matchesSearch = 
       searchQuery === "" || 
@@ -224,6 +224,9 @@ export function BookingManagement() {
       booking.status === statusFilter;
     
     return matchesSearch && matchesStatus;
+  }).sort((a, b) => {
+    // Sort by createdAt date, newest first
+    return new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime();
   });
   
   const getStatusBadge = (status: string) => {
