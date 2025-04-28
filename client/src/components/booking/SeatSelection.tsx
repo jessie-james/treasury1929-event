@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { type Table, type Seat } from "@shared/schema";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
@@ -130,27 +130,27 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
           {/* Main Floor */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Main Floor</h3>
-            <div className="relative p-4">
-              {/* Stage Area */}
-              <div className="w-full h-24 bg-gradient-to-b from-amber-100 to-amber-200 flex items-center justify-center mb-8 rounded-lg border border-amber-300">
-                <span className="text-lg font-medium text-amber-800">STAGE</span>
-              </div>
-              
-              <div className="grid grid-cols-8 gap-2">
-                {tables?.filter(t => t.tableNumber <= 32).map((table) => {
-                  const tableSeats = allSeats?.[table.id] || [];
-                  return (
-                    <Card 
-                      key={table.id} 
-                      className={cn(
-                        "overflow-hidden rounded-full aspect-square",
-                        selectedSeats.some(s => s.tableId === table.id) && "ring-2 ring-primary"
-                      )}
-                    >
-                      <CardContent className="p-1 h-full">
-                        <div className="flex flex-col items-center justify-center h-full space-y-1">
-                          <div className="text-xs font-medium text-center mb-1">Table {table.tableNumber}</div>
-                          <div className="grid grid-cols-2 gap-0.5 w-full">
+            <div className="relative">
+              <div className="relative w-full" style={{ backgroundImage: "url('/attached_assets/Main Floor (numbered) PNG.png')", backgroundSize: 'contain', backgroundRepeat: 'no-repeat', paddingTop: '75%' }}>
+                <div className="absolute inset-0 grid grid-cols-8 gap-2 p-4">
+                  {tables?.filter(t => t.tableNumber <= 32).map((table) => {
+                    const tableSeats = allSeats?.[table.id] || [];
+                    const tablePositions: Record<number, { top: string, left: string }> = {
+                      1: { top: '20%', left: '10%' },
+                      2: { top: '20%', left: '20%' },
+                      // Add positions for all tables 1-32
+                    };
+                    const position = tablePositions[table.tableNumber];
+                    
+                    return position && (
+                      <div
+                        key={table.id}
+                        className="absolute"
+                        style={{ top: position.top, left: position.left }}
+                      >
+                        <Card className="w-12 h-12 rounded-full overflow-hidden relative">
+                          <div className="absolute inset-0 flex flex-wrap items-center justify-center gap-0.5 p-1">
+                            <div className="text-xs font-medium text-center w-full">{table.tableNumber}</div>
                             {tableSeats.map((seat) => {
                               const isSelected = isSeatSelected(table.id, seat.seatNumber);
                               return (
@@ -159,7 +159,7 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                                   size="sm"
                                   variant={isSelected ? "default" : seat.isAvailable ? "secondary" : "ghost"}
                                   className={cn(
-                                    "h-6 w-6 p-0 text-xs rounded-full",
+                                    "h-4 w-4 p-0 text-[10px] rounded-full",
                                     isSelected && "bg-primary hover:bg-primary/90",
                                     !isSelected && seat.isAvailable && "bg-green-500/10 hover:bg-green-500/20 text-green-600",
                                     !isSelected && !seat.isAvailable && "bg-muted/50 text-muted-foreground hover:bg-muted/50 cursor-not-allowed"
@@ -172,11 +172,11 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                               );
                             })}
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                        </Card>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
@@ -184,22 +184,27 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
           {/* Mezzanine */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Mezzanine</h3>
-            <div className="relative p-4 bg-slate-50 rounded-lg">
-              <div className="grid grid-cols-8 gap-2">
-                {tables?.filter(t => t.tableNumber > 32).map((table) => {
-                  const tableSeats = allSeats?.[table.id] || [];
-                  return (
-                    <Card 
-                      key={table.id} 
-                      className={cn(
-                        "overflow-hidden rounded-full aspect-square",
-                        selectedSeats.some(s => s.tableId === table.id) && "ring-2 ring-primary"
-                      )}
-                    >
-                      <CardContent className="p-1 h-full">
-                        <div className="flex flex-col items-center justify-center h-full space-y-1">
-                          <div className="text-xs font-medium text-center mb-1">Table {table.tableNumber}</div>
-                          <div className="grid grid-cols-2 gap-0.5 w-full">
+            <div className="relative">
+              <div className="relative w-full" style={{ backgroundImage: "url('/attached_assets/Mezzanine (numbered) PNG.png')", backgroundSize: 'contain', backgroundRepeat: 'no-repeat', paddingTop: '75%' }}>
+                <div className="absolute inset-0 grid grid-cols-8 gap-2 p-4">
+                  {tables?.filter(t => t.tableNumber > 32).map((table) => {
+                    const tableSeats = allSeats?.[table.id] || [];
+                    const tablePositions: Record<number, { top: string, left: string }> = {
+                      33: { top: '20%', left: '10%' },
+                      34: { top: '20%', left: '20%' },
+                      // Add positions for all mezzanine tables
+                    };
+                    const position = tablePositions[table.tableNumber];
+                    
+                    return position && (
+                      <div
+                        key={table.id}
+                        className="absolute"
+                        style={{ top: position.top, left: position.left }}
+                      >
+                        <Card className="w-12 h-12 rounded-full overflow-hidden relative">
+                          <div className="absolute inset-0 flex flex-wrap items-center justify-center gap-0.5 p-1">
+                            <div className="text-xs font-medium text-center w-full">{table.tableNumber}</div>
                             {tableSeats.map((seat) => {
                               const isSelected = isSeatSelected(table.id, seat.seatNumber);
                               return (
@@ -208,7 +213,7 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                                   size="sm"
                                   variant={isSelected ? "default" : seat.isAvailable ? "secondary" : "ghost"}
                                   className={cn(
-                                    "h-6 w-6 p-0 text-xs rounded-full",
+                                    "h-4 w-4 p-0 text-[10px] rounded-full",
                                     isSelected && "bg-primary hover:bg-primary/90",
                                     !isSelected && seat.isAvailable && "bg-green-500/10 hover:bg-green-500/20 text-green-600",
                                     !isSelected && !seat.isAvailable && "bg-muted/50 text-muted-foreground hover:bg-muted/50 cursor-not-allowed"
@@ -221,11 +226,11 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                               );
                             })}
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                        </Card>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
