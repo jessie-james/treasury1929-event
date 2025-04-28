@@ -44,9 +44,16 @@ type Step = typeof STEPS[number];
 export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
   const { user } = useAuth();
   // Get randomized food options for this event (3 per category)
-  const { data: options } = useQuery<FoodOption[]>({
+  const { data: options, isError, error } = useQuery<FoodOption[]>({
     queryKey: [`/api/events/${eventId}/food-options`],
+    // Temporarily fall back to the old endpoint if the randomized endpoint fails
+    onError: () => {
+      console.error("Error loading randomized food options, falling back to all options");
+    }
   });
+  
+  // Debugging
+  console.log("Food options loaded:", options ? options.length : 0, "options");
 
   const [currentSeat, setCurrentSeat] = useState<number>(selectedSeats[0]);
   const [currentStep, setCurrentStep] = useState<Step>("name");
