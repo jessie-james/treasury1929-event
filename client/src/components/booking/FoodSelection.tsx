@@ -297,7 +297,7 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
       {/* Progress indicator */}
       <div className="space-y-2">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Seat #{currentSeat} Selections</h2>
+          <h2 className="text-2xl font-bold font-serif">Seat #{currentSeat} Selections</h2>
           <span className="text-sm text-muted-foreground">
             Step {currentStepIndex + 1} of {STEPS.length}
           </span>
@@ -382,7 +382,7 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                         <CardContent className="p-2">
                           <div className="flex items-center gap-2">
                             <RadioGroupItem value={option.id.toString()} id={`${currentStep}-${currentSeat}-${option.id}`} />
-                            <Label className="font-medium text-sm" htmlFor={`${currentStep}-${currentSeat}-${option.id}`}>
+                            <Label className="font-medium text-sm food-item-name" htmlFor={`${currentStep}-${currentSeat}-${option.id}`}>
                               {option.name}
                             </Label>
                           </div>

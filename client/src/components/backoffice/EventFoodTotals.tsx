@@ -76,11 +76,11 @@ export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsPro
     
     return (
       <div className="space-y-2">
-        <h3 className="font-medium">{title}</h3>
+        <h3 className="font-medium font-serif">{title}</h3>
         {sortedItems.map(([id, count]) => (
           <div key={id} className="space-y-1">
             <div className="flex justify-between text-sm">
-              <span>{getFoodNameById(id, type)}</span>
+              <span className="food-item-name">{getFoodNameById(id, type)}</span>
               <span className="font-medium">{count} selections</span>
             </div>
             <Progress value={getPercentage(count)} className="h-2" />
