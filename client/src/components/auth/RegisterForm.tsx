@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -8,6 +9,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,15 +21,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { InfoIcon, Mail, KeyRound, EyeIcon, EyeOffIcon } from "lucide-react";
 
 const registerSchema = z.object({
   email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .max(100, "Password is too long"),
   role: z.enum(['admin', 'venue_owner', 'venue_manager', 'customer']).default('customer'),
 });
 
 export function RegisterForm() {
   const { registerMutation } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -36,21 +43,38 @@ export function RegisterForm() {
     },
   });
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit((data) => registerMutation.mutate(data))}
         className="space-y-4"
       >
+        <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm flex items-start gap-2 mb-4">
+          <InfoIcon className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+          <p>
+            Create an account to book events and set your dining preferences. After registering, you'll be guided through a quick onboarding process.
+          </p>
+        </div>
+
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Email Address</FormLabel>
               <FormControl>
-                <Input {...field} type="email" />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input {...field} type="email" className="pl-10" placeholder="you@example.com" />
+                </div>
               </FormControl>
+              <FormDescription>
+                We'll use this to send booking confirmations
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -63,43 +87,45 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input {...field} type="password" />
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input 
+                    {...field} 
+                    type={showPassword ? "text" : "password"} 
+                    className="pl-10 pr-10" 
+                    placeholder="••••••" 
+                  />
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute right-0 top-0 h-full px-3 py-2 text-muted-foreground"
+                    onClick={togglePasswordVisibility}
+                  >
+                    {showPassword ? 
+                      <EyeOffIcon className="h-5 w-5" /> : 
+                      <EyeIcon className="h-5 w-5" />
+                    }
+                  </Button>
+                </div>
               </FormControl>
+              <FormDescription>
+                Use at least 6 characters
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="role"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Role</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="customer">Customer</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="venue_owner">Venue Owner</SelectItem>
-                  <SelectItem value="venue_manager">Venue Manager</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        {/* Hidden role field - default to customer */}
+        <input type="hidden" {...form.register("role")} value="customer" />
 
         <Button
           type="submit"
           className="w-full"
           disabled={registerMutation.isPending}
         >
-          {registerMutation.isPending ? "Creating account..." : "Create Account"}
+          {registerMutation.isPending ? "Creating your account..." : "Create Account"}
         </Button>
       </form>
     </Form>
