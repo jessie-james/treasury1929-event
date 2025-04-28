@@ -323,6 +323,49 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async getRandomizedFoodOptions(eventId: number): Promise<FoodOption[]> {
+    try {
+      // Get all food options
+      const allOptions = await db.select().from(foodOptions);
+      
+      // Group options by type
+      const optionsByType: Record<string, FoodOption[]> = {};
+      allOptions.forEach(option => {
+        if (!optionsByType[option.type]) {
+          optionsByType[option.type] = [];
+        }
+        optionsByType[option.type].push(option);
+      });
+      
+      // Use a deterministic random seed based on the event ID
+      // This ensures the same event always gets the same options
+      const seed = eventId;
+      
+      // For each type, select 3 options or all if less than 3
+      const selectedOptions: FoodOption[] = [];
+      Object.entries(optionsByType).forEach(([type, options]) => {
+        // Create a copy of the options array
+        const shuffled = [...options];
+        
+        // Use Fisher-Yates shuffle algorithm with the event ID as seed
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          // Use a deterministic random number based on event ID and current index
+          const j = Math.floor(((seed * 13) + i * 7) % (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        
+        // Take the first 3 options (or all if less than 3)
+        const selected = shuffled.slice(0, Math.min(3, shuffled.length));
+        selectedOptions.push(...selected);
+      });
+      
+      return selectedOptions;
+    } catch (error) {
+      console.error("Error fetching randomized food options:", error);
+      throw error;
+    }
+  }
+  
   async updateFoodOptionsOrder(orderedIds: number[]): Promise<void> {
     try {
       console.log("Updating food options display order:", orderedIds);

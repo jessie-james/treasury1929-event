@@ -486,6 +486,22 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch food options" });
     }
   });
+  
+  app.get("/api/events/:eventId/food-options", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+      
+      // Get randomized food options for this event (3 per category)
+      const options = await storage.getRandomizedFoodOptions(eventId);
+      res.json(options);
+    } catch (error) {
+      console.error("Error fetching randomized food options:", error);
+      res.status(500).json({ message: "Failed to fetch food options" });
+    }
+  });
 
   app.get("/api/bookings", async (req, res) => {
     try {

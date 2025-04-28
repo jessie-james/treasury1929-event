@@ -79,6 +79,7 @@ export default function BookingPage() {
 
           {step === "food" && selectedSeats && (
             <FoodSelection
+              eventId={eventId}
               selectedSeats={selectedSeats.seatNumbers}
               onComplete={(selections, names) => {
                 setFoodSelections(selections);

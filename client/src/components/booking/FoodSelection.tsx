@@ -34,16 +34,18 @@ interface SeatSelections {
 
 interface Props {
   selectedSeats: number[];
+  eventId: number;
   onComplete: (selections: Record<string, number>[], names: Record<number, string>) => void;
 }
 
 const STEPS = ["name", "salad", "entree", "dessert"] as const;
 type Step = typeof STEPS[number];
 
-export function FoodSelection({ selectedSeats, onComplete }: Props) {
+export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
   const { user } = useAuth();
+  // Get randomized food options for this event (3 per category)
   const { data: options } = useQuery<FoodOption[]>({
-    queryKey: ["/api/food-options"],
+    queryKey: [`/api/events/${eventId}/food-options`],
   });
 
   const [currentSeat, setCurrentSeat] = useState<number>(selectedSeats[0]);
