@@ -660,6 +660,9 @@ export async function registerRoutes(app: Express) {
   // Serve public images
   app.use('/images', express.static(path.join(process.cwd(), 'public/images')));
   
+  // Serve files from the public directory
+  app.use(express.static(path.join(process.cwd(), 'public')));
+  
   // Custom error handler for multer upload errors
   const handleMulterError = (err: any, req: any, res: any, next: any) => {
     if (err instanceof multer.MulterError) {
