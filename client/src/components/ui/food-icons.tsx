@@ -24,7 +24,7 @@ export type DietaryRestriction =
   | "keto" 
   | "paleo";
 
-const allergenLabels: Record<Allergen, string> = {
+export const allergenLabels: Record<Allergen, string> = {
   gluten: "Contains Gluten",
   dairy: "Contains Dairy",
   eggs: "Contains Eggs",
@@ -36,7 +36,7 @@ const allergenLabels: Record<Allergen, string> = {
   sesame: "Contains Sesame",
 };
 
-const dietaryLabels: Record<DietaryRestriction, string> = {
+export const dietaryLabels: Record<DietaryRestriction, string> = {
   vegetarian: "Vegetarian",
   vegan: "Vegan",
   halal: "Halal",

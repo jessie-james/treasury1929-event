@@ -8,7 +8,14 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { type FoodOption } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { FoodIconSet, Allergen, DietaryRestriction } from "@/components/ui/food-icons";
+import { FoodIconSet, Allergen, DietaryRestriction, allergenLabels, dietaryLabels } from "@/components/ui/food-icons";
+import { useAuth } from "@/hooks/use-auth";
+import { 
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface SeatSelections {
   name: string;
@@ -26,12 +33,16 @@ const STEPS = ["name", "salad", "entree", "dessert"] as const;
 type Step = typeof STEPS[number];
 
 export function FoodSelection({ selectedSeats, onComplete }: Props) {
+  const { user } = useAuth();
   const { data: options } = useQuery<FoodOption[]>({
     queryKey: ["/api/food-options"],
   });
 
   const [currentSeat, setCurrentSeat] = useState<number>(selectedSeats[0]);
   const [currentStep, setCurrentStep] = useState<Step>("name");
+  const [selectedOption, setSelectedOption] = useState<FoodOption | null>(null);
+  const [showAllergyWarning, setShowAllergyWarning] = useState<boolean>(false);
+  const [allergyConflicts, setAllergyConflicts] = useState<Allergen[]>([]);
   const [selections, setSelections] = useState<Record<number, SeatSelections>>(
     Object.fromEntries(
       selectedSeats.map(seat => [
@@ -49,6 +60,16 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
 
   const currentStepIndex = STEPS.indexOf(currentStep);
   const progress = Math.round((currentStepIndex / (STEPS.length - 1)) * 100);
+  
+  // Check if a food option conflicts with user's allergens
+  const checkAllergenConflicts = (option: FoodOption) => {
+    if (!user || !user.allergens || !option.allergens) return [];
+    
+    const userAllergens = user.allergens as Allergen[];
+    const foodAllergens = option.allergens as Allergen[];
+    
+    return foodAllergens.filter(allergen => userAllergens.includes(allergen));
+  };
 
   const isCurrentSeatComplete = () => {
     const selection = selections[currentSeat];
