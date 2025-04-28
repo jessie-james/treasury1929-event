@@ -5,14 +5,11 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { type FoodOption, type Booking } from "@shared/schema";
+import { type FoodOption } from "@shared/schema";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, AlertTriangle } from "lucide-react";
-import { FoodIconSet, Allergen, DietaryRestriction } from "@/components/ui/food-icons";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface FoodTotals {
   salads: Record<string, number>;
@@ -29,6 +26,9 @@ interface EventFoodTotalsProps {
 
 export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsProps) {
   const [totalItems, setTotalItems] = useState(0);
+  const [saladesTotal, setSaladesTotal] = useState(0);
+  const [entreesTotal, setEntreesTotal] = useState(0);
+  const [dessertsTotal, setDessertsTotal] = useState(0);
 
   const { data: foodOptions } = useQuery<FoodOption[]>({
     queryKey: ["/api/food-options"],
@@ -41,11 +41,14 @@ export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsPro
 
   useEffect(() => {
     if (totals) {
-      const count = 
-        Object.values(totals.salads).reduce((sum, count) => sum + count, 0) +
-        Object.values(totals.entrees).reduce((sum, count) => sum + count, 0) +
-        Object.values(totals.desserts).reduce((sum, count) => sum + count, 0);
-      setTotalItems(count);
+      const saladCount = Object.values(totals.salads).reduce((sum, count) => sum + count, 0);
+      const entreeCount = Object.values(totals.entrees).reduce((sum, count) => sum + count, 0);
+      const dessertCount = Object.values(totals.desserts).reduce((sum, count) => sum + count, 0);
+      
+      setSaladesTotal(saladCount);
+      setEntreesTotal(entreeCount);
+      setDessertsTotal(dessertCount);
+      setTotalItems(saladCount + entreeCount + dessertCount);
     }
   }, [totals]);
 
@@ -64,40 +67,33 @@ export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsPro
     return option?.name || `Item ${id}`;
   };
 
-  const getPercentage = (count: number) => {
-    return totalItems > 0 ? (count / totalItems) * 100 : 0;
+  const getPercentage = (count: number, total: number) => {
+    return total > 0 ? (count / total) * 100 : 0;
   };
 
-  const renderFoodSection = (title: string, items: Record<string, number>, type: 'salad' | 'entree' | 'dessert') => {
+  const renderFoodSection = (items: Record<string, number>, type: 'salad' | 'entree' | 'dessert', sectionTotal: number) => {
     const sortedItems = Object.entries(items)
       .sort(([, countA], [, countB]) => countB - countA);
     
-    if (sortedItems.length === 0) return null;
+    if (sortedItems.length === 0) {
+      return <p className="text-muted-foreground py-4 text-center">No {type} selections</p>;
+    }
     
     return (
-      <div className="space-y-2">
-        <h3 className="font-medium font-serif">{title}</h3>
+      <div className="space-y-4">
         {sortedItems.map(([id, count]) => (
-          <div key={id} className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="food-item-name">{getFoodNameById(id, type)}</span>
-              <span className="font-medium">{count} selections</span>
+          <div key={id} className="space-y-2">
+            <div className="flex justify-between items-center">
+              <div className="font-medium">{getFoodNameById(id, type)}</div>
+              <div className="flex space-x-2 items-center">
+                <span className="font-bold text-lg">{count}</span>
+                <span className="text-muted-foreground text-sm">({Math.round(getPercentage(count, sectionTotal))}%)</span>
+              </div>
             </div>
-            <Progress value={getPercentage(count)} className="h-2" />
-            {/* Display allergen and dietary icons */}
-            {(() => {
-              const foodOption = getFoodOptionById(id, type);
-              if (foodOption) {
-                return (
-                  <FoodIconSet 
-                    allergens={(foodOption.allergens || []) as Allergen[]} 
-                    dietaryRestrictions={(foodOption.dietaryRestrictions || []) as DietaryRestriction[]}
-                    size="sm"
-                  />
-                );
-              }
-              return null;
-            })()}
+            <Progress 
+              value={getPercentage(count, sectionTotal)} 
+              className="h-2" 
+            />
           </div>
         ))}
       </div>
@@ -106,27 +102,17 @@ export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsPro
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Food Orders</CardTitle>
-          <CardDescription>Loading data...</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
     );
   }
 
   if (!totals) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Food Orders</CardTitle>
-          <CardDescription>No data available</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-center text-muted-foreground py-8">No food orders for this event yet.</p>
+        <CardContent className="p-6">
+          <p className="text-center text-muted-foreground py-6">No food orders for this event yet.</p>
         </CardContent>
       </Card>
     );
@@ -137,32 +123,61 @@ export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsPro
     const data = type === 'entree' ? totals.entrees :
                  type === 'salad' ? totals.salads :
                  totals.desserts;
+    
+    const sectionTotal = type === 'entree' ? entreesTotal :
+                         type === 'salad' ? saladesTotal :
+                         dessertsTotal;
                  
-    const title = type === 'entree' ? 'Entrees' :
-                  type === 'salad' ? 'Salads' :
-                  'Desserts';
-                  
     return (
       <div className={className}>
-        {renderFoodSection(title, data, type)}
+        {renderFoodSection(data, type, sectionTotal)}
       </div>
     );
   }
   
-  // Otherwise show all types
+  // Otherwise show all types in tabs
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Food Orders</CardTitle>
-        <CardDescription>
-          {totalItems} total selected items
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {renderFoodSection("Entrees", totals.entrees, 'entree')}
-        {renderFoodSection("Salads", totals.salads, 'salad')}
-        {renderFoodSection("Desserts", totals.desserts, 'dessert')}
-      </CardContent>
-    </Card>
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <p className="text-sm text-muted-foreground">Total selections: <span className="font-medium">{totalItems}</span></p>
+        <div className="flex space-x-3 text-sm">
+          <span className="px-2 py-1 rounded-full bg-primary/10">Salads: {saladesTotal}</span>
+          <span className="px-2 py-1 rounded-full bg-primary/10">Entrees: {entreesTotal}</span>
+          <span className="px-2 py-1 rounded-full bg-primary/10">Desserts: {dessertsTotal}</span>
+        </div>
+      </div>
+
+      <Tabs defaultValue="entrees" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="salads">Salads</TabsTrigger>
+          <TabsTrigger value="entrees">Entrees</TabsTrigger>
+          <TabsTrigger value="desserts">Desserts</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="salads">
+          <Card>
+            <CardContent className="p-4 pt-6">
+              {renderFoodSection(totals.salads, 'salad', saladesTotal)}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="entrees">
+          <Card>
+            <CardContent className="p-4 pt-6">
+              {renderFoodSection(totals.entrees, 'entree', entreesTotal)}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="desserts">
+          <Card>
+            <CardContent className="p-4 pt-6">
+              {renderFoodSection(totals.desserts, 'dessert', dessertsTotal)}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }
