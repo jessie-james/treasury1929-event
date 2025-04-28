@@ -8,14 +8,22 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { type FoodOption } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { FoodIconSet, Allergen, DietaryRestriction, allergenLabels, dietaryLabels } from "@/components/ui/food-icons";
+import { FoodIconSet, Allergen, DietaryRestriction, allergenLabels, dietaryLabels, allergenIcons } from "@/components/ui/food-icons";
 import { useAuth } from "@/hooks/use-auth";
 import { 
   Alert,
   AlertDescription,
   AlertTitle,
 } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 
 interface SeatSelections {
   name: string;
@@ -70,6 +78,26 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
     
     return foodAllergens.filter(allergen => userAllergens.includes(allergen));
   };
+  
+  // Check if a food option is incompatible with user's dietary restrictions
+  const checkDietaryRestrictionConflicts = (option: FoodOption) => {
+    if (!user || !user.dietaryRestrictions || !option) return false;
+    
+    const userRestrictions = user.dietaryRestrictions as DietaryRestriction[];
+    
+    // Check for common incompatibilities
+    if (userRestrictions.includes('vegetarian') && 
+        (option.type === 'entree' && !option.dietaryRestrictions?.includes('vegetarian'))) {
+      return true;
+    }
+    
+    if (userRestrictions.includes('vegan') && 
+        !option.dietaryRestrictions?.includes('vegan')) {
+      return true;
+    }
+    
+    return false;
+  };
 
   const isCurrentSeatComplete = () => {
     const selection = selections[currentSeat];
@@ -118,8 +146,139 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
     }
   };
 
+  // State to track if we're displaying dietary warnings or allergen warnings
+  const [showingDietaryWarning, setShowingDietaryWarning] = useState(false);
+
+  // Handle food option selection
+  const handleFoodOptionSelect = (option: FoodOption) => {
+    // Check for allergen conflicts
+    const conflicts = checkAllergenConflicts(option);
+    const hasDietaryConflict = checkDietaryRestrictionConflicts(option);
+    
+    if (conflicts.length > 0) {
+      // Store conflicts and selected option temporarily
+      setAllergyConflicts(conflicts);
+      setSelectedOption(option);
+      setShowingDietaryWarning(false);
+      setShowAllergyWarning(true);
+    } else if (hasDietaryConflict) {
+      // Display dietary warning
+      setSelectedOption(option);
+      setShowingDietaryWarning(true);
+      setShowAllergyWarning(true);
+    } else {
+      // No conflicts, select the option directly
+      setSelections({
+        ...selections,
+        [currentSeat]: {
+          ...selections[currentSeat],
+          [currentStep]: option.id
+        }
+      });
+    }
+  };
+
+  // Confirm selection despite allergen warnings
+  const confirmAllergenSelection = () => {
+    if (selectedOption) {
+      setSelections({
+        ...selections,
+        [currentSeat]: {
+          ...selections[currentSeat],
+          [currentStep]: selectedOption.id
+        }
+      });
+      setShowAllergyWarning(false);
+      setSelectedOption(null);
+      setAllergyConflicts([]);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Dietary Warning Dialog */}
+      <Dialog open={showAllergyWarning} onOpenChange={setShowAllergyWarning}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              {showingDietaryWarning ? "Dietary Restriction Warning" : "Allergen Warning"}
+            </DialogTitle>
+            <DialogDescription>
+              {showingDietaryWarning 
+                ? "This food doesn't align with your dietary preferences." 
+                : "This food contains allergens that match your dietary restrictions."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            {showingDietaryWarning ? (
+              // Dietary restriction warning content
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Dietary preference conflict</AlertTitle>
+                <AlertDescription>
+                  <p className="mb-2">
+                    {selectedOption?.name} doesn't align with the following dietary preferences in your profile:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1">
+                    {user?.dietaryRestrictions?.map((restriction) => (
+                      <li key={restriction} className="flex items-center gap-2">
+                        <span className="inline-flex items-center justify-center rounded-full bg-destructive/20 text-destructive p-1 w-6 h-6">
+                          <div className="w-4 h-4">{dietaryIcons[restriction as DietaryRestriction]}</div>
+                        </span>
+                        <span>{dietaryLabels[restriction as DietaryRestriction]}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            ) : (
+              // Allergen warning content
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Potential allergens detected</AlertTitle>
+                <AlertDescription>
+                  <p className="mb-2">
+                    {selectedOption?.name} contains the following allergens you've listed in your profile:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1">
+                    {allergyConflicts.map(allergen => (
+                      <li key={allergen} className="flex items-center gap-2">
+                        <span className="inline-flex items-center justify-center rounded-full bg-destructive/20 text-destructive p-1 w-6 h-6">
+                          <div className="w-4 h-4">{allergenIcons[allergen]}</div>
+                        </span>
+                        <span>{allergenLabels[allergen]}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+            <p className="text-sm text-muted-foreground">
+              Please consider selecting a different option or proceed with caution if you still want to select this item.
+            </p>
+          </div>
+          
+          <DialogFooter className="flex sm:flex-row sm:justify-between">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setShowAllergyWarning(false)}
+            >
+              Choose Something Else
+            </Button>
+            <Button 
+              type="button" 
+              variant="destructive" 
+              onClick={confirmAllergenSelection}
+            >
+              Select Anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Progress indicator */}
       <div className="space-y-2">
         <div className="flex justify-between items-center">
@@ -161,36 +320,31 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
             <Label className="capitalize">{currentStep} Selection</Label>
             <RadioGroup
               value={selections[currentSeat]?.[currentStep]?.toString()}
-              onValueChange={(value) =>
-                setSelections({
-                  ...selections,
-                  [currentSeat]: {
-                    ...selections[currentSeat],
-                    [currentStep]: parseInt(value)
-                  }
-                })
-              }
+              onValueChange={(value) => {
+                // Find the selected option
+                const option = byType[currentStep]?.find(opt => opt.id === parseInt(value));
+                if (option) {
+                  handleFoodOptionSelect(option);
+                }
+              }}
             >
               <ScrollArea className="h-[400px] border rounded-lg">
                 <div className="grid grid-cols-3 gap-3 p-4">
                   {byType[currentStep]?.map((option) => {
                     const isSelected = selections[currentSeat]?.[currentStep] === option.id;
+                    const allergenConflicts = checkAllergenConflicts(option);
+                    const hasDietaryConflict = checkDietaryRestrictionConflicts(option);
+                    const hasConflicts = allergenConflicts.length > 0 || hasDietaryConflict;
+                    
                     return (
                       <Card
                         key={option.id}
                         className={cn(
-                          "overflow-hidden cursor-pointer transition-colors",
-                          isSelected ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-muted/50'
+                          "overflow-hidden cursor-pointer transition-colors relative",
+                          isSelected ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-muted/50',
+                          hasConflicts && 'border-destructive'
                         )}
-                        onClick={() => {
-                          setSelections({
-                            ...selections,
-                            [currentSeat]: {
-                              ...selections[currentSeat],
-                              [currentStep]: option.id
-                            }
-                          });
-                        }}
+                        onClick={() => handleFoodOptionSelect(option)}
                       >
                         <div className="aspect-video relative">
                           <img
@@ -198,6 +352,11 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                             alt={option.name}
                             className="object-cover w-full h-full"
                           />
+                          {hasConflicts && (
+                            <div className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1" title="Contains allergens you've listed in your profile">
+                              <AlertTriangle className="h-4 w-4" />
+                            </div>
+                          )}
                         </div>
                         <CardContent className="p-2">
                           <div className="flex items-center gap-2">
