@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ArrowRight, 
   Check, 
+  CheckCircle2,
   User, 
   PhoneCall,
   Mail,
