@@ -81,8 +81,9 @@ export default function EntrancePage() {
   // Mutation for checking in a booking
   const checkInMutation = useMutation({
     mutationFn: (bookingId: number) => {
-      return apiRequest(`/api/bookings/${bookingId}/check-in`, {
-        method: "POST"
+      return apiRequest({
+        method: "POST",
+        url: `/api/bookings/${bookingId}/check-in`
       });
     },
     onSuccess: () => {
