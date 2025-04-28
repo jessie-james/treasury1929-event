@@ -106,17 +106,30 @@ function StripeCheckoutForm({
           console.log("Booking created successfully:", bookingData);
           
           // Invalidate user bookings query to refresh the My Tickets page
-          queryClient.invalidateQueries({ queryKey: ["/api/user/bookings"] });
-          
-          toast({
-            title: "Booking Confirmed!",
-            description: "Your payment was successful. Enjoy the event!",
-          });
-          
-          // Add a small delay to allow the query cache to refresh before navigating
-          setTimeout(() => {
+          try {
+            // Force a refetch instead of just invalidating
+            await queryClient.refetchQueries({ queryKey: ["/api/user/bookings"] });
+            
+            toast({
+              title: "Booking Confirmed!",
+              description: "Your payment was successful. Enjoy the event!",
+            });
+            
+            // Navigate to dashboard after successful refetch
             onSuccess();
-          }, 500);
+          } catch (refetchError) {
+            console.error("Error refetching bookings:", refetchError);
+            
+            // Fallback to basic invalidation if refetch fails
+            queryClient.invalidateQueries({ queryKey: ["/api/user/bookings"] });
+            
+            toast({
+              title: "Booking Confirmed!",
+              description: "Your payment was successful. Enjoy the event!",
+            });
+            
+            onSuccess();
+          }
         } catch (apiError: any) {
           console.error("API Error during booking creation:", apiError);
           toast({

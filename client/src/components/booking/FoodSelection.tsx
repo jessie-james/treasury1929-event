@@ -297,7 +297,9 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
       {/* Progress indicator */}
       <div className="space-y-2">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold font-serif">Seat #{currentSeat} Selections</h2>
+          <div className="text-base font-medium text-gray-700">
+            Seat #{currentSeat} Selections
+          </div>
           <span className="text-sm text-muted-foreground">
             Step {currentStepIndex + 1} of {STEPS.length}
           </span>

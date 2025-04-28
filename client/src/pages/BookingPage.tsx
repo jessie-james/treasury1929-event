@@ -42,6 +42,14 @@ export default function BookingPage() {
       <Header />
       <div className="container py-8 space-y-6">
         <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-center mb-4">
+            {step === "seats" 
+              ? "Select Your Seats" 
+              : step === "food" 
+                ? "Choose Food & Drinks" 
+                : "Complete Your Booking"
+            }
+          </h1>
           <Progress value={progress} className="w-full" />
           <p className="text-center text-sm text-muted-foreground">
             Step {step === "seats" ? "1" : step === "food" ? "2" : "3"} of 3
@@ -79,7 +87,12 @@ export default function BookingPage() {
                 selectedSeats={selectedSeats.seatNumbers}
                 foodSelections={foodSelections}
                 guestNames={guestNames}
-                onSuccess={() => setLocation("/dashboard")}
+                onSuccess={() => {
+                  // Use a short timeout to allow the query invalidation to complete
+                  setTimeout(() => {
+                    setLocation("/dashboard");
+                  }, 300);
+                }}
               />
             )}
           </div>
