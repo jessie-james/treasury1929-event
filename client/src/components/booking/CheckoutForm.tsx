@@ -229,14 +229,7 @@ export function CheckoutForm({
   }
 
   return (
-    <div>
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold">Complete Your Booking</h2>
-        <p className="text-sm text-muted-foreground">
-          Booking {selectedSeats.length} seat{selectedSeats.length > 1 ? 's' : ''} for ${(19.99 * selectedSeats.length).toFixed(2)}
-        </p>
-      </div>
-      
+    <div>      
       <Card className="p-4">
         <CardContent>
           <Elements stripe={stripePromise} options={{ clientSecret }}>
