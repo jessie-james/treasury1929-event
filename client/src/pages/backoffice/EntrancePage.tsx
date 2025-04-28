@@ -80,8 +80,8 @@ export default function EntrancePage() {
   
   // Mutation for checking in a booking
   const checkInMutation = useMutation({
-    mutationFn: async (bookingId: number) => {
-      return await apiRequest(`/api/bookings/${bookingId}/check-in`, {
+    mutationFn: (bookingId: number) => {
+      return apiRequest(`/api/bookings/${bookingId}/check-in`, {
         method: "POST"
       });
     },

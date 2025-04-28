@@ -118,9 +118,34 @@ export async function registerRoutes(app: Express) {
     perMessageDeflate: false // Disable compression for faster startup
   });
 
+  // Keep track of connected clients and their events of interest
+  const clientSubscriptions = new Map<WebSocket, Set<number>>();
+
   wss.on('connection', (ws) => {
     clients.add(ws);
-    ws.on('close', () => clients.delete(ws));
+    clientSubscriptions.set(ws, new Set());
+    
+    // Handle messages from clients
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        if (data.type === 'subscribe_event' && typeof data.eventId === 'number') {
+          // Subscribe client to updates for a specific event
+          const subscriptions = clientSubscriptions.get(ws);
+          if (subscriptions) {
+            subscriptions.add(data.eventId);
+            console.log(`Client subscribed to event ${data.eventId}`);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error);
+      }
+    });
+    
+    ws.on('close', () => {
+      clients.delete(ws);
+      clientSubscriptions.delete(ws);
+    });
   });
 
   // Test database connection
@@ -157,6 +182,29 @@ export async function registerRoutes(app: Express) {
       });
     } catch (error) {
       console.error("Error broadcasting availability:", error);
+    }
+  };
+  
+  // Broadcast check-in updates to subscribed clients
+  const broadcastCheckInUpdate = async (eventId: number) => {
+    try {
+      // Get updated check-in stats
+      const checkInStats = await storage.getEventCheckInStats(eventId);
+      
+      const message = JSON.stringify({
+        type: 'checkin_update',
+        eventId,
+        stats: checkInStats
+      });
+      
+      // Send to clients who subscribed to this event
+      clientSubscriptions.forEach((subscriptions, client) => {
+        if (client.readyState === WebSocket.OPEN && subscriptions.has(eventId)) {
+          client.send(message);
+        }
+      })
+    } catch (error) {
+      console.error(`Error broadcasting check-in update for event ${eventId}:`, error);
     }
   };
 
@@ -473,6 +521,106 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching admin logs:", error);
       res.status(500).json({ message: "Failed to fetch admin logs" });
+    }
+  });
+  
+  // Check-in API endpoints
+  app.post("/api/bookings/:id/check-in", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_manager", "staff"].includes(req.user?.role)) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const bookingId = parseInt(req.params.id);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+      
+      console.log(`Processing check-in for booking ${bookingId} by staff ${req.user.id}`);
+      
+      // Get booking first to determine if it's already checked in
+      const existingBooking = await storage.getBookingById(bookingId);
+      if (!existingBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      if (existingBooking.checkedIn) {
+        return res.status(400).json({ 
+          message: "Booking already checked in",
+          booking: existingBooking
+        });
+      }
+      
+      // Process the check-in
+      const updatedBooking = await storage.checkInBooking(bookingId, req.user.id);
+      if (!updatedBooking) {
+        return res.status(500).json({ message: "Failed to check in booking" });
+      }
+      
+      // Broadcast check-in update to subscribed clients
+      await broadcastCheckInUpdate(updatedBooking.eventId);
+      
+      res.json(updatedBooking);
+    } catch (error) {
+      console.error("Error checking in booking:", error);
+      res.status(500).json({ 
+        message: "Failed to check in booking",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  app.get("/api/bookings/:id/qr-scan", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_manager", "staff"].includes(req.user?.role)) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const bookingId = parseInt(req.params.id);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+      
+      console.log(`QR scan lookup for booking ${bookingId}`);
+      
+      // Get detailed booking information 
+      const booking = await storage.getBookingByQRCode(bookingId);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+      
+      res.json(booking);
+    } catch (error) {
+      console.error("Error performing QR scan lookup:", error);
+      res.status(500).json({ 
+        message: "Failed to verify QR code",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
+  app.get("/api/events/:id/check-in-stats", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_manager", "staff"].includes(req.user?.role)) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const eventId = parseInt(req.params.id);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+      
+      console.log(`Getting check-in stats for event ${eventId}`);
+      
+      // Get statistics
+      const stats = await storage.getEventCheckInStats(eventId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching check-in stats:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch check-in statistics",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
   
