@@ -70,7 +70,7 @@ export function EventDetails({
       </div>
 
       <div className="space-y-4">
-        <h1 className="text-3xl font-bold">{event.title}</h1>
+        <h1 className="text-3xl font-bold font-serif">{event.title}</h1>
 
         <div className="flex flex-wrap gap-4 text-muted-foreground">
           <div className="flex items-center gap-2">

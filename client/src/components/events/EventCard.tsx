@@ -23,7 +23,7 @@ export function EventCard({ event }: { event: Event }) {
           />
         </div>
         <CardContent className="p-4 space-y-2">
-          <h3 className="text-xl font-semibold">{event.title}</h3>
+          <h3 className="event-card-title">{event.title}</h3>
           <p className="text-sm text-muted-foreground">
             {format(new Date(event.date), "PPP 'at' p")}
           </p>
