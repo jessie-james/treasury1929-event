@@ -1,8 +1,8 @@
 import { 
   type Event, type FoodOption, type Booking, type Table, type Seat,
   type SeatBooking, type InsertBooking, type User, type InsertUser,
-  type AdminLog, type InsertAdminLog,
-  events, foodOptions, bookings, users, adminLogs
+  type AdminLog, type InsertAdminLog, type SeatPosition, type InsertSeatPosition,
+  events, foodOptions, bookings, users, adminLogs, seatPositions
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
@@ -88,6 +88,13 @@ export interface IStorage {
   getAdminLogs(): Promise<AdminLog[]>;
   getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]>;
   getAdminLogsByAdmin(adminId: number): Promise<AdminLog[]>;
+  
+  // Seat Positions
+  getSeatPositions(floorPlan: string): Promise<SeatPosition[]>;
+  getSeatPosition(floorPlan: string, tableId: number, seatNumber: number): Promise<SeatPosition | undefined>;
+  createSeatPosition(position: InsertSeatPosition): Promise<SeatPosition>;
+  updateSeatPosition(id: number, position: Partial<InsertSeatPosition>): Promise<SeatPosition | undefined>;
+  deleteSeatPosition(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {

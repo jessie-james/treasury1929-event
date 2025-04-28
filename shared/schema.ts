@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, jsonb, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, jsonb, boolean, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -118,3 +118,19 @@ export const adminLogs = pgTable("admin_logs", {
 export const insertAdminLogSchema = createInsertSchema(adminLogs);
 export type AdminLog = typeof adminLogs.$inferSelect;
 export type InsertAdminLog = z.infer<typeof insertAdminLogSchema>;
+
+// Seat positions for the floor plan
+export const seatPositions = pgTable("seat_positions", {
+  id: serial("id").primaryKey(),
+  floorPlan: text("floor_plan").notNull(), // e.g., 'mezzanine', 'main-floor'
+  tableId: integer("table_id").notNull(),
+  seatNumber: integer("seat_number").notNull(),
+  xPosition: real("x_position").notNull(),
+  yPosition: real("y_position").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSeatPositionSchema = createInsertSchema(seatPositions);
+export type SeatPosition = typeof seatPositions.$inferSelect;
+export type InsertSeatPosition = z.infer<typeof insertSeatPositionSchema>;
