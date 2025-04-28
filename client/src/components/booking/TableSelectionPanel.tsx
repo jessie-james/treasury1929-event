@@ -62,7 +62,7 @@ export function TableSelectionPanel({
       <CardHeader>
         <CardTitle>Select Your Table & Seats</CardTitle>
         <CardDescription>
-          Choose a table from the dropdown, then select your seats
+          Choose a table from the dropdown, then select the numbered seats you want. The floor plan below shows the venue layout with numbered tables and seats.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -89,7 +89,7 @@ export function TableSelectionPanel({
                       .sort((a, b) => a.tableNumber - b.tableNumber)
                       .map((table) => (
                         <SelectItem key={table.id} value={String(table.id)}>
-                          Table {table.tableNumber} ({table.capacity} seats)
+                          Table {table.tableNumber}
                         </SelectItem>
                       ))
                     }
@@ -118,18 +118,18 @@ export function TableSelectionPanel({
                   <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 </div>
               ) : (
-                <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                <div className="grid grid-cols-4 sm:grid-cols-4 gap-2 max-w-md mx-auto">
                   {seatsWithAvailability.map(seat => (
                     <button
                       key={seat.id}
                       className={`
-                        flex items-center justify-center p-3 rounded-md 
+                        flex items-center justify-center p-3 rounded-full
                         border transition-colors duration-200
                         ${selectedSeats.includes(seat.seatNumber)
                           ? 'bg-primary text-primary-foreground border-primary' 
                           : seat.isAvailable
-                            ? 'bg-background hover:bg-muted border-input' 
-                            : 'bg-muted/50 text-muted-foreground cursor-not-allowed border-input'
+                            ? 'bg-green-100 hover:bg-green-200 border-green-300 text-green-800' 
+                            : 'bg-gray-200 text-gray-500 cursor-not-allowed border-gray-300'
                         }
                       `}
                       disabled={!seat.isAvailable && !selectedSeats.includes(seat.seatNumber)}
@@ -141,7 +141,7 @@ export function TableSelectionPanel({
                         )
                       }
                     >
-                      <span className="text-sm font-medium">Seat {seat.seatNumber}</span>
+                      <span className="text-sm font-medium">{seat.seatNumber}</span>
                     </button>
                   ))}
                 </div>

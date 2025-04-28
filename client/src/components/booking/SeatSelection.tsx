@@ -102,7 +102,7 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
           </Button>
         </div>
         <p className="text-muted-foreground">
-          Choose up to 4 seats from a single table
+          Choose up to 4 seats from a single table. The seats are numbered to match the floor plan.
         </p>
         <div className="flex items-center space-x-2 text-sm font-medium text-primary">
           <User2 className="h-4 w-4" />
@@ -132,7 +132,12 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                   key={`${seat.tableId}-${seat.seatNumber}`}
                   className="p-2 rounded-md bg-primary/10 flex items-center justify-between"
                 >
-                  <span className="font-medium">Table {seat.tableId}, Seat {seat.seatNumber}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 flex items-center justify-center rounded-full bg-primary text-white font-medium">
+                      {seat.seatNumber}
+                    </div>
+                    <span className="font-medium">Table {seat.tableId}</span>
+                  </div>
                   <Button 
                     variant="ghost" 
                     size="icon" 

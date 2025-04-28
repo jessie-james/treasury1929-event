@@ -110,7 +110,7 @@ export function FloorPlan({
                 <div className="relative w-full h-[600px] overflow-auto bg-white border rounded-lg">
                   {/* Main Floor PNG */}
                   <img 
-                    src="/uploads/main-floor.png" 
+                    src="/uploads/main-floor-numbered.png" 
                     alt="Main Floor Layout" 
                     className="absolute inset-0 w-full h-full object-contain"
                   />
@@ -149,7 +149,7 @@ export function FloorPlan({
                 <div className="relative w-full h-[600px] overflow-auto bg-white border rounded-lg">
                   {/* Mezzanine Floor PNG */}
                   <img 
-                    src="/uploads/mezzanine.png" 
+                    src="/uploads/mezzanine-numbered.png" 
                     alt="Mezzanine Floor Layout" 
                     className="absolute inset-0 w-full h-full object-contain"
                   />
@@ -185,16 +185,22 @@ export function FloorPlan({
         
         <div className="flex items-center justify-center gap-4 text-sm my-4">
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-green-100 border border-green-300"></div>
-            <span>Available</span>
+            <div className="w-4 h-4 flex items-center justify-center rounded-full bg-green-100 border border-green-300 text-[10px] font-bold">
+              1
+            </div>
+            <span>Available Seat</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-gray-200 border border-gray-300"></div>
-            <span>Booked</span>
+            <div className="w-4 h-4 flex items-center justify-center rounded-full bg-gray-200 border border-gray-300 text-[10px] font-bold text-gray-500">
+              2
+            </div>
+            <span>Booked Seat</span>
           </div>
           <div className="flex items-center gap-1">
-            <div className="w-3 h-3 rounded-full bg-primary border border-primary"></div>
-            <span>Selected</span>
+            <div className="w-4 h-4 flex items-center justify-center rounded-full bg-primary border border-primary text-[10px] font-bold text-white">
+              3
+            </div>
+            <span>Selected Seat</span>
           </div>
         </div>
       </div>
