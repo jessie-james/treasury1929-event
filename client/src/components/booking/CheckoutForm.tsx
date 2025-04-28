@@ -8,7 +8,7 @@ import {
 import { loadStripe } from "@stripe/stripe-js";
 import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,12 +105,18 @@ function StripeCheckoutForm({
           const bookingData = await response.json();
           console.log("Booking created successfully:", bookingData);
           
+          // Invalidate user bookings query to refresh the My Tickets page
+          queryClient.invalidateQueries({ queryKey: ["/api/user/bookings"] });
+          
           toast({
             title: "Booking Confirmed!",
             description: "Your payment was successful. Enjoy the event!",
           });
           
-          onSuccess();
+          // Add a small delay to allow the query cache to refresh before navigating
+          setTimeout(() => {
+            onSuccess();
+          }, 500);
         } catch (apiError: any) {
           console.error("API Error during booking creation:", apiError);
           toast({
@@ -210,29 +216,32 @@ export function CheckoutForm({
   }
 
   return (
-    <Card className="p-4">
-      <CardHeader>
-        <CardTitle>Complete Your Booking</CardTitle>
-        <CardDescription>
+    <div>
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold">Complete Your Booking</h2>
+        <p className="text-sm text-muted-foreground">
           Booking {selectedSeats.length} seat{selectedSeats.length > 1 ? 's' : ''} for ${(19.99 * selectedSeats.length).toFixed(2)}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Elements stripe={stripePromise} options={{ clientSecret }}>
-          <StripeCheckoutForm
-            eventId={eventId}
-            tableId={tableId}
-            selectedSeats={selectedSeats}
-            foodSelections={foodSelections}
-            guestNames={guestNames}
-            onSuccess={onSuccess}
-            clientSecret={clientSecret}
-          />
-        </Elements>
-      </CardContent>
-      <CardFooter className="text-xs text-muted-foreground">
-        <p>Test card details: 4242 4242 4242 4242, any future date, any CVC</p>
-      </CardFooter>
-    </Card>
+        </p>
+      </div>
+      
+      <Card className="p-4">
+        <CardContent>
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <StripeCheckoutForm
+              eventId={eventId}
+              tableId={tableId}
+              selectedSeats={selectedSeats}
+              foodSelections={foodSelections}
+              guestNames={guestNames}
+              onSuccess={onSuccess}
+              clientSecret={clientSecret}
+            />
+          </Elements>
+        </CardContent>
+        <CardFooter className="text-xs text-muted-foreground">
+          <p>Test card details: 4242 4242 4242 4242, any future date, any CVC</p>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

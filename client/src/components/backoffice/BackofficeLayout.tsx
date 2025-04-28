@@ -78,18 +78,7 @@ export function BackofficeLayout({ children }: Props) {
       icon: Users,
       roles: ['admin'],
     },
-    {
-      name: "Logs",
-      href: "/backoffice/logs",
-      icon: History,
-      roles: ['admin'],
-    },
-    {
-      name: "Settings",
-      href: "/backoffice/settings",
-      icon: Settings,
-      roles: ['admin', 'venue_owner'],
-    },
+    // Logs and Settings tabs hidden as requested
   ];
 
   const filteredNav = navigation.filter((item) => item.roles.includes(user?.role || ''));
