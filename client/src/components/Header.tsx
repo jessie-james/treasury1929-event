@@ -5,7 +5,11 @@ export function Header() {
     <div className="border-b">
       <div className="container flex justify-center items-center h-16">
         <Link href="/">
-          <h1 className="text-xl font-semibold">The Treasury 1929</h1>
+          <img 
+            src="/assets/treasury-logo.png" 
+            alt="The Treasury 1929" 
+            className="h-8 hover:opacity-80 transition-opacity"
+          />
         </Link>
       </div>
     </div>
