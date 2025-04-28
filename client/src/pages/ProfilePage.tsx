@@ -121,9 +121,11 @@ export default function ProfilePage() {
   // Handle cancel editing profile
   const handleCancelEdit = () => {
     // Reset form values to current user data
-    setFirstName(user.firstName || '');
-    setLastName(user.lastName || '');
-    setPhone(user.phone || '');
+    if (user) {
+      setFirstName(user.firstName || '');
+      setLastName(user.lastName || '');
+      setPhone(user.phone || '');
+    }
     setIsEditingProfile(false);
   };
   
@@ -184,41 +186,127 @@ export default function ProfilePage() {
               </CardHeader>
               
               <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium text-sm text-muted-foreground">Email</h3>
-                    <p>{user.email}</p>
-                  </div>
-                  
-                  {(user.firstName || user.lastName) && (
+                {isEditingProfile ? (
+                  <div className="space-y-4">
                     <div>
-                      <h3 className="font-medium text-sm text-muted-foreground">Name</h3>
-                      <p>{`${user.firstName || ''} ${user.lastName || ''}`}</p>
+                      <h3 className="font-medium text-sm text-muted-foreground">Email</h3>
+                      <p>{user.email}</p>
                     </div>
-                  )}
-                  
-                  {user.phone && (
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">First Name</label>
+                        <Input 
+                          value={firstName} 
+                          onChange={(e) => setFirstName(e.target.value)}
+                          placeholder="First name"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Last Name</label>
+                        <Input 
+                          value={lastName} 
+                          onChange={(e) => setLastName(e.target.value)}
+                          placeholder="Last name"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Phone (Optional)</label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input 
+                          value={phone} 
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="(555) 123-4567"
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    
                     <div>
-                      <h3 className="font-medium text-sm text-muted-foreground">Phone</h3>
-                      <p>{user.phone}</p>
+                      <h3 className="font-medium text-sm text-muted-foreground">Account Created</h3>
+                      <p>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</p>
                     </div>
-                  )}
-                  
-                  <div>
-                    <h3 className="font-medium text-sm text-muted-foreground">Account Created</h3>
-                    <p>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</p>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-medium text-sm text-muted-foreground">Email</h3>
+                      <p>{user.email}</p>
+                    </div>
+                    
+                    {(user.firstName || user.lastName) && (
+                      <div>
+                        <h3 className="font-medium text-sm text-muted-foreground">Name</h3>
+                        <p>{`${user.firstName || ''} ${user.lastName || ''}`}</p>
+                      </div>
+                    )}
+                    
+                    {user.phone && (
+                      <div>
+                        <h3 className="font-medium text-sm text-muted-foreground">Phone</h3>
+                        <p>{user.phone}</p>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <h3 className="font-medium text-sm text-muted-foreground">Account Created</h3>
+                      <p>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
               
-              <CardFooter>
-                <Button 
-                  variant="destructive" 
-                  className="w-full"
-                  onClick={() => logoutMutation.mutate()}
-                >
-                  Sign Out
-                </Button>
+              <CardFooter className="flex flex-wrap gap-2">
+                {isEditingProfile ? (
+                  <>
+                    <Button 
+                      className="flex-1"
+                      onClick={handleSaveProfile}
+                      disabled={isUpdatingProfile}
+                    >
+                      {isUpdatingProfile ? (
+                        <>
+                          <span className="mr-2 h-4 w-4 animate-spin">◌</span>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Save Profile
+                        </>
+                      )}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      onClick={handleCancelEdit}
+                      disabled={isUpdatingProfile}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button 
+                      className="flex-1"
+                      onClick={() => setIsEditingProfile(true)}
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit Profile
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      className="flex-1"
+                      onClick={() => logoutMutation.mutate()}
+                    >
+                      Sign Out
+                    </Button>
+                  </>
+                )}
               </CardFooter>
             </Card>
           </TabsContent>
