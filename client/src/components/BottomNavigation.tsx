@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Calendar, LayoutDashboard, Ticket, User } from "lucide-react";
+import { Calendar, AlertTriangle, Ticket, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -18,7 +18,6 @@ export function BottomNavigation() {
       href: "/dashboard",
       icon: Ticket,
       requireAuth: true,
-      hideForAdmin: true,
     },
     {
       title: "My Profile",
@@ -28,7 +27,7 @@ export function BottomNavigation() {
     {
       title: "Backoffice",
       href: "/backoffice",
-      icon: LayoutDashboard,
+      icon: AlertTriangle,
       requireAuth: true,
       requireAdmin: true,
     },
