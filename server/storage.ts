@@ -29,7 +29,6 @@ export interface IStorage {
 
   // Tables and Seats
   getTables(): Promise<Table[]>;
-  getTablesByFloor(floor: string): Promise<Table[]>;
   getTableSeats(tableId: number): Promise<Seat[]>;
   getTableSeatsAvailability(tableId: number, eventId: number): Promise<SeatBooking[]>;
   updateSeatAvailability(tableId: number, seatNumbers: number[], eventId: number, isBooked: boolean): Promise<void>;
@@ -222,19 +221,6 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(tables);
     } catch (error) {
       console.error("Error fetching tables:", error);
-      throw error;
-    }
-  }
-  
-  async getTablesByFloor(floor: string): Promise<Table[]> {
-    try {
-      return await db
-        .select()
-        .from(tables)
-        .where(eq(tables.floor, floor))
-        .orderBy(tables.tableNumber);
-    } catch (error) {
-      console.error(`Error fetching tables for floor ${floor}:`, error);
       throw error;
     }
   }

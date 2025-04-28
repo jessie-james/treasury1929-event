@@ -35,19 +35,12 @@ export const tables = pgTable("tables", {
   venueId: integer("venue_id").notNull(),
   tableNumber: integer("table_number").notNull(),
   capacity: integer("capacity").notNull().default(4),
-  floor: text("floor").notNull().default("main"), // 'main' or 'mezzanine'
-  x: integer("x").default(0), // For positioning the table in UI
-  y: integer("y").default(0), // For positioning the table in UI
-  shape: text("shape").default("round"), // 'round', 'rectangular', etc.
 });
 
 export const seats = pgTable("seats", {
   id: serial("id").primaryKey(),
   tableId: integer("table_id").notNull(),
   seatNumber: integer("seat_number").notNull(),
-  position: text("position").notNull().default("top"), // 'top', 'right', 'bottom', 'left', or specific degrees (0-360)
-  x: integer("x").default(0), // Relative X position from table center
-  y: integer("y").default(0), // Relative Y position from table center
 });
 
 // New table to track event-specific seat availability

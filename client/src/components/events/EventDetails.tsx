@@ -86,7 +86,7 @@ export function EventDetails({
         <p className="text-lg">{event.description}</p>
 
         {hasBooking && (
-          <Alert className="bg-yellow-50 border-yellow-200">
+          <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
             <AlertTitle className="text-yellow-800">You have tickets for this event</AlertTitle>
             <AlertDescription className="text-yellow-700">

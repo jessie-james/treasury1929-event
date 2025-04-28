@@ -375,15 +375,7 @@ export async function registerRoutes(app: Express) {
 
   app.get("/api/tables", async (_req, res) => {
     try {
-      const floor = _req.query.floor as string;
-      let tables;
-      
-      if (floor) {
-        tables = await storage.getTablesByFloor(floor);
-      } else {
-        tables = await storage.getTables();
-      }
-      
+      const tables = await storage.getTables();
       res.json(tables);
     } catch (error) {
       console.error("Error fetching tables:", error);
