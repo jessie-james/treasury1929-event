@@ -26,7 +26,7 @@ interface EventFoodTotalsProps {
 
 export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsProps) {
   const [totalItems, setTotalItems] = useState(0);
-  const [saladesTotal, setSaladesTotal] = useState(0);
+  const [saladsTotal, setSaladsTotal] = useState(0);
   const [entreesTotal, setEntreesTotal] = useState(0);
   const [dessertsTotal, setDessertsTotal] = useState(0);
 
@@ -45,7 +45,7 @@ export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsPro
       const entreeCount = Object.values(totals.entrees).reduce((sum, count) => sum + count, 0);
       const dessertCount = Object.values(totals.desserts).reduce((sum, count) => sum + count, 0);
       
-      setSaladesTotal(saladCount);
+      setSaladsTotal(saladCount);
       setEntreesTotal(entreeCount);
       setDessertsTotal(dessertCount);
       setTotalItems(saladCount + entreeCount + dessertCount);
@@ -125,7 +125,7 @@ export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsPro
                  totals.desserts;
     
     const sectionTotal = type === 'entree' ? entreesTotal :
-                         type === 'salad' ? saladesTotal :
+                         type === 'salad' ? saladsTotal :
                          dessertsTotal;
                  
     return (
@@ -141,7 +141,7 @@ export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsPro
       <div className="flex justify-between items-center mb-4">
         <p className="text-sm text-muted-foreground">Total selections: <span className="font-medium">{totalItems}</span></p>
         <div className="flex space-x-3 text-sm">
-          <span className="px-2 py-1 rounded-full bg-primary/10">Salads: {saladesTotal}</span>
+          <span className="px-2 py-1 rounded-full bg-primary/10">Salads: {saladsTotal}</span>
           <span className="px-2 py-1 rounded-full bg-primary/10">Entrees: {entreesTotal}</span>
           <span className="px-2 py-1 rounded-full bg-primary/10">Desserts: {dessertsTotal}</span>
         </div>
@@ -157,7 +157,7 @@ export function EventFoodTotals({ eventId, type, className }: EventFoodTotalsPro
         <TabsContent value="salads">
           <Card>
             <CardContent className="p-4 pt-6">
-              {renderFoodSection(totals.salads, 'salad', saladesTotal)}
+              {renderFoodSection(totals.salads, 'salad', saladsTotal)}
             </CardContent>
           </Card>
         </TabsContent>
