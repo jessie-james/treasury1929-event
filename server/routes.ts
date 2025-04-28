@@ -583,15 +583,18 @@ export async function registerRoutes(app: Express) {
         // Get only confirmed bookings for this event
         const eventBookings = allBookings.filter(b => b.eventId === event.id);
         
+        // Compute new available seats
+        let newAvailableSeats = event.totalSeats;
+        
         if (eventBookings.length === 0) {
           // If no bookings at all, reset available seats to total seats
           await db.update(events)
-            .set({ availableSeats: event.totalSeats })
+            .set({ availableSeats: newAvailableSeats })
             .where(eq(events.id, event.id));
         } else {
           // Count actual booked seats
           const bookedSeats = eventBookings.reduce((total, booking) => total + booking.seatNumbers.length, 0);
-          const newAvailableSeats = event.totalSeats - bookedSeats;
+          newAvailableSeats = event.totalSeats - bookedSeats;
           await db.update(events)
             .set({ availableSeats: newAvailableSeats })
             .where(eq(events.id, event.id));
