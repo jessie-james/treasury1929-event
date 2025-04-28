@@ -975,6 +975,97 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+
+  // Seat Position methods
+  async getSeatPositions(floorPlan: string): Promise<SeatPosition[]> {
+    try {
+      console.log(`Fetching seat positions for floor plan: ${floorPlan}`);
+      return await db
+        .select()
+        .from(seatPositions)
+        .where(eq(seatPositions.floorPlan, floorPlan));
+    } catch (error) {
+      console.error("Error fetching seat positions:", error);
+      throw error;
+    }
+  }
+
+  async getSeatPosition(floorPlan: string, tableId: number, seatNumber: number): Promise<SeatPosition | undefined> {
+    try {
+      console.log(`Fetching seat position for floor plan: ${floorPlan}, table: ${tableId}, seat: ${seatNumber}`);
+      const [position] = await db
+        .select()
+        .from(seatPositions)
+        .where(
+          and(
+            eq(seatPositions.floorPlan, floorPlan),
+            eq(seatPositions.tableId, tableId),
+            eq(seatPositions.seatNumber, seatNumber)
+          )
+        );
+      return position;
+    } catch (error) {
+      console.error("Error fetching seat position:", error);
+      throw error;
+    }
+  }
+
+  async createSeatPosition(position: InsertSeatPosition): Promise<SeatPosition> {
+    try {
+      console.log("Creating new seat position:", position);
+      const [created] = await db
+        .insert(seatPositions)
+        .values(position)
+        .returning();
+      console.log("Seat position created successfully:", created);
+      return created;
+    } catch (error) {
+      console.error("Error creating seat position:", error);
+      throw error;
+    }
+  }
+
+  async updateSeatPosition(id: number, position: Partial<InsertSeatPosition>): Promise<SeatPosition | undefined> {
+    try {
+      console.log(`Updating seat position ${id} with:`, position);
+      // Always update the updatedAt timestamp
+      const updates = {
+        ...position,
+        updatedAt: new Date()
+      };
+      
+      const [updated] = await db
+        .update(seatPositions)
+        .set(updates)
+        .where(eq(seatPositions.id, id))
+        .returning();
+      
+      if (!updated) {
+        console.log(`Seat position with ID ${id} not found`);
+        return undefined;
+      }
+      
+      console.log(`Seat position ${id} updated successfully`);
+      return updated;
+    } catch (error) {
+      console.error(`Error updating seat position ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteSeatPosition(id: number): Promise<void> {
+    try {
+      console.log(`Deleting seat position ${id}`);
+      await db
+        .delete(seatPositions)
+        .where(eq(seatPositions.id, id));
+      
+      console.log(`Seat position ${id} deleted successfully`);
+    } catch (error) {
+      console.error(`Error deleting seat position ${id}:`, error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();
