@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Calendar, Home, Ticket, User } from "lucide-react";
+import { Calendar, LayoutDashboard, Ticket, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -18,11 +18,19 @@ export function BottomNavigation() {
       href: "/dashboard",
       icon: Ticket,
       requireAuth: true,
+      hideForAdmin: true,
     },
     {
       title: "My Profile",
       href: user ? "/profile" : "/auth",
       icon: User,
+    },
+    {
+      title: "Backoffice",
+      href: "/backoffice",
+      icon: LayoutDashboard,
+      requireAuth: true,
+      requireAdmin: true,
     },
   ];
 
@@ -30,7 +38,7 @@ export function BottomNavigation() {
     <div className="fixed bottom-0 w-full border-t bg-background z-50">
       <div className="container flex justify-around items-center h-16">
         {navigationItems.map((item) => {
-          if (item.requireAuth && !user) return null;
+          if ((item.requireAuth && !user) || (item.requireAdmin && user?.role !== 'admin') || (item.hideForAdmin && user?.role === 'admin')) return null;
           
           const isActive = location === item.href;
           
