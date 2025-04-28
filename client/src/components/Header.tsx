@@ -1,4 +1,3 @@
-
 import { Link } from "wouter";
 
 export function Header() {
@@ -6,11 +5,7 @@ export function Header() {
     <div className="border-b">
       <div className="container flex justify-center items-center h-16">
         <Link href="/">
-          <img 
-            src="/assets/logo.png" 
-            alt="The Treasury 1929" 
-            className="h-8"
-          />
+          <h1 className="text-xl font-semibold">The Treasury 1929</h1>
         </Link>
       </div>
     </div>
