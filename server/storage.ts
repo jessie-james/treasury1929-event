@@ -36,6 +36,7 @@ export interface IStorage {
   // Food Options
   getFoodOptions(): Promise<FoodOption[]>;
   getFoodOptionsByDisplayOrder(): Promise<FoodOption[]>; // Get food options ordered by display_order
+  getRandomizedFoodOptions(eventId: number): Promise<FoodOption[]>; // Get random food options per event (3 per category)
   getFoodOptionsByIds(ids: number[]): Promise<FoodOption[]>;
   createFoodOption(foodOption: Omit<FoodOption, "id">): Promise<FoodOption>;
   updateFoodOption(id: number, foodOption: Partial<Omit<FoodOption, "id">>): Promise<FoodOption | undefined>;

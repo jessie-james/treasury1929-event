@@ -87,6 +87,14 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
           </Alert>
         )}
         
+        <Alert className="bg-blue-50 border-blue-200">
+          <AlertTriangle className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800">Large Party Notice</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            For parties larger than 4 people, please email us at <span className="font-medium">Info@TheTreasury1929.com</span> to arrange your reservation.
+          </AlertDescription>
+        </Alert>
+        
         <div className="flex items-center justify-between">
           <div>
             <p className="text-muted-foreground">
