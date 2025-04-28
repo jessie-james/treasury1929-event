@@ -4,7 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Save, AlertTriangle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { User, Save, AlertTriangle, Edit, X, Phone } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -29,6 +30,13 @@ export default function ProfilePage() {
     (user?.dietaryRestrictions || []) as DietaryRestriction[]
   );
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Profile editing state
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [firstName, setFirstName] = useState(user?.firstName || '');
+  const [lastName, setLastName] = useState(user?.lastName || '');
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
   // Set up mutation to update user preferences
   const updateUserMutation = useMutation({
@@ -55,6 +63,32 @@ export default function ProfilePage() {
     }
   });
   
+  // Set up mutation to update user profile
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: { firstName: string, lastName: string, phone?: string }) => {
+      const response = await apiRequest("PATCH", "/api/user/profile", data);
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Profile updated",
+        description: "Your profile information has been saved successfully.",
+      });
+      // Invalidate user data to refresh the user context
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      setIsUpdatingProfile(false);
+      setIsEditingProfile(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update your profile. Please try again.",
+        variant: "destructive",
+      });
+      setIsUpdatingProfile(false);
+    }
+  });
+  
   // Handle saving preferences
   const handleSavePreferences = () => {
     setIsSaving(true);
@@ -62,6 +96,35 @@ export default function ProfilePage() {
       allergens: selectedAllergens,
       dietaryRestrictions: selectedDietaryRestrictions
     });
+  };
+  
+  // Handle saving profile
+  const handleSaveProfile = () => {
+    // Basic validation
+    if (!firstName.trim() || !lastName.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "First name and last name are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsUpdatingProfile(true);
+    updateProfileMutation.mutate({
+      firstName,
+      lastName,
+      phone: phone || undefined
+    });
+  };
+  
+  // Handle cancel editing profile
+  const handleCancelEdit = () => {
+    // Reset form values to current user data
+    setFirstName(user.firstName || '');
+    setLastName(user.lastName || '');
+    setPhone(user.phone || '');
+    setIsEditingProfile(false);
   };
   
   // Handle allergen toggle
@@ -126,6 +189,20 @@ export default function ProfilePage() {
                     <h3 className="font-medium text-sm text-muted-foreground">Email</h3>
                     <p>{user.email}</p>
                   </div>
+                  
+                  {(user.firstName || user.lastName) && (
+                    <div>
+                      <h3 className="font-medium text-sm text-muted-foreground">Name</h3>
+                      <p>{`${user.firstName || ''} ${user.lastName || ''}`}</p>
+                    </div>
+                  )}
+                  
+                  {user.phone && (
+                    <div>
+                      <h3 className="font-medium text-sm text-muted-foreground">Phone</h3>
+                      <p>{user.phone}</p>
+                    </div>
+                  )}
                   
                   <div>
                     <h3 className="font-medium text-sm text-muted-foreground">Account Created</h3>

@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
-import { InfoIcon, Mail, KeyRound, EyeIcon, EyeOffIcon } from "lucide-react";
+import { InfoIcon, Mail, KeyRound, EyeIcon, EyeOffIcon, User, Phone } from "lucide-react";
 
 const registerSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -30,6 +30,9 @@ const registerSchema = z.object({
     .min(6, "Password must be at least 6 characters")
     .max(100, "Password is too long"),
   role: z.enum(['admin', 'venue_owner', 'venue_manager', 'customer']).default('customer'),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  phone: z.string().optional(),
 });
 
 export function RegisterForm() {
@@ -40,6 +43,9 @@ export function RegisterForm() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       role: 'customer',
+      firstName: '',
+      lastName: '',
+      phone: '',
     },
   });
 
@@ -111,6 +117,62 @@ export function RegisterForm() {
               </FormControl>
               <FormDescription>
                 Use at least 6 characters
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>First Name</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    <Input {...field} className="pl-10" placeholder="First name" />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last Name</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                    <Input {...field} className="pl-10" placeholder="Last name" />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone (Optional)</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input {...field} className="pl-10" placeholder="(555) 123-4567" />
+                </div>
+              </FormControl>
+              <FormDescription>
+                For important event notifications
               </FormDescription>
               <FormMessage />
             </FormItem>

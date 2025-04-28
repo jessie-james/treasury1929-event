@@ -134,13 +134,29 @@ export function setupAuth(app: Express) {
       if (!['admin', 'venue_owner', 'venue_manager', 'customer'].includes(role)) {
         return res.status(400).json({ message: "Invalid role" });
       }
+      
+      // Extract profile fields
+      const { email, password, role: userRole, firstName, lastName, phone } = req.body;
+      
+      // Validate required profile fields if they're provided
+      if (firstName !== undefined && firstName.trim() === '') {
+        return res.status(400).json({ message: "First name cannot be empty" });
+      }
+      
+      if (lastName !== undefined && lastName.trim() === '') {
+        return res.status(400).json({ message: "Last name cannot be empty" });
+      }
 
-      const hashedPassword = await hashPassword(req.body.password);
+      const hashedPassword = await hashPassword(password);
       console.log("Registering new user with hashed password:", hashedPassword);
 
       const user = await storage.createUser({
-        ...req.body,
+        email,
         password: hashedPassword,
+        role: userRole,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        phone: phone || null,
       });
 
       req.login(user, (err) => {
