@@ -66,6 +66,54 @@
       font-size: 12px;
       z-index: 1000;
     }
+    
+    .control-panel {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px;
+      border-radius: 4px;
+      font-family: sans-serif;
+      font-size: 14px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .lock-button {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 14px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    
+    .copy-button {
+      background-color: #2196F3;
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 14px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    
+    .locked {
+      background-color: #f44336;
+    }
 
     /* Table labels for clarity */
     .table-label {
@@ -98,6 +146,13 @@
   </div>
   
   <div class="debug-panel" id="debugPanel"></div>
+  
+  <div class="control-panel" id="controlPanel">
+    <h3 style="margin-top: 0;">Seat Controls</h3>
+    <button id="lockButton" class="lock-button">LOCK POSITIONS</button>
+    <button id="copyButton" class="copy-button">COPY POSITIONS</button>
+    <p id="statusText">Status: Positions can be adjusted</p>
+  </div>
   
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -206,7 +261,7 @@
       // Enable seat dragging in debug mode (Shift + mousedown)
       document.querySelectorAll('.seat').forEach(seat => {
         seat.addEventListener('mousedown', function(e) {
-          if (e.shiftKey) {
+          if (e.shiftKey && !positionsLocked) {
             e.preventDefault();
             activeSeat = this;
             offsetX = e.clientX - parseInt(activeSeat.style.left);
@@ -215,12 +270,14 @@
             const tableId = activeSeat.getAttribute('data-table');
             const seatNumber = activeSeat.getAttribute('data-seat');
             debugPanel.textContent = `Moving - Table ${tableId}, Seat ${seatNumber}`;
+          } else if (e.shiftKey && positionsLocked) {
+            debugPanel.textContent = "Positions are locked! Unlock to adjust.";
           }
         });
       });
       
       document.addEventListener('mousemove', function(e) {
-        if (activeSeat) {
+        if (activeSeat && !positionsLocked) {
           const newLeft = e.clientX - offsetX;
           const newTop = e.clientY - offsetY;
           
@@ -239,6 +296,82 @@
       
       // Instructions in debug panel
       debugPanel.textContent = 'Hold Shift + click and drag seats to adjust positions';
+      
+      // Lock positions functionality
+      const lockButton = document.getElementById('lockButton');
+      const copyButton = document.getElementById('copyButton');
+      const statusText = document.getElementById('statusText');
+      let positionsLocked = false;
+      
+      lockButton.addEventListener('click', function() {
+        positionsLocked = !positionsLocked;
+        
+        if (positionsLocked) {
+          // Lock positions
+          this.textContent = "UNLOCK POSITIONS";
+          this.classList.add('locked');
+          statusText.textContent = "Status: Positions are LOCKED";
+          debugPanel.textContent = "Positions locked! They cannot be moved.";
+          
+          // Generate current positions
+          const currentPositions = [];
+          document.querySelectorAll('.seat').forEach(seat => {
+            const tableId = parseInt(seat.getAttribute('data-table'));
+            const seatNumber = parseInt(seat.getAttribute('data-seat'));
+            const left = parseInt(seat.style.left);
+            const top = parseInt(seat.style.top);
+            
+            currentPositions.push({ tableId, seatNumber, left, top });
+          });
+          
+          // Store the positions in localStorage
+          localStorage.setItem('savedSeatPositions', JSON.stringify(currentPositions));
+        } else {
+          // Unlock positions
+          this.textContent = "LOCK POSITIONS";
+          this.classList.remove('locked');
+          statusText.textContent = "Status: Positions can be adjusted";
+          debugPanel.textContent = "Positions unlocked! Hold Shift + click and drag to adjust.";
+        }
+      });
+      
+      // Copy positions to clipboard
+      copyButton.addEventListener('click', function() {
+        const currentPositions = [];
+        document.querySelectorAll('.seat').forEach(seat => {
+          const tableId = parseInt(seat.getAttribute('data-table'));
+          const seatNumber = parseInt(seat.getAttribute('data-seat'));
+          const left = parseInt(seat.style.left);
+          const top = parseInt(seat.style.top);
+          
+          currentPositions.push({ tableId, seatNumber, left, top });
+        });
+        
+        // Format positions as JavaScript array
+        const positionsText = JSON.stringify(currentPositions, null, 2);
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(positionsText)
+          .then(() => {
+            this.textContent = "COPIED!";
+            debugPanel.textContent = "Positions copied to clipboard! Paste into the HTML file.";
+            setTimeout(() => {
+              this.textContent = "COPY POSITIONS";
+            }, 2000);
+          })
+          .catch(err => {
+            console.error('Could not copy text: ', err);
+            debugPanel.textContent = "Failed to copy positions. See console for details.";
+          });
+      });
+      
+      // Modify mousedown to respect locking
+      document.addEventListener('mousedown', function(e) {
+        if (positionsLocked && e.target.classList.contains('seat') && e.shiftKey) {
+          e.preventDefault();
+          debugPanel.textContent = "Positions are locked! Unlock to adjust.";
+        }
+      }, true);
     });
   </script>
 </body>
