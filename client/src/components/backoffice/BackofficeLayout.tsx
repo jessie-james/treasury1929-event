@@ -13,6 +13,7 @@ import {
   X,
   BookOpenCheck,
   History,
+  CreditCard,
   DoorOpen,
   QrCode,
 } from "lucide-react";
@@ -40,6 +41,12 @@ export function BackofficeLayout({ children }: Props) {
       href: "/backoffice/orders",
       icon: ClipboardList,
       roles: ['admin', 'venue_owner', 'venue_manager'],
+    },
+    {
+      name: "Payments",
+      href: "/backoffice/payments",
+      icon: CreditCard,
+      roles: ['admin', 'venue_owner'],
     },
     {
       name: "Entrance",
