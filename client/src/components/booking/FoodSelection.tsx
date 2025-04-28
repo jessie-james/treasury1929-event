@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { type FoodOption } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { FoodIconSet, Allergen, DietaryRestriction, allergenLabels, dietaryLabels, allergenIcons } from "@/components/ui/food-icons";
+import { FoodIconSet, Allergen, DietaryRestriction, allergenLabels, dietaryLabels, allergenIcons, dietaryIcons } from "@/components/ui/food-icons";
 import { useAuth } from "@/hooks/use-auth";
 import { 
   Alert,
@@ -51,6 +51,7 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
   const [selectedOption, setSelectedOption] = useState<FoodOption | null>(null);
   const [showAllergyWarning, setShowAllergyWarning] = useState<boolean>(false);
   const [allergyConflicts, setAllergyConflicts] = useState<Allergen[]>([]);
+  const [dietaryConflicts, setDietaryConflicts] = useState<DietaryRestriction[]>([]);
   const [selections, setSelections] = useState<Record<number, SeatSelections>>(
     Object.fromEntries(
       selectedSeats.map(seat => [
@@ -80,23 +81,34 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
   };
   
   // Check if a food option is incompatible with user's dietary restrictions
-  const checkDietaryRestrictionConflicts = (option: FoodOption) => {
-    if (!user || !user.dietaryRestrictions || !option) return false;
+  // Returns conflicting dietary restrictions
+  const checkDietaryRestrictionConflicts = (option: FoodOption): DietaryRestriction[] => {
+    if (!user || !user.dietaryRestrictions || !option) return [];
     
     const userRestrictions = user.dietaryRestrictions as DietaryRestriction[];
+    const conflicts: DietaryRestriction[] = [];
     
-    // Check for common incompatibilities
+    // Check for vegetarian conflicts
     if (userRestrictions.includes('vegetarian') && 
         (option.type === 'entree' && !option.dietaryRestrictions?.includes('vegetarian'))) {
-      return true;
+      conflicts.push('vegetarian');
     }
     
+    // Check for vegan conflicts
     if (userRestrictions.includes('vegan') && 
         !option.dietaryRestrictions?.includes('vegan')) {
-      return true;
+      conflicts.push('vegan');
     }
     
-    return false;
+    // Check for other dietary restriction conflicts
+    userRestrictions.forEach(restriction => {
+      if (restriction !== 'vegetarian' && restriction !== 'vegan' && 
+          !option.dietaryRestrictions?.includes(restriction)) {
+        conflicts.push(restriction as DietaryRestriction);
+      }
+    });
+    
+    return conflicts;
   };
 
   const isCurrentSeatComplete = () => {
@@ -152,17 +164,18 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
   // Handle food option selection
   const handleFoodOptionSelect = (option: FoodOption) => {
     // Check for allergen conflicts
-    const conflicts = checkAllergenConflicts(option);
-    const hasDietaryConflict = checkDietaryRestrictionConflicts(option);
+    const allergenConflicts = checkAllergenConflicts(option);
+    const dietaryConflictArray = checkDietaryRestrictionConflicts(option);
     
-    if (conflicts.length > 0) {
+    if (allergenConflicts.length > 0) {
       // Store conflicts and selected option temporarily
-      setAllergyConflicts(conflicts);
+      setAllergyConflicts(allergenConflicts);
       setSelectedOption(option);
       setShowingDietaryWarning(false);
       setShowAllergyWarning(true);
-    } else if (hasDietaryConflict) {
+    } else if (dietaryConflictArray.length > 0) {
       // Display dietary warning
+      setDietaryConflicts(dietaryConflictArray);
       setSelectedOption(option);
       setShowingDietaryWarning(true);
       setShowAllergyWarning(true);
@@ -178,7 +191,7 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
     }
   };
 
-  // Confirm selection despite allergen warnings
+  // Confirm selection despite allergen or dietary warnings
   const confirmAllergenSelection = () => {
     if (selectedOption) {
       setSelections({
@@ -191,6 +204,8 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
       setShowAllergyWarning(false);
       setSelectedOption(null);
       setAllergyConflicts([]);
+      setDietaryConflicts([]);
+      setShowingDietaryWarning(false);
     }
   };
 
@@ -222,12 +237,12 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                     {selectedOption?.name} doesn't align with the following dietary preferences in your profile:
                   </p>
                   <ul className="list-disc list-inside space-y-1">
-                    {user?.dietaryRestrictions?.map((restriction) => (
+                    {dietaryConflicts.map(restriction => (
                       <li key={restriction} className="flex items-center gap-2">
                         <span className="inline-flex items-center justify-center rounded-full bg-destructive/20 text-destructive p-1 w-6 h-6">
-                          <div className="w-4 h-4">{dietaryIcons[restriction as DietaryRestriction]}</div>
+                          <div className="w-4 h-4">{dietaryIcons[restriction]}</div>
                         </span>
-                        <span>{dietaryLabels[restriction as DietaryRestriction]}</span>
+                        <span>{dietaryLabels[restriction]}</span>
                       </li>
                     ))}
                   </ul>
@@ -333,8 +348,8 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                   {byType[currentStep]?.map((option) => {
                     const isSelected = selections[currentSeat]?.[currentStep] === option.id;
                     const allergenConflicts = checkAllergenConflicts(option);
-                    const hasDietaryConflict = checkDietaryRestrictionConflicts(option);
-                    const hasConflicts = allergenConflicts.length > 0 || hasDietaryConflict;
+                    const dietaryConflictArray = checkDietaryRestrictionConflicts(option);
+                    const hasConflicts = allergenConflicts.length > 0 || dietaryConflictArray.length > 0;
                     
                     return (
                       <Card
@@ -353,7 +368,13 @@ export function FoodSelection({ selectedSeats, onComplete }: Props) {
                             className="object-cover w-full h-full"
                           />
                           {hasConflicts && (
-                            <div className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1" title="Contains allergens you've listed in your profile">
+                            <div 
+                              className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1" 
+                              title={allergenConflicts.length > 0 
+                                ? "Contains allergens you've listed in your profile" 
+                                : "Doesn't align with your dietary preferences"
+                              }
+                            >
                               <AlertTriangle className="h-4 w-4" />
                             </div>
                           )}
