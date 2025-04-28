@@ -6,28 +6,41 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
 import { QrScanner } from "@/components/backoffice/QrScanner";
 import { useToast } from "@/hooks/use-toast";
-import { Event, Booking } from "@shared/schema";
+import { Event, Booking, User } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import {
   Camera,
   Check,
-  Key,
   AlertCircle,
-  Utensils,
   RefreshCw,
   Ticket,
+  Clock,
+  User as UserIcon,
+  Key,
+  Utensils
 } from "lucide-react";
+
+// Define scan log entry type
+interface ScanLogEntry {
+  timestamp: Date;
+  bookingId: number;
+  status: 'success' | 'error';
+  message: string;
+  guestNames?: string[];
+}
 
 export default function EntrancePage() {
   const { toast } = useToast();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [manualBookingId, setManualBookingId] = useState("");
-  const [activeTab, setActiveTab] = useState<"scanner" | "manual" | "stats">("scanner");
+  const [activeTab, setActiveTab] = useState<"scanner" | "manual">("scanner");
+  const [scanLog, setScanLog] = useState<ScanLogEntry[]>([]);
   
   // Get all events
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
@@ -78,6 +91,20 @@ export default function EntrancePage() {
   // Selected event details
   const selectedEvent = events?.find(e => e.id === selectedEventId);
   
+  // Query to get booking details by ID for the scan log
+  const getBookingDetails = async (bookingId: number): Promise<{guestNames?: Record<string, string>}> => {
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}`);
+      if (!res.ok) {
+        return { guestNames: {} };
+      }
+      return await res.json();
+    } catch (error) {
+      console.error("Error fetching booking details:", error);
+      return { guestNames: {} };
+    }
+  };
+
   // Mutation for checking in a booking
   const checkInMutation = useMutation({
     mutationFn: (bookingId: number) => {
@@ -86,23 +113,64 @@ export default function EntrancePage() {
         url: `/api/bookings/${bookingId}/check-in`
       });
     },
-    onSuccess: () => {
+    onSuccess: async (data, bookingId) => {
+      // Show toast notification
       toast({
         title: "Success",
         description: "Ticket checked in successfully.",
         variant: "default"
       });
+      
+      try {
+        // Get booking details for the scan log
+        const bookingDetails = await getBookingDetails(bookingId);
+        
+        // Create a formatted list of guest names
+        const guestNamesArray = bookingDetails.guestNames ? 
+          Object.values(bookingDetails.guestNames).filter(name => name) : 
+          [];
+        
+        // Add to scan log
+        setScanLog(prev => [{
+          timestamp: new Date(),
+          bookingId,
+          status: 'success',
+          message: 'Checked in successfully',
+          guestNames: guestNamesArray
+        }, ...prev.slice(0, 9)]); // Keep only the 10 most recent entries
+      } catch (error) {
+        console.error("Error adding to scan log:", error);
+      }
+      
       // Refetch check-in stats to update the UI
       queryClient.invalidateQueries({ queryKey: [`/api/events/${selectedEventId}/check-in-stats`] });
+      
       // Clear manual input after successful check-in
       setManualBookingId("");
+      
+      // Auto-restart scanning after a brief delay
+      setTimeout(() => {
+        const scannerElement = document.querySelector('[data-scanner-restart]');
+        if (scannerElement instanceof HTMLButtonElement) {
+          scannerElement.click();
+        }
+      }, 1500);
     },
-    onError: (error) => {
+    onError: (error, bookingId) => {
+      // Show toast notification
       toast({
         title: "Error",
         description: error.message || "Failed to check in ticket. It may have been already checked in.",
         variant: "destructive"
       });
+      
+      // Add to scan log
+      setScanLog(prev => [{
+        timestamp: new Date(),
+        bookingId,
+        status: 'error',
+        message: error.message || "Failed to check in ticket"
+      }, ...prev.slice(0, 9)]); // Keep only the 10 most recent entries
     }
   });
   
@@ -270,7 +338,7 @@ export default function EntrancePage() {
         )}
         
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-          <TabsList className="grid grid-cols-3 mb-4">
+          <TabsList className="grid grid-cols-2 mb-4">
             <TabsTrigger value="scanner">
               <Camera className="h-4 w-4 mr-2" />
               Scanner
@@ -278,10 +346,6 @@ export default function EntrancePage() {
             <TabsTrigger value="manual">
               <Key className="h-4 w-4 mr-2" />
               Manual Entry
-            </TabsTrigger>
-            <TabsTrigger value="stats">
-              <Utensils className="h-4 w-4 mr-2" />
-              Food Stats
             </TabsTrigger>
           </TabsList>
           
@@ -299,7 +363,7 @@ export default function EntrancePage() {
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col items-center">
-                  <div className="mb-4 w-full max-w-md">
+                  <div className="w-full max-w-md">
                     <QrScanner 
                       onScan={handleQrCodeScanned}
                       isLoading={checkInMutation.isPending}
@@ -335,6 +399,58 @@ export default function EntrancePage() {
                       </AlertDescription>
                     </Alert>
                   )}
+                  
+                  {/* Scan Log */}
+                  <div className="mt-6 w-full max-w-md">
+                    <h3 className="text-lg font-semibold mb-2">Recent Scans</h3>
+                    {scanLog.length === 0 ? (
+                      <p className="text-muted-foreground text-sm italic">No scan history yet</p>
+                    ) : (
+                      <ScrollArea className="h-64 w-full border rounded-md">
+                        <div className="p-4 space-y-4">
+                          {scanLog.map((entry, index) => (
+                            <div 
+                              key={index} 
+                              className={`p-3 rounded-md border ${
+                                entry.status === 'success' 
+                                  ? 'bg-green-50 border-green-200' 
+                                  : 'bg-red-50 border-red-200'
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center">
+                                  {entry.status === 'success' ? (
+                                    <Check className="h-4 w-4 text-green-600 mr-2" />
+                                  ) : (
+                                    <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
+                                  )}
+                                  <span className="font-medium">
+                                    Booking #{entry.bookingId}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  {format(entry.timestamp, "HH:mm:ss")}
+                                </span>
+                              </div>
+                              
+                              {entry.guestNames && entry.guestNames.length > 0 && (
+                                <div className="mt-1 ml-6 text-sm">
+                                  <div className="flex items-center gap-1">
+                                    <UserIcon className="h-3 w-3 text-muted-foreground" />
+                                    <span>{entry.guestNames.join(", ")}</span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <div className="mt-1 ml-6 text-sm text-muted-foreground">
+                                {entry.message}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

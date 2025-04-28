@@ -254,6 +254,7 @@ export function QrScanner({ onScan, isLoading = false }: QrScannerProps) {
           disabled={isLoading || !detectorSupported}
           className="w-full"
           variant={scanning ? "destructive" : "default"}
+          data-scanner-restart
         >
           {scanning ? (
             <>
