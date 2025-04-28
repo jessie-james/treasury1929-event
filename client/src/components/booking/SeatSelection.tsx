@@ -37,9 +37,9 @@ const MEZZANINE_TABLES: TablePosition[] = [
     x: 940,
     y: 320,
     seats: [
-      { seatNumber: 1, x: 950, y: 285 },  // Top seat (1)
-      { seatNumber: 2, x: 970, y: 315 },  // Right seat (2)
-      { seatNumber: 3, x: 950, y: 350 },  // Bottom seat (3)
+      { seatNumber: 1, x: 938, y: 285 },  // Top seat (1) 
+      { seatNumber: 2, x: 970, y: 313 },  // Right seat (2)
+      { seatNumber: 3, x: 953, y: 348 },  // Bottom seat (3)
     ]
   },
   // Table 2 (right bottom)
@@ -49,8 +49,8 @@ const MEZZANINE_TABLES: TablePosition[] = [
     x: 830,
     y: 390,
     seats: [
-      { seatNumber: 1, x: 855, y: 400 },  // Right seat (1)
-      { seatNumber: 2, x: 815, y: 400 }   // Left seat (2)
+      { seatNumber: 1, x: 853, y: 401 },  // Right seat (1)
+      { seatNumber: 2, x: 814, y: 401 }   // Left seat (2)
     ]
   },
   // Table 3 (middle right)
@@ -60,8 +60,8 @@ const MEZZANINE_TABLES: TablePosition[] = [
     x: 670,
     y: 390,
     seats: [
-      { seatNumber: 1, x: 695, y: 400 },  // Right seat (1)
-      { seatNumber: 2, x: 655, y: 400 }   // Left seat (2)
+      { seatNumber: 1, x: 693, y: 401 },  // Right seat (1)
+      { seatNumber: 2, x: 654, y: 401 }   // Left seat (2)
     ]
   },
   // Table 4 (middle left)
@@ -71,8 +71,8 @@ const MEZZANINE_TABLES: TablePosition[] = [
     x: 515,
     y: 390,
     seats: [
-      { seatNumber: 1, x: 540, y: 400 },  // Right seat (1)
-      { seatNumber: 2, x: 495, y: 400 }   // Left seat (2)
+      { seatNumber: 1, x: 538, y: 401 },  // Right seat (1)
+      { seatNumber: 2, x: 495, y: 401 }   // Left seat (2)
     ]
   },
   // Table 5 (far left bottom)
@@ -82,8 +82,8 @@ const MEZZANINE_TABLES: TablePosition[] = [
     x: 350,
     y: 390,
     seats: [
-      { seatNumber: 1, x: 375, y: 400 },  // Right seat (1)
-      { seatNumber: 2, x: 330, y: 400 }   // Left seat (2)
+      { seatNumber: 1, x: 374, y: 401 },  // Right seat (1)
+      { seatNumber: 2, x: 330, y: 401 }   // Left seat (2)
     ]
   },
   // Table 6 (far left)
@@ -93,8 +93,8 @@ const MEZZANINE_TABLES: TablePosition[] = [
     x: 160,
     y: 395,
     seats: [
-      { seatNumber: 1, x: 170, y: 425 },  // Bottom seat (1)
-      { seatNumber: 2, x: 138, y: 395 }   // Left seat (2)
+      { seatNumber: 1, x: 167, y: 423 },  // Bottom seat (1)
+      { seatNumber: 2, x: 138, y: 393 }   // Left seat (2)
     ]
   },
   // Table 7 (upper left)
@@ -104,8 +104,8 @@ const MEZZANINE_TABLES: TablePosition[] = [
     x: 60,
     y: 325,
     seats: [
-      { seatNumber: 1, x: 45, y: 350 },   // Bottom seat (1)
-      { seatNumber: 2, x: 30, y: 320 }    // Left seat (2)
+      { seatNumber: 1, x: 47, y: 353 },   // Bottom seat (1)
+      { seatNumber: 2, x: 30, y: 316 }    // Left seat (2)
     ]
   }
 ];
@@ -283,7 +283,7 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                         <Tooltip key={`${table.id}-${seat.seatNumber}`}>
                           <TooltipTrigger asChild>
                             <button
-                              className={`absolute rounded-full w-7 h-7 flex items-center justify-center text-xs font-bold pointer-events-auto transition-all duration-200 ${
+                              className={`absolute rounded-full w-6 h-6 flex items-center justify-center text-[10px] font-bold pointer-events-auto transition-all duration-200 ${
                                 isSeatSelected(table.id, seat.seatNumber)
                                   ? 'bg-blue-500 text-white ring-2 ring-blue-200 scale-110'
                                   : 'bg-green-500 text-white hover:bg-green-600 hover:scale-110'
