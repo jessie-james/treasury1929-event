@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clickable Seat Map</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    
+    #container {
+      position: relative;
+      width: fit-content;
+      cursor: pointer;
+    }
+    
+    #floor-plan {
+      display: block;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .seat-marker {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: rgba(59, 130, 246, 0.8);
+      border: 2px solid white;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+      color: white;
+      z-index: 10;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
+    
+    #instructions {
+      background-color: rgba(0, 0, 0, 0.03);
+      border-radius: 4px;
+      margin: 10px 0;
+      padding: 10px;
+      font-size: 14px;
+    }
+    
+    .selected-seats {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="instructions">Click directly on any green circle to select a seat (max 4). Click again to deselect.</div>
+  
+  <div id="container">
+    <img id="floor-plan" src="/mezzanine-floor.png" alt="Mezzanine Floor Plan">
+    <!-- Seat markers will be added here dynamically -->
+  </div>
+  
+  <div class="selected-seats" id="selected-seats-display"></div>
+  
+  <script>
+    // Define seat positions (coordinates of each green circle)
+    const SEAT_POSITIONS = [
+      // Table 1
+      { tableId: 1, seatNumber: 1, x: 951, y: 284 },
+      { tableId: 1, seatNumber: 2, x: 967, y: 313 },
+      { tableId: 1, seatNumber: 3, x: 953, y: 347 },
+      
+      // Table 2
+      { tableId: 2, seatNumber: 1, x: 853, y: 401 },
+      { tableId: 2, seatNumber: 2, x: 815, y: 401 },
+      
+      // Table 3
+      { tableId: 3, seatNumber: 1, x: 693, y: 401 },
+      { tableId: 3, seatNumber: 2, x: 653, y: 401 },
+      
+      // Table 4
+      { tableId: 4, seatNumber: 1, x: 536, y: 401 },
+      { tableId: 4, seatNumber: 2, x: 494, y: 401 },
+      
+      // Table 5
+      { tableId: 5, seatNumber: 1, x: 369, y: 401 },
+      { tableId: 5, seatNumber: 2, x: 328, y: 401 },
+      
+      // Table 6
+      { tableId: 6, seatNumber: 1, x: 167, y: 421 },
+      { tableId: 6, seatNumber: 2, x: 139, y: 393 },
+      
+      // Table 7
+      { tableId: 7, seatNumber: 1, x: 46, y: 352 },
+      { tableId: 7, seatNumber: 2, x: 31, y: 316 }
+    ];
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      const container = document.getElementById('container');
+      const floorPlan = document.getElementById('floor-plan');
+      const selectedSeatsDisplay = document.getElementById('selected-seats-display');
+      let selectedSeats = [];
+      
+      // Setup click handler on the container
+      container.addEventListener('click', function(e) {
+        // Calculate click position relative to the image
+        const rect = floorPlan.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Check if the click is close to any seat position
+        for (const seat of SEAT_POSITIONS) {
+          const distance = Math.sqrt(Math.pow(x - seat.x, 2) + Math.pow(y - seat.y, 2));
+          
+          // If within 15 pixels of a seat position, toggle that seat
+          if (distance <= 15) {
+            toggleSeat(seat);
+            return; // Exit after toggling one seat
+          }
+        }
+      });
+      
+      // Toggle seat selection
+      function toggleSeat(seat) {
+        const seatId = `${seat.tableId}-${seat.seatNumber}`;
+        const existingIndex = selectedSeats.findIndex(s => 
+          s.tableId === seat.tableId && s.seatNumber === seat.seatNumber
+        );
+        
+        if (existingIndex >= 0) {
+          // Remove seat if already selected
+          selectedSeats.splice(existingIndex, 1);
+          removeSeatMarker(seatId);
+        } else {
+          // Add seat if not already selected (max 4)
+          if (selectedSeats.length < 4) {
+            selectedSeats.push(seat);
+            addSeatMarker(seat);
+          }
+        }
+        
+        // Update display and notify parent window
+        updateSelectedSeatsDisplay();
+        notifyParent();
+      }
+      
+      // Add a visual marker for selected seat
+      function addSeatMarker(seat) {
+        const seatId = `${seat.tableId}-${seat.seatNumber}`;
+        
+        // Check if marker already exists
+        if (document.getElementById(`marker-${seatId}`)) {
+          return;
+        }
+        
+        const marker = document.createElement('div');
+        marker.id = `marker-${seatId}`;
+        marker.className = 'seat-marker';
+        marker.style.left = `${seat.x}px`;
+        marker.style.top = `${seat.y}px`;
+        marker.innerText = seat.seatNumber;
+        
+        container.appendChild(marker);
+      }
+      
+      // Remove the visual marker for a deselected seat
+      function removeSeatMarker(seatId) {
+        const marker = document.getElementById(`marker-${seatId}`);
+        if (marker) {
+          marker.remove();
+        }
+      }
+      
+      // Update the text display of selected seats
+      function updateSelectedSeatsDisplay() {
+        if (selectedSeats.length === 0) {
+          selectedSeatsDisplay.innerText = '';
+          return;
+        }
+        
+        // Group by table
+        const byTable = {};
+        selectedSeats.forEach(seat => {
+          if (!byTable[seat.tableId]) {
+            byTable[seat.tableId] = [];
+          }
+          byTable[seat.tableId].push(seat.seatNumber);
+        });
+        
+        // Format the text
+        const formattedText = Object.entries(byTable)
+          .map(([tableId, seatNumbers]) => {
+            return `Table ${tableId}: Seat${seatNumbers.length > 1 ? 's' : ''} ${seatNumbers.sort().join(', ')}`;
+          })
+          .join('; ');
+        
+        selectedSeatsDisplay.innerText = formattedText;
+      }
+      
+      // Notify the parent window of seat selection changes
+      function notifyParent() {
+        window.parent.postMessage({
+          type: 'SEAT_SELECTION',
+          selection: selectedSeats.map(seat => ({
+            key: `${seat.tableId}-${seat.seatNumber}`,
+            tableId: seat.tableId,
+            seatNumber: seat.seatNumber
+          }))
+        }, '*');
+      }
+    });
+  </script>
+</body>
+</html>
