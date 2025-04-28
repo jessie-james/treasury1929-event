@@ -131,14 +131,49 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Main Floor</h3>
             <div className="relative">
-              <div className="relative w-full" style={{ backgroundImage: "url('/attached_assets/Main Floor (numbered) PNG.png')", backgroundSize: 'contain', backgroundRepeat: 'no-repeat', paddingTop: '75%' }}>
-                <div className="absolute inset-0 grid grid-cols-8 gap-2 p-4">
+              <div className="relative w-full border rounded-md overflow-hidden" style={{ height: '600px' }}>
+                <iframe 
+                  src="/main-floor.html" 
+                  className="absolute inset-0 w-full h-full border-0"
+                  title="Main Floor Layout"
+                />
+                <div className="absolute inset-0 z-10">
                   {tables?.filter(t => t.tableNumber <= 32).map((table) => {
                     const tableSeats = allSeats?.[table.id] || [];
+                    // Table positions on the floor plan (coordinates)
                     const tablePositions: Record<number, { top: string, left: string }> = {
-                      1: { top: '20%', left: '10%' },
-                      2: { top: '20%', left: '20%' },
-                      // Add positions for all tables 1-32
+                      1: { top: '16%', left: '22%' },
+                      2: { top: '16%', left: '32%' },
+                      3: { top: '16%', left: '42%' },
+                      4: { top: '16%', left: '52%' },
+                      5: { top: '16%', left: '62%' },
+                      6: { top: '16%', left: '72%' },
+                      7: { top: '26%', left: '22%' },
+                      8: { top: '26%', left: '32%' },
+                      9: { top: '26%', left: '42%' },
+                      10: { top: '26%', left: '52%' },
+                      11: { top: '26%', left: '62%' },
+                      12: { top: '26%', left: '72%' },
+                      13: { top: '36%', left: '22%' },
+                      14: { top: '36%', left: '32%' },
+                      15: { top: '36%', left: '42%' },
+                      16: { top: '36%', left: '52%' },
+                      17: { top: '36%', left: '62%' },
+                      18: { top: '36%', left: '72%' },
+                      19: { top: '46%', left: '22%' },
+                      20: { top: '46%', left: '32%' },
+                      21: { top: '46%', left: '42%' },
+                      22: { top: '46%', left: '52%' },
+                      23: { top: '46%', left: '62%' },
+                      24: { top: '46%', left: '72%' },
+                      25: { top: '56%', left: '22%' },
+                      26: { top: '56%', left: '32%' },
+                      27: { top: '56%', left: '42%' },
+                      28: { top: '56%', left: '52%' },
+                      29: { top: '56%', left: '62%' },
+                      30: { top: '56%', left: '72%' },
+                      31: { top: '70%', left: '42%' },
+                      32: { top: '70%', left: '52%' },
                     };
                     const position = tablePositions[table.tableNumber];
                     
@@ -148,9 +183,9 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                         className="absolute"
                         style={{ top: position.top, left: position.left }}
                       >
-                        <Card className="w-12 h-12 rounded-full overflow-hidden relative">
+                        <Card className="w-14 h-14 rounded-full overflow-hidden relative shadow-lg border-2 border-primary-foreground/10 bg-white/80 backdrop-blur-sm">
                           <div className="absolute inset-0 flex flex-wrap items-center justify-center gap-0.5 p-1">
-                            <div className="text-xs font-medium text-center w-full">{table.tableNumber}</div>
+                            <div className="text-xs font-bold text-center w-full mb-0.5">{table.tableNumber}</div>
                             {tableSeats.map((seat) => {
                               const isSelected = isSeatSelected(table.id, seat.seatNumber);
                               return (
@@ -159,10 +194,10 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                                   size="sm"
                                   variant={isSelected ? "default" : seat.isAvailable ? "secondary" : "ghost"}
                                   className={cn(
-                                    "h-4 w-4 p-0 text-[10px] rounded-full",
+                                    "h-5 w-5 p-0 text-[10px] rounded-full",
                                     isSelected && "bg-primary hover:bg-primary/90",
-                                    !isSelected && seat.isAvailable && "bg-green-500/10 hover:bg-green-500/20 text-green-600",
-                                    !isSelected && !seat.isAvailable && "bg-muted/50 text-muted-foreground hover:bg-muted/50 cursor-not-allowed"
+                                    !isSelected && seat.isAvailable && "bg-green-500 hover:bg-green-600 text-white",
+                                    !isSelected && !seat.isAvailable && "bg-gray-300 text-gray-500 hover:bg-gray-300 cursor-not-allowed"
                                   )}
                                   disabled={!seat.isAvailable && !isSelected}
                                   onClick={() => handleSeatToggle(table.id, seat.seatNumber)}
@@ -185,14 +220,49 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Mezzanine</h3>
             <div className="relative">
-              <div className="relative w-full" style={{ backgroundImage: "url('/attached_assets/Mezzanine (numbered) PNG.png')", backgroundSize: 'contain', backgroundRepeat: 'no-repeat', paddingTop: '75%' }}>
-                <div className="absolute inset-0 grid grid-cols-8 gap-2 p-4">
+              <div className="relative w-full border rounded-md overflow-hidden" style={{ height: '600px' }}>
+                <iframe 
+                  src="/mezzanine-floor.html" 
+                  className="absolute inset-0 w-full h-full border-0"
+                  title="Mezzanine Floor Layout"
+                />
+                <div className="absolute inset-0 z-10">
                   {tables?.filter(t => t.tableNumber > 32).map((table) => {
                     const tableSeats = allSeats?.[table.id] || [];
+                    // Table positions on the floor plan (coordinates)
                     const tablePositions: Record<number, { top: string, left: string }> = {
-                      33: { top: '20%', left: '10%' },
-                      34: { top: '20%', left: '20%' },
-                      // Add positions for all mezzanine tables
+                      33: { top: '16%', left: '22%' },
+                      34: { top: '16%', left: '32%' },
+                      35: { top: '16%', left: '42%' },
+                      36: { top: '16%', left: '52%' },
+                      37: { top: '16%', left: '62%' },
+                      38: { top: '16%', left: '72%' },
+                      39: { top: '26%', left: '22%' },
+                      40: { top: '26%', left: '32%' },
+                      41: { top: '26%', left: '42%' },
+                      42: { top: '26%', left: '52%' },
+                      43: { top: '26%', left: '62%' },
+                      44: { top: '26%', left: '72%' },
+                      45: { top: '36%', left: '22%' },
+                      46: { top: '36%', left: '32%' },
+                      47: { top: '36%', left: '42%' },
+                      48: { top: '36%', left: '52%' },
+                      49: { top: '36%', left: '62%' },
+                      50: { top: '36%', left: '72%' },
+                      51: { top: '46%', left: '22%' },
+                      52: { top: '46%', left: '32%' },
+                      53: { top: '46%', left: '42%' },
+                      54: { top: '46%', left: '52%' },
+                      55: { top: '46%', left: '62%' },
+                      56: { top: '46%', left: '72%' },
+                      57: { top: '56%', left: '22%' },
+                      58: { top: '56%', left: '32%' },
+                      59: { top: '56%', left: '42%' },
+                      60: { top: '56%', left: '52%' },
+                      61: { top: '56%', left: '62%' },
+                      62: { top: '56%', left: '72%' },
+                      63: { top: '70%', left: '42%' },
+                      64: { top: '70%', left: '52%' },
                     };
                     const position = tablePositions[table.tableNumber];
                     
@@ -202,9 +272,9 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                         className="absolute"
                         style={{ top: position.top, left: position.left }}
                       >
-                        <Card className="w-12 h-12 rounded-full overflow-hidden relative">
+                        <Card className="w-14 h-14 rounded-full overflow-hidden relative shadow-lg border-2 border-primary-foreground/10 bg-white/80 backdrop-blur-sm">
                           <div className="absolute inset-0 flex flex-wrap items-center justify-center gap-0.5 p-1">
-                            <div className="text-xs font-medium text-center w-full">{table.tableNumber}</div>
+                            <div className="text-xs font-bold text-center w-full mb-0.5">{table.tableNumber}</div>
                             {tableSeats.map((seat) => {
                               const isSelected = isSeatSelected(table.id, seat.seatNumber);
                               return (
@@ -213,10 +283,10 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                                   size="sm"
                                   variant={isSelected ? "default" : seat.isAvailable ? "secondary" : "ghost"}
                                   className={cn(
-                                    "h-4 w-4 p-0 text-[10px] rounded-full",
+                                    "h-5 w-5 p-0 text-[10px] rounded-full",
                                     isSelected && "bg-primary hover:bg-primary/90",
-                                    !isSelected && seat.isAvailable && "bg-green-500/10 hover:bg-green-500/20 text-green-600",
-                                    !isSelected && !seat.isAvailable && "bg-muted/50 text-muted-foreground hover:bg-muted/50 cursor-not-allowed"
+                                    !isSelected && seat.isAvailable && "bg-green-500 hover:bg-green-600 text-white",
+                                    !isSelected && !seat.isAvailable && "bg-gray-300 text-gray-500 hover:bg-gray-300 cursor-not-allowed"
                                   )}
                                   disabled={!seat.isAvailable && !isSelected}
                                   onClick={() => handleSeatToggle(table.id, seat.seatNumber)}
