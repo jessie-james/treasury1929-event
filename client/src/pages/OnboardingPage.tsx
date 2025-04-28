@@ -547,8 +547,6 @@ export default function OnboardingPage() {
             </>
           )}
           
-
-          
           {/* Events List Step */}
           {currentStep === "eventsList" && (
             <>
@@ -562,7 +560,7 @@ export default function OnboardingPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {events?.map((event: any) => (
+                {events.map((event: any) => (
                   <div key={event.id} className="border rounded-lg overflow-hidden">
                     <div className="h-32 bg-gray-200 overflow-hidden">
                       <img 
@@ -586,7 +584,7 @@ export default function OnboardingPage() {
                   </div>
                 ))}
                 
-                {!events?.length && (
+                {events.length === 0 && (
                   <div className="text-center py-6">
                     <p className="text-muted-foreground">Loading events...</p>
                   </div>
