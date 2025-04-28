@@ -267,6 +267,10 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                 src="/images/mezzanine-floor.png" 
                 alt="Mezzanine Floor Plan" 
                 className="w-full max-w-full"
+                onError={(e) => {
+                  console.error("Failed to load image:", e);
+                  e.currentTarget.src = "https://raw.githubusercontent.com/users/10/attached_assets/Mezzanine%20(numbered)%20PNG.png";
+                }}
               />
               
               {/* Overlay interactive seat buttons on top of the image */}
