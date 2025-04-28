@@ -9,7 +9,7 @@ const foodItems = [
     type: "salad",
     image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd",
     allergens: ["dairy"],
-    dietaryRestrictions: ["vegetarian"],
+    dietaryRestrictions: ["vegetarian", "gluten-free"],
     price: 1500
   },
   {
@@ -27,7 +27,7 @@ const foodItems = [
     type: "salad",
     image: "https://images.unsplash.com/photo-1604497181015-76590d828b75",
     allergens: ["dairy", "tree_nuts"],
-    dietaryRestrictions: ["vegetarian"],
+    dietaryRestrictions: ["vegetarian", "gluten-free"],
     price: 1600
   },
 
@@ -38,16 +38,16 @@ const foodItems = [
     type: "entree",
     image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2",
     allergens: ["fish", "eggs"],
-    dietaryRestrictions: [],
+    dietaryRestrictions: ["gluten-free"],
     price: 3200
   },
   {
-    name: "Eggplant Lasagna",
+    name: "Eggplant Lasagna (noodle free)",
     description: "Layers of eggplant, tomato & besciamella sauce, baked with fontina cheese, side of sautéed veggies",
     type: "entree",
     image: "https://images.unsplash.com/photo-1572715376701-98568319fd0b",
     allergens: ["dairy"],
-    dietaryRestrictions: ["vegetarian"],
+    dietaryRestrictions: ["vegetarian", "gluten-free"],
     price: 2800
   },
   {
@@ -83,7 +83,7 @@ const foodItems = [
     type: "entree",
     image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9",
     allergens: [],
-    dietaryRestrictions: ["vegan", "vegetarian"],
+    dietaryRestrictions: ["vegan", "vegetarian", "gluten-free", "dairy-free"],
     price: 2800
   },
   {
@@ -92,7 +92,7 @@ const foodItems = [
     type: "entree",
     image: "https://images.unsplash.com/photo-1544025162-d76694265947",
     allergens: ["dairy"],
-    dietaryRestrictions: [],
+    dietaryRestrictions: ["gluten-free"],
     price: 3400
   },
   {
@@ -149,7 +149,8 @@ async function populateMenu() {
     for (const item of foodItems) {
       console.log(`Creating food item: ${item.name}`);
       const response = await apiRequest("POST", "/api/food-options", item);
-      console.log(`Created: ${response.id}`);
+      const responseData = await response.json();
+      console.log(`Created food item: ${item.name} with ID: ${responseData.id}`);
     }
     console.log("Menu population complete!");
   } catch (error) {
