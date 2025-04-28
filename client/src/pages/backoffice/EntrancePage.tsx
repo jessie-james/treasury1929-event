@@ -2,53 +2,56 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { type Event, type Booking } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { QrScanner } from "@/components/backoffice/QrScanner";
-import { QrCode, Check, AlertCircle, Camera, Key, Ticket, Users, RefreshCw, ChevronRight, Utensils } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { Event, Booking } from "@shared/schema";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import {
+  Camera,
+  Check,
+  Key,
+  AlertCircle,
+  Utensils,
+  RefreshCw,
+  Ticket,
+} from "lucide-react";
 
 export default function EntrancePage() {
-  const [activeTab, setActiveTab] = useState<"scanner" | "manual" | "stats">("scanner");
-  const [manualBookingId, setManualBookingId] = useState("");
-  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [manualBookingId, setManualBookingId] = useState("");
+  const [activeTab, setActiveTab] = useState<"scanner" | "manual" | "stats">("scanner");
   
   // Get all events
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
   });
   
-  // If no event is selected and events are loaded, select the first upcoming event
+  // Set first event as selected if none is selected
   useEffect(() => {
-    if (!selectedEventId && events && events.length > 0) {
-      // Find the next upcoming event, or the closest past event
-      const now = new Date();
-      const upcoming = events
-        .filter(e => new Date(e.date) > now)
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (events && events.length > 0 && !selectedEventId) {
+      // Find the first upcoming event (today or future date)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       
-      if (upcoming.length > 0) {
-        setSelectedEventId(upcoming[0].id);
+      const upcomingEvent = events.find(event => {
+        const eventDate = new Date(event.date);
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate >= today;
+      });
+      
+      if (upcomingEvent) {
+        setSelectedEventId(upcomingEvent.id);
       } else {
-        // If no upcoming events, get the most recent past event
-        const past = events
-          .filter(e => new Date(e.date) <= now)
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
-        if (past.length > 0) {
-          setSelectedEventId(past[0].id);
-        }
+        // If no upcoming events, just use the first one
+        setSelectedEventId(events[0].id);
       }
     }
   }, [events, selectedEventId]);
@@ -78,7 +81,7 @@ export default function EntrancePage() {
   // Mutation for checking in a booking
   const checkInMutation = useMutation({
     mutationFn: async (bookingId: number) => {
-      return await apiRequest<Booking>(`/api/bookings/${bookingId}/check-in`, {
+      return await apiRequest(`/api/bookings/${bookingId}/check-in`, {
         method: "POST"
       });
     },
@@ -208,7 +211,7 @@ export default function EntrancePage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <Ticket className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium">Total Capacity</p>
                       <p className="text-2xl font-bold">{selectedEvent.totalSeats}</p>
@@ -286,7 +289,7 @@ export default function EntrancePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
-                  <QrCode className="h-5 w-5 mr-2" />
+                  <Camera className="h-5 w-5 mr-2" />
                   Scan QR Code
                 </CardTitle>
                 <CardDescription>
@@ -356,23 +359,16 @@ export default function EntrancePage() {
                       placeholder="Enter Booking ID"
                       value={manualBookingId}
                       onChange={(e) => setManualBookingId(e.target.value)}
-                      className="max-w-sm"
-                      disabled={checkInMutation.isPending}
+                      className="flex-1"
                     />
-                    <Button 
-                      type="submit" 
-                      disabled={!manualBookingId || checkInMutation.isPending}
-                    >
+                    <Button type="submit" disabled={checkInMutation.isPending}>
                       {checkInMutation.isPending ? (
                         <>
                           <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                          Checking In...
+                          Processing...
                         </>
                       ) : (
-                        <>
-                          <Check className="h-4 w-4 mr-2" />
-                          Check In
-                        </>
+                        "Check In"
                       )}
                     </Button>
                   </div>
@@ -407,160 +403,110 @@ export default function EntrancePage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Utensils className="h-5 w-5 mr-2" />
-                  Food Order Statistics
+                  Food Check-in Statistics
                 </CardTitle>
                 <CardDescription>
-                  Real-time tracking of food orders and check-ins.
+                  Track how many of each food item have been checked in
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {statsLoading ? (
                   <div className="space-y-4">
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
                   </div>
-                ) : checkinStats ? (
-                  <div className="space-y-6">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => refetchStats()}
-                      className="mb-2"
-                    >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Refresh Stats
-                    </Button>
+                ) : (
+                  <div className="space-y-8">
+                    {/* Salads Section */}
+                    <div className="space-y-2">
+                      <h3 className="font-semibold">Salads</h3>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Overall: {getFoodTypeStats('salads').checkedIn} / {getFoodTypeStats('salads').total} checked in</span>
+                        <span className="text-sm font-medium">{getFoodTypeStats('salads').percentage}%</span>
+                      </div>
+                      <Progress value={getFoodTypeStats('salads').percentage} className="h-2" />
+                      
+                      <div className="mt-3 space-y-2">
+                        {getFoodTypeStats('salads').items.map(item => (
+                          <div key={item.id} className="pl-4 border-l-2 border-primary/20">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Salad #{item.id}: {item.checkedIn} / {item.total}</span>
+                              <span className="text-sm">{item.percentage}%</span>
+                            </div>
+                            <Progress value={item.percentage} className="h-1.5" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                     
                     {/* Entrees Section */}
                     <div className="space-y-2">
-                      <h3 className="text-lg font-medium flex items-center">
-                        <Badge variant="outline" className="mr-2">Entrees</Badge>
-                        <span>{getFoodTypeStats('entrees').checkedIn} / {getFoodTypeStats('entrees').total} checked in</span>
-                      </h3>
+                      <h3 className="font-semibold">Entrees</h3>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Overall: {getFoodTypeStats('entrees').checkedIn} / {getFoodTypeStats('entrees').total} checked in</span>
+                        <span className="text-sm font-medium">{getFoodTypeStats('entrees').percentage}%</span>
+                      </div>
                       <Progress value={getFoodTypeStats('entrees').percentage} className="h-2" />
                       
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead>Checked In</TableHead>
-                            <TableHead>Percentage</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {getFoodTypeStats('entrees').items.map(item => (
-                            <TableRow key={`entree-${item.id}`}>
-                              <TableCell>Entree #{item.id}</TableCell>
-                              <TableCell>{item.total}</TableCell>
-                              <TableCell>{item.checkedIn}</TableCell>
-                              <TableCell>{item.percentage}%</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                    
-                    {/* Salads Section */}
-                    <div className="space-y-2">
-                      <h3 className="text-lg font-medium flex items-center">
-                        <Badge variant="outline" className="mr-2">Salads</Badge>
-                        <span>{getFoodTypeStats('salads').checkedIn} / {getFoodTypeStats('salads').total} checked in</span>
-                      </h3>
-                      <Progress value={getFoodTypeStats('salads').percentage} className="h-2" />
-                      
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead>Checked In</TableHead>
-                            <TableHead>Percentage</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {getFoodTypeStats('salads').items.map(item => (
-                            <TableRow key={`salad-${item.id}`}>
-                              <TableCell>Salad #{item.id}</TableCell>
-                              <TableCell>{item.total}</TableCell>
-                              <TableCell>{item.checkedIn}</TableCell>
-                              <TableCell>{item.percentage}%</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                      <div className="mt-3 space-y-2">
+                        {getFoodTypeStats('entrees').items.map(item => (
+                          <div key={item.id} className="pl-4 border-l-2 border-primary/20">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Entree #{item.id}: {item.checkedIn} / {item.total}</span>
+                              <span className="text-sm">{item.percentage}%</span>
+                            </div>
+                            <Progress value={item.percentage} className="h-1.5" />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     
                     {/* Desserts Section */}
                     <div className="space-y-2">
-                      <h3 className="text-lg font-medium flex items-center">
-                        <Badge variant="outline" className="mr-2">Desserts</Badge>
-                        <span>{getFoodTypeStats('desserts').checkedIn} / {getFoodTypeStats('desserts').total} checked in</span>
-                      </h3>
+                      <h3 className="font-semibold">Desserts</h3>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Overall: {getFoodTypeStats('desserts').checkedIn} / {getFoodTypeStats('desserts').total} checked in</span>
+                        <span className="text-sm font-medium">{getFoodTypeStats('desserts').percentage}%</span>
+                      </div>
                       <Progress value={getFoodTypeStats('desserts').percentage} className="h-2" />
                       
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead>Checked In</TableHead>
-                            <TableHead>Percentage</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {getFoodTypeStats('desserts').items.map(item => (
-                            <TableRow key={`dessert-${item.id}`}>
-                              <TableCell>Dessert #{item.id}</TableCell>
-                              <TableCell>{item.total}</TableCell>
-                              <TableCell>{item.checkedIn}</TableCell>
-                              <TableCell>{item.percentage}%</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                      <div className="mt-3 space-y-2">
+                        {getFoodTypeStats('desserts').items.map(item => (
+                          <div key={item.id} className="pl-4 border-l-2 border-primary/20">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Dessert #{item.id}: {item.checkedIn} / {item.total}</span>
+                              <span className="text-sm">{item.percentage}%</span>
+                            </div>
+                            <Progress value={item.percentage} className="h-1.5" />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                     
                     {/* Wines Section */}
                     <div className="space-y-2">
-                      <h3 className="text-lg font-medium flex items-center">
-                        <Badge variant="outline" className="mr-2">Wines</Badge>
-                        <span>{getFoodTypeStats('wines').checkedIn} / {getFoodTypeStats('wines').total} checked in</span>
-                      </h3>
+                      <h3 className="font-semibold">Wines</h3>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Overall: {getFoodTypeStats('wines').checkedIn} / {getFoodTypeStats('wines').total} checked in</span>
+                        <span className="text-sm font-medium">{getFoodTypeStats('wines').percentage}%</span>
+                      </div>
                       <Progress value={getFoodTypeStats('wines').percentage} className="h-2" />
                       
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead>Total</TableHead>
-                            <TableHead>Checked In</TableHead>
-                            <TableHead>Percentage</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {getFoodTypeStats('wines').items.map(item => (
-                            <TableRow key={`wine-${item.id}`}>
-                              <TableCell>Wine #{item.id}</TableCell>
-                              <TableCell>{item.total}</TableCell>
-                              <TableCell>{item.checkedIn}</TableCell>
-                              <TableCell>{item.percentage}%</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
+                      <div className="mt-3 space-y-2">
+                        {getFoodTypeStats('wines').items.map(item => (
+                          <div key={item.id} className="pl-4 border-l-2 border-primary/20">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm">Wine #{item.id}: {item.checkedIn} / {item.total}</span>
+                              <span className="text-sm">{item.percentage}%</span>
+                            </div>
+                            <Progress value={item.percentage} className="h-1.5" />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                ) : (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>No Data Available</AlertTitle>
-                    <AlertDescription>
-                      Unable to load food statistics for the selected event.
-                    </AlertDescription>
-                  </Alert>
                 )}
               </CardContent>
             </Card>

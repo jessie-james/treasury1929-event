@@ -4,10 +4,13 @@ import { type Booking, type Event, type FoodOption } from "@shared/schema";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Ticket, Info, Check, RefreshCw, DollarSign, Ban } from "lucide-react";
+import { Ticket, Info, Check, RefreshCw, DollarSign, Ban, QrCode } from "lucide-react";
 import { FoodIconSet, Allergen, DietaryRestriction } from "@/components/ui/food-icons";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { TicketQRCode } from "@/components/booking/TicketQRCode";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 type EnrichedBooking = Booking & {
   event: Event;
@@ -96,6 +99,17 @@ export default function CustomerDashboard() {
     return booking.foodItems.find(item => item.id === itemId);
   };
 
+  // State to track which booking's QR code is being shown
+  const [expandedQRCode, setExpandedQRCode] = useState<number | null>(null);
+  
+  const toggleQRCode = (bookingId: number) => {
+    if (expandedQRCode === bookingId) {
+      setExpandedQRCode(null);
+    } else {
+      setExpandedQRCode(bookingId);
+    }
+  };
+  
   return (
     <div>
       <div className="container py-8 space-y-6">
@@ -127,6 +141,17 @@ export default function CustomerDashboard() {
                           Last updated: {format(new Date(booking.lastModified), "PPP")}
                         </p>
                       )}
+                      
+                      {/* Show QR Code Button */}
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2 flex items-center gap-1"
+                        onClick={() => toggleQRCode(booking.id)}
+                      >
+                        <QrCode className="h-4 w-4" />
+                        {expandedQRCode === booking.id ? "Hide Ticket QR Code" : "Show Ticket QR Code"}
+                      </Button>
                     </div>
                     <div className="text-right">
                       <p className="font-medium">Table {booking.tableId}</p>
@@ -135,6 +160,19 @@ export default function CustomerDashboard() {
                       </p>
                     </div>
                   </div>
+                  
+                  {/* QR Code Section */}
+                  {expandedQRCode === booking.id && (
+                    <div className="my-4 p-4 border rounded-md bg-slate-50">
+                      <div className="text-center mb-4">
+                        <h4 className="font-medium">Entrance Ticket</h4>
+                        <p className="text-sm text-muted-foreground">
+                          Present this QR code at the venue entrance to check in
+                        </p>
+                      </div>
+                      <TicketQRCode bookingId={booking.id} />
+                    </div>
+                  )}
 
                   <div className="space-y-4 pt-4 border-t">
                     {booking.seatNumbers.map((seatNumber) => (
