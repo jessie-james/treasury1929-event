@@ -9,6 +9,7 @@ import HomePage from "@/pages/HomePage";
 import EventPage from "@/pages/EventPage";
 import BookingPage from "@/pages/BookingPage";
 import AuthPage from "@/pages/auth-page";
+import OnboardingPage from "@/pages/OnboardingPage";
 import DashboardPage from "@/pages/backoffice/DashboardPage";
 import OrdersPage from "@/pages/backoffice/OrdersPage";
 import PaymentsPage from "@/pages/backoffice/PaymentsPage";
