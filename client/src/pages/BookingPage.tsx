@@ -41,19 +41,32 @@ export default function BookingPage() {
     <div>
       <Header />
       <div className="container py-8 space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-center mb-4">
-            {step === "seats" 
-              ? "Select Your Seats" 
-              : step === "food" 
-                ? "Choose Food & Drinks" 
-                : "Complete Your Booking"
-            }
-          </h1>
-          <Progress value={progress} className="w-full" />
-          <p className="text-center text-sm text-muted-foreground">
-            Step {step === "seats" ? "1" : step === "food" ? "2" : "3"} of 3
-          </p>
+        <div className="space-y-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold mb-2">
+              {step === "seats" 
+                ? "Select Your Seats" 
+                : step === "food" 
+                  ? "Choose Food & Drinks" 
+                  : "Complete Your Booking"
+              }
+            </h1>
+            <p className="text-muted-foreground max-w-lg mx-auto">
+              {step === "seats"
+                ? "Pick the best seats for your experience" 
+                : step === "food" 
+                  ? "Customize your dining experience for each guest" 
+                  : "Review and finalize your booking details"
+              }
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Progress value={progress} className="w-full" />
+            <p className="text-center text-sm text-muted-foreground">
+              Step {step === "seats" ? "1" : step === "food" ? "2" : "3"} of 3
+            </p>
+          </div>
         </div>
 
         <Card className="max-w-4xl mx-auto">

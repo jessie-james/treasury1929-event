@@ -110,13 +110,23 @@ export default function CustomerDashboard() {
     }
   };
   
+  // Sort bookings by newest first (based on createdAt timestamp)
+  const sortedBookings = bookings ? 
+    [...bookings].sort((a, b) => {
+      // Safe comparison that handles null/undefined created dates (fallback to current time)
+      const dateA = a.createdAt ? new Date(a.createdAt) : new Date();
+      const dateB = b.createdAt ? new Date(b.createdAt) : new Date();
+      return dateB.getTime() - dateA.getTime();
+    }) : 
+    [];
+
   return (
     <div>
       <div className="container py-8 space-y-6">
         <h1 className="text-3xl font-bold">My Tickets</h1>
 
         <div className="space-y-4">
-          {bookings?.map((booking) => (
+          {sortedBookings.map((booking) => (
             <Card key={booking.id}>
               <CardContent className="p-4">
                 <div className="space-y-4">
@@ -210,7 +220,7 @@ export default function CustomerDashboard() {
             </Card>
           ))}
 
-          {!bookings?.length && (
+          {!sortedBookings.length && (
             <Alert>
               <Ticket className="h-4 w-4" />
               <AlertTitle>No tickets yet</AlertTitle>
