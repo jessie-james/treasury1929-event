@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,16 +44,12 @@ type Step = typeof STEPS[number];
 export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
   const { user } = useAuth();
   // Get randomized food options for this event (3 per category)
-  const { data: options, isError, error } = useQuery<FoodOption[]>({
-    queryKey: [`/api/events/${eventId}/food-options`],
-    // Temporarily fall back to the old endpoint if the randomized endpoint fails
-    onError: () => {
-      console.error("Error loading randomized food options, falling back to all options");
-    }
+  const { data: options } = useQuery<FoodOption[]>({
+    queryKey: [`/api/events/${eventId}/food-options`]
   });
   
   // Debugging
-  console.log("Food options loaded:", options ? options.length : 0, "options");
+  console.log("Food options loaded:", options?.length || 0, "options");
 
   const [currentSeat, setCurrentSeat] = useState<number>(selectedSeats[0]);
   const [currentStep, setCurrentStep] = useState<Step>("name");
@@ -70,11 +66,30 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
     )
   );
 
-  const byType = options?.reduce((acc, option) => {
-    if (!acc[option.type]) acc[option.type] = [];
-    acc[option.type].push(option);
-    return acc;
-  }, {} as Record<string, FoodOption[]>) ?? {};
+  // Group options by type for easier selection
+  const byType = useMemo(() => {
+    if (!options || options.length === 0) return {};
+    
+    // Initialize categories based on our steps
+    const result: Record<string, FoodOption[]> = {
+      salad: [],
+      entree: [],
+      dessert: []
+    };
+    
+    // Sort options into appropriate categories
+    options.forEach((option: FoodOption) => {
+      if (option.type === 'salad') {
+        result.salad.push(option);
+      } else if (option.type === 'entree') {
+        result.entree.push(option);
+      } else if (option.type === 'dessert') {
+        result.dessert.push(option);
+      }
+    });
+    
+    return result;
+  }, [options]);
 
   const currentStepIndex = STEPS.indexOf(currentStep);
   const progress = Math.round((currentStepIndex / (STEPS.length - 1)) * 100);
@@ -353,7 +368,7 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
               value={selections[currentSeat]?.[currentStep]?.toString()}
               onValueChange={(value) => {
                 // Find the selected option
-                const option = byType[currentStep]?.find(opt => opt.id === parseInt(value));
+                const option = byType[currentStep]?.find((opt: FoodOption) => opt.id === parseInt(value));
                 if (option) {
                   handleFoodOptionSelect(option);
                 }
@@ -361,7 +376,7 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
             >
               <ScrollArea className="h-[400px] border rounded-lg">
                 <div className="grid grid-cols-3 gap-3 p-4">
-                  {byType[currentStep]?.map((option) => {
+                  {byType[currentStep]?.map((option: FoodOption) => {
                     const isSelected = selections[currentSeat]?.[currentStep] === option.id;
                     const allergenConflicts = checkAllergenConflicts(option);
                     const dietaryConflictArray = checkDietaryRestrictionConflicts(option);
