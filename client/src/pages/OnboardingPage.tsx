@@ -18,6 +18,7 @@ import {
   Check, 
   User, 
   PhoneCall,
+  Mail,
   CalendarDays, 
   MapPin, 
   Pizza, 
@@ -32,14 +33,12 @@ import {
 
 // Detailed step breakdown
 type OnboardingStep = 
-  // Welcome/intro slide
-  "welcome" | 
   // Profile steps (broken down by field)
-  "firstName" | "lastName" | "phone" | 
+  "firstName" | "lastName" | "email" | "phone" | 
   // Dietary preference steps
   "allergensIntro" | "allergens" | "dietaryIntro" | "dietary" | 
   // Events exploration
-  "eventsIntro" | "eventsList";
+  "eventsList";
 
 // Define lists of allergens and dietary restrictions
 const ALLERGENS: Allergen[] = ["gluten", "dairy", "eggs", "peanuts", "tree_nuts", "soy", "fish", "shellfish", "sesame"];
@@ -47,10 +46,9 @@ const DIETARY_RESTRICTIONS: DietaryRestriction[] = ["vegetarian", "vegan", "hala
 
 // Step progression
 const STEP_SEQUENCE: OnboardingStep[] = [
-  "welcome", 
-  "firstName", "lastName", "phone",
+  "firstName", "lastName", "email", "phone",
   "allergensIntro", "allergens", "dietaryIntro", "dietary",
-  "eventsIntro", "eventsList"
+  "eventsList"
 ];
 
 export default function OnboardingPage() {
@@ -64,7 +62,7 @@ export default function OnboardingPage() {
   const queryClient = useQueryClient();
   
   // Get events for the final step
-  const { data: events } = useQuery({
+  const { data: events = [] } = useQuery<any[]>({
     queryKey: ['/api/events'],
     enabled: currentStep === 'eventsList',
   });
@@ -197,69 +195,6 @@ export default function OnboardingPage() {
         <Progress value={getProgressPercentage()} className="h-2 mb-6" />
         
         <Card className="border-none shadow-lg">
-          {/* Welcome Step */}
-          {currentStep === "welcome" && (
-            <>
-              <CardHeader className="text-center">
-                <CardTitle className="text-2xl">Welcome!</CardTitle>
-                <CardDescription className="text-base mt-2">
-                  Let's set up your account in a few simple steps
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6 pb-8">
-                <div className="p-4 rounded-lg bg-blue-50 border border-blue-200">
-                  <div className="flex flex-col items-center text-center gap-4">
-                    <div className="bg-blue-100 p-3 rounded-full">
-                      <User className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-blue-800">Your Personal Experience</h3>
-                      <p className="text-sm text-blue-700 mt-1">
-                        Complete this quick setup to enhance your event experience at The Treasury 1929
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium">1</div>
-                    <div>
-                      <h4 className="font-medium">Complete profile details</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Add your name and contact information
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium">2</div>
-                    <div>
-                      <h4 className="font-medium">Set dietary preferences</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Tell us about any allergies or dietary restrictions
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium">3</div>
-                    <div>
-                      <h4 className="font-medium">Explore upcoming events</h4>
-                      <p className="text-sm text-muted-foreground">
-                        See what's happening at The Treasury 1929
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full" onClick={handleNext}>
-                  Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </CardFooter>
-            </>
-          )}
           
           {/* First Name Step */}
           {currentStep === "firstName" && (
@@ -316,6 +251,45 @@ export default function OnboardingPage() {
                     placeholder="Enter your last name"
                     className="text-lg py-6"
                   />
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="outline" onClick={handleBack}>
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
+                </Button>
+                <Button onClick={handleNext}>
+                  Continue <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </>
+          )}
+          
+          {/* Email Step */}
+          {currentStep === "email" && (
+            <>
+              <CardHeader>
+                <div className="flex items-center mb-2">
+                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">1</div>
+                  <CardTitle>Email Address</CardTitle>
+                </div>
+                <CardDescription>
+                  Your registered email address
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input 
+                      id="email" 
+                      value={user.email} 
+                      disabled
+                      className="pl-10 text-lg py-6 opacity-80"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    This is the email you registered with and can't be changed here
+                  </p>
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
@@ -573,48 +547,7 @@ export default function OnboardingPage() {
             </>
           )}
           
-          {/* Events Intro Step */}
-          {currentStep === "eventsIntro" && (
-            <>
-              <CardHeader>
-                <div className="flex items-center mb-2">
-                  <div className="bg-primary/10 rounded-full w-8 h-8 flex items-center justify-center text-primary font-medium mr-2">3</div>
-                  <CardTitle>Almost Done!</CardTitle>
-                </div>
-                <CardDescription>
-                  Your profile is now complete
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="p-4 rounded-lg bg-green-50 border border-green-100 flex items-center gap-3">
-                  <div className="bg-green-100 p-2 rounded-full">
-                    <Check className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-green-800">Profile Complete</h3>
-                    <p className="text-sm text-green-700">
-                      Your settings have been saved successfully.
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="text-center">
-                  <h3 className="font-medium mb-2">It's time to explore events!</h3>
-                  <p className="text-sm text-muted-foreground">
-                    On the next screen, you'll see upcoming events at The Treasury 1929.
-                  </p>
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline" onClick={handleBack}>
-                  <ChevronLeft className="mr-1 h-4 w-4" /> Back
-                </Button>
-                <Button onClick={handleNext}>
-                  See Events <ChevronRight className="ml-1 h-4 w-4" />
-                </Button>
-              </CardFooter>
-            </>
-          )}
+
           
           {/* Events List Step */}
           {currentStep === "eventsList" && (
