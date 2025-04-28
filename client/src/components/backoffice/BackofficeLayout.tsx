@@ -13,6 +13,8 @@ import {
   X,
   BookOpenCheck,
   History,
+  DoorOpen,
+  QrCode,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -37,6 +39,12 @@ export function BackofficeLayout({ children }: Props) {
       name: "Orders",
       href: "/backoffice/orders",
       icon: ClipboardList,
+      roles: ['admin', 'venue_owner', 'venue_manager'],
+    },
+    {
+      name: "Entrance",
+      href: "/backoffice/entrance",
+      icon: DoorOpen,
       roles: ['admin', 'venue_owner', 'venue_manager'],
     },
     {

@@ -16,6 +16,7 @@ import FoodPage from "@/pages/backoffice/FoodPage";
 import UsersPage from "@/pages/backoffice/UsersPage";
 import LogsPage from "@/pages/backoffice/LogsPage";
 import BookingManagementPage from "@/pages/backoffice/BookingManagementPage";
+import EntrancePage from "@/pages/backoffice/EntrancePage";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import ProfilePage from "@/pages/ProfilePage";
 import { Header } from "./components/Header";
@@ -43,6 +44,7 @@ function Router() {
         <ProtectedRoute path="/events/:id/book" component={BookingPage} />
         <ProtectedRoute path="/backoffice" component={DashboardPage} />
         <ProtectedRoute path="/backoffice/orders" component={OrdersPage} />
+        <ProtectedRoute path="/backoffice/entrance" component={EntrancePage} />
         <ProtectedRoute path="/backoffice/bookings" component={BookingManagementPage} />
         <ProtectedRoute path="/backoffice/events" component={EventsPage} />
         <ProtectedRoute path="/backoffice/food" component={FoodPage} />

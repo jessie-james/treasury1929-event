@@ -53,8 +53,21 @@ export default function EntrancePage() {
     }
   }, [events, selectedEventId]);
   
+  // Define the type for check-in stats
+  interface CheckInStats {
+    totalBookings: number;
+    checkedInBookings: number;
+    checkedInPercentage: number;
+    foodStats: {
+      salads: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+      entrees: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+      desserts: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+      wines: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+    };
+  }
+  
   // Get check-in stats for selected event
-  const { data: checkinStats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
+  const { data: checkinStats, isLoading: statsLoading, refetch: refetchStats } = useQuery<CheckInStats>({
     queryKey: [`/api/events/${selectedEventId}/check-in-stats`],
     enabled: !!selectedEventId,
   });
