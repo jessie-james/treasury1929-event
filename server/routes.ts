@@ -550,6 +550,59 @@ export async function registerRoutes(app: Express) {
     }
   });
   
+  // Reset all seats with no bookings to available
+  app.post("/api/reset-seats", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(401).json({ message: "Unauthorized: Admin access required" });
+      }
+
+      // Get all events
+      const allEvents = await db.select().from(events);
+      // Get all bookings
+      const allBookings = await db.select().from(bookings);
+
+      // For each event
+      for (const event of allEvents) {
+        // Count bookings for this event
+        const eventBookings = allBookings.filter(b => b.eventId === event.id);
+        const bookedSeats = eventBookings.reduce((total, booking) => total + booking.seatNumbers.length, 0);
+        
+        // If no bookings, reset available seats to total seats
+        if (bookedSeats === 0) {
+          await db.update(events)
+            .set({ availableSeats: event.totalSeats })
+            .where(eq(events.id, event.id));
+          
+          // Log the reset
+          await storage.createAdminLog({
+            userId: req.user.id,
+            action: "reset_seats",
+            entityType: "event",
+            entityId: event.id,
+            details: {
+              eventTitle: event.title,
+              totalSeats: event.totalSeats,
+              previousAvailable: event.availableSeats
+            }
+          });
+        }
+      }
+
+      res.status(200).json({ 
+        success: true, 
+        message: "Seats reset for events with no bookings" 
+      });
+    } catch (error) {
+      console.error("Error resetting seats:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to reset seats",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Admin route to clear all bookings (for testing purposes)
   app.post("/api/clear-bookings", async (req, res) => {
     try {
