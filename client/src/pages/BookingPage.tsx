@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
 // import { SeatSelection } from "@/components/booking/SeatSelection";
-import { StyledSeatSelection } from "@/components/booking/StyledSeatSelection";
+// import { StyledSeatSelection } from "@/components/booking/StyledSeatSelection";
+import { IframeSeatSelection } from "@/components/booking/IframeSeatSelection";
 import { FoodSelection } from "@/components/booking/FoodSelection";
 import { CheckoutForm } from "@/components/booking/CheckoutForm";
 import { Card } from "@/components/ui/card";
@@ -50,7 +51,7 @@ export default function BookingPage() {
         <Card className="max-w-4xl mx-auto">
           <div className="p-6">
             {step === "seats" && (
-              <StyledSeatSelection
+              <IframeSeatSelection
                 eventId={eventId}
                 hasExistingBooking={hasExistingBooking}
                 onComplete={(selection) => {

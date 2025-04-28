@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mezzanine Seating</title>
+  <style>
+    .container {
+      position: relative;
+      display: inline-block;
+    }
+    .seat {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: rgba(34, 197, 94, 0.7);
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+    .seat:hover {
+      background-color: rgba(59, 130, 246, 0.9);
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    .seat.selected {
+      background-color: rgba(59, 130, 246, 0.9);
+      border: 2px solid white;
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0;">
+  <div class="container">
+    <img src="https://raw.githubusercontent.com/users/10/attached_assets/Mezzanine%20(numbered)%20PNG.png" alt="Mezzanine Floor Plan" id="floor-plan">
+    
+    <!-- Table 1 (Top right) -->
+    <div class="seat" style="left: 952px; top: 284px;" data-table="1" data-seat="1"></div>
+    <div class="seat" style="left: 968px; top: 314px;" data-table="1" data-seat="2"></div>
+    <div class="seat" style="left: 954px; top: 347px;" data-table="1" data-seat="3"></div>
+    
+    <!-- Table 2 (Right bottom) -->
+    <div class="seat" style="left: 854px; top: 402px;" data-table="2" data-seat="1"></div>
+    <div class="seat" style="left: 815px; top: 402px;" data-table="2" data-seat="2"></div>
+    
+    <!-- Table 3 (Middle right) -->
+    <div class="seat" style="left: 694px; top: 402px;" data-table="3" data-seat="1"></div>
+    <div class="seat" style="left: 654px; top: 402px;" data-table="3" data-seat="2"></div>
+    
+    <!-- Table 4 (Middle left) -->
+    <div class="seat" style="left: 536px; top: 402px;" data-table="4" data-seat="1"></div>
+    <div class="seat" style="left: 494px; top: 402px;" data-table="4" data-seat="2"></div>
+    
+    <!-- Table 5 (Far left bottom) -->
+    <div class="seat" style="left: 369px; top: 402px;" data-table="5" data-seat="1"></div>
+    <div class="seat" style="left: 328px; top: 402px;" data-table="5" data-seat="2"></div>
+    
+    <!-- Table 6 (Far left) -->
+    <div class="seat" style="left: 167px; top: 422px;" data-table="6" data-seat="1"></div>
+    <div class="seat" style="left: 139px; top: 394px;" data-table="6" data-seat="2"></div>
+    
+    <!-- Table 7 (Upper left) -->
+    <div class="seat" style="left: 47px; top: 352px;" data-table="7" data-seat="1"></div>
+    <div class="seat" style="left: 32px; top: 316px;" data-table="7" data-seat="2"></div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const seats = document.querySelectorAll('.seat');
+      let selectedSeats = [];
+      
+      seats.forEach(seat => {
+        seat.addEventListener('click', function() {
+          const tableId = this.getAttribute('data-table');
+          const seatNumber = this.getAttribute('data-seat');
+          const key = `${tableId}-${seatNumber}`;
+          
+          // Check if already selected
+          const index = selectedSeats.findIndex(s => s.key === key);
+          
+          if (index >= 0) {
+            // Remove if already selected
+            selectedSeats.splice(index, 1);
+            this.classList.remove('selected');
+            this.textContent = '';
+          } else {
+            // Add if not selected (max 4)
+            if (selectedSeats.length < 4) {
+              selectedSeats.push({
+                key,
+                tableId: parseInt(tableId),
+                seatNumber: parseInt(seatNumber)
+              });
+              this.classList.add('selected');
+              this.textContent = seatNumber;
+            }
+          }
+          
+          // Send message to parent window
+          window.parent.postMessage({
+            type: 'SEAT_SELECTION',
+            selection: selectedSeats
+          }, '*');
+        });
+      });
+    });
+  </script>
+</body>
+</html>
