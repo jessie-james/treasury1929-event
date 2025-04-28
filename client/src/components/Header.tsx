@@ -5,7 +5,7 @@ export function Header() {
     <div className="border-b">
       <div className="container flex justify-center items-center h-16">
         <Link href="/">
-          <h1 className="text-xl font-semibold">Event Venue Booking</h1>
+          <h1 className="text-xl font-semibold">The Treasury 1929</h1>
         </Link>
       </div>
     </div>
