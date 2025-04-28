@@ -13,22 +13,24 @@
     }
     .container {
       position: relative;
-      max-width: 1000px;
+      width: 2000px;
+      height: 1000px;
       margin: 0 auto;
       background-color: #f4f4f4;
+      overflow: auto;
     }
     #floor-plan {
       display: block;
       max-width: 100%;
-      width: 1000px;
+      width: 2000px;
       height: auto;
       margin: 0;
       padding: 0;
     }
     .seat-marker {
       position: absolute;
-      width: 30px;
-      height: 30px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
       background-color: rgba(52, 211, 153, 0.5);
       border: 2px solid rgba(16, 185, 129, 0.8);
@@ -38,8 +40,8 @@
     }
     .seat {
       position: absolute;
-      width: 30px;
-      height: 30px;
+      width: 50px;
+      height: 50px;
       border-radius: 50%;
       background-color: transparent;
       transform: translate(-50%, -50%);
@@ -47,14 +49,14 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
+      font-size: 18px;
       font-weight: bold;
       color: white;
       z-index: 10;
     }
     .seat-center {
-      width: 22px;
-      height: 22px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background-color: rgba(34, 197, 94, 0.2);
       border: 1px dashed rgba(255, 255, 255, 0);
@@ -79,90 +81,90 @@
     
     <!-- Table markers to show exact positions of green circles -->
     <!-- Table 1 (Top right) -->
-    <div class="seat-marker" style="left: 950px; top: 285px;"></div>
-    <div class="seat-marker" style="left: 968px; top: 314px;"></div>
-    <div class="seat-marker" style="left: 954px; top: 350px;"></div>
+    <div class="seat-marker" style="left: 1900px; top: 285px;"></div>
+    <div class="seat-marker" style="left: 1936px; top: 314px;"></div>
+    <div class="seat-marker" style="left: 1908px; top: 350px;"></div>
     
     <!-- Table 2 (Right bottom) -->
-    <div class="seat-marker" style="left: 854px; top: 402px;"></div>
-    <div class="seat-marker" style="left: 814px; top: 402px;"></div>
+    <div class="seat-marker" style="left: 1708px; top: 402px;"></div>
+    <div class="seat-marker" style="left: 1628px; top: 402px;"></div>
     
     <!-- Table 3 (Middle right) -->
-    <div class="seat-marker" style="left: 694px; top: 402px;"></div>
-    <div class="seat-marker" style="left: 654px; top: 402px;"></div>
+    <div class="seat-marker" style="left: 1388px; top: 402px;"></div>
+    <div class="seat-marker" style="left: 1308px; top: 402px;"></div>
     
     <!-- Table 4 (Middle left) -->
-    <div class="seat-marker" style="left: 536px; top: 402px;"></div>
-    <div class="seat-marker" style="left: 494px; top: 402px;"></div>
+    <div class="seat-marker" style="left: 1072px; top: 402px;"></div>
+    <div class="seat-marker" style="left: 988px; top: 402px;"></div>
     
     <!-- Table 5 (Far left bottom) -->
-    <div class="seat-marker" style="left: 369px; top: 402px;"></div>
-    <div class="seat-marker" style="left: 328px; top: 402px;"></div>
+    <div class="seat-marker" style="left: 738px; top: 402px;"></div>
+    <div class="seat-marker" style="left: 656px; top: 402px;"></div>
     
     <!-- Table 6 (Far left) -->
-    <div class="seat-marker" style="left: 168px; top: 423px;"></div>
-    <div class="seat-marker" style="left: 140px; top: 394px;"></div>
+    <div class="seat-marker" style="left: 336px; top: 423px;"></div>
+    <div class="seat-marker" style="left: 280px; top: 394px;"></div>
     
     <!-- Table 7 (Upper left) -->
-    <div class="seat-marker" style="left: 46px; top: 352px;"></div>
-    <div class="seat-marker" style="left: 32px; top: 315px;"></div>
+    <div class="seat-marker" style="left: 92px; top: 352px;"></div>
+    <div class="seat-marker" style="left: 64px; top: 315px;"></div>
     
     <!-- Table 1 (Top right) -->
-    <div class="seat" style="left: 950px; top: 285px;" data-table="1" data-seat="1">
+    <div class="seat" style="left: 1900px; top: 285px;" data-table="1" data-seat="1">
       <div class="seat-center"></div>
     </div>
-    <div class="seat" style="left: 968px; top: 314px;" data-table="1" data-seat="2">
+    <div class="seat" style="left: 1936px; top: 314px;" data-table="1" data-seat="2">
       <div class="seat-center"></div>
     </div>
-    <div class="seat" style="left: 954px; top: 350px;" data-table="1" data-seat="3">
+    <div class="seat" style="left: 1908px; top: 350px;" data-table="1" data-seat="3">
       <div class="seat-center"></div>
     </div>
     
     <!-- Table 2 (Right bottom) -->
-    <div class="seat" style="left: 854px; top: 402px;" data-table="2" data-seat="1">
+    <div class="seat" style="left: 1708px; top: 402px;" data-table="2" data-seat="1">
       <div class="seat-center"></div>
     </div>
-    <div class="seat" style="left: 814px; top: 402px;" data-table="2" data-seat="2">
+    <div class="seat" style="left: 1628px; top: 402px;" data-table="2" data-seat="2">
       <div class="seat-center"></div>
     </div>
     
     <!-- Table 3 (Middle right) -->
-    <div class="seat" style="left: 694px; top: 402px;" data-table="3" data-seat="1">
+    <div class="seat" style="left: 1388px; top: 402px;" data-table="3" data-seat="1">
       <div class="seat-center"></div>
     </div>
-    <div class="seat" style="left: 654px; top: 402px;" data-table="3" data-seat="2">
+    <div class="seat" style="left: 1308px; top: 402px;" data-table="3" data-seat="2">
       <div class="seat-center"></div>
     </div>
     
     <!-- Table 4 (Middle left) -->
-    <div class="seat" style="left: 536px; top: 402px;" data-table="4" data-seat="1">
+    <div class="seat" style="left: 1072px; top: 402px;" data-table="4" data-seat="1">
       <div class="seat-center"></div>
     </div>
-    <div class="seat" style="left: 494px; top: 402px;" data-table="4" data-seat="2">
+    <div class="seat" style="left: 988px; top: 402px;" data-table="4" data-seat="2">
       <div class="seat-center"></div>
     </div>
     
     <!-- Table 5 (Far left bottom) -->
-    <div class="seat" style="left: 369px; top: 402px;" data-table="5" data-seat="1">
+    <div class="seat" style="left: 738px; top: 402px;" data-table="5" data-seat="1">
       <div class="seat-center"></div>
     </div>
-    <div class="seat" style="left: 328px; top: 402px;" data-table="5" data-seat="2">
+    <div class="seat" style="left: 656px; top: 402px;" data-table="5" data-seat="2">
       <div class="seat-center"></div>
     </div>
     
     <!-- Table 6 (Far left) -->
-    <div class="seat" style="left: 168px; top: 423px;" data-table="6" data-seat="1">
+    <div class="seat" style="left: 336px; top: 423px;" data-table="6" data-seat="1">
       <div class="seat-center"></div>
     </div>
-    <div class="seat" style="left: 140px; top: 394px;" data-table="6" data-seat="2">
+    <div class="seat" style="left: 280px; top: 394px;" data-table="6" data-seat="2">
       <div class="seat-center"></div>
     </div>
     
     <!-- Table 7 (Upper left) -->
-    <div class="seat" style="left: 46px; top: 352px;" data-table="7" data-seat="1">
+    <div class="seat" style="left: 92px; top: 352px;" data-table="7" data-seat="1">
       <div class="seat-center"></div>
     </div>
-    <div class="seat" style="left: 32px; top: 315px;" data-table="7" data-seat="2">
+    <div class="seat" style="left: 64px; top: 315px;" data-table="7" data-seat="2">
       <div class="seat-center"></div>
     </div>
   </div>
