@@ -64,6 +64,9 @@ export const bookings = pgTable("bookings", {
   refundId: text("refund_id"),
   lastModified: timestamp("last_modified"),
   modifiedBy: integer("modified_by"), // User ID of admin who modified the booking
+  checkedIn: boolean("checked_in").default(false), // Whether the ticket has been scanned and checked in
+  checkedInAt: timestamp("checked_in_at"), // When the ticket was checked in
+  checkedInBy: integer("checked_in_by"), // User ID of staff who checked in the ticket
 });
 
 // Create insert schemas

@@ -83,6 +83,22 @@ export interface IStorage {
   ): Promise<Booking | undefined>;
   cancelBooking(bookingId: number, modifiedBy: number): Promise<Booking | undefined>;
   
+  // Ticket Check-in
+  checkInBooking(bookingId: number, staffId: number): Promise<Booking | undefined>;
+  getBookingByQRCode(bookingId: number): Promise<(Booking & { event: Event, foodItems: FoodOption[], user: User }) | undefined>;
+  getCheckedInBookings(eventId: number): Promise<Booking[]>;
+  getEventCheckInStats(eventId: number): Promise<{
+    totalBookings: number;
+    checkedInBookings: number;
+    checkedInPercentage: number;
+    foodStats: {
+      salads: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+      entrees: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+      desserts: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+      wines: { total: number; checkedIn: number; percentage: number; byItem: Record<number, { total: number; checkedIn: number; percentage: number; }> };
+    };
+  }>;
+  
   // Admin Logs
   createAdminLog(log: InsertAdminLog): Promise<AdminLog>;
   getAdminLogs(): Promise<AdminLog[]>;
