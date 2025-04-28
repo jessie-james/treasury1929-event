@@ -53,6 +53,40 @@
       background-color: rgba(59, 130, 246, 0.8);
       border: 2px solid white;
     }
+    
+    .seat.unavailable {
+      background-color: rgba(156, 163, 175, 0.5);
+      cursor: not-allowed;
+    }
+    
+    .seat.unavailable:hover {
+      background-color: rgba(156, 163, 175, 0.7);
+      transform: translate(-50%, -50%);
+    }
+    
+    .tooltip {
+      visibility: hidden;
+      width: 120px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      text-align: center;
+      padding: 5px;
+      border-radius: 4px;
+      position: absolute;
+      z-index: 20;
+      top: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 12px;
+      pointer-events: none;
+    }
+    
+    .seat.unavailable:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
 
     /* Table labels for clarity */
     .table-label {
@@ -107,6 +141,12 @@
           "seatNumber": 3,
           "left": 933,
           "top": 341
+        },
+        {
+          "tableId": 1,
+          "seatNumber": 4,
+          "left": 908,
+          "top": 329
         },
         {
           "tableId": 2,
@@ -184,6 +224,20 @@
 
       let selectedSeats = [];
       
+      // Example unavailable seats - in a real app, this would come from your backend
+      const unavailableSeats = [
+        { tableId: 2, seatNumber: 2 },
+        { tableId: 5, seatNumber: 1 },
+        { tableId: 7, seatNumber: 1 }
+      ];
+      
+      // Function to check if a seat is unavailable
+      function isSeatUnavailable(tableId, seatNumber) {
+        return unavailableSeats.some(
+          seat => seat.tableId === tableId && seat.seatNumber === seatNumber
+        );
+      }
+      
       // Add seats to the container
       seatPositions.forEach(pos => {
         const seat = document.createElement('div');
@@ -193,39 +247,54 @@
         seat.style.left = pos.left + 'px';
         seat.style.top = pos.top + 'px';
         
-        // Add click event listener
-        seat.addEventListener('click', function() {
-          const tableId = parseInt(this.getAttribute('data-table'));
-          const seatNumber = parseInt(this.getAttribute('data-seat'));
-          const key = `${tableId}-${seatNumber}`;
+        // Check if this seat is unavailable
+        const isUnavailable = isSeatUnavailable(pos.tableId, pos.seatNumber);
+        
+        if (isUnavailable) {
+          seat.classList.add('unavailable');
           
-          // Check if already selected
-          const index = selectedSeats.findIndex(s => s.key === key);
-          
-          if (index >= 0) {
-            // Remove if already selected
-            selectedSeats.splice(index, 1);
-            this.classList.remove('selected');
-            this.textContent = '';
-          } else {
-            // Add if not selected (max 4)
-            if (selectedSeats.length < 4) {
-              selectedSeats.push({
-                key,
-                tableId,
-                seatNumber
-              });
-              this.classList.add('selected');
-              this.textContent = seatNumber;
+          // Add tooltip for unavailable seats
+          const tooltip = document.createElement('div');
+          tooltip.className = 'tooltip';
+          tooltip.textContent = 'Seat unavailable';
+          seat.appendChild(tooltip);
+        } else {
+          // Only add click event listener if seat is available
+          seat.addEventListener('click', function() {
+            if (this.classList.contains('unavailable')) return;
+            
+            const tableId = parseInt(this.getAttribute('data-table'));
+            const seatNumber = parseInt(this.getAttribute('data-seat'));
+            const key = `${tableId}-${seatNumber}`;
+            
+            // Check if already selected
+            const index = selectedSeats.findIndex(s => s.key === key);
+            
+            if (index >= 0) {
+              // Remove if already selected
+              selectedSeats.splice(index, 1);
+              this.classList.remove('selected');
+              this.textContent = '';
+            } else {
+              // Add if not selected (max 4)
+              if (selectedSeats.length < 4) {
+                selectedSeats.push({
+                  key,
+                  tableId,
+                  seatNumber
+                });
+                this.classList.add('selected');
+                this.textContent = seatNumber;
+              }
             }
-          }
-          
-          // Send message to parent window
-          window.parent.postMessage({
-            type: 'SEAT_SELECTION',
-            selection: selectedSeats
-          }, '*');
-        });
+            
+            // Send message to parent window
+            window.parent.postMessage({
+              type: 'SEAT_SELECTION',
+              selection: selectedSeats
+            }, '*');
+          });
+        }
         
         container.appendChild(seat);
       });
