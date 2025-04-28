@@ -280,4 +280,29 @@ export function setupAuth(app: Express) {
       res.status(500).json({ error: "Failed to update preferences" });
     }
   });
+  
+  // User profile endpoint - to update personal information
+  app.patch("/api/user/profile", async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    
+    try {
+      const { firstName, lastName, phone } = req.body;
+      
+      // Update the user profile information
+      const updatedUser = await storage.updateUser(req.user!.id, {
+        firstName,
+        lastName,
+        phone
+      });
+      
+      // Don't send the password hash to the client
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
 }

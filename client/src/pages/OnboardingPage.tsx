@@ -23,8 +23,6 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { 
-  ALLERGENS, 
-  DIETARY_RESTRICTIONS, 
   allergenIcons, 
   dietaryIcons, 
   type Allergen, 
@@ -32,6 +30,10 @@ import {
 } from "@/components/ui/food-icons";
 
 type OnboardingStep = "welcome" | "profile" | "dietary" | "events";
+
+// Define lists of allergens and dietary restrictions
+const ALLERGENS: Allergen[] = ["gluten", "dairy", "eggs", "peanuts", "tree_nuts", "soy", "fish", "shellfish", "sesame"];
+const DIETARY_RESTRICTIONS: DietaryRestriction[] = ["vegetarian", "vegan", "halal", "kosher", "low_carb", "keto", "paleo"];
 
 export default function OnboardingPage() {
   const [step, setStep] = useState<OnboardingStep>("welcome");
@@ -293,7 +295,7 @@ export default function OnboardingPage() {
               </p>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {ALLERGENS.map((allergen) => (
+                {ALLERGENS.map((allergen: Allergen) => (
                   <div key={allergen} className="flex items-center space-x-2">
                     <Checkbox 
                       id={`allergen-${allergen}`} 
@@ -323,7 +325,7 @@ export default function OnboardingPage() {
               </p>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {DIETARY_RESTRICTIONS.map((restriction) => (
+                {DIETARY_RESTRICTIONS.map((restriction: DietaryRestriction) => (
                   <div key={restriction} className="flex items-center space-x-2">
                     <Checkbox 
                       id={`restriction-${restriction}`}

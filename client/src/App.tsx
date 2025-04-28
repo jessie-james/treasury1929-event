@@ -44,6 +44,7 @@ function Router() {
         <Route path="/auth" component={AuthPage} />
         <Route path="/events/:id" component={EventPage} />
         <ProtectedRoute path="/events/:id/book" component={BookingPage} />
+        <ProtectedRoute path="/onboarding" component={OnboardingPage} />
         <ProtectedRoute path="/backoffice" component={DashboardPage} />
         <ProtectedRoute path="/backoffice/orders" component={OrdersPage} />
         <ProtectedRoute path="/backoffice/payments" component={PaymentsPage} requiredRole="admin" />
