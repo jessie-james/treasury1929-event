@@ -173,14 +173,30 @@ export default function CustomerDashboard() {
                   
                   {/* QR Code Section */}
                   {expandedQRCode === booking.id && (
-                    <div className="my-4 p-4 border rounded-md bg-slate-50">
+                    <div className="my-4 p-4 border rounded-md bg-slate-50" id={`ticket-container-${booking.id}`}>
                       <div className="text-center mb-4">
-                        <h4 className="font-medium">Entrance Ticket</h4>
-                        <p className="text-sm text-muted-foreground">
+                        <h4 className="text-xl font-semibold">{booking.event.title}</h4>
+                        <p className="text-sm mt-1">{format(new Date(booking.event.date), "PPP 'at' p")}</p>
+                        <div className="mt-3 flex justify-center items-center gap-2">
+                          <span className="text-sm font-medium">Table {booking.tableId}</span>
+                          <span className="text-xs px-2 py-1 bg-gray-200 rounded-full">
+                            Seat{booking.seatNumbers.length > 1 ? 's' : ''} #{booking.seatNumbers.join(', #')}
+                          </span>
+                          {getStatusBadge(booking.status)}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-3">
                           Present this QR code at the venue entrance to check in
                         </p>
                       </div>
-                      <TicketQRCode bookingId={booking.id} eventTitle={booking.event.title} />
+                      <TicketQRCode 
+                        bookingId={booking.id} 
+                        eventTitle={booking.event.title} 
+                        containerSelector={`#ticket-container-${booking.id}`}
+                        eventDate={booking.event.date}
+                        tableId={booking.tableId}
+                        seatNumbers={booking.seatNumbers}
+                        status={booking.status}
+                      />
                     </div>
                   )}
 

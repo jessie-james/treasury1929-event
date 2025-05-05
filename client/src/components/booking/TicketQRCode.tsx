@@ -10,6 +10,11 @@ interface TicketQRCodeProps {
   bgColor?: string;
   fgColor?: string;
   eventTitle?: string;
+  eventDate?: string;
+  tableId?: number;
+  seatNumbers?: number[];
+  status?: string;
+  containerSelector?: string; // Selector for the entire ticket container
 }
 
 export function TicketQRCode({ 
@@ -17,10 +22,11 @@ export function TicketQRCode({
   size = 200, 
   bgColor = "#ffffff", 
   fgColor = "#000000",
-  eventTitle
+  eventTitle,
+  containerSelector
 }: TicketQRCodeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const qrContainerRef = useRef<HTMLDivElement>(null);
+  const qrComponentRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   
   useEffect(() => {
@@ -65,15 +71,27 @@ export function TicketQRCode({
   }, [bookingId, size, bgColor, fgColor]);
   
   const handleDownload = async () => {
-    if (!qrContainerRef.current) return;
-    
     try {
       setIsDownloading(true);
       
-      // Use html2canvas to capture the QR code container
-      const canvas = await html2canvas(qrContainerRef.current, {
+      // Determine what to capture - either the entire ticket container or just the QR code
+      const elementToCapture = containerSelector 
+        ? document.querySelector(containerSelector)
+        : qrComponentRef.current;
+      
+      if (!elementToCapture) {
+        console.error("Element to capture not found");
+        setIsDownloading(false);
+        return;
+      }
+      
+      // Use html2canvas to capture the selected element
+      const canvas = await html2canvas(elementToCapture as HTMLElement, {
         backgroundColor: bgColor,
-        scale: 2 // Higher resolution
+        scale: 2, // Higher resolution
+        logging: false,
+        useCORS: true, // Allow cross-origin images
+        allowTaint: true // Allow potentially tainted images
       });
       
       // Convert canvas to data URL
@@ -90,15 +108,15 @@ export function TicketQRCode({
       document.body.removeChild(link);
       
     } catch (error) {
-      console.error("Error downloading QR code:", error);
+      console.error("Error downloading ticket:", error);
     } finally {
       setIsDownloading(false);
     }
   };
   
   return (
-    <Card className="w-full max-w-xs mx-auto">
-      <CardContent className="p-4 flex justify-center" ref={qrContainerRef}>
+    <Card className="w-full max-w-xs mx-auto" ref={qrComponentRef}>
+      <CardContent className="p-4 flex justify-center">
         <canvas 
           ref={canvasRef} 
           width={size} 
@@ -115,7 +133,7 @@ export function TicketQRCode({
           disabled={isDownloading}
         >
           <Download className="h-4 w-4" />
-          {isDownloading ? "Downloading..." : "Download QR Ticket"}
+          {isDownloading ? "Downloading..." : "Download Ticket"}
         </Button>
       </CardFooter>
     </Card>
