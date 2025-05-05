@@ -437,11 +437,11 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
                               </p>
                               
                               {/* Food information section */}
-                              <div className="mt-3 space-y-2">
-                                {/* Allergen information */}
+                              <div className="mt-3">
+                                {/* Allergen information only */}
                                 {option.allergens && option.allergens.length > 0 && (
                                   <div>
-                                    <p className="text-xs text-muted-foreground font-medium mb-1">Contains:</p>
+                                    <p className="text-xs text-muted-foreground font-medium mb-1">Allergens:</p>
                                     <div className="flex flex-wrap gap-1.5">
                                       {(option.allergens as Allergen[]).map((allergen) => (
                                         <span 
@@ -449,23 +449,6 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
                                           className="inline-flex items-center bg-red-50 text-red-700 rounded-md px-2 py-1 text-xs font-medium"
                                         >
                                           {allergenLabels[allergen]}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                {/* Dietary information */}
-                                {option.dietaryRestrictions && option.dietaryRestrictions.length > 0 && (
-                                  <div>
-                                    <p className="text-xs text-muted-foreground font-medium mb-1">Suitable for:</p>
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {(option.dietaryRestrictions as DietaryRestriction[]).map((restriction) => (
-                                        <span 
-                                          key={restriction} 
-                                          className="inline-flex items-center bg-green-50 text-green-700 rounded-md px-2 py-1 text-xs font-medium"
-                                        >
-                                          {dietaryLabels[restriction]}
                                         </span>
                                       ))}
                                     </div>

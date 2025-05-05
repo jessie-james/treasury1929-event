@@ -25,15 +25,15 @@ export type DietaryRestriction =
   | "paleo";
 
 export const allergenLabels: Record<Allergen, string> = {
-  gluten: "Contains Gluten",
-  dairy: "Contains Dairy",
-  eggs: "Contains Eggs",
-  peanuts: "Contains Peanuts",
-  tree_nuts: "Contains Tree Nuts",
-  soy: "Contains Soy",
-  fish: "Contains Fish",
-  shellfish: "Contains Shellfish",
-  sesame: "Contains Sesame",
+  gluten: "Gluten",
+  dairy: "Dairy",
+  eggs: "Eggs",
+  peanuts: "Peanuts",
+  tree_nuts: "Tree Nuts",
+  soy: "Soy",
+  fish: "Fish",
+  shellfish: "Shellfish",
+  sesame: "Sesame",
 };
 
 export const dietaryLabels: Record<DietaryRestriction, string> = {
