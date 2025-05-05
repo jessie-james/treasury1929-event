@@ -180,7 +180,7 @@ export default function CustomerDashboard() {
                           Present this QR code at the venue entrance to check in
                         </p>
                       </div>
-                      <TicketQRCode bookingId={booking.id} />
+                      <TicketQRCode bookingId={booking.id} eventTitle={booking.event.title} />
                     </div>
                   )}
 

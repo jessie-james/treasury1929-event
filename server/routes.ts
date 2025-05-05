@@ -18,8 +18,11 @@ if (!process.env.STRIPE_SECRET_KEY) {
   console.error("STRIPE_SECRET_KEY environment variable not set");
 }
 
+// Explicitly define API version for type safety
+const stripeApiVersion = "2023-10-16" as Stripe.LatestApiVersion;
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2023-10-16", // Use a stable API version
+  apiVersion: stripeApiVersion
 });
 
 // Create uploads directory if it doesn't exist
