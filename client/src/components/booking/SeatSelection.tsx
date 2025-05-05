@@ -27,27 +27,27 @@ const MEZZANINE_SEATS: SeatData[] = [
   { id: "1-1", tableId: 1, seatNumber: 1, x: 952, y: 284 }, // Top green circle
   { id: "1-2", tableId: 1, seatNumber: 2, x: 968, y: 314 }, // Right green circle
   { id: "1-3", tableId: 1, seatNumber: 3, x: 954, y: 347 }, // Bottom green circle
-
+  
   // Table 2 (right bottom)
   { id: "2-1", tableId: 2, seatNumber: 1, x: 854, y: 402 }, // Right green circle
   { id: "2-2", tableId: 2, seatNumber: 2, x: 815, y: 402 }, // Left green circle
-
+  
   // Table 3 (middle right)
   { id: "3-1", tableId: 3, seatNumber: 1, x: 694, y: 402 }, // Right green circle
   { id: "3-2", tableId: 3, seatNumber: 2, x: 654, y: 402 }, // Left green circle
-
+  
   // Table 4 (middle left)
   { id: "4-1", tableId: 4, seatNumber: 1, x: 536, y: 402 }, // Right green circle
   { id: "4-2", tableId: 4, seatNumber: 2, x: 494, y: 402 }, // Left green circle
-
+  
   // Table 5 (far left bottom)
   { id: "5-1", tableId: 5, seatNumber: 1, x: 369, y: 402 }, // Right green circle
   { id: "5-2", tableId: 5, seatNumber: 2, x: 328, y: 402 }, // Left green circle
-
+  
   // Table 6 (far left)
   { id: "6-1", tableId: 6, seatNumber: 1, x: 167, y: 422 }, // Bottom green circle
   { id: "6-2", tableId: 6, seatNumber: 2, x: 139, y: 394 }, // Left green circle
-
+  
   // Table 7 (upper left)
   { id: "7-1", tableId: 7, seatNumber: 1, x: 47, y: 352 },  // Bottom green circle
   { id: "7-2", tableId: 7, seatNumber: 2, x: 32, y: 316 }   // Left green circle
@@ -60,7 +60,7 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
   const [imageError, setImageError] = useState<boolean>(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const imageRef = useRef<HTMLImageElement>(null);
-
+  
   // Update image dimensions when it loads
   useEffect(() => {
     const updateDimensions = () => {
@@ -71,21 +71,21 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
         });
       }
     };
-
+    
     if (imageRef.current && imageRef.current.complete) {
       updateDimensions();
     }
-
+    
     window.addEventListener('resize', updateDimensions);
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
-
+  
   // Function to toggle seat selection
   const toggleSeat = (seat: SeatData) => {
     const existingIndex = selectedSeats.findIndex(
       s => s.id === seat.id
     );
-
+    
     if (existingIndex >= 0) {
       // Remove seat if already selected
       setSelectedSeats(selectedSeats.filter((_, index) => index !== existingIndex));
@@ -96,63 +96,55 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
       }
     }
   };
-
+  
   // Check if a seat is selected
   const isSeatSelected = (seatId: string) => {
     return selectedSeats.some(seat => seat.id === seatId);
   };
-
+  
   // Create an organized structure by table for display
   const getSelectedSeatsByTable = () => {
     const byTable: Record<number, number[]> = {};
-
+    
     selectedSeats.forEach(seat => {
       if (!byTable[seat.tableId]) {
         byTable[seat.tableId] = [];
       }
       byTable[seat.tableId].push(seat.seatNumber);
     });
-
+    
     return byTable;
   };
-
+  
   // Format selected seats for display
   const formatSelectedSeats = () => {
     const byTable = getSelectedSeatsByTable();
-
+    
     return Object.entries(byTable).map(([tableId, seatNumbers]) => {
       return `Table ${tableId}: Seat${seatNumbers.length > 1 ? 's' : ''} ${seatNumbers.join(', ')}`;
     }).join('; ');
   };
-
+  
   // Handle zoom in/out
   const zoomIn = () => setZoomLevel(prev => Math.min(prev + 0.2, 2));
   const zoomOut = () => setZoomLevel(prev => Math.max(prev - 0.2, 0.6));
-
+  
   // Group selected seats by table for submission
   const getGroupedSeatsForSubmission = () => {
     if (selectedSeats.length === 0) return null;
-
+    
     // For the current simplified implementation, we're just taking the first table
     const firstTableId = selectedSeats[0].tableId;
     const seatNumbers = selectedSeats
       .filter(seat => seat.tableId === firstTableId)
       .map(seat => seat.seatNumber);
-
+    
     return { tableId: firstTableId, seatNumbers };
   };
-
+  
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Select Your Seats</h2>
-        </div>
-
-        <p className="text-muted-foreground">
-          Click on green circles to select up to 4 seats (max 4 per booking)
-        </p>
-
         {hasExistingBooking && (
           <Alert variant="destructive" className="bg-yellow-50 border-yellow-200">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
@@ -162,7 +154,26 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
             </AlertDescription>
           </Alert>
         )}
-
+        
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Select Your Seats</h2>
+          <Button
+            onClick={() => {
+              const submission = getGroupedSeatsForSubmission();
+              if (submission) {
+                onComplete(submission);
+              }
+            }}
+            disabled={selectedSeats.length === 0}
+          >
+            Continue to Guest Details
+          </Button>
+        </div>
+        
+        <p className="text-muted-foreground">
+          Click on green circles to select up to 4 seats (max 4 per booking)
+        </p>
+        
         <div className="flex gap-2 items-center mb-4">
           <Button 
             variant="outline" 
@@ -188,11 +199,11 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
           >
             <Info className={`h-4 w-4 ${showTooltips ? 'text-blue-500' : ''}`} />
           </Button>
-
+          
           <div className="ml-2 text-sm text-muted-foreground">
             <Badge variant="outline">{Math.round(zoomLevel * 100)}%</Badge>
           </div>
-
+          
           <div className="ml-auto">
             <Badge variant="secondary" className="text-xs">
               {selectedSeats.length} {selectedSeats.length === 1 ? 'seat' : 'seats'} selected
@@ -229,7 +240,7 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                     }
                   }}
                 />
-
+                
                 {/* Transparent buttons at each seat location */}
                 <TooltipProvider>
                   {MEZZANINE_SEATS.map((seat) => (
@@ -261,7 +272,7 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
               </div>
             </div>
           </div>
-
+          
           {/* Selection Summary */}
           {selectedSeats.length > 0 && (
             <div className="mt-4 p-3 bg-slate-50 rounded-md">
@@ -271,19 +282,6 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
           )}
         </CardContent>
       </Card>
-      <div className="mt-6 flex justify-end">
-          <Button
-            onClick={() => {
-              const submission = getGroupedSeatsForSubmission();
-              if (submission) {
-                onComplete(submission);
-              }
-            }}
-            disabled={selectedSeats.length === 0}
-          >
-            Continue to Guest Details
-          </Button>
-        </div>
     </div>
   );
 }
