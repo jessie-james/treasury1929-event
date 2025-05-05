@@ -240,22 +240,46 @@ export function FoodIconSet({
     lg: "w-8 h-8",
   };
 
+  const hasAllergens = allergens && allergens.length > 0;
+  const hasDietary = dietaryRestrictions && dietaryRestrictions.length > 0;
+
+  if (!hasAllergens && !hasDietary) {
+    return null;
+  }
+
   return (
-    <div className={cn("flex flex-wrap gap-1", className)}>
-      {allergens.map((allergen) => (
-        <AllergenIcon
-          key={`allergen-${allergen}`}
-          allergen={allergen}
-          className={sizeClasses[size]}
-        />
-      ))}
-      {dietaryRestrictions.map((restriction) => (
-        <DietaryIcon
-          key={`diet-${restriction}`}
-          restriction={restriction}
-          className={sizeClasses[size]}
-        />
-      ))}
+    <div className={cn("space-y-2", className)}>
+      {hasAllergens && (
+        <div className="space-y-1">
+          <h4 className="text-xs font-medium text-muted-foreground">Allergen Information:</h4>
+          <ul className="space-y-1">
+            {allergens.map((allergen) => (
+              <li key={`allergen-${allergen}`} className="flex items-center gap-2 text-xs">
+                <div className={cn("inline-flex items-center justify-center rounded-full bg-destructive/20 text-destructive p-1", sizeClasses[size])}>
+                  <div className="w-4 h-4">{allergenIcons[allergen]}</div>
+                </div>
+                <span>{allergenLabels[allergen]}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      
+      {hasDietary && (
+        <div className="space-y-1">
+          <h4 className="text-xs font-medium text-muted-foreground">Dietary Information:</h4>
+          <ul className="space-y-1">
+            {dietaryRestrictions.map((restriction) => (
+              <li key={`diet-${restriction}`} className="flex items-center gap-2 text-xs">
+                <div className={cn("inline-flex items-center justify-center rounded-full bg-green-500/20 text-green-600 p-1", sizeClasses[size])}>
+                  <div className="w-4 h-4">{dietaryIcons[restriction]}</div>
+                </div>
+                <span>{dietaryLabels[restriction]}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
