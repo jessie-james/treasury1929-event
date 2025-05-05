@@ -192,7 +192,6 @@ export default function CustomerDashboard() {
                         bookingId={booking.id} 
                         eventTitle={booking.event.title} 
                         containerSelector={`#ticket-container-${booking.id}`}
-                        eventDate={booking.event.date}
                         tableId={booking.tableId}
                         seatNumbers={booking.seatNumbers}
                         status={booking.status}

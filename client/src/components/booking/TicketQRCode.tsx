@@ -85,28 +85,40 @@ export function TicketQRCode({
         return;
       }
       
-      // Use html2canvas to capture the selected element
-      const canvas = await html2canvas(elementToCapture as HTMLElement, {
-        backgroundColor: bgColor,
-        scale: 2, // Higher resolution
-        logging: false,
-        useCORS: true, // Allow cross-origin images
-        allowTaint: true // Allow potentially tainted images
+      // Temporarily hide download buttons before capturing
+      const downloadButtons = document.querySelectorAll('.download-ticket-btn');
+      downloadButtons.forEach(btn => {
+        (btn as HTMLElement).style.display = 'none';
       });
       
-      // Convert canvas to data URL
-      const dataUrl = canvas.toDataURL('image/png');
-      
-      // Create download link
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = `ticket-${bookingId}${eventTitle ? `-${eventTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}` : ''}.png`;
-      
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
+      try {
+        // Use html2canvas to capture the selected element without the download button
+        const canvas = await html2canvas(elementToCapture as HTMLElement, {
+          backgroundColor: bgColor,
+          scale: 2, // Higher resolution
+          logging: false,
+          useCORS: true, // Allow cross-origin images
+          allowTaint: true // Allow potentially tainted images
+        });
+        
+        // Convert canvas to data URL
+        const dataUrl = canvas.toDataURL('image/png');
+        
+        // Create download link
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `ticket-${bookingId}${eventTitle ? `-${eventTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase()}` : ''}.png`;
+        
+        // Trigger download
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } finally {
+        // Always restore download buttons visibility after capturing
+        downloadButtons.forEach(btn => {
+          (btn as HTMLElement).style.display = '';
+        });
+      }
     } catch (error) {
       console.error("Error downloading ticket:", error);
     } finally {
@@ -128,7 +140,7 @@ export function TicketQRCode({
         <Button 
           variant="outline" 
           size="sm" 
-          className="flex items-center gap-1"
+          className="flex items-center gap-1 download-ticket-btn"
           onClick={handleDownload}
           disabled={isDownloading}
         >
