@@ -215,12 +215,20 @@ export default function CustomerDashboard() {
                                   <p className="text-sm text-muted-foreground">
                                     {foodItem?.name || 'Not selected'}
                                   </p>
-                                  {foodItem && (
-                                    <FoodIconSet 
-                                      allergens={(foodItem.allergens || []) as Allergen[]} 
-                                      dietaryRestrictions={(foodItem.dietaryRestrictions || []) as DietaryRestriction[]}
-                                      size="sm"
-                                    />
+                                  {foodItem && foodItem.allergens && foodItem.allergens.length > 0 && (
+                                    <div className="space-y-1">
+                                      <p className="text-xs text-muted-foreground font-medium mb-1">Allergens:</p>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {(foodItem.allergens as Allergen[]).map((allergen) => (
+                                          <span 
+                                            key={allergen} 
+                                            className="inline-flex items-center bg-red-50 text-red-700 rounded-md px-2 py-1 text-xs font-medium"
+                                          >
+                                            {allergenLabels[allergen]}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
                               </div>
