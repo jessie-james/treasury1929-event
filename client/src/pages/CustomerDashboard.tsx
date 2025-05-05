@@ -224,7 +224,7 @@ export default function CustomerDashboard() {
                                             key={allergen} 
                                             className="inline-flex items-center bg-red-50 text-red-700 rounded-md px-2 py-1 text-xs font-medium"
                                           >
-                                            {allergenLabels[allergen]}
+                                            {allergen.charAt(0).toUpperCase() + allergen.slice(1).replace('_', ' ')}
                                           </span>
                                         ))}
                                       </div>

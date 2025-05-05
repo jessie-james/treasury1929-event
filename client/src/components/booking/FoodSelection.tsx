@@ -467,6 +467,13 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
           </div>
         )}
 
+        {/* Note about beverages */}
+        {currentStepIndex === STEPS.length - 1 && currentSeat === selectedSeats[selectedSeats.length - 1] && (
+          <div className="text-center mb-4">
+            <p className="text-sm text-muted-foreground italic">Note: All beverages will be purchased at the event.</p>
+          </div>
+        )}
+        
         {/* Navigation buttons moved closer to content */}
         <div className="flex justify-between items-center pt-2 pb-4">
           <Button
