@@ -546,7 +546,7 @@ export async function registerRoutes(app: Express) {
   // Check-in API endpoints
   app.post("/api/bookings/:id/check-in", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || !["admin", "venue_manager", "staff"].includes(req.user?.role)) {
+      if (!req.isAuthenticated() || !["admin", "venue_manager", "staff", "hostess"].includes(req.user?.role)) {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
@@ -603,7 +603,7 @@ export async function registerRoutes(app: Express) {
   
   app.get("/api/bookings/:id/qr-scan", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || !["admin", "venue_manager", "staff"].includes(req.user?.role)) {
+      if (!req.isAuthenticated() || !["admin", "venue_manager", "staff", "hostess"].includes(req.user?.role)) {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
@@ -632,7 +632,7 @@ export async function registerRoutes(app: Express) {
   
   app.get("/api/events/:id/check-in-stats", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || !["admin", "venue_manager", "staff"].includes(req.user?.role)) {
+      if (!req.isAuthenticated() || !["admin", "venue_manager", "staff", "hostess"].includes(req.user?.role)) {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
