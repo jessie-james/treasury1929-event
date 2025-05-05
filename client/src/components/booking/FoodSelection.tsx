@@ -375,7 +375,7 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
               }}
             >
               <ScrollArea className="h-[400px] border rounded-lg">
-                <div className="grid grid-cols-3 gap-3 p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                   {byType[currentStep]?.map((option: FoodOption) => {
                     const isSelected = selections[currentSeat]?.[currentStep] === option.id;
                     const allergenConflicts = checkAllergenConflicts(option);
@@ -410,7 +410,7 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
                             </div>
                           )}
                         </div>
-                        <CardContent className="p-2">
+                        <CardContent className="p-3">
                           <div className="flex items-center gap-2">
                             <RadioGroupItem value={option.id.toString()} id={`${currentStep}-${currentSeat}-${option.id}`} />
                             <Label className="font-medium text-sm food-item-name" htmlFor={`${currentStep}-${currentSeat}-${option.id}`}>
@@ -420,13 +420,35 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
                           <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
                             {option.description}
                           </p>
-                          {/* Display allergen and dietary icons */}
-                          <div className="mt-2">
-                            <FoodIconSet 
-                              allergens={(option.allergens || []) as Allergen[]} 
-                              dietaryRestrictions={(option.dietaryRestrictions || []) as DietaryRestriction[]}
-                              size="sm"
-                            />
+                          {/* Display allergen and dietary information directly */}
+                          <div className="mt-2 space-y-1">
+                            {/* Allergen information */}
+                            {option.allergens && option.allergens.length > 0 && (
+                              <div className="text-xs">
+                                <p className="text-muted-foreground font-medium mb-1">Allergen Info:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {(option.allergens as Allergen[]).map((allergen) => (
+                                    <div key={allergen} className="flex items-center gap-1 bg-destructive/10 text-destructive rounded-full px-2 py-0.5 text-xs">
+                                      {allergenLabels[allergen]}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Dietary information */}
+                            {option.dietaryRestrictions && option.dietaryRestrictions.length > 0 && (
+                              <div className="text-xs">
+                                <p className="text-muted-foreground font-medium mb-1">Dietary Info:</p>
+                                <div className="flex flex-wrap gap-1">
+                                  {(option.dietaryRestrictions as DietaryRestriction[]).map((restriction) => (
+                                    <div key={restriction} className="flex items-center gap-1 bg-green-500/10 text-green-700 rounded-full px-2 py-0.5 text-xs">
+                                      {dietaryLabels[restriction]}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
