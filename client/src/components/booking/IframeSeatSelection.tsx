@@ -95,23 +95,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
           </AlertDescription>
         </Alert>
         
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-muted-foreground">
-              Click on green circles to select up to 4 seats (max 4 per booking)
-            </p>
-          </div>
-          <Button
-            onClick={() => {
-              const submission = getGroupedSeatsForSubmission();
-              if (submission) {
-                onComplete(submission);
-              }
-            }}
-            disabled={selectedSeats.length === 0}
-          >
-            Continue to Guest Details
-          </Button>
+        <div>
+          <p className="text-muted-foreground">
+            Click on green circles to select up to 4 seats (max 4 per booking)
+          </p>
         </div>
         
         <div className="flex items-center justify-end">
@@ -143,6 +130,22 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
           )}
         </CardContent>
       </Card>
+      
+      {/* Continue button moved to bottom */}
+      <div className="flex justify-center mt-6">
+        <Button
+          size="lg"
+          onClick={() => {
+            const submission = getGroupedSeatsForSubmission();
+            if (submission) {
+              onComplete(submission);
+            }
+          }}
+          disabled={selectedSeats.length === 0}
+        >
+          Continue to Guest Details
+        </Button>
+      </div>
     </div>
   );
 }
