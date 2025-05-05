@@ -374,8 +374,8 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
                 }
               }}
             >
-              <ScrollArea className="h-[400px] border rounded-lg">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+              <ScrollArea className="h-[450px] border rounded-lg">
+                <div className="flex flex-col gap-4 p-4">
                   {byType[currentStep]?.map((option: FoodOption) => {
                     const isSelected = selections[currentSeat]?.[currentStep] === option.id;
                     const allergenConflicts = checkAllergenConflicts(option);
@@ -386,71 +386,95 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
                       <Card
                         key={option.id}
                         className={cn(
-                          "overflow-hidden cursor-pointer transition-colors relative",
+                          "overflow-hidden cursor-pointer transition-colors relative w-full",
                           isSelected ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-muted/50',
                           hasConflicts && 'border-destructive'
                         )}
                         onClick={() => handleFoodOptionSelect(option)}
                       >
-                        <div className="aspect-video relative">
-                          <img
-                            src={option.image}
-                            alt={option.name}
-                            className="object-cover w-full h-full"
-                          />
-                          {hasConflicts && (
-                            <div 
-                              className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1" 
-                              title={allergenConflicts.length > 0 
-                                ? "Contains allergens you've listed in your profile" 
-                                : "Doesn't align with your dietary preferences"
-                              }
-                            >
-                              <AlertTriangle className="h-4 w-4" />
+                        <div className="flex flex-col sm:flex-row">
+                          {/* Larger image on the left/top */}
+                          <div className="sm:w-2/5 relative">
+                            <div className="aspect-video sm:aspect-square h-full">
+                              <img
+                                src={option.image}
+                                alt={option.name}
+                                className="object-cover w-full h-full"
+                              />
+                              {hasConflicts && (
+                                <div 
+                                  className="absolute top-2 right-2 bg-destructive text-white rounded-full p-1" 
+                                  title={allergenConflicts.length > 0 
+                                    ? "Contains allergens you've listed in your profile" 
+                                    : "Doesn't align with your dietary preferences"
+                                  }
+                                >
+                                  <AlertTriangle className="h-5 w-5" />
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
+                          
+                          {/* Content on the right/bottom */}
+                          <div className="sm:w-3/5">
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-2">
+                                <RadioGroupItem 
+                                  value={option.id.toString()} 
+                                  id={`${currentStep}-${currentSeat}-${option.id}`}
+                                  className="h-5 w-5"
+                                />
+                                <Label 
+                                  className="font-medium text-base food-item-name" 
+                                  htmlFor={`${currentStep}-${currentSeat}-${option.id}`}
+                                >
+                                  {option.name}
+                                </Label>
+                              </div>
+                              
+                              <p className="mt-2 text-sm text-muted-foreground">
+                                {option.description}
+                              </p>
+                              
+                              {/* Food information section */}
+                              <div className="mt-3 space-y-2">
+                                {/* Allergen information */}
+                                {option.allergens && option.allergens.length > 0 && (
+                                  <div>
+                                    <p className="text-xs text-muted-foreground font-medium mb-1">Contains:</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {(option.allergens as Allergen[]).map((allergen) => (
+                                        <span 
+                                          key={allergen} 
+                                          className="inline-flex items-center bg-red-50 text-red-700 rounded-md px-2 py-1 text-xs font-medium"
+                                        >
+                                          {allergenLabels[allergen]}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* Dietary information */}
+                                {option.dietaryRestrictions && option.dietaryRestrictions.length > 0 && (
+                                  <div>
+                                    <p className="text-xs text-muted-foreground font-medium mb-1">Suitable for:</p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {(option.dietaryRestrictions as DietaryRestriction[]).map((restriction) => (
+                                        <span 
+                                          key={restriction} 
+                                          className="inline-flex items-center bg-green-50 text-green-700 rounded-md px-2 py-1 text-xs font-medium"
+                                        >
+                                          {dietaryLabels[restriction]}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </CardContent>
+                          </div>
                         </div>
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-2">
-                            <RadioGroupItem value={option.id.toString()} id={`${currentStep}-${currentSeat}-${option.id}`} />
-                            <Label className="font-medium text-sm food-item-name" htmlFor={`${currentStep}-${currentSeat}-${option.id}`}>
-                              {option.name}
-                            </Label>
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                            {option.description}
-                          </p>
-                          {/* Display allergen and dietary information directly */}
-                          <div className="mt-2 space-y-1">
-                            {/* Allergen information */}
-                            {option.allergens && option.allergens.length > 0 && (
-                              <div className="text-xs">
-                                <p className="text-muted-foreground font-medium mb-1">Allergen Info:</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {(option.allergens as Allergen[]).map((allergen) => (
-                                    <div key={allergen} className="flex items-center gap-1 bg-destructive/10 text-destructive rounded-full px-2 py-0.5 text-xs">
-                                      {allergenLabels[allergen]}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                            
-                            {/* Dietary information */}
-                            {option.dietaryRestrictions && option.dietaryRestrictions.length > 0 && (
-                              <div className="text-xs">
-                                <p className="text-muted-foreground font-medium mb-1">Dietary Info:</p>
-                                <div className="flex flex-wrap gap-1">
-                                  {(option.dietaryRestrictions as DietaryRestriction[]).map((restriction) => (
-                                    <div key={restriction} className="flex items-center gap-1 bg-green-500/10 text-green-700 rounded-full px-2 py-0.5 text-xs">
-                                      {dietaryLabels[restriction]}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </CardContent>
                       </Card>
                     );
                   })}
