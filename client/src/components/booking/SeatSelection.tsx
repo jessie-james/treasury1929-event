@@ -145,6 +145,14 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
   return (
     <div className="space-y-6">
       <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Select Your Seats</h2>
+        </div>
+
+        <p className="text-muted-foreground">
+          Click on green circles to select up to 4 seats (max 4 per booking)
+        </p>
+
         {hasExistingBooking && (
           <Alert variant="destructive" className="bg-yellow-50 border-yellow-200">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
@@ -154,14 +162,6 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
             </AlertDescription>
           </Alert>
         )}
-
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Select Your Seats</h2>
-        </div>
-
-        <p className="text-muted-foreground">
-          Click on green circles to select up to 4 seats (max 4 per booking)
-        </p>
 
         <div className="flex gap-2 items-center mb-4">
           <Button 
@@ -270,9 +270,8 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
             </div>
           )}
         </CardContent>
-        </Card>
-
-        <div className="mt-6 flex justify-end">
+      </Card>
+      <div className="mt-6 flex justify-end">
           <Button
             onClick={() => {
               const submission = getGroupedSeatsForSubmission();
@@ -285,7 +284,6 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
             Continue to Guest Details
           </Button>
         </div>
-      </div>
     </div>
   );
 }
