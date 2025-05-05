@@ -19,7 +19,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2025-02-24.acacia", // Use the latest API version available
+  apiVersion: "2023-10-16", // Use a stable API version
 });
 
 // Create uploads directory if it doesn't exist
