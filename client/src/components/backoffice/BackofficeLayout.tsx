@@ -52,7 +52,7 @@ export function BackofficeLayout({ children }: Props) {
       name: "Entrance",
       href: "/backoffice/entrance",
       icon: DoorOpen,
-      roles: ['admin', 'venue_owner', 'venue_manager'],
+      roles: ['admin', 'venue_owner', 'venue_manager', 'hostess'],
     },
     {
       name: "Bookings",
