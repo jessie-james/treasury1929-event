@@ -51,12 +51,58 @@ export async function apiRequest(
   }
   
   try {
+    // Set a timeout of 10 seconds for the request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
     const res = await fetch(url, {
       method,
       headers: bodyData ? { "Content-Type": "application/json" } : {},
       body: bodyData ? JSON.stringify(bodyData) : undefined,
       credentials: "include",
+      signal: controller.signal
     });
+    
+    // Clear the timeout since the request has completed
+    clearTimeout(timeoutId);
+
+    // Check if this is a Stripe-related request
+    const isStripeRequest = url.includes('/api/create-payment-intent') || 
+                           url.includes('/api/stripe');
+    
+    // Special handling for payment-related endpoints
+    if (isStripeRequest && !res.ok) {
+      console.error(`Payment service error (${res.status}): ${url}`);
+      
+      try {
+        // Try to parse the error response
+        const errorData = await res.json();
+        
+        // Create a new response with payment-specific metadata
+        const paymentErrorResponse = new Response(
+          JSON.stringify({ 
+            error: errorData.error || "Payment service unavailable",
+            code: errorData.code || "PAYMENT_ERROR",
+            detail: errorData.detail || "There was an issue processing your payment."
+          }),
+          { 
+            status: res.status,
+            headers: { "Content-Type": "application/json" }
+          }
+        );
+        
+        // Add special property for payment errors
+        Object.defineProperty(paymentErrorResponse, 'isPaymentError', {
+          value: true,
+          writable: false
+        });
+        
+        return paymentErrorResponse;
+      } catch (parseError) {
+        // If we can't parse the response, fall through to normal error handling
+        console.error("Failed to parse payment error response:", parseError);
+      }
+    }
 
     await throwIfResNotOk(res);
     return res;
@@ -64,23 +110,48 @@ export async function apiRequest(
     // Handle network errors (like failed connection attempts)
     console.error(`Network error with ${method} request to ${url}:`, error);
     
-    // Create a custom response to maintain the expected return type
+    // Check if this is a timeout error
+    const isTimeout = error instanceof Error && error.name === 'AbortError';
+    
+    // Check if this is a payment-related endpoint
+    const isStripeRequest = url.includes('/api/create-payment-intent') || 
+                           url.includes('/api/stripe');
+    
+    // Create a custom response with relevant error details
     const errorResponse = new Response(
       JSON.stringify({ 
-        error: "Network error", 
-        message: error instanceof Error ? error.message : "Failed to connect to server"
+        error: isTimeout ? "Request timed out" : "Network error",
+        message: error instanceof Error 
+          ? error.message 
+          : "Failed to connect to server",
+        isPaymentRequest: isStripeRequest,
+        isTimeout: isTimeout
       }),
       { 
-        status: 503, // Service Unavailable
+        status: isTimeout ? 408 : 503, // 408 Request Timeout or 503 Service Unavailable
         headers: { "Content-Type": "application/json" }
       }
     );
     
-    // Set a custom property so we can detect it's our custom error
+    // Set custom properties so we can detect specific error types
     Object.defineProperty(errorResponse, 'isNetworkError', {
       value: true,
       writable: false
     });
+    
+    if (isTimeout) {
+      Object.defineProperty(errorResponse, 'isTimeoutError', {
+        value: true,
+        writable: false
+      });
+    }
+    
+    if (isStripeRequest) {
+      Object.defineProperty(errorResponse, 'isPaymentError', {
+        value: true,
+        writable: false
+      });
+    }
     
     return errorResponse;
   }

@@ -2054,11 +2054,39 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
+      // Verify environment variables are set
+      if (!process.env.STRIPE_SECRET_KEY) {
+        console.error("Missing STRIPE_SECRET_KEY environment variable");
+        return res.status(500).json({ 
+          error: "Payment service configuration error. Please contact support.",
+          code: "MISSING_STRIPE_KEY" 
+        });
+      }
+      
       // Check if Stripe is properly initialized
       if (!stripe) {
         console.error("Stripe is not initialized. Cannot create payment intent.");
-        return res.status(500).json({ 
-          error: "Payment service unavailable. Please contact support." 
+        
+        // Try to initialize Stripe again as a recovery attempt
+        try {
+          stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: stripeApiVersion
+          });
+          console.log("Stripe re-initialized successfully");
+        } catch (initError) {
+          console.error("Failed to re-initialize Stripe:", initError);
+          return res.status(503).json({ 
+            error: "Payment service temporarily unavailable. Please try again later.",
+            code: "STRIPE_INIT_FAILED"
+          });
+        }
+      }
+      
+      // Validate the request payload
+      if (!req.body || typeof req.body.seatCount !== 'number' || req.body.seatCount < 1) {
+        return res.status(400).json({
+          error: "Invalid request. Seat count must be a positive number.",
+          code: "INVALID_SEAT_COUNT"
         });
       }
       
@@ -2066,44 +2094,86 @@ export async function registerRoutes(app: Express) {
       // In production, you would calculate this based on event prices, food choices, etc.
       const { seatCount } = req.body;
       const unitPrice = 1999; // $19.99 in cents (Stripe uses cents as the base unit)
-      const amount = unitPrice * (seatCount || 1);
+      const amount = unitPrice * seatCount;
       
       // Add metadata for tracking
       const metadata = {
         userId: req.user!.id.toString(),
-        seats: seatCount || 1,
+        seats: seatCount.toString(),
         timestamp: new Date().toISOString()
       };
       
-      console.log(`Creating payment intent for amount: ${amount} cents, user: ${req.user!.id}`);
+      console.log(`Creating payment intent for amount: ${amount} cents, user: ${req.user!.id}, seats: ${seatCount}`);
       
-      // Create the payment intent with Stripe
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount,
-        currency: "usd",
-        metadata,
-        // Use automatic payment methods for simplicity in testing
-        automatic_payment_methods: {
-          enabled: true,
-        },
-      });
+      // Create the payment intent with Stripe with better error handling
+      let paymentIntent;
+      try {
+        paymentIntent = await stripe.paymentIntents.create({
+          amount,
+          currency: "usd",
+          metadata,
+          // Use automatic payment methods for simplicity in testing
+          automatic_payment_methods: {
+            enabled: true,
+          },
+        });
+      } catch (stripeError: any) {
+        console.error("Stripe API error when creating payment intent:", stripeError);
+        
+        let errorMessage = "Payment processing failed";
+        let errorCode = "STRIPE_API_ERROR";
+        
+        // Map specific Stripe error types to user-friendly messages
+        if (stripeError.type === 'StripeCardError') {
+          errorMessage = "Your card was declined. Please try another payment method.";
+          errorCode = "CARD_DECLINED";
+        } else if (stripeError.type === 'StripeInvalidRequestError') {
+          errorMessage = "Invalid payment request. Please check your information.";
+          errorCode = "INVALID_REQUEST";
+        } else if (stripeError.type === 'StripeAPIError') {
+          errorMessage = "Payment service is experiencing technical difficulties. Please try again later.";
+          errorCode = "API_ERROR";
+        } else if (stripeError.type === 'StripeConnectionError') {
+          errorMessage = "Could not connect to payment service. Please check your internet connection and try again.";
+          errorCode = "CONNECTION_ERROR";
+        }
+        
+        return res.status(422).json({
+          error: errorMessage,
+          code: errorCode,
+          detail: stripeError.message
+        });
+      }
+      
+      if (!paymentIntent || !paymentIntent.client_secret) {
+        console.error("Payment intent created but missing client secret");
+        return res.status(500).json({
+          error: "Payment setup incomplete. Please try again.",
+          code: "MISSING_CLIENT_SECRET"
+        });
+      }
       
       // Create payment transaction log
-      await storage.createAdminLog({
-        userId: req.user.id,
-        action: "create_payment_intent",
-        entityType: "payment",
-        entityId: 0, // No specific entity ID for the payment intent yet
-        details: {
-          paymentIntentId: paymentIntent.id,
-          amount: amount / 100, // Convert cents to dollars for readability
-          currency: "usd",
-          customerEmail: req.user.email,
-          metadata: metadata,
-          createdAt: new Date().toISOString(),
-          status: paymentIntent.status
-        }
-      });
+      try {
+        await storage.createAdminLog({
+          userId: req.user.id,
+          action: "create_payment_intent",
+          entityType: "payment",
+          entityId: 0, // No specific entity ID for the payment intent yet
+          details: {
+            paymentIntentId: paymentIntent.id,
+            amount: amount / 100, // Convert cents to dollars for readability
+            currency: "usd",
+            customerEmail: req.user.email,
+            metadata: metadata,
+            createdAt: new Date().toISOString(),
+            status: paymentIntent.status
+          }
+        });
+      } catch (logError) {
+        // Don't fail the request if just the logging fails
+        console.error("Error logging payment intent creation:", logError);
+      }
       
       // Return only the client secret to the client to complete the payment
       res.status(200).json({ 
@@ -2111,9 +2181,12 @@ export async function registerRoutes(app: Express) {
         amount
       });
     } catch (error) {
-      console.error("Error creating payment intent:", error);
+      console.error("Unexpected error creating payment intent:", error);
       res.status(500).json({ 
-        error: error instanceof Error ? error.message : "Failed to create payment"
+        error: error instanceof Error 
+          ? error.message 
+          : "An unexpected error occurred. Please try again later.",
+        code: "UNKNOWN_ERROR"
       });
     }
   });

@@ -17,10 +17,13 @@ import { Loader2 } from "lucide-react";
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render
 // This is your test publishable API key.
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  console.error("VITE_STRIPE_PUBLIC_KEY is not defined. Please check your environment variables.");
+// Check for both possible variable names
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+
+if (!stripeKey) {
+  console.error("Stripe publishable key is not defined. Please check your environment variables (VITE_STRIPE_PUBLIC_KEY or VITE_STRIPE_PUBLISHABLE_KEY).");
 }
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY as string);
+const stripePromise = loadStripe(stripeKey as string);
 
 interface Props {
   eventId: number;
@@ -209,9 +212,10 @@ export function CheckoutForm({
       console.log(`Requesting payment intent for ${selectedSeats.length} seats (attempt ${retryCount + 1})`);
       
       // First check if Stripe is loaded by verifying the public key
-      if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-        setError("Stripe public key is missing. Payment processing is unavailable.");
-        throw new Error("Stripe public key is missing. Payment processing is unavailable.");
+      const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+      if (!stripeKey) {
+        setError("Stripe publishable key is missing. Payment processing is unavailable.");
+        throw new Error("Stripe publishable key is missing. Payment processing is unavailable.");
       }
       
       const response = await apiRequest("POST", "/api/create-payment-intent", {
