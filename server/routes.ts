@@ -2191,8 +2191,147 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Test endpoint for Stripe - use this to verify Stripe is connected correctly
-  app.get("/api/stripe-test", async (_req, res) => {
+  // Enhanced Stripe diagnostic endpoint - provides detailed connectivity information
+  app.get("/api/stripe-diagnostics", async (req, res) => {
+    try {
+      // Collect diagnostic information
+      const diagnostics: any = {
+        environment: {
+          nodeEnv: process.env.NODE_ENV || 'not set',
+          hasStripeSecretKey: !!process.env.STRIPE_SECRET_KEY,
+          stripeSecretKeyPrefix: process.env.STRIPE_SECRET_KEY 
+            ? process.env.STRIPE_SECRET_KEY.substring(0, 7) + '...' 
+            : 'missing',
+          stripeApiVersionConfigured: stripeApiVersion,
+          deployedUrl: req.protocol + '://' + req.get('host'),
+        },
+        stripeInstance: {
+          initialized: !!stripe,
+          apiVersion: (stripe as any)?.apiVersion || stripeApiVersion,
+        },
+        tests: {
+          connectivity: {
+            success: false,
+            startTime: new Date().toISOString(),
+            endTime: null as any,
+            durationMs: 0,
+            error: null as any
+          },
+          authentication: {
+            success: false,
+            startTime: new Date().toISOString(),
+            endTime: null as any,
+            durationMs: 0,
+            error: null as any
+          }
+        }
+      };
+
+      // If Stripe is not initialized, try to initialize it
+      if (!stripe && process.env.STRIPE_SECRET_KEY) {
+        try {
+          console.log("Attempting to initialize Stripe during diagnostics");
+          stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+            apiVersion: stripeApiVersion
+          });
+          diagnostics.stripeInstance.initialized = true;
+          diagnostics.stripeInstance.apiVersion = (stripe as any).apiVersion || stripeApiVersion;
+        } catch (initError: any) {
+          diagnostics.tests.connectivity.error = {
+            message: "Failed to initialize Stripe instance",
+            details: initError instanceof Error ? initError.message : String(initError),
+            code: initError.code || 'INIT_ERROR'
+          };
+        }
+      }
+      
+      // Only run tests if Stripe is properly initialized
+      if (stripe) {
+        // Test 1: Basic connectivity
+        try {
+          const startTime = Date.now();
+          // Ping Stripe API without authentication to test network connectivity
+          const response = await fetch('https://api.stripe.com/v1/ping', { method: 'GET' });
+          const endTime = Date.now();
+          
+          diagnostics.tests.connectivity = {
+            success: response.status < 500, // Even 401 is ok for connectivity test
+            startTime: new Date(startTime).toISOString(),
+            endTime: new Date(endTime).toISOString(),
+            durationMs: endTime - startTime,
+            statusCode: response.status,
+            statusText: response.statusText,
+            error: null
+          };
+        } catch (connError: any) {
+          diagnostics.tests.connectivity.endTime = new Date().toISOString();
+          diagnostics.tests.connectivity.error = {
+            message: "Network connectivity to Stripe failed",
+            details: connError instanceof Error ? connError.message : String(connError),
+            code: 'NETWORK_ERROR'
+          };
+        }
+        
+        // Test 2: Authentication
+        try {
+          const startTime = Date.now();
+          // Try to fetch something simple from Stripe to verify authentication
+          const customers = await stripe.customers.list({ limit: 1 });
+          const endTime = Date.now();
+          
+          diagnostics.tests.authentication = {
+            success: true,
+            startTime: new Date(startTime).toISOString(),
+            endTime: new Date(endTime).toISOString(),
+            durationMs: endTime - startTime,
+            hasResults: customers.data.length > 0,
+            error: null
+          };
+        } catch (authError: any) {
+          const endTime = Date.now();
+          diagnostics.tests.authentication = {
+            success: false,
+            startTime: diagnostics.tests.authentication.startTime,
+            endTime: new Date(endTime).toISOString(),
+            durationMs: endTime - Date.parse(diagnostics.tests.authentication.startTime),
+            error: {
+              message: "Stripe authentication failed",
+              details: authError instanceof Error ? authError.message : String(authError),
+              type: authError.type || 'UNKNOWN',
+              code: authError.code || 'AUTH_ERROR',
+              statusCode: authError.statusCode
+            }
+          };
+        }
+      }
+      
+      // Send the full diagnostic report
+      res.json({
+        timestamp: new Date().toISOString(),
+        overall: {
+          initialized: diagnostics.stripeInstance.initialized,
+          connected: diagnostics.tests.connectivity.success,
+          authenticated: diagnostics.tests.authentication.success,
+          ready: diagnostics.stripeInstance.initialized && 
+                 diagnostics.tests.connectivity.success && 
+                 diagnostics.tests.authentication.success
+        },
+        diagnostics
+      });
+      
+    } catch (error) {
+      console.error("Stripe diagnostics failed:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to run Stripe diagnostics", 
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  
+  // Original simple test endpoint (keeping for backward compatibility)
+  app.get("/api/stripe-test", async (req, res) => {
     try {
       // Check if Stripe is properly initialized
       if (!stripe) {
