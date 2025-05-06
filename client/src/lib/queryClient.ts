@@ -50,15 +50,40 @@ export async function apiRequest(
     bodyData = urlOrOptions.data;
   }
   
-  const res = await fetch(url, {
-    method,
-    headers: bodyData ? { "Content-Type": "application/json" } : {},
-    body: bodyData ? JSON.stringify(bodyData) : undefined,
-    credentials: "include",
-  });
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: bodyData ? { "Content-Type": "application/json" } : {},
+      body: bodyData ? JSON.stringify(bodyData) : undefined,
+      credentials: "include",
+    });
 
-  await throwIfResNotOk(res);
-  return res;
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    // Handle network errors (like failed connection attempts)
+    console.error(`Network error with ${method} request to ${url}:`, error);
+    
+    // Create a custom response to maintain the expected return type
+    const errorResponse = new Response(
+      JSON.stringify({ 
+        error: "Network error", 
+        message: error instanceof Error ? error.message : "Failed to connect to server"
+      }),
+      { 
+        status: 503, // Service Unavailable
+        headers: { "Content-Type": "application/json" }
+      }
+    );
+    
+    // Set a custom property so we can detect it's our custom error
+    Object.defineProperty(errorResponse, 'isNetworkError', {
+      value: true,
+      writable: false
+    });
+    
+    return errorResponse;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -67,16 +92,28 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
+    try {
+      const res = await fetch(queryKey[0] as string, {
+        credentials: "include",
+      });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
+
+      await throwIfResNotOk(res);
+      return await res.json();
+    } catch (error) {
+      // Log detailed error information to help with debugging
+      console.error(`Network error in query to ${queryKey[0]}:`, error);
+      
+      // Rethrow so the query state will be set to error
+      throw new Error(
+        error instanceof Error 
+          ? `Network error: ${error.message}` 
+          : "Failed to connect to server. Please check your internet connection."
+      );
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({

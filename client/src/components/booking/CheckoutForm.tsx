@@ -189,59 +189,112 @@ export function CheckoutForm({
   onSuccess
 }: Props) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Function to retrieve the client secret for Stripe payment
+  const getClientSecret = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      if (!user) {
+        setError("You must be logged in to make a payment");
+        return;
+      }
+
+      console.log(`Requesting payment intent for ${selectedSeats.length} seats (attempt ${retryCount + 1})`);
+      
+      // First check if Stripe is loaded by verifying the public key
+      if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
+        setError("Stripe public key is missing. Payment processing is unavailable.");
+        throw new Error("Stripe public key is missing. Payment processing is unavailable.");
+      }
+      
+      const response = await apiRequest("POST", "/api/create-payment-intent", {
+        seatCount: selectedSeats.length
+      });
+      
+      // Handle our custom network error response
+      if ('isNetworkError' in response) {
+        setError("Payment system is unreachable. Check your connection and try again.");
+        throw new Error("Payment system is unreachable. Please check your internet connection.");
+      }
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Payment intent creation failed:", errorData);
+        setError(errorData.error || "Failed to initialize payment");
+        throw new Error(errorData.error || "Failed to initialize payment");
+      }
+      
+      const data = await response.json();
+      
+      if (!data.clientSecret) {
+        console.error("Missing client secret in response:", data);
+        setError("Invalid payment setup response from server");
+        throw new Error("Invalid payment setup response from server");
+      }
+      
+      console.log("Payment intent created successfully");
+      setClientSecret(data.clientSecret);
+      setRetryCount(0); // Reset retry count on success
+    } catch (error) {
+      console.error("Payment setup error:", error);
+      toast({
+        title: "Payment Setup Failed",
+        description: error instanceof Error 
+          ? error.message 
+          : "Could not initialize payment system. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Retry handler for payment intent creation
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+    getClientSecret();
+  };
+
   // Create Payment Intent as soon as the component loads
   useEffect(() => {
-    // Get client secret from our API
-    const getClientSecret = async () => {
-      try {
-        if (!user) return;
-
-        console.log("Requesting payment intent for", selectedSeats.length, "seats");
-        
-        const response = await apiRequest("POST", "/api/create-payment-intent", {
-          seatCount: selectedSeats.length
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Payment intent creation failed:", errorData);
-          throw new Error(errorData.error || "Failed to initialize payment");
-        }
-        
-        const data = await response.json();
-        
-        if (!data.clientSecret) {
-          console.error("Missing client secret in response:", data);
-          throw new Error("Invalid payment setup response from server");
-        }
-        
-        console.log("Payment intent created successfully");
-        setClientSecret(data.clientSecret);
-      } catch (error) {
-        console.error("Payment setup error:", error);
-        toast({
-          title: "Payment Setup Failed",
-          description: error instanceof Error ? error.message : "Could not initialize payment system. Please try again.",
-          variant: "destructive",
-        });
-      }
-    };
-
     getClientSecret();
-  }, [selectedSeats.length, toast, user]);
+  }, [selectedSeats.length, user]);
 
   if (!clientSecret) {
     return (
       <Card className="p-6">
         <CardHeader className="pb-2">
-          <CardTitle>Preparing Payment</CardTitle>
-          <CardDescription>Please wait while we connect to our payment provider...</CardDescription>
+          <CardTitle>
+            {error ? "Payment Setup Issue" : "Preparing Payment"}
+          </CardTitle>
+          <CardDescription>
+            {error 
+              ? "We encountered a problem connecting to our payment provider." 
+              : "Please wait while we connect to our payment provider..."}
+          </CardDescription>
         </CardHeader>
-        <CardContent className="pt-4 flex justify-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <CardContent className="pt-4 flex flex-col items-center gap-4">
+          {isLoading ? (
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          ) : error ? (
+            <>
+              <div className="text-center text-destructive mb-2">
+                {error}
+              </div>
+              <Button onClick={handleRetry} className="w-full" variant="outline">
+                Retry Payment Setup
+              </Button>
+            </>
+          ) : (
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          )}
         </CardContent>
       </Card>
     );
