@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, AlertTriangle, ExternalLink } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render
@@ -198,6 +198,7 @@ export function CheckoutForm({
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const [_, setLocation] = useLocation();
 
   // Function to retrieve the client secret for Stripe payment
   const getClientSecret = async () => {
@@ -221,7 +222,7 @@ export function CheckoutForm({
             description: "Your login session may have expired. Please log in again to continue.",
             variant: "destructive",
             action: (
-              <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+              <Button variant="outline" size="sm" onClick={() => setLocation("/auth")}>
                 Log In
               </Button>
             ),

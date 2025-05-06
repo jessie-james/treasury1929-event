@@ -94,14 +94,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      // Clear all auth state
       queryClient.setQueryData(["/api/user"], null);
+      localStorage.setItem("user_auth_state", "logged_out");
+      
+      // Ensure all related caches are cleared to prevent stale data
+      queryClient.invalidateQueries();
+      
+      console.log("User successfully logged out");
     },
     onError: (error: Error) => {
+      console.error("Logout error:", error);
       toast({
         title: "Logout failed",
         description: error.message,
         variant: "destructive",
       });
+      
+      // Force clear auth state even on error to prevent the user from being stuck
+      localStorage.setItem("user_auth_state", "logged_out");
     },
   });
 
