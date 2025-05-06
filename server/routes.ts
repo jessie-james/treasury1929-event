@@ -1421,6 +1421,37 @@ export async function registerRoutes(app: Express) {
         });
       }
       
+      // Verify the Stripe payment intent
+      if (booking.stripePaymentId) {
+        try {
+          // Check if Stripe is properly initialized
+          if (!stripe) {
+            console.error("Stripe is not initialized. Cannot verify payment.");
+            return res.status(500).json({ 
+              error: "Payment verification service unavailable. Please contact support." 
+            });
+          }
+          
+          console.log(`Verifying Stripe payment intent: ${booking.stripePaymentId}`);
+          const paymentIntent = await stripe.paymentIntents.retrieve(booking.stripePaymentId);
+          
+          if (paymentIntent.status !== 'succeeded') {
+            console.error(`Payment verification failed. Status: ${paymentIntent.status}`);
+            return res.status(400).json({ 
+              message: `Payment not completed. Status: ${paymentIntent.status}` 
+            });
+          }
+          
+          console.log(`Payment verified: ${paymentIntent.id} with status ${paymentIntent.status}`);
+        } catch (stripeError) {
+          console.error("Stripe verification error:", stripeError);
+          return res.status(400).json({ 
+            message: "Could not verify payment", 
+            error: stripeError instanceof Error ? stripeError.message : String(stripeError) 
+          });
+        }
+      }
+      
       console.log("Using temporary implementation for seat validation");
       // In our temporary implementation, we're not performing detailed seat validation
       // This will be reimplemented with the new approach
@@ -1764,6 +1795,14 @@ export async function registerRoutes(app: Express) {
       
       // Process the refund with Stripe
       try {
+        // Check if Stripe is properly initialized
+        if (!stripe) {
+          console.error("Stripe is not initialized. Cannot process refund.");
+          return res.status(500).json({ 
+            error: "Refund service unavailable. Please contact support." 
+          });
+        }
+        
         const refund = await stripe.refunds.create({
           payment_intent: booking.stripePaymentId,
           amount: Math.round(amount * 100), // Convert to cents
