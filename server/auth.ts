@@ -42,6 +42,7 @@ async function comparePasswords(supplied: string, stored: string) {
 const PostgresSessionStore = connectPg(session);
 
 export function setupAuth(app: Express) {
+  // More robust session settings to ensure cookie is properly sent with all requests
   const sessionSettings: session.SessionOptions = {
     secret: "your-secret-key",
     resave: false,
@@ -53,6 +54,9 @@ export function setupAuth(app: Express) {
     cookie: {
       secure: process.env.NODE_ENV === "production",
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: true,
+      sameSite: 'lax', // More permissive SameSite setting to ensure cookie is sent with all requests
+      path: '/',
     },
   };
 

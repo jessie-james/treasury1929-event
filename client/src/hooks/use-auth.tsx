@@ -34,13 +34,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
+      // Clear any existing auth state flags
+      localStorage.removeItem("user_auth_state");
+      
+      console.log("Attempting login for:", credentials.email);
       const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      const userData = await res.json();
+      
+      // Set auth state flag for status tracking
+      localStorage.setItem("user_auth_state", "logged_in");
+      
+      return userData;
     },
     onSuccess: (user: User) => {
+      console.log("Login successful, setting user data");
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Ensure auth state flag is set
+      localStorage.setItem("user_auth_state", "logged_in");
     },
     onError: (error: Error) => {
+      console.error("Login error:", error);
+      
+      // Mark auth state as failed
+      localStorage.setItem("user_auth_state", "logged_out");
+      
       toast({
         title: "Login failed",
         description: error.message,

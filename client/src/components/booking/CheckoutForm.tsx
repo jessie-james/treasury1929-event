@@ -205,10 +205,33 @@ export function CheckoutForm({
       setIsLoading(true);
       setError(null);
       
+      // More verbose client-side authentication check
       if (!user) {
+        console.error("Payment attempt failed: No user found in auth context");
         setError("You must be logged in to make a payment");
+        
+        // Check if we can detect a possible cause
+        const userAuthState = localStorage.getItem("user_auth_state");
+        if (!userAuthState || userAuthState === "logged_out") {
+          console.log("Auth state indicates user is not logged in or session expired");
+          
+          // Suggest redirection to login
+          toast({
+            title: "Session expired",
+            description: "Your login session may have expired. Please log in again to continue.",
+            variant: "destructive",
+            action: (
+              <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+                Log In
+              </Button>
+            ),
+          });
+        }
         return;
       }
+      
+      // Store auth state flag for future reference
+      localStorage.setItem("user_auth_state", "logged_in");
 
       console.log(`Requesting payment intent for ${selectedSeats.length} seats (attempt ${retryCount + 1})`);
       

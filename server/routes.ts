@@ -2067,14 +2067,24 @@ export async function registerRoutes(app: Express) {
   // Stripe payment integration
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
-      if (!req.isAuthenticated()) {
-        console.log("Payment intent request rejected: User not authenticated");
+      // Enhanced authentication checking with detailed logging
+      if (!req.isAuthenticated() || !req.user) {
+        console.log("Payment intent request rejected: Authentication status:", {
+          isAuthenticated: req.isAuthenticated(),
+          hasUserObject: !!req.user,
+          hasSessionID: !!req.sessionID,
+          cookies: req.headers.cookie ? 'Present' : 'Missing',
+          path: req.path
+        });
         return res.status(401).json({ 
           message: "Unauthorized", 
           error: "You must be logged in to process payments", 
           code: "AUTH_REQUIRED"
         });
       }
+      
+      // Log user information for debugging
+      console.log(`Payment request authenticated for user: ${req.user.id} (${req.user.email}), session ID: ${req.sessionID.substring(0, 8)}...`)
       
       console.log(`Payment intent requested by user ${req.user!.id} (${req.user!.email})`);
       
