@@ -23,16 +23,33 @@ const stripeApiVersion = "2023-10-16" as Stripe.LatestApiVersion;
 
 // Initialize Stripe with better error handling
 let stripe: Stripe | null = null;
-try {
-  if (process.env.STRIPE_SECRET_KEY) {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: stripeApiVersion
-    });
-    console.log("Stripe initialized successfully");
+let stripeInitAttempt = 0;
+const MAX_INIT_ATTEMPTS = 3;
+
+// Function to initialize Stripe with retry logic
+function initializeStripe() {
+  stripeInitAttempt++;
+  try {
+    if (process.env.STRIPE_SECRET_KEY) {
+      console.log(`Initializing Stripe (attempt ${stripeInitAttempt})...`);
+      stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: stripeApiVersion,
+        timeout: 10000 // 10 second timeout for API requests
+      });
+      console.log("✓ Stripe initialized successfully");
+      return true;
+    } else {
+      console.error("× Cannot initialize Stripe: STRIPE_SECRET_KEY is missing");
+      return false;
+    }
+  } catch (error) {
+    console.error(`× Failed to initialize Stripe (attempt ${stripeInitAttempt}):`, error);
+    return false;
   }
-} catch (error) {
-  console.error("Failed to initialize Stripe:", error);
 }
+
+// Initial initialization attempt
+initializeStripe();
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -2051,8 +2068,15 @@ export async function registerRoutes(app: Express) {
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "Unauthorized" });
+        console.log("Payment intent request rejected: User not authenticated");
+        return res.status(401).json({ 
+          message: "Unauthorized", 
+          error: "You must be logged in to process payments", 
+          code: "AUTH_REQUIRED"
+        });
       }
+      
+      console.log(`Payment intent requested by user ${req.user!.id} (${req.user!.email})`);
       
       // Verify environment variables are set
       if (!process.env.STRIPE_SECRET_KEY) {
@@ -2065,20 +2089,19 @@ export async function registerRoutes(app: Express) {
       
       // Check if Stripe is properly initialized
       if (!stripe) {
-        console.error("Stripe is not initialized. Cannot create payment intent.");
+        console.error("Stripe is not initialized. Attempting to initialize now...");
         
-        // Try to initialize Stripe again as a recovery attempt
-        try {
-          stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-            apiVersion: stripeApiVersion
-          });
-          console.log("Stripe re-initialized successfully");
-        } catch (initError) {
-          console.error("Failed to re-initialize Stripe:", initError);
-          return res.status(503).json({ 
-            error: "Payment service temporarily unavailable. Please try again later.",
-            code: "STRIPE_INIT_FAILED"
-          });
+        // Try to initialize Stripe with our retry function
+        if (!initializeStripe() && stripeInitAttempt < MAX_INIT_ATTEMPTS) {
+          // Try one more time after a short delay
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (!initializeStripe()) {
+            console.error(`Failed to initialize Stripe after ${stripeInitAttempt} attempts`);
+            return res.status(503).json({ 
+              error: "Payment service temporarily unavailable. Please try again later.",
+              code: "STRIPE_INIT_FAILED"
+            });
+          }
         }
       }
       
@@ -2108,6 +2131,11 @@ export async function registerRoutes(app: Express) {
       // Create the payment intent with Stripe with better error handling
       let paymentIntent;
       try {
+        // Double-check Stripe is initialized (type safety)
+        if (!stripe) {
+          throw new Error("Stripe is not properly initialized");
+        }
+        
         paymentIntent = await stripe.paymentIntents.create({
           amount,
           currency: "usd",
@@ -2275,6 +2303,10 @@ export async function registerRoutes(app: Express) {
         // Test 2: Authentication
         try {
           const startTime = Date.now();
+          // Double-check stripe is still available (for type safety)
+          if (!stripe) {
+            throw new Error("Stripe instance lost during diagnostics");
+          }
           // Try to fetch something simple from Stripe to verify authentication
           const customers = await stripe.customers.list({ limit: 1 });
           const endTime = Date.now();

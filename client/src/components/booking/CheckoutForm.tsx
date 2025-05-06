@@ -308,6 +308,26 @@ export function CheckoutForm({
                   <div>
                     <p className="font-medium text-sm text-amber-800">Payment System Error</p>
                     <p className="text-sm text-amber-700 mt-1">{error}</p>
+                    
+                    {/* Add troubleshooting help based on common error cases */}
+                    {error?.includes("Unauthorized") || error?.includes("logged in") ? (
+                      <div className="mt-3 p-2 bg-amber-100 rounded text-xs text-amber-900">
+                        <p className="font-semibold">Troubleshooting:</p>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          <li>Your session may have expired - try logging out and back in</li>
+                          <li>Refresh the page and try again</li>
+                        </ul>
+                      </div>
+                    ) : error?.includes("connect") || error?.includes("unavailable") ? (
+                      <div className="mt-3 p-2 bg-amber-100 rounded text-xs text-amber-900">
+                        <p className="font-semibold">Troubleshooting:</p>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          <li>Check your internet connection</li>
+                          <li>Our payment service might be temporarily unavailable</li>
+                          <li>Wait a few moments and try again</li>
+                        </ul>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
