@@ -12,7 +12,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render
@@ -224,8 +225,20 @@ export function CheckoutForm({
       
       // Handle our custom network error response
       if ('isNetworkError' in response) {
-        setError("Payment system is unreachable. Check your connection and try again.");
-        throw new Error("Payment system is unreachable. Please check your internet connection.");
+        const isTimeout = 'isTimeoutError' in response;
+        const errorMsg = isTimeout 
+          ? "Payment system request timed out. The server might be experiencing high load."
+          : "Payment system is unreachable. Please check your connection and try again.";
+          
+        setError(errorMsg);
+        
+        // Log detailed error for debugging
+        console.error(`Stripe payment error (attempt ${retryCount + 1}):`, { 
+          isTimeout, 
+          error: response
+        });
+        
+        throw new Error(errorMsg);
       }
       
       if (!response.ok) {
@@ -288,14 +301,36 @@ export function CheckoutForm({
           {isLoading ? (
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
           ) : error ? (
-            <>
-              <div className="text-center text-destructive mb-2">
-                {error}
+            <div className="space-y-4 w-full">
+              <div className="bg-amber-50 border border-amber-200 p-4 rounded-md">
+                <div className="flex gap-2 items-start">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-sm text-amber-800">Payment System Error</p>
+                    <p className="text-sm text-amber-700 mt-1">{error}</p>
+                  </div>
+                </div>
               </div>
-              <Button onClick={handleRetry} className="w-full" variant="outline">
+              
+              <Button onClick={handleRetry} className="w-full" variant="default">
                 Retry Payment Setup
               </Button>
-            </>
+              
+              {/* Show admin diagnostic link if this might be a system/connectivity issue */}
+              {user?.role === 'admin' && retryCount >= 2 && (
+                <div className="pt-2">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Admin options:
+                  </p>
+                  <Link href="/backoffice/stripe-diagnostics">
+                    <Button variant="outline" size="sm" className="w-full text-xs flex items-center gap-1">
+                      <span>Payment System Diagnostics</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </div>
           ) : (
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
           )}
