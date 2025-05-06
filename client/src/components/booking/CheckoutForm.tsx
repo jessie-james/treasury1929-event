@@ -243,8 +243,31 @@ export function CheckoutForm({
         throw new Error("Stripe publishable key is missing. Payment processing is unavailable.");
       }
       
+      // Step 1: Get a payment token to use in case the session is lost
+      console.log("Requesting payment token...");
+      let paymentToken = null;
+      
+      try {
+        const tokenResponse = await apiRequest("POST", "/api/generate-payment-token");
+        if (tokenResponse.ok) {
+          const tokenData = await tokenResponse.json();
+          paymentToken = tokenData.paymentToken;
+          console.log("Payment token received");
+          
+          // Store token in localStorage as a fallback
+          localStorage.setItem("payment_token", paymentToken);
+        } else {
+          console.warn("Could not get payment token, proceeding with session auth only");
+        }
+      } catch (tokenError) {
+        console.warn("Error getting payment token:", tokenError);
+        // Continue with session auth only
+      }
+      
+      // Step 2: Request payment intent with the token as backup auth
       const response = await apiRequest("POST", "/api/create-payment-intent", {
-        seatCount: selectedSeats.length
+        seatCount: selectedSeats.length,
+        paymentToken: paymentToken
       });
       
       // Handle our custom network error response

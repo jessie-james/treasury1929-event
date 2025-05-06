@@ -2064,17 +2064,73 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Generate a payment token for secure payment processing
+  app.post("/api/generate-payment-token", (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    // Generate a temporary payment token tied to this user
+    const paymentToken = require('crypto').randomBytes(32).toString('hex');
+    
+    // Store the token with an expiry time and user info
+    const tokenData = {
+      userId: req.user.id,
+      userEmail: req.user.email,
+      expires: Date.now() + (30 * 60 * 1000), // 30 minutes
+      created: Date.now()
+    };
+    
+    // Use app locals to store tokens (in production you'd use Redis or similar)
+    if (!app.locals.paymentTokens) {
+      app.locals.paymentTokens = {};
+    }
+    app.locals.paymentTokens[paymentToken] = tokenData;
+    
+    console.log(`Generated payment token for user ${req.user.id} (${req.user.email})`);
+    
+    // Return the token to the client
+    return res.json({ paymentToken });
+  });
+
   // Stripe payment integration
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
+      // First check for session-based authentication
+      const isAuthenticatedViaSession = req.isAuthenticated() && !!req.user;
+      
+      // Then check for token-based authentication as fallback
+      let isAuthenticatedViaToken = false;
+      let tokenUser = null;
+      
+      const { paymentToken } = req.body;
+      if (paymentToken && app.locals.paymentTokens && app.locals.paymentTokens[paymentToken]) {
+        const tokenData = app.locals.paymentTokens[paymentToken];
+        
+        // Verify token is still valid
+        if (tokenData.expires > Date.now()) {
+          isAuthenticatedViaToken = true;
+          tokenUser = {
+            id: tokenData.userId,
+            email: tokenData.userEmail
+          };
+          console.log(`Authentication via payment token for user ${tokenUser.id}`);
+        } else {
+          // Token expired
+          delete app.locals.paymentTokens[paymentToken];
+          console.log(`Expired payment token used`);
+        }
+      }
+      
       // Enhanced authentication checking with detailed logging
-      if (!req.isAuthenticated() || !req.user) {
+      if (!isAuthenticatedViaSession && !isAuthenticatedViaToken) {
         console.log("Payment intent request rejected: Authentication status:", {
-          isAuthenticated: req.isAuthenticated(),
-          hasUserObject: !!req.user,
+          isAuthenticatedViaSession,
+          isAuthenticatedViaToken,
           hasSessionID: !!req.sessionID,
           cookies: req.headers.cookie ? 'Present' : 'Missing',
-          path: req.path
+          path: req.path,
+          hasPaymentToken: !!paymentToken
         });
         return res.status(401).json({ 
           message: "Unauthorized", 
@@ -2083,10 +2139,24 @@ export async function registerRoutes(app: Express) {
         });
       }
       
-      // Log user information for debugging
-      console.log(`Payment request authenticated for user: ${req.user.id} (${req.user.email}), session ID: ${req.sessionID.substring(0, 8)}...`)
+      // Use the authenticated user (either from session or token)
+      // We force a non-null assertion here because we've already checked authentication status
+      // This makes TypeScript happy with the rest of the code
+      const user = (isAuthenticatedViaSession ? req.user : tokenUser)!;
       
-      console.log(`Payment intent requested by user ${req.user!.id} (${req.user!.email})`);
+      // Safety check - this should never happen due to earlier guards, but we keep it for runtime safety
+      if (!user) {
+        console.error("Critical error: User is null after authentication check");
+        return res.status(500).json({ 
+          error: "Authentication error", 
+          code: "AUTH_ERROR"
+        });
+      }
+      
+      // Log user information for debugging
+      console.log(`Payment request authenticated for user: ${user.id} (${user.email})${isAuthenticatedViaSession ? `, session ID: ${req.sessionID.substring(0, 8)}...` : ' via token'}`);
+      
+      console.log(`Payment intent requested by user ${user.id} (${user.email})`);
       
       // Verify environment variables are set
       if (!process.env.STRIPE_SECRET_KEY) {
@@ -2131,12 +2201,12 @@ export async function registerRoutes(app: Express) {
       
       // Add metadata for tracking
       const metadata = {
-        userId: req.user!.id.toString(),
+        userId: user.id.toString(),
         seats: seatCount.toString(),
         timestamp: new Date().toISOString()
       };
       
-      console.log(`Creating payment intent for amount: ${amount} cents, user: ${req.user!.id}, seats: ${seatCount}`);
+      console.log(`Creating payment intent for amount: ${amount} cents, user: ${user.id}, seats: ${seatCount}`);
       
       // Create the payment intent with Stripe with better error handling
       let paymentIntent;
@@ -2194,7 +2264,7 @@ export async function registerRoutes(app: Express) {
       // Create payment transaction log
       try {
         await storage.createAdminLog({
-          userId: req.user.id,
+          userId: user.id,
           action: "create_payment_intent",
           entityType: "payment",
           entityId: 0, // No specific entity ID for the payment intent yet
@@ -2202,10 +2272,11 @@ export async function registerRoutes(app: Express) {
             paymentIntentId: paymentIntent.id,
             amount: amount / 100, // Convert cents to dollars for readability
             currency: "usd",
-            customerEmail: req.user.email,
+            customerEmail: user.email,
             metadata: metadata,
             createdAt: new Date().toISOString(),
-            status: paymentIntent.status
+            status: paymentIntent.status,
+            authMethod: isAuthenticatedViaSession ? 'session' : 'token'
           }
         });
       } catch (logError) {
