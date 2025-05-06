@@ -199,16 +199,32 @@ export function CheckoutForm({
       try {
         if (!user) return;
 
+        console.log("Requesting payment intent for", selectedSeats.length, "seats");
+        
         const response = await apiRequest("POST", "/api/create-payment-intent", {
           seatCount: selectedSeats.length
         });
         
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Payment intent creation failed:", errorData);
+          throw new Error(errorData.error || "Failed to initialize payment");
+        }
+        
         const data = await response.json();
+        
+        if (!data.clientSecret) {
+          console.error("Missing client secret in response:", data);
+          throw new Error("Invalid payment setup response from server");
+        }
+        
+        console.log("Payment intent created successfully");
         setClientSecret(data.clientSecret);
       } catch (error) {
+        console.error("Payment setup error:", error);
         toast({
           title: "Payment Setup Failed",
-          description: "Could not initialize payment system. Please try again.",
+          description: error instanceof Error ? error.message : "Could not initialize payment system. Please try again.",
           variant: "destructive",
         });
       }

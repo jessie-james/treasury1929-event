@@ -15,15 +15,24 @@ import { db } from "./db";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
-  console.error("STRIPE_SECRET_KEY environment variable not set");
+  console.error("STRIPE_SECRET_KEY environment variable not set. Stripe payments will not work.");
 }
 
 // Explicitly define API version for type safety
 const stripeApiVersion = "2023-10-16" as Stripe.LatestApiVersion;
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: stripeApiVersion
-});
+// Initialize Stripe with better error handling
+let stripe: Stripe | null = null;
+try {
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: stripeApiVersion
+    });
+    console.log("Stripe initialized successfully");
+  }
+} catch (error) {
+  console.error("Failed to initialize Stripe:", error);
+}
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -2006,6 +2015,14 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
       
+      // Check if Stripe is properly initialized
+      if (!stripe) {
+        console.error("Stripe is not initialized. Cannot create payment intent.");
+        return res.status(500).json({ 
+          error: "Payment service unavailable. Please contact support." 
+        });
+      }
+      
       // For testing, we'll use a fixed amount (like $19.99 for each seat)
       // In production, you would calculate this based on event prices, food choices, etc.
       const { seatCount } = req.body;
@@ -2065,6 +2082,16 @@ export async function registerRoutes(app: Express) {
   // Test endpoint for Stripe - use this to verify Stripe is connected correctly
   app.get("/api/stripe-test", async (_req, res) => {
     try {
+      // Check if Stripe is properly initialized
+      if (!stripe) {
+        console.error("Stripe is not initialized. Cannot run test.");
+        return res.status(500).json({ 
+          success: false,
+          message: "Stripe is not initialized", 
+          error: "Payment service unavailable. Please check environment variables."
+        });
+      }
+      
       // Try to fetch something simple from Stripe to verify the connection
       await stripe.customers.list({ limit: 1 });
       
