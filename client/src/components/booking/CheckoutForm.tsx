@@ -24,7 +24,7 @@ const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE
 if (!stripeKey) {
   console.error("Stripe publishable key is not defined. Please check your environment variables (VITE_STRIPE_PUBLIC_KEY or VITE_STRIPE_PUBLISHABLE_KEY).");
 }
-const stripePromise = loadStripe(stripeKey as string);
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 interface Props {
   eventId: number;
@@ -98,7 +98,7 @@ function StripeCheckoutForm({
         };
 
         console.log("Creating booking with:", booking);
-        
+
         // Using try/catch with more detailed error handling
         try {
           // Helper to get the absolute base URL in the current environment
@@ -106,7 +106,7 @@ function StripeCheckoutForm({
             // Check if we're in a deployed environment by looking at the hostname
             const hostname = window.location.hostname;
             const isDeployed = hostname.includes('.replit.app') || hostname.includes('.repl.co');
-            
+
             if (isDeployed) {
               // Use the current location's origin for deployed environments
               return window.location.origin;
@@ -115,45 +115,45 @@ function StripeCheckoutForm({
               return '';
             }
           };
-          
+
           const baseUrl = getBaseUrl();
           const bookingUrl = `${baseUrl}/api/bookings`;
           console.log(`Using booking URL: ${bookingUrl}`);
-          
+
           const response = await apiRequest("POST", bookingUrl, booking);
-          
+
           if (!response.ok) {
             // Read the error response from the server
             const errorData = await response.json();
             throw new Error(errorData.message || "Server error during booking creation");
           }
-          
+
           const bookingData = await response.json();
           console.log("Booking created successfully:", bookingData);
-          
+
           // Invalidate user bookings query to refresh the My Tickets page
           try {
             // Force a refetch instead of just invalidating
             await queryClient.refetchQueries({ queryKey: ["/api/user/bookings"] });
-            
+
             toast({
               title: "Booking Confirmed!",
               description: "Your payment was successful. Enjoy the event!",
             });
-            
+
             // Navigate to dashboard after successful refetch
             onSuccess();
           } catch (refetchError) {
             console.error("Error refetching bookings:", refetchError);
-            
+
             // Fallback to basic invalidation if refetch fails
             queryClient.invalidateQueries({ queryKey: ["/api/user/bookings"] });
-            
+
             toast({
               title: "Booking Confirmed!",
               description: "Your payment was successful. Enjoy the event!",
             });
-            
+
             onSuccess();
           }
         } catch (apiError: any) {
@@ -224,17 +224,17 @@ export function CheckoutForm({
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // More verbose client-side authentication check
       if (!user) {
         console.error("Payment attempt failed: No user found in auth context");
         setError("You must be logged in to make a payment");
-        
+
         // Check if we can detect a possible cause
         const userAuthState = localStorage.getItem("user_auth_state");
         if (!userAuthState || userAuthState === "logged_out") {
           console.log("Auth state indicates user is not logged in or session expired");
-          
+
           // Suggest redirection to login
           toast({
             title: "Session expired",
@@ -249,25 +249,25 @@ export function CheckoutForm({
         }
         return;
       }
-      
+
       // Store auth state flag for future reference
       localStorage.setItem("user_auth_state", "logged_in");
 
       console.log(`Requesting payment intent for ${selectedSeats.length} seats (attempt ${retryCount + 1})`);
-      
+
       // First check if Stripe is loaded by verifying the public key
       const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
       if (!stripeKey) {
         setError("Stripe publishable key is missing. Payment processing is unavailable.");
         throw new Error("Stripe publishable key is missing. Payment processing is unavailable.");
       }
-      
+
       // Helper to get the absolute base URL in the current environment
       const getBaseUrl = () => {
         // Check if we're in a deployed environment by looking at the hostname
         const hostname = window.location.hostname;
         const isDeployed = hostname.includes('.replit.app') || hostname.includes('.repl.co');
-        
+
         if (isDeployed) {
           // Use the current location's origin for deployed environments
           return window.location.origin;
@@ -276,35 +276,35 @@ export function CheckoutForm({
           return '';
         }
       };
-      
+
       // Step 1: Get a payment token to use in case the session is lost
       console.log("Requesting payment token...");
       let paymentToken = null;
-      
+
       try {
         const baseUrl = getBaseUrl();
         const tokenUrl = `${baseUrl}/api/generate-payment-token`;
         console.log(`Using token URL: ${tokenUrl}`);
-        
+
         // Include user email in the request to support additional fallback auth methods
         // If session is lost, the server can still generate a token using email
         const tokenRequest = {
           email: user?.email
         };
-        
+
         const tokenResponse = await apiRequest("POST", tokenUrl, tokenRequest);
         if (tokenResponse.ok) {
           const tokenData = await tokenResponse.json();
           paymentToken = tokenData.paymentToken;
-          
+
           // Check if this is a limited access token
           const isLimitedToken = tokenData.limitedAccess === true;
           console.log(`Payment token received (${isLimitedToken ? 'limited access' : 'full access'})`);
-          
+
           // Store important information in localStorage as fallbacks
           localStorage.setItem("payment_token", paymentToken);
           localStorage.setItem("user_email", user?.email || '');
-          
+
           // Store auth state for future reference
           localStorage.setItem("user_auth_state", "logged_in");
           localStorage.setItem("payment_auth_time", Date.now().toString());
@@ -315,50 +315,50 @@ export function CheckoutForm({
         console.warn("Error getting payment token:", tokenError);
         // Continue with session auth only
       }
-      
+
       // Step 2: Request payment intent with the token as backup auth
       const baseUrl = getBaseUrl();
       const paymentIntentUrl = `${baseUrl}/api/create-payment-intent`;
       console.log(`Using payment intent URL: ${paymentIntentUrl}`);
-      
+
       const response = await apiRequest("POST", paymentIntentUrl, {
         seatCount: selectedSeats.length,
         paymentToken: paymentToken
       });
-      
+
       // Handle our custom network error response
       if ('isNetworkError' in response) {
         const isTimeout = 'isTimeoutError' in response;
         const errorMsg = isTimeout 
           ? "Payment system request timed out. The server might be experiencing high load."
           : "Payment system is unreachable. Please check your connection and try again.";
-          
+
         setError(errorMsg);
-        
+
         // Log detailed error for debugging
         console.error(`Stripe payment error (attempt ${retryCount + 1}):`, { 
           isTimeout, 
           error: response
         });
-        
+
         throw new Error(errorMsg);
       }
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error("Payment intent creation failed:", errorData);
         setError(errorData.error || "Failed to initialize payment");
         throw new Error(errorData.error || "Failed to initialize payment");
       }
-      
+
       const data = await response.json();
-      
+
       if (!data.clientSecret) {
         console.error("Missing client secret in response:", data);
         setError("Invalid payment setup response from server");
         throw new Error("Invalid payment setup response from server");
       }
-      
+
       console.log("Payment intent created successfully");
       setClientSecret(data.clientSecret);
       setRetryCount(0); // Reset retry count on success
@@ -411,7 +411,7 @@ export function CheckoutForm({
                   <div>
                     <p className="font-medium text-sm text-amber-800">Payment System Error</p>
                     <p className="text-sm text-amber-700 mt-1">{error}</p>
-                    
+
                     {/* Add troubleshooting help based on common error cases */}
                     {error?.includes("Unauthorized") || error?.includes("logged in") ? (
                       <div className="mt-3 p-2 bg-amber-100 rounded text-xs text-amber-900">
@@ -434,11 +434,11 @@ export function CheckoutForm({
                   </div>
                 </div>
               </div>
-              
+
               <Button onClick={handleRetry} className="w-full" variant="default">
                 Retry Payment Setup
               </Button>
-              
+
               {/* Show admin diagnostic link if this might be a system/connectivity issue */}
               {user?.role === 'admin' && retryCount >= 2 && (
                 <div className="pt-2">
