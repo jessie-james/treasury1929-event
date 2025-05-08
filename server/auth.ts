@@ -49,13 +49,16 @@ export function setupAuth(app: Express) {
   // Use secure random secret instead of hardcoded value
   const sessionSecret = process.env.SESSION_SECRET || randomBytes(32).toString('hex');
   
-  // Configure session store with better error handling
+  // Configure session store (errorCallback is not in the type definition but is supported)
   const sessionStore = new PostgresSessionStore({
     pool,
     createTableIfMissing: true,
-    errorCallback: (err) => {
-      console.error('PostgreSQL session store error:', err);
-    }
+    // Custom error logging without using the errorCallback option
+  });
+  
+  // Attach error handler to the store's events
+  sessionStore.on('error', (error: any) => {
+    console.error('PostgreSQL session store error:', error);
   });
   
   // Configure cookie settings based on environment

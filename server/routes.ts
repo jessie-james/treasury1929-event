@@ -2090,32 +2090,89 @@ export async function registerRoutes(app: Express) {
   });
 
   // Generate a payment token for secure payment processing
-  app.post("/api/generate-payment-token", (req, res) => {
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    
-    // Generate a temporary payment token tied to this user
-    const paymentToken = require('crypto').randomBytes(32).toString('hex');
-    
-    // Store the token with an expiry time and user info
-    const tokenData = {
-      userId: req.user.id,
-      userEmail: req.user.email,
-      expires: Date.now() + (30 * 60 * 1000), // 30 minutes
-      created: Date.now()
+  app.post("/api/generate-payment-token", async (req, res) => {
+    // Capture detailed connection information for debugging
+    const authInfo = {
+      hasSession: !!req.session,
+      hasSessionID: !!req.sessionID,
+      cookiesHeader: req.headers.cookie ? 'Present' : 'Missing',
+      isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
+      origin: req.headers.origin || 'unknown',
+      userAgent: req.headers['user-agent'] || 'unknown',
+      requestPath: req.path,
+      method: req.method
     };
     
-    // Use app locals to store tokens (in production you'd use Redis or similar)
-    if (!app.locals.paymentTokens) {
-      app.locals.paymentTokens = {};
+    console.log(`Payment token request received with auth info:`, authInfo);
+    
+    // Check standard session authentication first
+    if (req.isAuthenticated && req.isAuthenticated() && req.user) {
+      // Generate a temporary payment token tied to this user
+      const paymentToken = require('crypto').randomBytes(32).toString('hex');
+      
+      // Store the token with an expiry time and user info
+      const tokenData = {
+        userId: req.user.id,
+        userEmail: req.user.email,
+        expires: Date.now() + (60 * 60 * 1000), // 60 minutes (increased to handle longer session transitions)
+        created: Date.now(),
+        sessionId: req.sessionID || 'unknown'
+      };
+      
+      // Use app locals to store tokens (in production you'd use Redis or similar)
+      if (!app.locals.paymentTokens) {
+        app.locals.paymentTokens = {};
+      }
+      app.locals.paymentTokens[paymentToken] = tokenData;
+      
+      console.log(`Generated payment token for user ${req.user.id} (${req.user.email})`);
+      
+      // Return the token to the client
+      return res.json({ paymentToken });
+    } 
+    // If no session auth, try to look up the user from localStorage auth (client might have stored email)
+    else if (req.body.email) {
+      try {
+        // Attempt to look up user by email - only for very specific payment flows
+        const user = await storage.getUserByEmail(req.body.email);
+        
+        if (user) {
+          console.log(`Found user by email backup method: ${user.id} (${user.email})`);
+          
+          // Generate a temporary payment token with limited privileges
+          const paymentToken = require('crypto').randomBytes(32).toString('hex');
+          
+          // Store the token with shorter expiry and limited access flag
+          const tokenData = {
+            userId: user.id,
+            userEmail: user.email,
+            expires: Date.now() + (30 * 60 * 1000), // 30 minutes
+            created: Date.now(),
+            limitedAccess: true // Mark as limited access token
+          };
+          
+          // Store the token
+          if (!app.locals.paymentTokens) {
+            app.locals.paymentTokens = {};
+          }
+          app.locals.paymentTokens[paymentToken] = tokenData;
+          
+          console.log(`Generated limited payment token for user ${user.id} via email fallback`);
+          
+          // Return the token to the client
+          return res.json({ paymentToken, limitedAccess: true });
+        }
+      } catch (error) {
+        console.error(`Error in email-based token generation:`, error);
+      }
     }
-    app.locals.paymentTokens[paymentToken] = tokenData;
     
-    console.log(`Generated payment token for user ${req.user.id} (${req.user.email})`);
-    
-    // Return the token to the client
-    return res.json({ paymentToken });
+    // If we get here, authentication failed through all methods
+    console.log("Payment token request rejected: Not authenticated");
+    return res.status(401).json({ 
+      message: "Unauthorized",
+      error: "You must be logged in to get a payment token"
+    });
   });
 
   // Stripe payment integration

@@ -286,14 +286,28 @@ export function CheckoutForm({
         const tokenUrl = `${baseUrl}/api/generate-payment-token`;
         console.log(`Using token URL: ${tokenUrl}`);
         
-        const tokenResponse = await apiRequest("POST", tokenUrl);
+        // Include user email in the request to support additional fallback auth methods
+        // If session is lost, the server can still generate a token using email
+        const tokenRequest = {
+          email: user?.email
+        };
+        
+        const tokenResponse = await apiRequest("POST", tokenUrl, tokenRequest);
         if (tokenResponse.ok) {
           const tokenData = await tokenResponse.json();
           paymentToken = tokenData.paymentToken;
-          console.log("Payment token received");
           
-          // Store token in localStorage as a fallback
+          // Check if this is a limited access token
+          const isLimitedToken = tokenData.limitedAccess === true;
+          console.log(`Payment token received (${isLimitedToken ? 'limited access' : 'full access'})`);
+          
+          // Store important information in localStorage as fallbacks
           localStorage.setItem("payment_token", paymentToken);
+          localStorage.setItem("user_email", user?.email || '');
+          
+          // Store auth state for future reference
+          localStorage.setItem("user_auth_state", "logged_in");
+          localStorage.setItem("payment_auth_time", Date.now().toString());
         } else {
           console.warn("Could not get payment token, proceeding with session auth only");
         }
