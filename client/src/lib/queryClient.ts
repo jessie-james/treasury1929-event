@@ -55,11 +55,32 @@ export async function apiRequest(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
     
+    // For deployment environment compatibility, add more headers
+    const headers: Record<string, string> = {
+      "Accept": "application/json",
+      "X-Requested-With": "XMLHttpRequest", // Helps with CORS detection
+    };
+    
+    if (bodyData) {
+      headers["Content-Type"] = "application/json";
+    }
+    
+    // Detect if this is a payment request and add the payment token if available
+    if (url.includes('/api/create-payment-intent')) {
+      const paymentToken = localStorage.getItem('payment_token');
+      if (paymentToken && bodyData && typeof bodyData === 'object') {
+        // Add token to request body
+        bodyData = { ...bodyData, paymentToken };
+      }
+    }
+
     const res = await fetch(url, {
       method,
-      headers: bodyData ? { "Content-Type": "application/json" } : {},
+      headers,
       body: bodyData ? JSON.stringify(bodyData) : undefined,
-      credentials: "include",
+      credentials: "include", // Send cookies with cross-origin requests
+      mode: "cors", // Enable CORS for cross-origin requests
+      cache: "no-cache", // Don't cache authentication-related requests
       signal: controller.signal
     });
     
@@ -164,8 +185,16 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     try {
+      // Use the same cross-domain compatible options as the apiRequest function
       const res = await fetch(queryKey[0] as string, {
+        method: 'GET',
+        headers: {
+          "Accept": "application/json",
+          "X-Requested-With": "XMLHttpRequest",
+        },
         credentials: "include",
+        mode: "cors",
+        cache: "no-cache"
       });
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {

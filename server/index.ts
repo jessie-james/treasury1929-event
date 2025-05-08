@@ -2,8 +2,25 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, log, serveStatic } from "./vite";
 import { storage } from "./storage";
+import cors from 'cors';
+import { setupAuth } from "./auth";
 
 const app = express();
+
+// Configure CORS for deployments
+const corsOptions = {
+  // Allow requests from any origin when deployed
+  origin: true, 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true, // Allow cookies to be sent in cross-domain requests
+  maxAge: 86400 // Cache preflight requests for 24 hours
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Standard middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

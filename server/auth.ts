@@ -52,10 +52,12 @@ export function setupAuth(app: Express) {
       createTableIfMissing: true,
     }),
     cookie: {
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      // In deployment environments, cookies often need specific configuration
+      // We use a more permissive setup for Replit deployment compatibility
+      secure: false, // Allow non-HTTPS in development and adapt to proxied HTTPS in prod
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days for longer persistence
       httpOnly: true,
-      sameSite: 'lax', // More permissive SameSite setting to ensure cookie is sent with all requests
+      sameSite: 'none', // Most permissive setting to work with iframe/embedded environments
       path: '/',
     },
   };
