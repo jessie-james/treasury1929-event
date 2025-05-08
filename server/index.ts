@@ -83,7 +83,11 @@ app.use((req, res, next) => {
   try {
     log("Starting server initialization...");
 
-    // First set up routes and error handling
+    // Set up authentication with our deployment-compatible options
+    log("Setting up authentication...");
+    setupAuth(app);
+    
+    // Set up routes and error handling
     log("Setting up routes...");
     const server = await registerRoutes(app);
 

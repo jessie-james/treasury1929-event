@@ -101,7 +101,26 @@ function StripeCheckoutForm({
         
         // Using try/catch with more detailed error handling
         try {
-          const response = await apiRequest("POST", "/api/bookings", booking);
+          // Helper to get the absolute base URL in the current environment
+          const getBaseUrl = () => {
+            // Check if we're in a deployed environment by looking at the hostname
+            const hostname = window.location.hostname;
+            const isDeployed = hostname.includes('.replit.app') || hostname.includes('.repl.co');
+            
+            if (isDeployed) {
+              // Use the current location's origin for deployed environments
+              return window.location.origin;
+            } else {
+              // Use relative paths for development/preview
+              return '';
+            }
+          };
+          
+          const baseUrl = getBaseUrl();
+          const bookingUrl = `${baseUrl}/api/bookings`;
+          console.log(`Using booking URL: ${bookingUrl}`);
+          
+          const response = await apiRequest("POST", bookingUrl, booking);
           
           if (!response.ok) {
             // Read the error response from the server
@@ -243,12 +262,31 @@ export function CheckoutForm({
         throw new Error("Stripe publishable key is missing. Payment processing is unavailable.");
       }
       
+      // Helper to get the absolute base URL in the current environment
+      const getBaseUrl = () => {
+        // Check if we're in a deployed environment by looking at the hostname
+        const hostname = window.location.hostname;
+        const isDeployed = hostname.includes('.replit.app') || hostname.includes('.repl.co');
+        
+        if (isDeployed) {
+          // Use the current location's origin for deployed environments
+          return window.location.origin;
+        } else {
+          // Use relative paths for development/preview
+          return '';
+        }
+      };
+      
       // Step 1: Get a payment token to use in case the session is lost
       console.log("Requesting payment token...");
       let paymentToken = null;
       
       try {
-        const tokenResponse = await apiRequest("POST", "/api/generate-payment-token");
+        const baseUrl = getBaseUrl();
+        const tokenUrl = `${baseUrl}/api/generate-payment-token`;
+        console.log(`Using token URL: ${tokenUrl}`);
+        
+        const tokenResponse = await apiRequest("POST", tokenUrl);
         if (tokenResponse.ok) {
           const tokenData = await tokenResponse.json();
           paymentToken = tokenData.paymentToken;
@@ -265,7 +303,11 @@ export function CheckoutForm({
       }
       
       // Step 2: Request payment intent with the token as backup auth
-      const response = await apiRequest("POST", "/api/create-payment-intent", {
+      const baseUrl = getBaseUrl();
+      const paymentIntentUrl = `${baseUrl}/api/create-payment-intent`;
+      console.log(`Using payment intent URL: ${paymentIntentUrl}`);
+      
+      const response = await apiRequest("POST", paymentIntentUrl, {
         seatCount: selectedSeats.length,
         paymentToken: paymentToken
       });

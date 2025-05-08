@@ -32,10 +32,19 @@ function initializeStripe() {
   try {
     if (process.env.STRIPE_SECRET_KEY) {
       console.log(`Initializing Stripe (attempt ${stripeInitAttempt})...`);
+      
+      // Additional logging for deployment debugging
+      const keyPrefix = process.env.STRIPE_SECRET_KEY.substring(0, 7);
+      console.log(`Using Stripe key with prefix: ${keyPrefix}...`);
+      
+      // Create Stripe instance with more resilient settings for deployment
       stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
         apiVersion: stripeApiVersion,
-        timeout: 10000 // 10 second timeout for API requests
+        timeout: 20000, // 20 second timeout for API requests in deployment
+        maxNetworkRetries: 3, // Retry network requests up to 3 times
+        httpAgent: undefined, // Let Stripe handle the HTTP agent
       });
+      
       console.log("✓ Stripe initialized successfully");
       return true;
     } else {
@@ -49,7 +58,23 @@ function initializeStripe() {
 }
 
 // Initial initialization attempt
-initializeStripe();
+(async () => {
+  // Attempt initialization immediately
+  const success = initializeStripe();
+  
+  // If initial attempt fails, try once more after a delay
+  // This helps in deployment environments where secrets might load with a delay
+  if (!success) {
+    console.log("First Stripe initialization failed, retrying after delay...");
+    setTimeout(() => {
+      if (initializeStripe()) {
+        console.log("Delayed Stripe initialization succeeded");
+      } else {
+        console.error("Delayed Stripe initialization also failed");
+      }
+    }, 3000); // 3 second delay
+  }
+})();
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'uploads');
