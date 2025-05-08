@@ -42,25 +42,54 @@ async function comparePasswords(supplied: string, stored: string) {
 const PostgresSessionStore = connectPg(session);
 
 export function setupAuth(app: Express) {
+  // Detect environment - if process.env.NODE_ENV is not set, assume development
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isDevelopment = !isProduction;
+  
+  // Use secure random secret instead of hardcoded value
+  const sessionSecret = process.env.SESSION_SECRET || randomBytes(32).toString('hex');
+  
+  // Configure session store with better error handling
+  const sessionStore = new PostgresSessionStore({
+    pool,
+    createTableIfMissing: true,
+    errorCallback: (err) => {
+      console.error('PostgreSQL session store error:', err);
+    }
+  });
+  
+  // Configure cookie settings based on environment
+  const cookieSettings: session.CookieOptions = {
+    // In Replit deployments, requests may be proxied through HTTPS even when the app itself runs on HTTP
+    // We determine secure based on the protocol, but also check for proxy headers
+    secure: false, // Replit handles HTTPS termination, so we use false for direct cookie access
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    httpOnly: true, // Prevent JavaScript access to the cookie
+    
+    // Set to 'lax' in development for easier testing, 'none' in production for cross-domain support
+    // 'lax' is more secure than 'none' but still allows cookies in most cross-domain scenarios
+    sameSite: isDevelopment ? 'lax' : 'none',
+    
+    path: '/', // Available on all paths
+  };
+  
   // More robust session settings to ensure cookie is properly sent with all requests
   const sessionSettings: session.SessionOptions = {
-    secret: "your-secret-key",
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
-    store: new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true,
-    }),
-    cookie: {
-      // In deployment environments, cookies often need specific configuration
-      // We use a more permissive setup for Replit deployment compatibility
-      secure: false, // Allow non-HTTPS in development and adapt to proxied HTTPS in prod
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days for longer persistence
-      httpOnly: true,
-      sameSite: 'none', // Most permissive setting to work with iframe/embedded environments
-      path: '/',
-    },
+    store: sessionStore,
+    cookie: cookieSettings,
+    // Enable proxy trust - important for correct cookie handling behind proxies
+    proxy: true
   };
+  
+  // Log session configuration details for debugging
+  console.log(`Auth setup: ${isDevelopment ? 'Development' : 'Production'} mode`);
+  console.log(`Session cookie: secure=${cookieSettings.secure}, sameSite=${cookieSettings.sameSite}`);
+  
+  // Enable trust proxy in Express (needed for secure cookies with proxies)
+  app.set('trust proxy', 1);
 
   app.use(session(sessionSettings));
   app.use(passport.initialize());

@@ -28,6 +28,21 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// Helper to get the absolute base URL in the current environment
+function getBaseUrl(): string {
+  // Check if we're in a deployed environment by looking at the hostname
+  const hostname = window.location.hostname;
+  const isDeployed = hostname.includes('.replit.app') || hostname.includes('.repl.co');
+  
+  if (isDeployed) {
+    // Use the current location's origin for deployed environments
+    return window.location.origin;
+  } else {
+    // Use relative paths for development/preview
+    return '';
+  }
+}
+
 export async function apiRequest(
   urlOrOptions: string | { method: string; url?: string; data?: unknown },
   urlOrData?: string | unknown,
@@ -51,9 +66,19 @@ export async function apiRequest(
   }
   
   try {
-    // Set a timeout of 10 seconds for the request
+    // Set a timeout of 15 seconds for the request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    
+    // If the URL starts with a slash and we're in a deployed environment,
+    // prepend the origin to make it absolute
+    if (url.startsWith('/')) {
+      const baseUrl = getBaseUrl();
+      url = `${baseUrl}${url}`;
+    }
+    
+    // Log the full URL to help with debugging
+    console.log(`API Request: ${method} ${url}`);
     
     // For deployment environment compatibility, add more headers
     const headers: Record<string, string> = {
@@ -65,8 +90,12 @@ export async function apiRequest(
       headers["Content-Type"] = "application/json";
     }
     
+    // Add Origin header to help with CORS in deployment
+    const origin = window.location.origin;
+    headers["Origin"] = origin;
+    
     // Detect if this is a payment request and add the payment token if available
-    if (url.includes('/api/create-payment-intent')) {
+    if (url.includes('/api/create-payment-intent') || url.includes('/api/bookings')) {
       const paymentToken = localStorage.getItem('payment_token');
       if (paymentToken && bodyData && typeof bodyData === 'object') {
         // Add token to request body
@@ -185,13 +214,31 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     try {
+      // Get URL from query key
+      let url = queryKey[0] as string;
+      
+      // If the URL starts with a slash and we're in a deployed environment,
+      // prepend the origin to make it absolute
+      if (url.startsWith('/')) {
+        const baseUrl = getBaseUrl();
+        url = `${baseUrl}${url}`;
+      }
+      
+      // Log the full URL to help with debugging
+      console.log(`Query Request: GET ${url}`);
+      
+      // Add Origin header to help with CORS in deployment
+      const origin = window.location.origin;
+      const headers: Record<string, string> = {
+        "Accept": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+        "Origin": origin
+      };
+      
       // Use the same cross-domain compatible options as the apiRequest function
-      const res = await fetch(queryKey[0] as string, {
+      const res = await fetch(url, {
         method: 'GET',
-        headers: {
-          "Accept": "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-        },
+        headers,
         credentials: "include",
         mode: "cors",
         cache: "no-cache"
