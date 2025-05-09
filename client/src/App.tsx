@@ -1,4 +1,3 @@
-import React, { useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -31,17 +30,17 @@ import { useAuth } from "./hooks/use-auth";
 function Router() {
   const [location] = useLocation();
   const { user } = useAuth();
-  
+
   // Check if current path is in backoffice 
   const isBackoffice = location.startsWith("/backoffice");
-  
+
   // Only show header and bottom navigation on non-backoffice pages
   const showNavigation = !isBackoffice;
-  
+
   return (
     <div className="pb-16">
       {showNavigation && <Header />}
-      
+
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/auth" component={AuthPage} />
@@ -63,21 +62,18 @@ function Router() {
         <Route path="/profile" component={ProfilePage} />
         <Route component={NotFound} />
       </Switch>
-      
+
       <BottomNavigation />
     </div>
   );
 }
 
 function App() {
-  useEffect(() => {
-    const handler = (event: PromiseRejectionEvent) => {
+  React.useEffect(() => {
+    window.addEventListener('unhandledrejection', (event) => {
       console.error('Unhandled rejection:', event.reason);
       event.preventDefault();
-    };
-    
-    window.addEventListener('unhandledrejection', handler);
-    return () => window.removeEventListener('unhandledrejection', handler);
+    });
   }, []);
 
   return (
