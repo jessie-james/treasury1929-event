@@ -307,11 +307,17 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Set up global error handlers after client creation
-queryClient.getQueryCache().subscribe({
-  onError: logError
-});
-
-queryClient.getMutationCache().subscribe({
-  onError: logError
+// Set up a simpler global error handler
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Global error handler caught unhandled rejection:', event.reason);
+  
+  // Prevent the default handler (which would log it again)
+  event.preventDefault();
+  
+  // Check if this is a React Query error
+  if (event.reason?.name === 'QueryError' || 
+      event.reason?.name === 'MutationError' ||
+      (event.reason && event.reason.toString().includes('TanStack Query'))) {
+    console.info('This appears to be a React Query error. Additional context may be found in the error object above.');
+  }
 });
