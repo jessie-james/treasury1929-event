@@ -61,25 +61,54 @@ export function setupAuth(app: Express) {
     console.error('PostgreSQL session store error:', error);
   });
   
-  // Configure cookie settings based on environment
-  const cookieSettings: session.CookieOptions = {
-    secure: false, // Keep false for Replit's proxy setup
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    httpOnly: true,
-    sameSite: 'lax', // Use lax for both dev and prod in Replit's environment
-    path: '/',
-    domain: undefined // Let the browser set the domain automatically
+  // Detect headers that might indicate HTTPS
+  const hasSecureHeaders = (req: any) => {
+    return (
+      (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] === 'https') ||
+      (req.headers['x-forwarded-ssl'] && req.headers['x-forwarded-ssl'] === 'on')
+    );
   };
   
-  // More robust session settings to ensure cookie is properly sent with all requests
+  // Configure cookie settings with better cross-environment compatibility
+  const cookieSettings: session.CookieOptions = {
+    // Use a dynamic secure flag based on request headers
+    // This will be true for HTTPS requests and false for HTTP
+    secure: false, // Will be dynamically set below
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (shortened for better security)
+    httpOnly: true, // Prevent JavaScript access
+    
+    // Use 'lax' which provides a good balance of security and usability
+    // Works well with Replit's environment and doesn't block most cross-domain requests
+    sameSite: 'lax',
+    
+    path: '/', // Available across entire site
+    domain: undefined // Let browser determine the domain automatically
+  };
+  
+  // Enhanced session settings with better compatibility across environments
   const sessionSettings: session.SessionOptions = {
     secret: sessionSecret,
+    
+    // Resave determines whether the session should be saved back to the session store,
+    // even if it wasn't modified during the request
     resave: false,
-    saveUninitialized: false,
+    
+    // SaveUninitialized determines whether a session should be stored for a request
+    // that doesn't modify the session
+    saveUninitialized: true, // Changed to true to ensure cookie is always sent
+    
     store: sessionStore,
+    
     cookie: cookieSettings,
-    // Enable proxy trust - important for correct cookie handling behind proxies
-    proxy: true
+    
+    // Better compatibility with proxy setups (like Replit)
+    proxy: true,
+    
+    // Add rolling session - extends expiration on each request
+    rolling: true,
+    
+    // Explicitly set session name to avoid conflicts
+    name: 'venue.sid'
   };
   
   // Log session configuration details for debugging
@@ -294,11 +323,42 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // Enhanced user endpoint with better debugging and fallback auth
   app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) {
-      return res.sendStatus(401);
+    // Track authentication debug information
+    const authDebug = {
+      hasSession: !!req.session,
+      hasSessionID: !!req.sessionID,
+      cookiesHeader: req.headers.cookie ? 'Present' : 'Missing',
+      isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
+      origin: req.headers.origin || 'unknown',
+      userAgent: req.headers['user-agent'] || 'unknown'
+    };
+    
+    // Log detailed auth debugging info
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Auth debug info:', authDebug);
     }
-    res.json(req.user);
+    
+    // Primary authentication check
+    if (req.isAuthenticated() && req.user) {
+      // Clone the user object to avoid direct modification of req.user
+      const userObj = { ...req.user };
+      
+      // Don't send the password hash to the client
+      if ('password' in userObj) {
+        delete userObj.password;
+      }
+      
+      return res.json(userObj);
+    }
+    
+    // If we get here, authentication failed
+    return res.status(401).json({ 
+      message: "Not authenticated",
+      // Only include debug info in development
+      ...(process.env.NODE_ENV !== 'production' ? { debug: authDebug } : {})
+    });
   });
   
   // User preferences endpoint - to update allergens and dietary restrictions

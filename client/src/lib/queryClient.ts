@@ -263,6 +263,15 @@ export const getQueryFn: <T>(options: {
     }
   };
 
+// Create a global error handler for the query client
+const queryErrorHandler = (error: unknown) => {
+  // Log all query errors for debugging
+  console.error('Query error:', error);
+  
+  // Don't add UI handling here, let component-level error states handle the UI
+  // This handler ensures errors are always logged but don't cause unhandled rejections
+};
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -270,10 +279,26 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
-      retry: false,
+      retry: (failureCount, error) => {
+        // Don't retry 401, 403, 404 responses as they're likely deliberate responses
+        if (
+          error instanceof Error && 
+          error.message && 
+          (error.message.startsWith('401:') || 
+           error.message.startsWith('403:') || 
+           error.message.startsWith('404:'))
+        ) {
+          return false;
+        }
+        
+        // Retry network errors but limit to 2 attempts
+        return failureCount < 2;
+      },
+      onError: queryErrorHandler
     },
     mutations: {
       retry: false,
+      onError: queryErrorHandler
     },
   },
 });
