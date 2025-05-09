@@ -4,7 +4,7 @@ import { Route, Redirect } from "wouter";
 
 interface Props {
   path: string;
-  component: () => React.JSX.Element;
+  component: () => React.JSX.Element | null;
   requiredRole?: 'admin' | 'venue_owner' | 'venue_manager';
 }
 

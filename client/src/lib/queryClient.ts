@@ -1,4 +1,4 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction, QueryClientConfig } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -272,6 +272,12 @@ const queryErrorHandler = (error: unknown) => {
   // This handler ensures errors are always logged but don't cause unhandled rejections
 };
 
+// Create a logger function for errors
+const logError = (error: unknown) => {
+  console.error('Query/mutation error:', error);
+};
+
+// Create the client with better error handling
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -293,12 +299,19 @@ export const queryClient = new QueryClient({
         
         // Retry network errors but limit to 2 attempts
         return failureCount < 2;
-      },
-      onError: queryErrorHandler
+      }
     },
     mutations: {
-      retry: false,
-      onError: queryErrorHandler
+      retry: false
     },
   },
+});
+
+// Set up global error handlers after client creation
+queryClient.getQueryCache().subscribe({
+  onError: logError
+});
+
+queryClient.getMutationCache().subscribe({
+  onError: logError
 });
