@@ -63,17 +63,12 @@ export function setupAuth(app: Express) {
   
   // Configure cookie settings based on environment
   const cookieSettings: session.CookieOptions = {
-    // In Replit deployments, requests may be proxied through HTTPS even when the app itself runs on HTTP
-    // We determine secure based on the protocol, but also check for proxy headers
-    secure: false, // Replit handles HTTPS termination, so we use false for direct cookie access
+    secure: false, // Keep false for Replit's proxy setup
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    httpOnly: true, // Prevent JavaScript access to the cookie
-    
-    // Set to 'lax' in development for easier testing, 'none' in production for cross-domain support
-    // 'lax' is more secure than 'none' but still allows cookies in most cross-domain scenarios
-    sameSite: isDevelopment ? 'lax' : 'none',
-    
-    path: '/', // Available on all paths
+    httpOnly: true,
+    sameSite: 'lax', // Use lax for both dev and prod in Replit's environment
+    path: '/',
+    domain: undefined // Let the browser set the domain automatically
   };
   
   // More robust session settings to ensure cookie is properly sent with all requests

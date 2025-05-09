@@ -69,6 +69,16 @@ function Router() {
 }
 
 function App() {
+  React.useEffect(() => {
+    const handler = (event: PromiseRejectionEvent) => {
+      console.error('Unhandled rejection:', event.reason);
+      event.preventDefault();
+    };
+    
+    window.addEventListener('unhandledrejection', handler);
+    return () => window.removeEventListener('unhandledrejection', handler);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
