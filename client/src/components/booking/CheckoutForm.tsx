@@ -24,7 +24,21 @@ const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE
 if (!stripeKey) {
   console.error("Stripe publishable key is not defined. Please check your environment variables (VITE_STRIPE_PUBLIC_KEY or VITE_STRIPE_PUBLISHABLE_KEY).");
 }
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
+// Create a stable Stripe promise - with error handling
+let stripePromise;
+try {
+  stripePromise = loadStripe(stripeKey);
+  
+  // Add a catch handler directly on the promise
+  stripePromise.catch(error => {
+    console.error("Error initializing Stripe:", error);
+  });
+  
+  console.log("Stripe initialized with key prefix:", stripeKey?.substring(0, 7));
+} catch (error) {
+  console.error("Failed to initialize Stripe:", error);
+}
 
 interface Props {
   eventId: number;
@@ -379,12 +393,69 @@ export function CheckoutForm({
   // Retry handler for payment intent creation
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
-    getClientSecret();
+    
+    // Check if we need to try authentication recovery first
+    const userAuthState = localStorage.getItem("user_auth_state");
+    if (!userAuthState || userAuthState === "logged_out") {
+      console.log("Detected logged out state during retry, will attempt to restore session");
+      
+      toast({
+        title: "Session recovery",
+        description: "Attempting to restore your session before retrying...",
+      });
+      
+      // Force reload auth state before retry
+      setTimeout(() => {
+        // Reset auth state to trigger a new authentication check
+        localStorage.setItem("user_auth_state", "checking");
+        
+        // After a short delay, try the payment intent creation again
+        setTimeout(getClientSecret, 500);
+      }, 1000);
+    } else {
+      // Standard retry without auth recovery
+      getClientSecret();
+    }
   };
 
   // Create Payment Intent as soon as the component loads
   useEffect(() => {
-    getClientSecret();
+    // Only attempt to get client secret if we have a user
+    if (user && user.id) {
+      console.log("Getting client secret with valid user");
+      getClientSecret();
+    } else {
+      console.log("Waiting for user authentication before getting client secret");
+      
+      // Additional authentication recovery attempt for edge cases
+      const userAuthState = localStorage.getItem("user_auth_state");
+      const userEmail = localStorage.getItem("user_email");
+      
+      if (userAuthState === "logged_in" && userEmail && !user) {
+        console.log("User state mismatch detected. Auth claims logged in but no user object.");
+        
+        // Force auth state check in React Query
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        
+        // Set a timeout to retry after a short delay to allow auth refresh
+        setTimeout(() => {
+          if (!user) {
+            setError("Authentication issue detected. Please try logging in again.");
+            
+            toast({
+              title: "Authentication Issue",
+              description: "Please log out and back in to continue with your payment.",
+              variant: "destructive",
+              action: (
+                <Button variant="outline" size="sm" onClick={() => setLocation("/auth")}>
+                  Log In
+                </Button>
+              ),
+            });
+          }
+        }, 2000);
+      }
+    }
   }, [selectedSeats.length, user]);
 
   if (!clientSecret) {
