@@ -16,6 +16,7 @@ import {
   CreditCard,
   DoorOpen,
   QrCode,
+  Link as LinkIcon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -47,6 +48,12 @@ export function BackofficeLayout({ children }: Props) {
       href: "/backoffice/payments",
       icon: CreditCard,
       roles: ['admin', 'venue_owner'],
+    },
+    {
+      name: "Payment Links",
+      href: "/backoffice/payment-links",
+      icon: LinkIcon,
+      roles: ['admin', 'venue_owner', 'venue_manager'],
     },
     {
       name: "Entrance",

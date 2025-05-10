@@ -21,6 +21,7 @@ import UsersPage from "@/pages/backoffice/UsersPage";
 import LogsPage from "@/pages/backoffice/LogsPage";
 import BookingManagementPage from "@/pages/backoffice/BookingManagementPage";
 import EntrancePage from "@/pages/backoffice/EntrancePage";
+import PaymentLinksPage from "@/pages/backoffice/PaymentLinksPage";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import ProfilePage from "@/pages/ProfilePage";
 import StripeDiagnostics from "@/pages/StripeDiagnostics";
@@ -56,6 +57,7 @@ function Router() {
         <ProtectedRoute path="/backoffice/payments" component={PaymentsPage} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/entrance" component={EntrancePage} />
         <ProtectedRoute path="/backoffice/bookings" component={BookingManagementPage} />
+        <ProtectedRoute path="/backoffice/payment-links" component={PaymentLinksPage} />
         <ProtectedRoute path="/backoffice/events" component={EventsPage} />
         <ProtectedRoute path="/backoffice/food" component={FoodPage} />
         <ProtectedRoute path="/backoffice/users" component={UsersPage} requiredRole="admin" />
