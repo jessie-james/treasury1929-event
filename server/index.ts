@@ -7,14 +7,50 @@ import { setupAuth } from "./auth";
 
 const app = express();
 
-// Configure CORS for deployments
+// Enhanced CORS configuration for deployments with better Stripe compatibility
 const corsOptions = {
-  // Allow requests from any origin when deployed
-  origin: true, 
+  // In production, restrict origins to our own domains
+  // In development, allow all origins
+  origin: (origin, callback) => {
+    // If no origin (like from a same-origin request) or in development, allow all
+    if (!origin || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    // List of allowed origins for production
+    // Make sure to include both the .replit.app domain and Stripe domains
+    const allowedOrigins = [
+      /\.replit\.app$/,     // Any Replit app subdomain
+      /\.repl\.co$/,        // Any Repl.co domain
+      /stripe\.com$/,       // Stripe domains
+      /stripe\.network$/,   // Stripe network domains for processing
+      /checkout\.stripe$/   // Stripe checkout domains
+    ];
+    
+    // Check if the request origin matches any of our allowed patterns
+    const isAllowed = allowedOrigins.some(pattern => pattern.test(origin));
+    
+    if (isAllowed) {
+      callback(null, true); // Allow the request
+    } else {
+      console.log(`CORS blocked origin: ${origin}`);
+      callback(null, false); // Block the request
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true, // Allow cookies to be sent in cross-domain requests
-  maxAge: 86400 // Cache preflight requests for 24 hours
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Origin',
+    'Accept',
+    'X-CSRF-Token',
+    'stripe-signature' // Important for Stripe webhook verification
+  ],
+  credentials: true, // Critical to allow cookies in cross-domain requests
+  maxAge: 86400, // Cache preflight requests for 24 hours
+  // Allow browsers to send these headers with cross-origin requests
+  exposedHeaders: ['Set-Cookie', 'Date', 'ETag']
 };
 
 // Apply CORS middleware

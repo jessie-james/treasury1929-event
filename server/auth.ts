@@ -71,18 +71,21 @@ export function setupAuth(app: Express) {
   
   // Configure cookie settings with better cross-environment compatibility
   const cookieSettings: session.CookieOptions = {
-    // Use a dynamic secure flag based on request headers
-    // This will be true for HTTPS requests and false for HTTP
-    secure: false, // Will be dynamically set below
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (shortened for better security)
-    httpOnly: true, // Prevent JavaScript access
+    // Important: In Replit deployment environment, we must accept both secure and non-secure cookies
+    // The 'secure' flag will be dynamically set based on the protocol (HTTPS vs HTTP)
+    secure: false, // Start with false, proxy detection will handle this
     
-    // Use 'lax' which provides a good balance of security and usability
-    // Works well with Replit's environment and doesn't block most cross-domain requests
-    sameSite: 'lax',
+    // Use a longer session lifetime to reduce authentication issues
+    maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
+    
+    httpOnly: true, // Prevent JavaScript access for security
+    
+    // Use 'none' for cross-site compatibility needed for the payment flow
+    // This allows cookies to be sent across domains (e.g., when redirected from Stripe)
+    sameSite: 'none',
     
     path: '/', // Available across entire site
-    domain: undefined // Let browser determine the domain automatically
+    domain: undefined // Let browser determine domain automatically for compatibility
   };
   
   // Enhanced session settings with better compatibility across environments
