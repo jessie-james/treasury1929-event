@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { registerPaymentRoutes } from "./routes-payment";
 import { setupVite, log, serveStatic } from "./vite";
 import { storage } from "./storage";
 import cors from 'cors';
@@ -126,6 +127,10 @@ app.use((req, res, next) => {
     // Set up routes and error handling
     log("Setting up routes...");
     const server = await registerRoutes(app);
+    
+    // Set up dedicated payment routes
+    log("Setting up payment routes...");
+    registerPaymentRoutes(app);
 
     // Error logging middleware
     app.use(async (err: any, req: Request, res: Response, next: NextFunction) => {
