@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, AlertTriangle, ExternalLink } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { StandaloneCheckout } from "./StandaloneCheckout";
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render
