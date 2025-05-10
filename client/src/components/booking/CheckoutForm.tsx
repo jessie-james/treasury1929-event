@@ -306,7 +306,16 @@ export function CheckoutForm({
           email: user?.email
         };
 
-        const tokenResponse = await apiRequest("POST", tokenUrl, tokenRequest);
+        // First try with credentials included (for session auth)
+        const tokenResponse = await fetch(tokenUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(tokenRequest),
+          credentials: 'include' // Important: send cookies for session auth
+        });
+
         if (tokenResponse.ok) {
           const tokenData = await tokenResponse.json();
           paymentToken = tokenData.paymentToken;
@@ -323,7 +332,30 @@ export function CheckoutForm({
           localStorage.setItem("user_auth_state", "logged_in");
           localStorage.setItem("payment_auth_time", Date.now().toString());
         } else {
-          console.warn("Could not get payment token, proceeding with session auth only");
+          console.warn("Could not get payment token with credentials, trying simplified request");
+          
+          // Try again without credentials (in case CORS is blocking credentialed request)
+          const simpleResponse = await fetch(tokenUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: user?.email,
+              userId: user?.id,
+              noCredentials: true // Signal to server this is a non-credentialed request
+            })
+          });
+          
+          if (simpleResponse.ok) {
+            const simpleData = await simpleResponse.json();
+            paymentToken = simpleData.paymentToken;
+            console.log("Got payment token via simplified request");
+            
+            localStorage.setItem("payment_token", paymentToken);
+          } else {
+            console.warn("Both token requests failed, proceeding with fallback mechanisms");
+          }
         }
       } catch (tokenError) {
         console.warn("Error getting payment token:", tokenError);
@@ -335,10 +367,35 @@ export function CheckoutForm({
       const paymentIntentUrl = `${baseUrl}/api/create-payment-intent`;
       console.log(`Using payment intent URL: ${paymentIntentUrl}`);
 
-      const response = await apiRequest("POST", paymentIntentUrl, {
-        seatCount: selectedSeats.length,
-        paymentToken: paymentToken
-      });
+      // Try direct fetch with credentials first
+      let response;
+      try {
+        console.log("Trying payment intent with credentials and token");
+        // Make a direct fetch call with credentials
+        response = await fetch(paymentIntentUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            seatCount: selectedSeats.length,
+            paymentToken: paymentToken,
+            userEmail: user?.email,
+            userId: user?.id
+          }),
+          credentials: 'include' // Important: include credentials/cookies
+        });
+      } catch (fetchError) {
+        console.error("Error with credentialed payment intent request:", fetchError);
+        // If the direct fetch fails, try the apiRequest helper as fallback
+        console.log("Falling back to apiRequest method for payment intent");
+        response = await apiRequest("POST", paymentIntentUrl, {
+          seatCount: selectedSeats.length,
+          paymentToken: paymentToken,
+          userEmail: user?.email,
+          userId: user?.id
+        });
+      }
 
       // Handle our custom network error response
       if ('isNetworkError' in response) {

@@ -11,7 +11,7 @@ const app = express();
 const corsOptions = {
   // In production, restrict origins to our own domains
   // In development, allow all origins
-  origin: (origin, callback) => {
+  origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) => {
     // If no origin (like from a same-origin request) or in development, allow all
     if (!origin || process.env.NODE_ENV !== 'production') {
       return callback(null, true);
