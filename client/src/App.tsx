@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -69,7 +70,7 @@ function Router() {
 }
 
 function App() {
-  React.useEffect(() => {
+  useEffect(() => {
     window.addEventListener('unhandledrejection', (event) => {
       console.error('Unhandled rejection:', event.reason);
       event.preventDefault();
