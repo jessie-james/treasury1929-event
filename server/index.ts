@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { registerPaymentRoutes } from "./routes-payment";
 import { registerStandalonePaymentRoutes } from "./routes-standalone";
+import { registerOtpRoutes } from "./routes-otp";
 import { setupVite, log, serveStatic } from "./vite";
 import { storage } from "./storage";
 import cors from 'cors';
@@ -136,6 +137,10 @@ app.use((req, res, next) => {
     // Set up standalone payment routes (without authentication dependency)
     log("Setting up standalone payment routes...");
     registerStandalonePaymentRoutes(app);
+    
+    // Set up one-time-token payment routes
+    log("Setting up OTP payment routes...");
+    registerOtpRoutes(app);
 
     // Error logging middleware
     app.use(async (err: any, req: Request, res: Response, next: NextFunction) => {
