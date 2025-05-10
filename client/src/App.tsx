@@ -24,6 +24,8 @@ import EntrancePage from "@/pages/backoffice/EntrancePage";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import ProfilePage from "@/pages/ProfilePage";
 import StripeDiagnostics from "@/pages/StripeDiagnostics";
+import StandalonePaymentPage from "@/pages/StandalonePaymentPage";
+import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import { Header } from "./components/Header";
 import { BottomNavigation } from "./components/BottomNavigation";
 import { useAuth } from "./hooks/use-auth";
@@ -61,6 +63,8 @@ function Router() {
         <ProtectedRoute path="/backoffice/stripe-diagnostics" component={StripeDiagnostics} requiredRole="admin" />
         <ProtectedRoute path="/dashboard" component={CustomerDashboard} />
         <Route path="/profile" component={ProfilePage} />
+        <Route path="/standalone-payment/:reference" component={StandalonePaymentPage} />
+        <Route path="/payment-success" component={PaymentSuccessPage} />
         <Route component={NotFound} />
       </Switch>
 

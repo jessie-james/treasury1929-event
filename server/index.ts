@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { registerPaymentRoutes } from "./routes-payment";
 import { registerStandalonePaymentRoutes } from "./routes-standalone";
 import { registerOtpRoutes } from "./routes-otp";
+import { registerDirectPaymentRoutes } from "./routes-direct";
 import { setupVite, log, serveStatic } from "./vite";
 import { storage } from "./storage";
 import cors from 'cors';
@@ -141,6 +142,10 @@ app.use((req, res, next) => {
     // Set up one-time-token payment routes
     log("Setting up OTP payment routes...");
     registerOtpRoutes(app);
+    
+    // Set up direct payment routes (completely self-contained)
+    log("Setting up direct payment routes...");
+    registerDirectPaymentRoutes(app);
 
     // Error logging middleware
     app.use(async (err: any, req: Request, res: Response, next: NextFunction) => {
