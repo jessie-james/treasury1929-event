@@ -86,7 +86,7 @@ import {
   Grab,
   Move,
   Hand,
-  SelectionSlash,
+  Eraser,
   MapPin,
   FolderOpen,
   Maximize,
