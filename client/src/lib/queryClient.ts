@@ -307,17 +307,28 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Set up a simpler global error handler
+// Set up a comprehensive global error handler
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('Global error handler caught unhandled rejection:', event.reason);
-  
-  // Prevent the default handler (which would log it again)
+  // Prevent default handler
   event.preventDefault();
   
-  // Check if this is a React Query error
-  if (event.reason?.name === 'QueryError' || 
-      event.reason?.name === 'MutationError' ||
-      (event.reason && event.reason.toString().includes('TanStack Query'))) {
-    console.info('This appears to be a React Query error. Additional context may be found in the error object above.');
+  // Enhanced error logging
+  const error = event.reason;
+  const errorContext = {
+    name: error?.name,
+    message: error?.message,
+    stack: error?.stack,
+    isQueryError: error?.name === 'QueryError' || error?.name === 'MutationError',
+    isTanStackError: error?.toString().includes('TanStack Query'),
+    isAuthError: error?.message?.includes('401') || error?.message?.includes('Not authenticated')
+  };
+
+  console.error('Global error handler caught unhandled rejection:', errorContext);
+
+  // Handle specific error types
+  if (errorContext.isAuthError) {
+    console.info('Authentication error detected. User may need to log in again.');
+  } else if (errorContext.isQueryError || errorContext.isTanStackError) {
+    console.info('React Query error detected. Check network requests and authentication state.');
   }
 });
