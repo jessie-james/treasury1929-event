@@ -27,19 +27,26 @@ if (!stripeKey) {
   console.error("Stripe publishable key is not defined. Please check your environment variables (VITE_STRIPE_PUBLIC_KEY or VITE_STRIPE_PUBLISHABLE_KEY).");
 }
 
-// Create a stable Stripe promise - with error handling
+// Create a stable Stripe promise - with improved error handling
 let stripePromise;
-try {
-  stripePromise = loadStripe(stripeKey);
-  
-  // Add a catch handler directly on the promise
-  stripePromise.catch(error => {
-    console.error("Error initializing Stripe:", error);
-  });
-  
-  console.log("Stripe initialized with key prefix:", stripeKey?.substring(0, 7));
-} catch (error) {
-  console.error("Failed to initialize Stripe:", error);
+if (!stripeKey) {
+  console.error("Missing Stripe publishable key");
+} else {
+  try {
+    // Only initialize once
+    if (!stripePromise) {
+      stripePromise = loadStripe(stripeKey).catch(error => {
+        console.error("Error initializing Stripe:", error);
+        return null;
+      });
+      
+      // Log initialization attempt only once
+      console.log("Stripe initialized with key prefix:", stripeKey.substring(0, 7));
+    }
+  } catch (error) {
+    console.error("Failed to initialize Stripe:", error);
+    stripePromise = Promise.resolve(null);
+  }
 }
 
 interface Props {
