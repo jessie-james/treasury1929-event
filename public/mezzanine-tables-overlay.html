@@ -19,6 +19,7 @@
       height: 500px; /* Fixed height to match floor plan image */
       margin: 0 auto;
       overflow: hidden; /* Prevent overflow */
+      background-color: #fff; /* White background */
     }
     
     .floor-plan {
@@ -40,11 +41,12 @@
       align-items: center;
       justify-content: center;
       font-weight: bold;
-      font-size: 20px;
+      font-size: 22px;
       color: #333;
-      border: 2px solid rgba(34, 197, 94, 0.6);
-      background-color: rgba(34, 197, 94, 0.3);
+      border: 2px solid rgba(34, 197, 94, 0.7);
+      background-color: rgba(34, 197, 94, 0.4);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transform: translate(-50%, -50%); /* Center the circle on the coordinates */
     }
     
     .table-area:hover {
@@ -59,13 +61,13 @@
     }
     
     .table-area.unavailable {
-      background-color: rgba(75, 85, 99, 0.3);
-      border-color: rgba(75, 85, 99, 0.6);
+      background-color: rgba(160, 160, 160, 0.5);
+      border-color: rgba(120, 120, 120, 0.7);
       cursor: not-allowed;
     }
     
     .table-area.unavailable:hover {
-      background-color: rgba(75, 85, 99, 0.4);
+      background-color: rgba(160, 160, 160, 0.6);
     }
     
     .tooltip {
@@ -119,13 +121,15 @@
       // Define the mezzanine tables with precise coordinates matching the floor plan image
       // The table IDs match exactly the numbers on the floor plan
       const tableDefinitions = [
-        { id: 1, left: "932px", top: "322px", width: "80px", height: "80px", seatCount: 2 },
-        { id: 2, left: "830px", top: "392px", width: "80px", height: "80px", seatCount: 2 },
-        { id: 3, left: "678px", top: "392px", width: "80px", height: "80px", seatCount: 2 },
-        { id: 4, left: "517px", top: "392px", width: "80px", height: "80px", seatCount: 2 },
-        { id: 5, left: "358px", top: "392px", width: "80px", height: "80px", seatCount: 2 },
-        { id: 6, left: "170px", top: "394px", width: "80px", height: "80px", seatCount: 2 },
-        { id: 7, left: "83px", top: "320px", width: "80px", height: "80px", seatCount: 2 }
+        // Right side tables
+        { id: 1, left: "950px", top: "325px", width: "70px", height: "70px", seatCount: 2 },
+        { id: 2, left: "835px", top: "397px", width: "70px", height: "70px", seatCount: 2 },
+        { id: 3, left: "700px", top: "397px", width: "70px", height: "70px", seatCount: 2 },
+        { id: 4, left: "540px", top: "397px", width: "70px", height: "70px", seatCount: 2 },
+        { id: 5, left: "375px", top: "397px", width: "70px", height: "70px", seatCount: 2 },
+        // Bottom left tables (previously showing incorrectly in upper area)
+        { id: 6, left: "195px", top: "397px", width: "70px", height: "70px", seatCount: 2 },
+        { id: 7, left: "85px", top: "320px", width: "70px", height: "70px", seatCount: 2 }
       ];
       
       // Fetch seat availability from API
