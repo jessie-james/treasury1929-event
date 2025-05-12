@@ -521,20 +521,33 @@ export async function registerRoutes(app: Express) {
       });
       
       // Get all tables in the mezzanine (tables 1-7, all with 2 seats)
+      // Tables 4 and 5 are set to unavailable by default
       const tables = [
-        { id: 1, seatCount: 2 },
-        { id: 2, seatCount: 2 },
-        { id: 3, seatCount: 2 },
-        { id: 4, seatCount: 2 },
-        { id: 5, seatCount: 2 },
-        { id: 6, seatCount: 2 },
-        { id: 7, seatCount: 2 }
+        { id: 1, seatCount: 2, isAvailable: true },
+        { id: 2, seatCount: 2, isAvailable: true },
+        { id: 3, seatCount: 2, isAvailable: true },
+        { id: 4, seatCount: 2, isAvailable: false },
+        { id: 5, seatCount: 2, isAvailable: false },
+        { id: 6, seatCount: 2, isAvailable: true },
+        { id: 7, seatCount: 2, isAvailable: true }
       ];
       
       // Create availability data for all tables
       const availability = [];
       
       for (const table of tables) {
+        // Skip generating entries for permanently unavailable tables
+        if (!table.isAvailable) {
+          for (let seatNum = 1; seatNum <= table.seatCount; seatNum++) {
+            availability.push({
+              tableId: table.id,
+              seatNumber: seatNum,
+              isBooked: true // Mark as booked to make the table appear unavailable
+            });
+          }
+          continue;
+        }
+        
         for (let seatNum = 1; seatNum <= table.seatCount; seatNum++) {
           const isBooked = bookedSeatsByTable[table.id]?.has(seatNum) || false;
           
