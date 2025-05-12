@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Table Position Editor</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #f8f8f8;
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    
+    .editor-container {
+      display: flex;
+      max-width: 1400px;
+      margin: 0 auto;
+      gap: 20px;
+    }
+    
+    .map-container {
+      flex: 1;
+      position: relative;
+      border: 1px solid #ccc;
+      background-color: white;
+      height: 600px;
+      overflow: hidden;
+    }
+    
+    .controls {
+      width: 400px;
+      padding: 15px;
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 14px;
+      height: fit-content;
+    }
+    
+    .floor-plan {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    
+    .table-circle {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 18px;
+      color: #333;
+      cursor: grab;
+      z-index: 10;
+      user-select: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+    
+    .table-circle.active {
+      cursor: grabbing;
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+    }
+    
+    .table-circle.available {
+      background-color: rgba(74, 222, 128, 0.4);
+      border: 2px solid rgba(22, 163, 74, 0.7);
+    }
+    
+    .table-circle.unavailable {
+      background-color: rgba(156, 163, 175, 0.5);
+      border: 2px solid rgba(107, 114, 128, 0.7);
+    }
+    
+    .table-controls {
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .table-controls h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    
+    .form-group {
+      margin-bottom: 10px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .form-row .form-group {
+      flex: 1;
+    }
+    
+    .table-list {
+      margin-bottom: 20px;
+    }
+    
+    .table-list h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+    
+    .table-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+      padding: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .table-item:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .table-item.selected {
+      background-color: #e5f1ff;
+    }
+    
+    .table-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    
+    .table-color.available {
+      background-color: rgba(74, 222, 128, 0.4);
+      border: 2px solid rgba(22, 163, 74, 0.7);
+    }
+    
+    .table-color.unavailable {
+      background-color: rgba(156, 163, 175, 0.5);
+      border: 2px solid rgba(107, 114, 128, 0.7);
+    }
+    
+    .table-details {
+      flex-grow: 1;
+      font-size: 14px;
+    }
+    
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: opacity 0.2s;
+    }
+    
+    button:hover {
+      opacity: 0.9;
+    }
+    
+    button:active {
+      opacity: 0.8;
+    }
+    
+    button.primary {
+      background-color: #3b82f6;
+      color: white;
+    }
+    
+    button.secondary {
+      background-color: #e5e7eb;
+      color: #333;
+    }
+    
+    .code-output {
+      margin-top: 20px;
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .status {
+      margin-top: 20px;
+      padding: 10px;
+      background-color: #e5f1ff;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .status.error {
+      background-color: #fee2e2;
+    }
+    
+    .status.success {
+      background-color: #dcfce7;
+    }
+  </style>
+</head>
+<body>
+  <h1>Table Position Editor</h1>
+  
+  <div class="editor-container">
+    <div class="map-container" id="mapContainer">
+      <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan">
+      <!-- Tables will be added dynamically -->
+    </div>
+    
+    <div class="controls">
+      <div class="table-controls" id="tableControls">
+        <h3>Table Properties</h3>
+        <div class="form-group">
+          <label for="tableStatus">Status</label>
+          <select id="tableStatus" disabled>
+            <option value="available">Available</option>
+            <option value="unavailable">Unavailable</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tableLeft">Left (px)</label>
+            <input type="number" id="tableLeft" disabled>
+          </div>
+          <div class="form-group">
+            <label for="tableTop">Top (px)</label>
+            <input type="number" id="tableTop" disabled>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="tableWidth">Width (px)</label>
+            <input type="number" id="tableWidth" disabled value="60">
+          </div>
+          <div class="form-group">
+            <label for="tableHeight">Height (px)</label>
+            <input type="number" id="tableHeight" disabled value="60">
+          </div>
+        </div>
+        <p><em>Select a table to edit its properties or drag it to reposition.</em></p>
+      </div>
+      
+      <div class="table-list">
+        <h3>Tables</h3>
+        <div id="tableListContainer">
+          <!-- Table items will be added dynamically -->
+        </div>
+      </div>
+      
+      <div class="buttons">
+        <button id="generateCodeBtn" class="primary">Generate Code</button>
+        <button id="resetBtn" class="secondary">Reset Positions</button>
+      </div>
+      
+      <div class="code-output" id="codeOutput">// Generated code will appear here</div>
+      
+      <div class="status" id="statusMessage" style="display: none;"></div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Reference to containers
+      const mapContainer = document.getElementById('mapContainer');
+      const tableListContainer = document.getElementById('tableListContainer');
+      const codeOutput = document.getElementById('codeOutput');
+      const statusMessage = document.getElementById('statusMessage');
+      
+      // Form controls
+      const tableLeft = document.getElementById('tableLeft');
+      const tableTop = document.getElementById('tableTop');
+      const tableWidth = document.getElementById('tableWidth');
+      const tableHeight = document.getElementById('tableHeight');
+      const tableStatus = document.getElementById('tableStatus');
+      
+      // Buttons
+      const generateCodeBtn = document.getElementById('generateCodeBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      
+      // Currently selected table
+      let selectedTable = null;
+      
+      // Dragging state
+      let isDragging = false;
+      let dragOffset = { x: 0, y: 0 };
+      
+      // Table definitions - initial positions based on the original settings
+      const tables = [
+        { id: 1, left: 939, top: 320, width: 60, height: 60, status: 'available' },
+        { id: 2, left: 838, top: 397, width: 60, height: 60, status: 'available' },
+        { id: 3, left: 675, top: 397, width: 60, height: 60, status: 'available' },
+        { id: 4, left: 518, top: 397, width: 60, height: 60, status: 'unavailable' },
+        { id: 5, left: 359, top: 397, width: 60, height: 60, status: 'unavailable' },
+        { id: 6, left: 181, top: 397, width: 60, height: 60, status: 'available' },
+        { id: 7, left: 83, top: 320, width: 60, height: 60, status: 'available' }
+      ];
+      
+      // Create table elements
+      function createTables() {
+        tables.forEach(table => {
+          // Create the visual table element
+          const tableElement = document.createElement('div');
+          tableElement.className = `table-circle ${table.status}`;
+          tableElement.setAttribute('data-table-id', table.id);
+          tableElement.style.width = `${table.width}px`;
+          tableElement.style.height = `${table.height}px`;
+          tableElement.style.left = `${table.left - table.width/2}px`;
+          tableElement.style.top = `${table.top - table.height/2}px`;
+          tableElement.textContent = table.id;
+          
+          // Make the table draggable
+          tableElement.addEventListener('mousedown', handleTableMouseDown);
+          
+          // Add to map container
+          mapContainer.appendChild(tableElement);
+          
+          // Create list item
+          createTableListItem(table);
+        });
+      }
+      
+      // Create a table list item
+      function createTableListItem(table) {
+        const tableItem = document.createElement('div');
+        tableItem.className = 'table-item';
+        tableItem.setAttribute('data-table-id', table.id);
+        
+        const tableColor = document.createElement('div');
+        tableColor.className = `table-color ${table.status}`;
+        
+        const tableDetails = document.createElement('div');
+        tableDetails.className = 'table-details';
+        tableDetails.textContent = `Table ${table.id} - ${table.status}, pos: (${table.left}, ${table.top})`;
+        
+        tableItem.appendChild(tableColor);
+        tableItem.appendChild(tableDetails);
+        
+        tableItem.addEventListener('click', () => {
+          selectTable(table.id);
+        });
+        
+        tableListContainer.appendChild(tableItem);
+      }
+      
+      // Select a table
+      function selectTable(tableId) {
+        // Clear previous selection
+        if (selectedTable) {
+          const prevTableItem = document.querySelector(`.table-item[data-table-id="${selectedTable}"]`);
+          if (prevTableItem) prevTableItem.classList.remove('selected');
+        }
+        
+        selectedTable = tableId;
+        
+        // Update list selection
+        const tableItem = document.querySelector(`.table-item[data-table-id="${tableId}"]`);
+        if (tableItem) tableItem.classList.add('selected');
+        
+        // Find the table data
+        const table = tables.find(t => t.id === tableId);
+        if (table) {
+          // Enable and update form controls
+          tableLeft.disabled = false;
+          tableTop.disabled = false;
+          tableWidth.disabled = false;
+          tableHeight.disabled = false;
+          tableStatus.disabled = false;
+          
+          // Set values
+          tableLeft.value = table.left;
+          tableTop.value = table.top;
+          tableWidth.value = table.width;
+          tableHeight.value = table.height;
+          tableStatus.value = table.status;
+          
+          // Add input event listeners
+          tableLeft.onchange = () => updateTablePosition(tableId, 'left', parseInt(tableLeft.value));
+          tableTop.onchange = () => updateTablePosition(tableId, 'top', parseInt(tableTop.value));
+          tableWidth.onchange = () => updateTablePosition(tableId, 'width', parseInt(tableWidth.value));
+          tableHeight.onchange = () => updateTablePosition(tableId, 'height', parseInt(tableHeight.value));
+          tableStatus.onchange = () => updateTablePosition(tableId, 'status', tableStatus.value);
+        }
+      }
+      
+      // Update table position
+      function updateTablePosition(tableId, property, value) {
+        const table = tables.find(t => t.id === tableId);
+        if (!table) return;
+        
+        // Update the data
+        table[property] = value;
+        
+        // Update the visual element
+        const tableElement = document.querySelector(`.table-circle[data-table-id="${tableId}"]`);
+        if (tableElement) {
+          if (property === 'left' || property === 'top') {
+            tableElement.style[property === 'left' ? 'left' : 'top'] = `${value - (property === 'left' ? table.width : table.height)/2}px`;
+          } else if (property === 'width' || property === 'height') {
+            tableElement.style[property] = `${value}px`;
+            // Recalculate position to maintain center point
+            tableElement.style.left = `${table.left - table.width/2}px`;
+            tableElement.style.top = `${table.top - table.height/2}px`;
+          } else if (property === 'status') {
+            tableElement.className = `table-circle ${value}`;
+          }
+        }
+        
+        // Update the list item
+        const tableItem = document.querySelector(`.table-item[data-table-id="${tableId}"]`);
+        if (tableItem) {
+          const tableColor = tableItem.querySelector('.table-color');
+          const tableDetails = tableItem.querySelector('.table-details');
+          
+          if (tableColor && property === 'status') {
+            tableColor.className = `table-color ${value}`;
+          }
+          
+          if (tableDetails) {
+            tableDetails.textContent = `Table ${table.id} - ${table.status}, pos: (${table.left}, ${table.top})`;
+          }
+        }
+        
+        // Show status message
+        showStatus(`Updated table ${tableId} ${property} to ${value}`, 'success');
+      }
+      
+      // Handle mouse down on a table
+      function handleTableMouseDown(e) {
+        if (e.button !== 0) return; // Only left button
+        
+        const tableElement = e.currentTarget;
+        const tableId = parseInt(tableElement.getAttribute('data-table-id'));
+        
+        // Select this table
+        selectTable(tableId);
+        
+        // Start dragging
+        isDragging = true;
+        tableElement.classList.add('active');
+        
+        // Calculate offset from the event to the element's top-left
+        const rect = tableElement.getBoundingClientRect();
+        dragOffset = {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        };
+        
+        // Prevent default behavior
+        e.preventDefault();
+      }
+      
+      // Handle mouse move for dragging
+      function handleMouseMove(e) {
+        if (!isDragging || !selectedTable) return;
+        
+        const table = tables.find(t => t.id === selectedTable);
+        if (!table) return;
+        
+        // Calculate new position
+        const tableElement = document.querySelector(`.table-circle[data-table-id="${selectedTable}"]`);
+        if (tableElement) {
+          const mapRect = mapContainer.getBoundingClientRect();
+          
+          // Calculate new center position
+          const newCenterX = e.clientX - mapRect.left - dragOffset.x + table.width/2;
+          const newCenterY = e.clientY - mapRect.top - dragOffset.y + table.height/2;
+          
+          // Update element position
+          tableElement.style.left = `${newCenterX - table.width/2}px`;
+          tableElement.style.top = `${newCenterY - table.height/2}px`;
+          
+          // Update the data
+          table.left = Math.round(newCenterX);
+          table.top = Math.round(newCenterY);
+          
+          // Update form controls
+          tableLeft.value = table.left;
+          tableTop.value = table.top;
+          
+          // Update list item
+          const tableItem = document.querySelector(`.table-item[data-table-id="${selectedTable}"]`);
+          if (tableItem) {
+            const tableDetails = tableItem.querySelector('.table-details');
+            if (tableDetails) {
+              tableDetails.textContent = `Table ${table.id} - ${table.status}, pos: (${table.left}, ${table.top})`;
+            }
+          }
+        }
+      }
+      
+      // Handle mouse up to end dragging
+      function handleMouseUp() {
+        if (!isDragging) return;
+        
+        const tableElement = document.querySelector(`.table-circle[data-table-id="${selectedTable}"]`);
+        if (tableElement) {
+          tableElement.classList.remove('active');
+        }
+        
+        isDragging = false;
+      }
+      
+      // Generate HTML code for the table positions
+      function generateCode() {
+        let code = '<!-- Table positions for mezzanine floor plan -->\n';
+        
+        tables.forEach(table => {
+          code += `<div class="table-circle ${table.status}" style="width: ${table.width}px; height: ${table.height}px; top: ${table.top}px; left: ${table.left}px; transform: translate(-50%, -50%);" data-table-id="${table.id}">\n`;
+          code += `  ${table.id}\n`;
+          code += `  <div class="tooltip">Table ${table.id}: ${table.status === 'available' ? '2 seats' : 'Unavailable'}</div>\n`;
+          code += `</div>\n\n`;
+        });
+        
+        // Add JavaScript array data
+        code += '/* JavaScript table definitions */\n';
+        code += 'const tables = [\n';
+        tables.forEach(table => {
+          code += `  { id: ${table.id}, left: ${table.left}, top: ${table.top}, width: ${table.width}, height: ${table.height}, status: '${table.status}' },\n`;
+        });
+        code += '];\n';
+        
+        return code;
+      }
+      
+      // Reset table positions
+      function resetPositions() {
+        // Clear existing tables
+        const tableElements = document.querySelectorAll('.table-circle');
+        tableElements.forEach(el => el.remove());
+        
+        const tableItems = document.querySelectorAll('.table-item');
+        tableItems.forEach(el => el.remove());
+        
+        // Reset selected table
+        selectedTable = null;
+        
+        // Reset form controls
+        tableLeft.disabled = true;
+        tableTop.disabled = true;
+        tableWidth.disabled = true;
+        tableHeight.disabled = true;
+        tableStatus.disabled = true;
+        
+        // Reset values
+        tableLeft.value = '';
+        tableTop.value = '';
+        tableWidth.value = '60';
+        tableHeight.value = '60';
+        tableStatus.value = 'available';
+        
+        // Create tables again
+        createTables();
+        
+        showStatus('Table positions have been reset', 'success');
+      }
+      
+      // Show status message
+      function showStatus(message, type = 'info') {
+        statusMessage.textContent = message;
+        statusMessage.className = `status ${type}`;
+        statusMessage.style.display = 'block';
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+          statusMessage.style.display = 'none';
+        }, 3000);
+      }
+      
+      // Generate code button
+      generateCodeBtn.addEventListener('click', () => {
+        const code = generateCode();
+        codeOutput.textContent = code;
+        showStatus('Code generated successfully', 'success');
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(code)
+          .then(() => {
+            showStatus('Code copied to clipboard!', 'success');
+          })
+          .catch(err => {
+            showStatus('Failed to copy: ' + err, 'error');
+          });
+      });
+      
+      // Reset button
+      resetBtn.addEventListener('click', resetPositions);
+      
+      // Global mouse events for dragging
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      
+      // Initialize tables
+      createTables();
+    });
+  </script>
+</body>
+</html>
