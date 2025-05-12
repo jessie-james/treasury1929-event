@@ -13,6 +13,7 @@ import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { db } from "./db";
 import crypto from 'crypto';
+import { registerAdminRoutes } from "./routes-admin";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -163,6 +164,9 @@ const updateFoodOptionsOrderSchema = z.object({
 export async function registerRoutes(app: Express) {
   // Set up authentication
   setupAuth(app);
+  
+  // Register admin routes for venue layout management
+  registerAdminRoutes(app);
 
   const httpServer = createServer(app);
 

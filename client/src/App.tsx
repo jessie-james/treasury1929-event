@@ -22,6 +22,7 @@ import LogsPage from "@/pages/backoffice/LogsPage";
 import BookingManagementPage from "@/pages/backoffice/BookingManagementPage";
 import EntrancePage from "@/pages/backoffice/EntrancePage";
 import PaymentLinksPage from "@/pages/backoffice/PaymentLinksPage";
+import LayoutSettingsPage from "@/pages/backoffice/LayoutSettingsPage";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import ProfilePage from "@/pages/ProfilePage";
 import StripeDiagnostics from "@/pages/StripeDiagnostics";
@@ -60,6 +61,7 @@ function Router() {
         <ProtectedRoute path="/backoffice/payment-links" component={PaymentLinksPage} />
         <ProtectedRoute path="/backoffice/events" component={EventsPage} />
         <ProtectedRoute path="/backoffice/food" component={FoodPage} />
+        <ProtectedRoute path="/backoffice/layout-settings" component={LayoutSettingsPage} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/users" component={UsersPage} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/logs" component={LogsPage} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/stripe-diagnostics" component={StripeDiagnostics} requiredRole="admin" />
