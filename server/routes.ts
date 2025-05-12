@@ -177,9 +177,11 @@ export async function registerRoutes(app: Express) {
     perMessageDeflate: false // Disable compression for faster startup
   });
 
-  // Keep track of connected clients and their events of interest
+  // Keep track of connected clients and their subscriptions
   const clientSubscriptions = new Map<WebSocket, Set<number>>();
-
+  // Track venue layout editing sessions
+  const layoutEditors = new Map<number, Set<WebSocket>>();
+  
   wss.on('connection', (ws) => {
     clients.add(ws);
     clientSubscriptions.set(ws, new Set());
@@ -188,13 +190,81 @@ export async function registerRoutes(app: Express) {
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
+        
+        // Event subscription handling
         if (data.type === 'subscribe_event' && typeof data.eventId === 'number') {
-          // Subscribe client to updates for a specific event
           const subscriptions = clientSubscriptions.get(ws);
           if (subscriptions) {
             subscriptions.add(data.eventId);
             console.log(`Client subscribed to event ${data.eventId}`);
           }
+        }
+        
+        // Layout editor collaboration
+        else if (data.type === 'join_layout_editor' && typeof data.venueId === 'number') {
+          // Add client to venue layout editors
+          if (!layoutEditors.has(data.venueId)) {
+            layoutEditors.set(data.venueId, new Set());
+          }
+          layoutEditors.get(data.venueId)?.add(ws);
+          
+          // Notify other editors about the new participant
+          const editors = layoutEditors.get(data.venueId) || new Set();
+          const editorCount = editors.size;
+          
+          // Send to all editors in this venue except the sender
+          editors.forEach(client => {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'editor_joined',
+                editorCount,
+                editorId: data.editorId,
+                venueId: data.venueId
+              }));
+            }
+          });
+          
+          // Send current editor count to the joining client
+          ws.send(JSON.stringify({
+            type: 'editor_count',
+            editorCount,
+            venueId: data.venueId
+          }));
+        }
+        
+        // Table update synchronization
+        else if (data.type === 'table_update' && typeof data.venueId === 'number' && data.table) {
+          // Forward the table update to all other clients editing this venue's layout
+          const editors = layoutEditors.get(data.venueId) || new Set();
+          
+          editors.forEach(client => {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'table_update',
+                editorId: data.editorId,
+                venueId: data.venueId,
+                table: data.table,
+                action: data.action || 'update'
+              }));
+            }
+          });
+        }
+        
+        // Editor cursor position broadcasting
+        else if (data.type === 'editor_position' && typeof data.venueId === 'number') {
+          // Forward cursor position to other editors
+          const editors = layoutEditors.get(data.venueId) || new Set();
+          
+          editors.forEach(client => {
+            if (client !== ws && client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'editor_position',
+                editorId: data.editorId,
+                venueId: data.venueId,
+                position: data.position
+              }));
+            }
+          });
         }
       } catch (error) {
         console.error('Failed to parse WebSocket message:', error);
@@ -204,6 +274,24 @@ export async function registerRoutes(app: Express) {
     ws.on('close', () => {
       clients.delete(ws);
       clientSubscriptions.delete(ws);
+      
+      // Remove from all layout editor sessions
+      layoutEditors.forEach((editors, venueId) => {
+        if (editors.has(ws)) {
+          editors.delete(ws);
+          
+          // Notify remaining editors
+          editors.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'editor_left',
+                editorCount: editors.size,
+                venueId
+              }));
+            }
+          });
+        }
+      });
     });
   });
 

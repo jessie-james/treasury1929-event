@@ -1415,7 +1415,7 @@ export default function LayoutSettings() {
     }
     
     // Render based on shape
-    if (table.shape === 'round' || table.shape === 'circle') {
+    if (table.shape === 'round') {
       return (
         <div
           key={table.id}
@@ -1982,7 +1982,7 @@ export default function LayoutSettings() {
                   onClick={toggleMultiSelectMode}
                   title={isMultiSelectMode ? "Cancel Multi-Select" : "Enable Multi-Select"}
                 >
-                  {isMultiSelectMode ? <SelectionSlash className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                  {isMultiSelectMode ? <Eraser className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
                 </Button>
                 
                 <Button 
