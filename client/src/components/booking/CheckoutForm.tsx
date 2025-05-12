@@ -27,26 +27,32 @@ if (!stripeKey) {
   console.error("Stripe publishable key is not defined. Please check your environment variables (VITE_STRIPE_PUBLIC_KEY or VITE_STRIPE_PUBLISHABLE_KEY).");
 }
 
-// Create a stable Stripe promise - with improved error handling
+// Create a stable Stripe promise - with comprehensive error handling
 let stripePromise;
-if (!stripeKey) {
-  console.error("Missing Stripe publishable key");
-} else {
-  try {
-    // Only initialize once
-    if (!stripePromise) {
-      stripePromise = loadStripe(stripeKey).catch(error => {
-        console.error("Error initializing Stripe:", error);
-        return null;
-      });
-      
-      // Log initialization attempt only once
-      console.log("Stripe initialized with key prefix:", stripeKey.substring(0, 7));
-    }
-  } catch (error) {
-    console.error("Failed to initialize Stripe:", error);
-    stripePromise = Promise.resolve(null);
+try {
+  if (!stripeKey) {
+    throw new Error("Missing Stripe publishable key");
   }
+
+  stripePromise = loadStripe(stripeKey).catch(error => {
+    console.error("Error initializing Stripe:", error);
+    // Re-throw to be caught by the outer try-catch
+    throw error;
+  });
+
+  console.log("Stripe initialized with key prefix:", stripeKey.substring(0, 7));
+} catch (error) {
+  console.error("Failed to initialize Stripe:", error);
+  // Set stripePromise to a rejected promise to handle the error gracefully
+  stripePromise = Promise.reject(error);
+
+  // Add global rejection handler
+  window.addEventListener('unhandledrejection', event => {
+    if (event.reason === error) {
+      event.preventDefault();
+      console.warn('Handled Stripe initialization error:', error);
+    }
+  });
 }
 
 interface Props {
@@ -342,7 +348,7 @@ export function CheckoutForm({
           localStorage.setItem("payment_auth_time", Date.now().toString());
         } else {
           console.warn("Could not get payment token with credentials, trying simplified request");
-          
+
           // Try again without credentials (in case CORS is blocking credentialed request)
           const simpleResponse = await fetch(tokenUrl, {
             method: 'POST',
@@ -355,12 +361,12 @@ export function CheckoutForm({
               noCredentials: true // Signal to server this is a non-credentialed request
             })
           });
-          
+
           if (simpleResponse.ok) {
             const simpleData = await simpleResponse.json();
             paymentToken = simpleData.paymentToken;
             console.log("Got payment token via simplified request");
-            
+
             localStorage.setItem("payment_token", paymentToken);
           } else {
             console.warn("Both token requests failed, proceeding with fallback mechanisms");
@@ -459,22 +465,22 @@ export function CheckoutForm({
   // Retry handler for payment intent creation
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
-    
+
     // Check if we need to try authentication recovery first
     const userAuthState = localStorage.getItem("user_auth_state");
     if (!userAuthState || userAuthState === "logged_out") {
       console.log("Detected logged out state during retry, will attempt to restore session");
-      
+
       toast({
         title: "Session recovery",
         description: "Attempting to restore your session before retrying...",
       });
-      
+
       // Force reload auth state before retry
       setTimeout(() => {
         // Reset auth state to trigger a new authentication check
         localStorage.setItem("user_auth_state", "checking");
-        
+
         // After a short delay, try the payment intent creation again
         setTimeout(getClientSecret, 500);
       }, 1000);
@@ -492,22 +498,22 @@ export function CheckoutForm({
       getClientSecret();
     } else {
       console.log("Waiting for user authentication before getting client secret");
-      
+
       // Additional authentication recovery attempt for edge cases
       const userAuthState = localStorage.getItem("user_auth_state");
       const userEmail = localStorage.getItem("user_email");
-      
+
       if (userAuthState === "logged_in" && userEmail && !user) {
         console.log("User state mismatch detected. Auth claims logged in but no user object.");
-        
+
         // Force auth state check in React Query
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-        
+
         // Set a timeout to retry after a short delay to allow auth refresh
         setTimeout(() => {
           if (!user) {
             setError("Authentication issue detected. Please try logging in again.");
-            
+
             toast({
               title: "Authentication Issue",
               description: "Please log out and back in to continue with your payment.",
@@ -610,7 +616,7 @@ export function CheckoutForm({
             We've switched to an alternative payment method for better reliability.
           </p>
         </div>
-        
+
         {/* OTP Payment Form */}
         <OtpPaymentForm
           amount={selectedSeats.length * 19.99}
@@ -627,7 +633,7 @@ export function CheckoutForm({
       </div>
     );
   }
-  
+
   // Default standard payment form
   return (
     <div>      
