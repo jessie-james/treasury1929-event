@@ -2,10 +2,12 @@ import {
   type Event, type FoodOption, type Booking, type Table, type Seat,
   type SeatBooking, type InsertBooking, type User, type InsertUser,
   type AdminLog, type InsertAdminLog, type SeatPosition, type InsertSeatPosition,
-  events, foodOptions, bookings, users, adminLogs, seatPositions
+  type TableWithSeats, type InsertTable, type InsertSeat, type InsertSeatBooking,
+  events, foodOptions, bookings, users, adminLogs, seatPositions,
+  tables, seats, seatBookings
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
 import { z } from "zod";
 import { type InsertEvent } from "@shared/schema";
 
@@ -27,11 +29,25 @@ export interface IStorage {
   deleteEvent(id: number): Promise<void>;
   updateEventsOrder(orderedIds: number[]): Promise<void>; // Update display order of events
 
-  // Tables and Seats
+  // Table and Seat Management (Legacy methods)
   getTables(): Promise<Table[]>;
   getTableSeats(tableId: number): Promise<Seat[]>;
   getTableSeatsAvailability(tableId: number, eventId: number): Promise<SeatBooking[]>;
   updateSeatAvailability(tableId: number, seatNumbers: number[], eventId: number, isBooked: boolean): Promise<void>;
+  
+  // Layout Editor
+  getTablesWithSeats(venueId: number): Promise<TableWithSeats[]>;
+  getTableWithSeats(tableId: number): Promise<TableWithSeats | undefined>;
+  createTable(table: InsertTable): Promise<Table>;
+  updateTable(id: number, updates: Partial<InsertTable>): Promise<Table | undefined>;
+  deleteTable(id: number): Promise<void>;
+  createSeat(seat: InsertSeat): Promise<Seat>;
+  createSeatsForTable(tableId: number, capacity: number, tableType: string, rotation: number): Promise<Seat[]>;
+  updateSeat(id: number, updates: Partial<InsertSeat>): Promise<Seat | undefined>;
+  deleteSeat(id: number): Promise<void>;
+  deleteSeatsForTable(tableId: number): Promise<void>;
+  getTableAvailability(tableId: number, eventId: number): Promise<boolean>;
+  getVenueAvailability(venueId: number, eventId: number): Promise<{tableId: number, available: boolean}[]>;
 
   // Food Options
   getFoodOptions(): Promise<FoodOption[]>;

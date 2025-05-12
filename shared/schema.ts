@@ -36,8 +36,39 @@ export const venues = pgTable("venues", {
   managerId: integer("manager_id").notNull(), // References users with role 'venue_manager'
 });
 
-// Tables and seats have been removed and will be reimplemented with a new approach
-// Removing these tables requires adjusting the booking schema to accommodate a new approach
+// Layout Editor and Table Management
+export const tables = pgTable("tables", {
+  id: serial("id").primaryKey(),
+  venueId: integer("venue_id").notNull(),
+  name: text("name").notNull(), // e.g., "Table 1", "VIP Table"
+  tableType: text("table_type").notNull(), // 'circle' or 'half-circle'
+  capacity: integer("capacity").notNull(),
+  xPosition: real("x_position").notNull(),
+  yPosition: real("y_position").notNull(),
+  width: real("width").notNull(),
+  height: real("height").notNull(),
+  rotation: integer("rotation").default(0), // For half-circle orientation (0, 90, 180, 270)
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const seats = pgTable("seats", {
+  id: serial("id").primaryKey(),
+  tableId: integer("table_id").notNull(),
+  seatNumber: integer("seat_number").notNull(),
+  xOffset: real("x_offset").notNull(), // Relative to table position
+  yOffset: real("y_offset").notNull(), // Relative to table position
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const seatBookings = pgTable("seat_bookings", {
+  id: serial("id").primaryKey(),
+  tableId: integer("table_id").notNull(),
+  seatNumber: integer("seat_number").notNull(),
+  eventId: integer("event_id").notNull(),
+  isBooked: boolean("is_booked").default(false),
+});
 
 export const foodOptions = pgTable("food_options", {
   id: serial("id").primaryKey(),
@@ -77,6 +108,9 @@ export const bookings = pgTable("bookings", {
 export const insertUserSchema = createInsertSchema(users);
 export const insertEventSchema = createInsertSchema(events);
 export const insertVenueSchema = createInsertSchema(venues);
+export const insertTableSchema = createInsertSchema(tables);
+export const insertSeatSchema = createInsertSchema(seats);
+export const insertSeatBookingSchema = createInsertSchema(seatBookings);
 export const insertFoodOptionSchema = createInsertSchema(foodOptions);
 export const insertBookingSchema = createInsertSchema(bookings);
 
@@ -84,32 +118,23 @@ export const insertBookingSchema = createInsertSchema(bookings);
 export type User = typeof users.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type Venue = typeof venues.$inferSelect;
+export type Table = typeof tables.$inferSelect;
+export type Seat = typeof seats.$inferSelect;
+export type SeatBooking = typeof seatBookings.$inferSelect;
 export type FoodOption = typeof foodOptions.$inferSelect;
 export type Booking = typeof bookings.$inferSelect;
 
-// These types will be reimplemented with a new approach
-export interface Table {
-  id: number;
-  tableNumber: number;
-  capacity: number;
-}
-
-export interface Seat {
-  id: number;
-  tableId: number;
-  seatNumber: number;
-}
-
-export interface SeatBooking {
-  id: number;
-  seatId: number;
-  eventId: number;
-  isBooked: boolean;
+// Convenience interface for layout editor
+export interface TableWithSeats extends Table {
+  seats: Seat[];
 }
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type InsertVenue = z.infer<typeof insertVenueSchema>;
+export type InsertTable = z.infer<typeof insertTableSchema>;
+export type InsertSeat = z.infer<typeof insertSeatSchema>;
+export type InsertSeatBooking = z.infer<typeof insertSeatBookingSchema>;
 export type InsertFoodOption = z.infer<typeof insertFoodOptionSchema>;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
 
