@@ -214,9 +214,29 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
 
       <Card>
         <CardContent className="p-4 relative">
-          <div className="overflow-auto relative">
+          <div className="relative w-full">
+            <div className="absolute right-4 top-4 flex flex-col gap-2 z-10">
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={zoomIn}
+                className="rounded-full w-10 h-10 bg-white shadow-md"
+                aria-label="Zoom in"
+              >
+                <ZoomIn className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={zoomOut}
+                className="rounded-full w-10 h-10 bg-white shadow-md"
+                aria-label="Zoom out"
+              >
+                <ZoomOut className="h-5 w-5" />
+              </Button>
+            </div>
             <div 
-              className="relative" 
+              className="relative w-full"
               style={{ 
                 transform: `scale(${zoomLevel})`, 
                 transformOrigin: 'center top',
@@ -229,7 +249,7 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
                   ref={imageRef}
                   src={imageError ? "https://raw.githubusercontent.com/users/10/attached_assets/Mezzanine%20(numbered)%20PNG.png" : "/images/mezzanine-floor.png"}
                   alt="Mezzanine Floor Plan" 
-                  className="w-full max-w-full"
+                  className="w-full h-auto object-contain"
                   onError={() => setImageError(true)}
                   onLoad={() => {
                     if (imageRef.current) {
