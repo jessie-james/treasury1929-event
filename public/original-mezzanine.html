@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mezzanine Seating</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #f8f8f8;
+    }
+    
+    .container {
+      position: relative;
+      width: 1000px;
+      height: 500px;
+      margin: 0 auto;
+    }
+    
+    .floor-plan {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    
+    .table-circle {
+      position: absolute;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 18px;
+      color: #333;
+      cursor: pointer;
+      z-index: 10;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    }
+    
+    .table-circle.available {
+      background-color: rgba(74, 222, 128, 0.4);
+      border: 2px solid rgba(22, 163, 74, 0.7);
+    }
+    
+    .table-circle.unavailable {
+      background-color: rgba(156, 163, 175, 0.5);
+      border: 2px solid rgba(107, 114, 128, 0.7);
+      cursor: not-allowed;
+    }
+    
+    .table-circle.selected {
+      background-color: rgba(59, 130, 246, 0.5);
+      border-color: rgba(37, 99, 235, 0.9);
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+    }
+    
+    .tooltip {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      white-space: nowrap;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.2s;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 5px;
+      pointer-events: none;
+      z-index: 20;
+    }
+    
+    .table-circle:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan">
+    
+    <!-- Table 1 (in original image) -->
+    <div class="table-circle available" style="width: 60px; height: 60px; top: 320px; left: 939px; transform: translate(-50%, -50%);" data-table-id="1">
+      1
+      <div class="tooltip">Table 1: 2 seats</div>
+    </div>
+    
+    <!-- Table 2 (in original image) -->
+    <div class="table-circle available" style="width: 60px; height: 60px; top: 397px; left: 838px; transform: translate(-50%, -50%);" data-table-id="2">
+      2
+      <div class="tooltip">Table 2: 2 seats</div>
+    </div>
+    
+    <!-- Table 3 (in original image) -->
+    <div class="table-circle available" style="width: 60px; height: 60px; top: 397px; left: 675px; transform: translate(-50%, -50%);" data-table-id="3">
+      3
+      <div class="tooltip">Table 3: 2 seats</div>
+    </div>
+    
+    <!-- Table 4 (in original image) -->
+    <div class="table-circle unavailable" style="width: 60px; height: 60px; top: 397px; left: 518px; transform: translate(-50%, -50%);" data-table-id="4">
+      4
+      <div class="tooltip">Table 4: Unavailable</div>
+    </div>
+    
+    <!-- Table 5 (in original image) -->
+    <div class="table-circle unavailable" style="width: 60px; height: 60px; top: 397px; left: 359px; transform: translate(-50%, -50%);" data-table-id="5">
+      5
+      <div class="tooltip">Table 5: Unavailable</div>
+    </div>
+    
+    <!-- Table 6 (in original image) -->
+    <div class="table-circle available" style="width: 60px; height: 60px; top: 397px; left: 181px; transform: translate(-50%, -50%);" data-table-id="6">
+      6
+      <div class="tooltip">Table 6: 2 seats</div>
+    </div>
+    
+    <!-- Table 7 (in original image) -->
+    <div class="table-circle available" style="width: 60px; height: 60px; top: 320px; left: 83px; transform: translate(-50%, -50%);" data-table-id="7">
+      7
+      <div class="tooltip">Table 7: 2 seats</div>
+    </div>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get event ID from URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const eventId = urlParams.get('eventId') || 1;
+      
+      // Track selected table
+      let selectedTable = null;
+      
+      // Add click handler to available tables
+      const availableTables = document.querySelectorAll('.table-circle.available');
+      availableTables.forEach(table => {
+        table.addEventListener('click', function() {
+          const tableId = parseInt(this.getAttribute('data-table-id'));
+          
+          // If already selected, deselect it
+          if (selectedTable && selectedTable.tableId === tableId) {
+            this.classList.remove('selected');
+            selectedTable = null;
+          } else {
+            // Deselect previous
+            if (selectedTable) {
+              const prevSelected = document.querySelector(`.table-circle[data-table-id="${selectedTable.tableId}"]`);
+              if (prevSelected) {
+                prevSelected.classList.remove('selected');
+              }
+            }
+            
+            // Select this table
+            this.classList.add('selected');
+            
+            selectedTable = {
+              tableId: tableId,
+              seatCount: 2, // All tables have 2 seats
+              isSelected: true
+            };
+          }
+          
+          // Send message to parent window
+          window.parent.postMessage({
+            type: 'TABLE_SELECTION',
+            selection: selectedTable
+          }, '*');
+        });
+      });
+      
+      // Listen for messages from parent window
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'SET_EVENT_ID') {
+          const newEventId = event.data.eventId;
+          if (newEventId && newEventId !== eventId) {
+            // Reset selection and fetch new availability
+            if (selectedTable) {
+              const prevSelected = document.querySelector(`.table-circle.selected`);
+              if (prevSelected) {
+                prevSelected.classList.remove('selected');
+              }
+              selectedTable = null;
+            }
+            
+            // In a real implementation, we would fetch availability data here
+            // For now, we leave the statuses as defined in the HTML
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>
