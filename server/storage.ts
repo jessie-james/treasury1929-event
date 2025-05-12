@@ -4,7 +4,7 @@ import {
   type AdminLog, type InsertAdminLog, type SeatPosition, type InsertSeatPosition,
   type TableWithSeats, type InsertTable, type InsertSeat, type InsertSeatBooking,
   events, foodOptions, bookings, users, adminLogs, seatPositions,
-  tables, seats, seatBookings
+  tables, seats, seatBookings, venues
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray, desc, asc, sql } from "drizzle-orm";
@@ -1342,6 +1342,223 @@ export class DatabaseStorage implements IStorage {
       };
     } catch (error) {
       console.error(`Error getting check-in stats for event ${eventId}:`, error);
+      throw error;
+    }
+  }
+
+  // Layout Editor and Table Management methods
+  async getTablesWithSeats(venueId: number): Promise<TableWithSeats[]> {
+    try {
+      const allTables = await db.select().from(tables).where(eq(tables.venueId, venueId));
+      const result: TableWithSeats[] = [];
+
+      for (const table of allTables) {
+        const tableSeats = await this.getTableSeats(table.id);
+        result.push({
+          ...table,
+          seats: tableSeats
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Error getting tables with seats:", error);
+      throw error;
+    }
+  }
+
+  async getTableWithSeats(tableId: number): Promise<TableWithSeats | undefined> {
+    try {
+      const [table] = await db.select().from(tables).where(eq(tables.id, tableId));
+      
+      if (!table) {
+        return undefined;
+      }
+
+      const tableSeats = await this.getTableSeats(tableId);
+      
+      return {
+        ...table,
+        seats: tableSeats
+      };
+    } catch (error) {
+      console.error(`Error getting table ${tableId} with seats:`, error);
+      throw error;
+    }
+  }
+
+  async createTable(tableData: InsertTable): Promise<Table> {
+    try {
+      const [table] = await db.insert(tables).values(tableData).returning();
+      return table;
+    } catch (error) {
+      console.error("Error creating table:", error);
+      throw error;
+    }
+  }
+
+  async updateTable(id: number, updates: Partial<InsertTable>): Promise<Table | undefined> {
+    try {
+      const [updatedTable] = await db
+        .update(tables)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(tables.id, id))
+        .returning();
+      
+      return updatedTable;
+    } catch (error) {
+      console.error(`Error updating table ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteTable(id: number): Promise<void> {
+    try {
+      // First delete all seats associated with this table
+      await this.deleteSeatsForTable(id);
+      
+      // Then delete the table
+      await db.delete(tables).where(eq(tables.id, id));
+    } catch (error) {
+      console.error(`Error deleting table ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async createSeat(seat: InsertSeat): Promise<Seat> {
+    try {
+      const [newSeat] = await db.insert(seats).values(seat).returning();
+      return newSeat;
+    } catch (error) {
+      console.error("Error creating seat:", error);
+      throw error;
+    }
+  }
+
+  async createSeatsForTable(tableId: number, capacity: number, tableType: string, rotation: number): Promise<Seat[]> {
+    try {
+      const createdSeats: Seat[] = [];
+      
+      // Generate seat positions based on table type and rotation
+      for (let i = 1; i <= capacity; i++) {
+        // Calculate position based on whether it's a circle or half-circle table
+        let xOffset = 0;
+        let yOffset = 0;
+        
+        if (tableType === 'circle') {
+          // For circle tables, distribute seats evenly around the circle
+          const angle = (2 * Math.PI * (i - 1)) / capacity;
+          xOffset = Math.cos(angle) * 25; // 25 units radius
+          yOffset = Math.sin(angle) * 25;
+        } else if (tableType === 'half-circle') {
+          // For half-circle tables, distribute seats along half the circle
+          // Apply rotation (0, 90, 180, 270 degrees)
+          const baseAngle = (Math.PI * (i - 1)) / (capacity - 1);
+          const rotatedAngle = baseAngle + (rotation * Math.PI / 180);
+          xOffset = Math.cos(rotatedAngle) * 25;
+          yOffset = Math.sin(rotatedAngle) * 25;
+        }
+        
+        // Create the seat
+        const seatData: InsertSeat = {
+          tableId,
+          seatNumber: i,
+          xOffset,
+          yOffset
+        };
+        
+        const seat = await this.createSeat(seatData);
+        createdSeats.push(seat);
+      }
+      
+      return createdSeats;
+    } catch (error) {
+      console.error(`Error creating seats for table ${tableId}:`, error);
+      throw error;
+    }
+  }
+
+  async updateSeat(id: number, updates: Partial<InsertSeat>): Promise<Seat | undefined> {
+    try {
+      const [updatedSeat] = await db
+        .update(seats)
+        .set(updates)
+        .where(eq(seats.id, id))
+        .returning();
+      
+      return updatedSeat;
+    } catch (error) {
+      console.error(`Error updating seat ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteSeat(id: number): Promise<void> {
+    try {
+      await db.delete(seats).where(eq(seats.id, id));
+    } catch (error) {
+      console.error(`Error deleting seat ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteSeatsForTable(tableId: number): Promise<void> {
+    try {
+      await db.delete(seats).where(eq(seats.tableId, tableId));
+    } catch (error) {
+      console.error(`Error deleting seats for table ${tableId}:`, error);
+      throw error;
+    }
+  }
+
+  async getTableAvailability(tableId: number, eventId: number): Promise<boolean> {
+    try {
+      // A table is available if none of its seats are booked for this event
+      const seatBookingsForTable = await db
+        .select()
+        .from(seatBookings)
+        .where(and(
+          eq(seatBookings.tableId, tableId),
+          eq(seatBookings.eventId, eventId),
+          eq(seatBookings.isBooked, true)
+        ));
+      
+      return seatBookingsForTable.length === 0;
+    } catch (error) {
+      console.error(`Error checking table ${tableId} availability for event ${eventId}:`, error);
+      throw error;
+    }
+  }
+
+  async getVenueAvailability(venueId: number, eventId: number): Promise<{tableId: number, available: boolean}[]> {
+    try {
+      // Get all tables for this venue
+      const venueTables = await db
+        .select()
+        .from(tables)
+        .where(eq(tables.venueId, venueId));
+      
+      // Check availability for each table
+      const availability = await Promise.all(
+        venueTables.map(async (table) => {
+          const available = await this.getTableAvailability(table.id, eventId);
+          return { tableId: table.id, available };
+        })
+      );
+      
+      return availability;
+    } catch (error) {
+      console.error(`Error checking venue ${venueId} availability for event ${eventId}:`, error);
+      throw error;
+    }
+  }
+
+  async getVenues(): Promise<{id: number, name: string}[]> {
+    try {
+      const venueList = await db.select({ id: venues.id, name: venues.name }).from(venues);
+      return venueList;
+    } catch (error) {
+      console.error("Error fetching venues:", error);
       throw error;
     }
   }

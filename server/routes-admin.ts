@@ -20,6 +20,17 @@ export function registerAdminRoutes(app: Express): void {
 
     next();
   }
+  
+  // Get all venues
+  app.get("/api/admin/venues", requireAdminOrVenueOwner, async (req, res) => {
+    try {
+      const venues = await storage.getVenues();
+      res.json(venues);
+    } catch (error) {
+      console.error("Error fetching venues:", error);
+      res.status(500).json({ message: "Failed to fetch venues" });
+    }
+  });
 
   // Get all tables for a venue with their seats
   app.get("/api/admin/tables", requireAdminOrVenueOwner, async (req, res) => {
