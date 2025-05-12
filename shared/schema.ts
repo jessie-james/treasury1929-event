@@ -40,17 +40,12 @@ export const venues = pgTable("venues", {
 export const tables = pgTable("tables", {
   id: serial("id").primaryKey(),
   venueId: integer("venue_id").notNull(),
-  name: text("name").notNull(), // e.g., "Table 1", "VIP Table"
-  tableType: text("table_type").notNull(), // 'circle' or 'half-circle'
+  tableNumber: integer("table_number"), // existing field
   capacity: integer("capacity").notNull(),
-  xPosition: real("x_position").notNull(),
-  yPosition: real("y_position").notNull(),
-  width: real("width").notNull(),
-  height: real("height").notNull(),
-  rotation: integer("rotation").default(0), // For half-circle orientation (0, 90, 180, 270)
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  floor: text("floor"), // existing field
+  x: integer("x"), // existing field
+  y: integer("y"), // existing field
+  shape: text("shape"), // existing field - 'circle' or 'half-circle'
 });
 
 export const seats = pgTable("seats", {
@@ -119,8 +114,8 @@ export const insertUserSchema = createInsertSchema(users);
 export const insertEventSchema = createInsertSchema(events);
 export const insertVenueSchema = createInsertSchema(venues);
 export const insertTableSchema = createInsertSchema(tables, {
-  tableType: z.enum(['circle', 'half-circle']),
-}).omit({ id: true, createdAt: true, updatedAt: true });
+  shape: z.enum(['circle', 'half-circle']),
+}).omit({ id: true });
 export const insertSeatSchema = createInsertSchema(seats).omit({ id: true, createdAt: true });
 export const insertSeatBookingSchema = createInsertSchema(seatBookings);
 export const insertFoodOptionSchema = createInsertSchema(foodOptions);

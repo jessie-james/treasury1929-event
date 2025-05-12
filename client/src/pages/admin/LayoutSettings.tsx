@@ -6,17 +6,14 @@ import {
   Card, 
   CardContent, 
   CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { 
   Table, 
   TableBody, 
-  TableCaption, 
   TableCell, 
   TableHead, 
   TableHeader, 
@@ -52,8 +49,6 @@ import {
   Edit, 
   Trash, 
   Save,
-  RotateCcw, 
-  RotateCw,
   ArrowUp,
   ArrowDown,
   ArrowLeft,
@@ -66,16 +61,15 @@ interface CanvasPosition {
   y: number;
 }
 
-interface TablePosition {
+interface Table {
   id: number;
+  venueId: number;
+  tableNumber: number;
+  capacity: number;
+  floor: string;
   x: number;
   y: number;
-  width: number;
-  height: number;
-  name: string;
-  type: 'circle' | 'half-circle';
-  capacity: number;
-  rotation: number;
+  shape: 'circle' | 'half-circle';
 }
 
 interface Seat {
@@ -86,22 +80,20 @@ interface Seat {
   yOffset: number;
 }
 
-interface TableWithSeats extends TablePosition {
+interface TableWithSeats extends Table {
   seats: Seat[];
 }
 
 // Form validation schema
 const tableFormSchema = z.object({
-  name: z.string().min(1, "Table name is required"),
-  type: z.enum(["circle", "half-circle"], {
-    required_error: "Please select a table type",
+  tableNumber: z.coerce.number().min(1, "Table number is required"),
+  shape: z.enum(["circle", "half-circle"], {
+    required_error: "Please select a table shape",
   }),
   capacity: z.coerce.number().min(1, "Capacity must be at least 1").max(20, "Maximum capacity is 20"),
-  width: z.coerce.number().min(10, "Width must be at least 10px"),
-  height: z.coerce.number().min(10, "Height must be at least 10px"),
   x: z.coerce.number(),
   y: z.coerce.number(),
-  rotation: z.coerce.number(),
+  floor: z.string().default("mezzanine"),
   venueId: z.coerce.number(),
 });
 
@@ -110,7 +102,7 @@ export default function LayoutSettings() {
   const queryClient = useQueryClient();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [mezzanineImage, setMezzanineImage] = useState<string>('/mezzanine.jpg');
-  const [selectedTable, setSelectedTable] = useState<TablePosition | null>(null);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [venues, setVenues] = useState<{id: number, name: string}[]>([]);
   const [selectedVenueId, setSelectedVenueId] = useState<number>(1); // Default to first venue
   const [dragStart, setDragStart] = useState<CanvasPosition | null>(null);
@@ -120,14 +112,12 @@ export default function LayoutSettings() {
   const form = useForm<z.infer<typeof tableFormSchema>>({
     resolver: zodResolver(tableFormSchema),
     defaultValues: {
-      name: "",
-      type: "circle",
+      tableNumber: 1,
+      shape: "circle",
       capacity: 4,
-      width: 30,
-      height: 30,
       x: 100,
       y: 100,
-      rotation: 0,
+      floor: "mezzanine",
       venueId: selectedVenueId,
     },
   });
@@ -181,7 +171,7 @@ export default function LayoutSettings() {
   
   // Update table mutation
   const updateTableMutation = useMutation({
-    mutationFn: async (tableData: TablePosition) => {
+    mutationFn: async (tableData: Table) => {
       const { id, ...rest } = tableData;
       const response = await apiRequest('PUT', `/api/admin/tables/${id}`, rest);
       if (!response.ok) {
@@ -249,27 +239,23 @@ export default function LayoutSettings() {
   useEffect(() => {
     if (selectedTable) {
       form.reset({
-        name: selectedTable.name,
-        type: selectedTable.type,
+        tableNumber: selectedTable.tableNumber,
+        shape: selectedTable.shape,
         capacity: selectedTable.capacity,
-        width: selectedTable.width,
-        height: selectedTable.height,
         x: selectedTable.x,
         y: selectedTable.y,
-        rotation: selectedTable.rotation,
+        floor: selectedTable.floor || 'mezzanine',
         venueId: selectedVenueId,
       });
     } else if (isAddMode) {
       // Reset to default values for new table
       form.reset({
-        name: `Table ${tablesData.length + 1}`,
-        type: "circle",
+        tableNumber: (tablesData as Table[]).length + 1,
+        shape: "circle",
         capacity: 4,
-        width: 30,
-        height: 30,
         x: 100,
         y: 100,
-        rotation: 0,
+        floor: "mezzanine",
         venueId: selectedVenueId,
       });
     }
@@ -298,7 +284,7 @@ export default function LayoutSettings() {
 
   const handleDeleteTable = () => {
     if (selectedTable) {
-      if (window.confirm(`Are you sure you want to delete ${selectedTable.name}?`)) {
+      if (window.confirm(`Are you sure you want to delete table #${selectedTable.tableNumber}?`)) {
         deleteTableMutation.mutate(selectedTable.id);
       }
     }
@@ -310,13 +296,13 @@ export default function LayoutSettings() {
     form.reset();
   };
 
-  const handleSelectTable = (table: TablePosition, event: React.MouseEvent) => {
+  const handleSelectTable = (table: Table, event: React.MouseEvent) => {
     if (event.defaultPrevented) return; // Skip if this was part of a drag operation
     setIsAddMode(false);
     setSelectedTable(table);
   };
 
-  const handleMouseDown = (event: React.MouseEvent, table: TablePosition) => {
+  const handleMouseDown = (event: React.MouseEvent, table: Table) => {
     if (!canvasRef.current) return;
     
     // Get canvas offset
@@ -417,41 +403,24 @@ export default function LayoutSettings() {
     });
   };
 
-  const rotateTable = (direction: 'cw' | 'ccw') => {
-    if (!selectedTable) return;
-    
-    let newRotation = selectedTable.rotation;
-    
-    if (direction === 'cw') {
-      newRotation = (newRotation + 90) % 360;
-    } else {
-      newRotation = (newRotation - 90 + 360) % 360;
-    }
-    
-    setSelectedTable({
-      ...selectedTable,
-      rotation: newRotation
-    });
-  };
-
   const applyChanges = () => {
     if (selectedTable) {
       updateTableMutation.mutate(selectedTable);
     }
   };
 
-  const renderCircleTable = (table: TablePosition) => {
+  const renderCircleTable = (table: Table) => {
     const isSelected = selectedTable?.id === table.id;
+    const tableSize = 30; // Fixed size for all tables
     
     return (
       <div
         className={`table-circle ${isSelected ? 'selected' : 'available'}`}
         style={{
-          width: `${table.width}px`,
-          height: `${table.height}px`,
+          width: `${tableSize}px`,
+          height: `${tableSize}px`,
           left: `${table.x}px`,
           top: `${table.y}px`,
-          transform: `rotate(${table.rotation}deg)`,
           position: 'absolute',
           borderRadius: '50%',
           display: 'flex',
@@ -466,25 +435,25 @@ export default function LayoutSettings() {
         onClick={(e) => handleSelectTable(table, e)}
         onMouseDown={(e) => handleMouseDown(e, table)}
       >
-        <span className="table-name text-xs">{table.name}</span>
+        <span className="table-name text-xs">{table.tableNumber}</span>
       </div>
     );
   };
 
-  const renderHalfCircleTable = (table: TablePosition) => {
+  const renderHalfCircleTable = (table: Table) => {
     const isSelected = selectedTable?.id === table.id;
+    const tableSize = 30; // Fixed size for all tables
     
     return (
       <div
         className={`table-half-circle ${isSelected ? 'selected' : 'available'}`}
         style={{
-          width: `${table.width}px`,
-          height: `${table.height}px`,
+          width: `${tableSize}px`,
+          height: `${tableSize / 2}px`,
           left: `${table.x}px`,
           top: `${table.y}px`,
-          transform: `rotate(${table.rotation}deg)`,
           position: 'absolute',
-          borderRadius: `${table.width}px ${table.width}px 0 0`,
+          borderRadius: `${tableSize}px ${tableSize}px 0 0`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -497,13 +466,13 @@ export default function LayoutSettings() {
         onClick={(e) => handleSelectTable(table, e)}
         onMouseDown={(e) => handleMouseDown(e, table)}
       >
-        <span className="table-name text-xs">{table.name}</span>
+        <span className="table-name text-xs">{table.tableNumber}</span>
       </div>
     );
   };
 
-  const renderTable = (table: TablePosition) => {
-    return table.type === 'circle' 
+  const renderTable = (table: Table) => {
+    return table.shape === 'circle' 
       ? renderCircleTable(table) 
       : renderHalfCircleTable(table);
   };
@@ -555,30 +524,29 @@ export default function LayoutSettings() {
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseLeave}
               >
-                {!isLoading && tablesData.map((table: TablePosition) => renderTable(table))}
+                {!isLoading && (tablesData as Table[]).map((table: Table) => renderTable(table))}
                 
                 {isAddMode && (
                   <div
                     className="table-preview"
                     style={{
-                      width: `${form.watch('width')}px`,
-                      height: `${form.watch('height')}px`,
+                      width: form.watch('shape') === 'circle' ? '30px' : '30px',
+                      height: form.watch('shape') === 'circle' ? '30px' : '15px',
                       left: `${form.watch('x')}px`,
                       top: `${form.watch('y')}px`,
                       position: 'absolute',
-                      borderRadius: form.watch('type') === 'circle' 
+                      borderRadius: form.watch('shape') === 'circle' 
                         ? '50%' 
-                        : `${form.watch('width')}px ${form.watch('width')}px 0 0`,
+                        : '30px 30px 0 0',
                       border: '2px dashed #3b82f6',
                       backgroundColor: 'rgba(59, 130, 246, 0.1)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      transform: `rotate(${form.watch('rotation')}deg)`,
                       zIndex: 5,
                     }}
                   >
-                    <span className="text-xs">{form.watch('name')}</span>
+                    <span className="text-xs">{form.watch('tableNumber')}</span>
                   </div>
                 )}
               </div>
@@ -589,7 +557,7 @@ export default function LayoutSettings() {
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>
-              {isAddMode ? "Add New Table" : selectedTable ? `Edit ${selectedTable.name}` : "Table Properties"}
+              {isAddMode ? "Add New Table" : selectedTable ? `Edit Table #${selectedTable.tableNumber}` : "Table Properties"}
             </CardTitle>
             <CardDescription>
               {isAddMode ? "Configure a new table" : selectedTable ? "Edit table properties" : "Select a table to edit its properties"}
@@ -601,12 +569,12 @@ export default function LayoutSettings() {
                 <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="name"
+                    name="tableNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Table Name</FormLabel>
+                        <FormLabel>Table Number</FormLabel>
                         <FormControl>
-                          <Input {...field} />
+                          <Input type="number" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -615,17 +583,17 @@ export default function LayoutSettings() {
                   
                   <FormField
                     control={form.control}
-                    name="type"
+                    name="shape"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Table Type</FormLabel>
+                        <FormLabel>Table Shape</FormLabel>
                         <Select
                           value={field.value}
                           onValueChange={field.onChange}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select table type" />
+                              <SelectValue placeholder="Select table shape" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -654,36 +622,6 @@ export default function LayoutSettings() {
                       </FormItem>
                     )}
                   />
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="width"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Width (px)</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="height"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Height (px)</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
@@ -717,12 +655,12 @@ export default function LayoutSettings() {
                   
                   <FormField
                     control={form.control}
-                    name="rotation"
+                    name="floor"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Rotation (degrees)</FormLabel>
+                        <FormLabel>Floor/Section</FormLabel>
                         <FormControl>
-                          <Input type="number" {...field} />
+                          <Input {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -819,15 +757,6 @@ export default function LayoutSettings() {
                     </Button>
                     <div></div>
                   </div>
-                  
-                  <div className="flex space-x-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => rotateTable('ccw')}>
-                      <RotateCcw className="h-4 w-4" /> -90°
-                    </Button>
-                    <Button type="button" size="sm" variant="outline" onClick={() => rotateTable('cw')}>
-                      <RotateCw className="h-4 w-4" /> +90°
-                    </Button>
-                  </div>
                 </div>
               </div>
             )}
@@ -838,7 +767,6 @@ export default function LayoutSettings() {
       <Tabs defaultValue="tables">
         <TabsList>
           <TabsTrigger value="tables">Tables</TabsTrigger>
-          <TabsTrigger value="seats">Seats</TabsTrigger>
         </TabsList>
         <TabsContent value="tables">
           <Card>
@@ -853,26 +781,24 @@ export default function LayoutSettings() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead>Number</TableHead>
+                    <TableHead>Shape</TableHead>
                     <TableHead>Capacity</TableHead>
                     <TableHead>Position</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Rotation</TableHead>
+                    <TableHead>Floor</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {!isLoading && tablesData.length > 0 ? (
-                    tablesData.map((table: TablePosition) => (
+                  {!isLoading && (tablesData as Table[]).length > 0 ? (
+                    (tablesData as Table[]).map((table: Table) => (
                       <TableRow key={table.id}>
                         <TableCell>{table.id}</TableCell>
-                        <TableCell>{table.name}</TableCell>
-                        <TableCell>{table.type}</TableCell>
+                        <TableCell>{table.tableNumber}</TableCell>
+                        <TableCell>{table.shape}</TableCell>
                         <TableCell>{table.capacity}</TableCell>
                         <TableCell>X: {table.x}, Y: {table.y}</TableCell>
-                        <TableCell>{table.width}x{table.height}</TableCell>
-                        <TableCell>{table.rotation}°</TableCell>
+                        <TableCell>{table.floor}</TableCell>
                         <TableCell>
                           <Button 
                             variant="ghost" 
@@ -886,60 +812,13 @@ export default function LayoutSettings() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center">
+                      <TableCell colSpan={7} className="text-center">
                         {isLoading ? "Loading tables..." : "No tables found. Add some tables to get started."}
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="seats">
-          <Card>
-            <CardHeader>
-              <CardTitle>Seats</CardTitle>
-              <CardDescription>
-                View individual seats for each table
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {selectedTable ? (
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Seats for {selectedTable.name}</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Seat Number</TableHead>
-                        <TableHead>X Offset</TableHead>
-                        <TableHead>Y Offset</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedTable.seats && selectedTable.seats.length > 0 ? (
-                        selectedTable.seats.map((seat: Seat) => (
-                          <TableRow key={seat.id}>
-                            <TableCell>{seat.seatNumber}</TableCell>
-                            <TableCell>{seat.xOffset}</TableCell>
-                            <TableCell>{seat.yOffset}</TableCell>
-                          </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-center">
-                            No seats found for this table.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center p-8">
-                  <p className="text-muted-foreground">Select a table to view its seats</p>
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
