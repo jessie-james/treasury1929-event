@@ -77,10 +77,21 @@ function Router() {
 
 function App() {
   useEffect(() => {
-    window.addEventListener('unhandledrejection', (event) => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       console.error('Unhandled rejection:', event.reason);
+      // Add more detailed logging
+      if (event.reason instanceof Error) {
+        console.error('Error details:', {
+          message: event.reason.message,
+          stack: event.reason.stack,
+          name: event.reason.name
+        });
+      }
       event.preventDefault();
-    });
+    };
+
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
   }, []);
 
   return (
