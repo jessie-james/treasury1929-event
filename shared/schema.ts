@@ -62,6 +62,16 @@ export const seats = pgTable("seats", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Custom types for the application
+export type VenueAvailability = { 
+  tables: (Table & { 
+    available: boolean,
+    seats: (Seat & { 
+      available: boolean 
+    })[]
+  })[] 
+};
+
 export const seatBookings = pgTable("seat_bookings", {
   id: serial("id").primaryKey(),
   tableId: integer("table_id").notNull(),
@@ -108,8 +118,10 @@ export const bookings = pgTable("bookings", {
 export const insertUserSchema = createInsertSchema(users);
 export const insertEventSchema = createInsertSchema(events);
 export const insertVenueSchema = createInsertSchema(venues);
-export const insertTableSchema = createInsertSchema(tables);
-export const insertSeatSchema = createInsertSchema(seats);
+export const insertTableSchema = createInsertSchema(tables, {
+  tableType: z.enum(['circle', 'half-circle']),
+}).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSeatSchema = createInsertSchema(seats).omit({ id: true, createdAt: true });
 export const insertSeatBookingSchema = createInsertSchema(seatBookings);
 export const insertFoodOptionSchema = createInsertSchema(foodOptions);
 export const insertBookingSchema = createInsertSchema(bookings);

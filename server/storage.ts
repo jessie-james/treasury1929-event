@@ -128,6 +128,9 @@ export interface IStorage {
   createSeatPosition(position: InsertSeatPosition): Promise<SeatPosition>;
   updateSeatPosition(id: number, position: Partial<InsertSeatPosition>): Promise<SeatPosition | undefined>;
   deleteSeatPosition(id: number): Promise<void>;
+  
+  // Venue Management
+  getVenues(): Promise<{id: number, name: string}[]>;
 }
 
 export class DatabaseStorage implements IStorage {
