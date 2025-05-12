@@ -489,17 +489,17 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/tables/:tableId/seats", async (req, res) => {
+  // Endpoint to get availability for all tables for an event
+  app.get("/api/tables/availability", async (req, res) => {
     try {
-      const tableId = parseInt(req.params.tableId);
       const eventId = parseInt(req.query.eventId as string);
-
-      if (!eventId) {
-        return res.status(400).json({ message: "eventId query parameter is required" });
+      
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: 'Invalid event ID' });
       }
-
-      console.log(`Getting seat availability for table ${tableId}, event ${eventId}`);
-
+      
+      console.log(`Getting availability for all tables, event ${eventId}`);
+      
       // Get all bookings for this event
       const allBookings = await storage.getBookings();
       const eventBookings = allBookings.filter(
@@ -507,27 +507,119 @@ export async function registerRoutes(app: Express) {
                   booking.status !== "canceled" && 
                   booking.status !== "refunded"
       );
-
-      // Find which seats are booked for this table
-      const bookedSeats = new Set<number>();
+      
+      // Create a map of booked seats by table
+      const bookedSeatsByTable: Record<number, Set<number>> = {};
+      
       eventBookings.forEach(booking => {
-        if (booking.tableId === tableId) {
-          booking.seatNumbers.forEach(seatNum => bookedSeats.add(seatNum));
+        if (!bookedSeatsByTable[booking.tableId]) {
+          bookedSeatsByTable[booking.tableId] = new Set<number>();
         }
+        booking.seatNumbers.forEach(seatNum => 
+          bookedSeatsByTable[booking.tableId].add(seatNum)
+        );
       });
-
-      // For this implementation, assume each table has seats 1-4
-      const tableSeats = Array.from({ length: 4 }, (_, i) => ({
-        id: i + 1,
-        tableId: tableId,
-        seatNumber: i + 1,
-        isAvailable: !bookedSeats.has(i + 1)
-      }));
-
-      res.json(tableSeats);
+      
+      // Get all tables (for this implementation, assume tables 1-10 with seats 1-4 or 1-2)
+      const tables = [
+        { id: 1, seatCount: 4 },
+        { id: 2, seatCount: 2 },
+        { id: 3, seatCount: 2 },
+        { id: 4, seatCount: 2 },
+        { id: 5, seatCount: 2 },
+        { id: 6, seatCount: 2 },
+        { id: 7, seatCount: 2 },
+        { id: 8, seatCount: 2 },
+        { id: 9, seatCount: 2 },
+        { id: 10, seatCount: 2 }
+      ];
+      
+      // Create availability data for all tables
+      const availability = [];
+      
+      for (const table of tables) {
+        for (let seatNum = 1; seatNum <= table.seatCount; seatNum++) {
+          const isBooked = bookedSeatsByTable[table.id]?.has(seatNum) || false;
+          
+          availability.push({
+            tableId: table.id,
+            seatNumber: seatNum,
+            isBooked
+          });
+        }
+      }
+      
+      res.json(availability);
     } catch (error) {
-      console.error("Error fetching seats:", error);
-      res.status(500).json({ message: "Failed to fetch seats" });
+      console.error("Error fetching table availability:", error);
+      res.status(500).json({ message: 'Error fetching table availability' });
+    }
+  });
+  
+  // Endpoint to get seats for a specific table
+  app.get("/api/tables/:tableId/seats", async (req, res) => {
+    try {
+      const eventId = parseInt(req.query.eventId as string);
+      
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: 'Invalid event ID' });
+      }
+      
+      console.log(`Getting availability for all tables, event ${eventId}`);
+      
+      // Get all bookings for this event
+      const allBookings = await storage.getBookings();
+      const eventBookings = allBookings.filter(
+        booking => booking.eventId === eventId && 
+                  booking.status !== "canceled" && 
+                  booking.status !== "refunded"
+      );
+      
+      // Create a map of booked seats by table
+      const bookedSeatsByTable: Record<number, Set<number>> = {};
+      
+      eventBookings.forEach(booking => {
+        if (!bookedSeatsByTable[booking.tableId]) {
+          bookedSeatsByTable[booking.tableId] = new Set<number>();
+        }
+        booking.seatNumbers.forEach(seatNum => 
+          bookedSeatsByTable[booking.tableId].add(seatNum)
+        );
+      });
+      
+      // Get all tables (for this implementation, assume tables 1-10 with seats 1-4 or 1-2)
+      const tables = [
+        { id: 1, seatCount: 4 },
+        { id: 2, seatCount: 2 },
+        { id: 3, seatCount: 2 },
+        { id: 4, seatCount: 2 },
+        { id: 5, seatCount: 2 },
+        { id: 6, seatCount: 2 },
+        { id: 7, seatCount: 2 },
+        { id: 8, seatCount: 2 },
+        { id: 9, seatCount: 2 },
+        { id: 10, seatCount: 2 }
+      ];
+      
+      // Create availability data for all tables
+      const availability = [];
+      
+      for (const table of tables) {
+        for (let seatNum = 1; seatNum <= table.seatCount; seatNum++) {
+          const isBooked = bookedSeatsByTable[table.id]?.has(seatNum) || false;
+          
+          availability.push({
+            tableId: table.id,
+            seatNumber: seatNum,
+            isBooked
+          });
+        }
+      }
+      
+      res.json(availability);
+    } catch (error) {
+      console.error("Error fetching table availability:", error);
+      res.status(500).json({ message: 'Error fetching table availability' });
     }
   });
 

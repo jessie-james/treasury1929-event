@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mezzanine Table Selection</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+      background-color: #fafafa;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    
+    .container {
+      position: relative;
+      width: 1000px;
+      margin: 0 auto;
+      overflow: auto;
+    }
+    
+    .floor-plan {
+      display: block;
+      width: 1000px;
+      height: auto;
+    }
+    
+    .table-area {
+      position: absolute;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+      color: white;
+      border: 2px solid rgba(34, 197, 94, 0.3);
+      background-color: rgba(34, 197, 94, 0.2);
+    }
+    
+    .table-area:hover {
+      background-color: rgba(34, 197, 94, 0.4);
+      border-color: rgba(34, 197, 94, 0.6);
+    }
+    
+    .table-area.selected {
+      background-color: rgba(59, 130, 246, 0.4);
+      border-color: rgba(59, 130, 246, 0.8);
+    }
+    
+    .table-area.unavailable {
+      background-color: rgba(75, 85, 99, 0.3);
+      border-color: rgba(75, 85, 99, 0.6);
+      cursor: not-allowed;
+    }
+    
+    .table-area.unavailable:hover {
+      background-color: rgba(75, 85, 99, 0.4);
+      transform: translate(-50%, -50%);
+    }
+    
+    .table-label {
+      position: absolute;
+      font-size: 12px;
+      font-weight: bold;
+      color: #333;
+      transform: translate(-50%, -50%);
+      text-shadow: 0 0 2px white, 0 0 2px white, 0 0 2px white, 0 0 2px white;
+    }
+    
+    .seat {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(34, 197, 94, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      z-index: 5;
+    }
+    
+    .tooltip {
+      visibility: hidden;
+      width: 150px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      text-align: center;
+      padding: 5px 8px;
+      border-radius: 4px;
+      position: absolute;
+      z-index: 20;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 12px;
+      pointer-events: none;
+    }
+    
+    .table-area:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan" id="floorPlan">
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const container = document.querySelector('.container');
+      
+      // Get event ID from URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const eventId = urlParams.get('eventId') || 1; // Default to event 1 if not specified
+      
+      // Map to track table availability
+      const tableAvailability = {};
+      
+      // Track selected table
+      let selectedTable = null;
+      
+      // Elements tracking
+      const tableElements = [];
+      
+      // PERMANENT SEAT POSITIONS - These are from the previous file
+      const seatPositions = [
+        {"tableId": 1, "seatNumber": 1, "left": 930, "top": 279},
+        {"tableId": 1, "seatNumber": 2, "left": 946, "top": 304},
+        {"tableId": 1, "seatNumber": 3, "left": 933, "top": 341},
+        {"tableId": 1, "seatNumber": 4, "left": 904, "top": 351},
+        {"tableId": 2, "seatNumber": 1, "left": 835, "top": 389},
+        {"tableId": 2, "seatNumber": 2, "left": 796, "top": 397},
+        {"tableId": 3, "seatNumber": 1, "left": 678, "top": 390},
+        {"tableId": 3, "seatNumber": 2, "left": 635, "top": 390},
+        {"tableId": 4, "seatNumber": 1, "left": 536, "top": 402},
+        {"tableId": 4, "seatNumber": 2, "left": 494, "top": 402},
+        {"tableId": 5, "seatNumber": 1, "left": 369, "top": 402},
+        {"tableId": 5, "seatNumber": 2, "left": 328, "top": 402},
+        {"tableId": 6, "seatNumber": 1, "left": 167, "top": 422},
+        {"tableId": 6, "seatNumber": 2, "left": 139, "top": 394},
+        {"tableId": 7, "seatNumber": 1, "left": 47, "top": 352},
+        {"tableId": 7, "seatNumber": 2, "left": 32, "top": 316},
+        {"tableId": 8, "seatNumber": 1, "left": 74, "top": 256},
+        {"tableId": 8, "seatNumber": 2, "left": 110, "top": 243},
+        {"tableId": 9, "seatNumber": 1, "left": 170, "top": 215},
+        {"tableId": 9, "seatNumber": 2, "left": 214, "top": 215},
+        {"tableId": 10, "seatNumber": 1, "left": 299, "top": 215},
+        {"tableId": 10, "seatNumber": 2, "left": 343, "top": 215}
+      ];
+      
+      // Define table centers and sizes based on their seats
+      function calculateTableInfo() {
+        const tables = {};
+        
+        // Group seats by table ID and calculate centers
+        seatPositions.forEach(seat => {
+          if (!tables[seat.tableId]) {
+            tables[seat.tableId] = {
+              seats: [],
+              seatCount: 0,
+              center: { x: 0, y: 0 },
+              size: 0
+            };
+          }
+          tables[seat.tableId].seats.push({ x: seat.left, y: seat.top });
+          tables[seat.tableId].seatCount++;
+        });
+        
+        // Calculate center and size for each table
+        Object.keys(tables).forEach(tableId => {
+          const table = tables[tableId];
+          
+          // Calculate center as average of seat positions
+          const sumX = table.seats.reduce((sum, seat) => sum + seat.x, 0);
+          const sumY = table.seats.reduce((sum, seat) => sum + seat.y, 0);
+          table.center = {
+            x: sumX / table.seats.length,
+            y: sumY / table.seats.length
+          };
+          
+          // Calculate size based on distance from center to furthest seat plus padding
+          let maxDistance = 0;
+          table.seats.forEach(seat => {
+            const distance = Math.sqrt(
+              Math.pow(seat.x - table.center.x, 2) + 
+              Math.pow(seat.y - table.center.y, 2)
+            );
+            maxDistance = Math.max(maxDistance, distance);
+          });
+          
+          // Set size with padding
+          table.size = maxDistance * 1.8;
+        });
+        
+        return tables;
+      }
+      
+      // Calculate table information
+      const tables = calculateTableInfo();
+      
+      // Fetch seat availability from API
+      async function fetchTableAvailability() {
+        try {
+          const response = await fetch(`/api/tables/availability?eventId=${eventId}`);
+          if (!response.ok) {
+            console.error('Failed to fetch availability data');
+            return;
+          }
+          
+          const availabilityData = await response.json();
+          
+          // Process availability data
+          availabilityData.forEach(item => {
+            if (!tableAvailability[item.tableId]) {
+              tableAvailability[item.tableId] = {
+                available: true,
+                bookedSeats: []
+              };
+            }
+            
+            // If any seat is booked, the table is unavailable
+            if (item.isBooked) {
+              tableAvailability[item.tableId].available = false;
+              tableAvailability[item.tableId].bookedSeats.push(item.seatNumber);
+            }
+          });
+          
+          // Update table elements based on availability
+          updateTableElements();
+          
+        } catch (error) {
+          console.error('Error fetching availability data:', error);
+        }
+      }
+      
+      // Update table elements based on availability
+      function updateTableElements() {
+        tableElements.forEach(element => {
+          const tableId = parseInt(element.getAttribute('data-table-id'));
+          
+          if (tableAvailability[tableId] && !tableAvailability[tableId].available) {
+            // This table has at least one seat booked, mark as unavailable
+            element.classList.add('unavailable');
+            
+            // Update tooltip
+            const tooltip = element.querySelector('.tooltip');
+            if (tooltip) {
+              const bookedCount = tableAvailability[tableId].bookedSeats.length;
+              const seatCount = tables[tableId].seatCount;
+              tooltip.textContent = `This table is partially booked (${bookedCount}/${seatCount} seats taken)`;
+            }
+            
+            // Remove click event for unavailable tables
+            const newElement = element.cloneNode(true);
+            element.parentNode.replaceChild(newElement, element);
+            tableElements[tableElements.indexOf(element)] = newElement;
+          }
+        });
+      }
+      
+      // Draw all tables on the floor plan
+      function createTables() {
+        // First, create table selection areas
+        Object.keys(tables).forEach(tableId => {
+          const table = tables[tableId];
+          const tableArea = document.createElement('div');
+          tableArea.className = 'table-area';
+          tableArea.setAttribute('data-table-id', tableId);
+          tableArea.style.left = `${table.center.x}px`;
+          tableArea.style.top = `${table.center.y}px`;
+          tableArea.style.width = `${table.size}px`;
+          tableArea.style.height = `${table.size}px`;
+          
+          // Add tooltip with information
+          const tooltip = document.createElement('div');
+          tooltip.className = 'tooltip';
+          tooltip.textContent = `Table ${tableId}: ${table.seatCount} seats`;
+          tableArea.appendChild(tooltip);
+          
+          // Add table number label
+          const label = document.createElement('div');
+          label.className = 'table-label';
+          label.textContent = `Table ${tableId}`;
+          label.style.left = `${table.center.x}px`;
+          label.style.top = `${table.center.y - (table.size/2) - 15}px`;
+          container.appendChild(label);
+          
+          // Add click event for table selection
+          tableArea.addEventListener('click', function() {
+            // Skip if table is unavailable
+            if (this.classList.contains('unavailable')) {
+              return;
+            }
+            
+            const tableId = parseInt(this.getAttribute('data-table-id'));
+            
+            // If this table is already selected, deselect it
+            if (selectedTable && selectedTable.tableId === tableId) {
+              this.classList.remove('selected');
+              selectedTable = null;
+            } else {
+              // Deselect any previously selected table
+              if (selectedTable) {
+                const prevElement = document.querySelector(`.table-area[data-table-id="${selectedTable.tableId}"]`);
+                if (prevElement) {
+                  prevElement.classList.remove('selected');
+                }
+              }
+              
+              // Select this table
+              this.classList.add('selected');
+              selectedTable = {
+                tableId: tableId,
+                seatCount: tables[tableId].seatCount,
+                isSelected: true
+              };
+            }
+            
+            // Send message to parent window
+            window.parent.postMessage({
+              type: 'TABLE_SELECTION',
+              selection: selectedTable
+            }, '*');
+          });
+          
+          container.appendChild(tableArea);
+          tableElements.push(tableArea);
+        });
+        
+        // Then, create seat indicators (visual only)
+        seatPositions.forEach(pos => {
+          const seat = document.createElement('div');
+          seat.className = 'seat';
+          seat.style.left = `${pos.left}px`;
+          seat.style.top = `${pos.top}px`;
+          container.appendChild(seat);
+        });
+      }
+      
+      // Listen for messages from parent window to get event ID
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'SET_EVENT_ID') {
+          const newEventId = event.data.eventId;
+          if (newEventId && newEventId !== eventId) {
+            // Reset and refetch with new event ID
+            selectedTable = null;
+            fetchTableAvailability();
+          }
+        }
+      });
+      
+      // Initialize tables on the floor plan
+      createTables();
+      
+      // Fetch availability data on page load
+      fetchTableAvailability();
+    });
+  </script>
+</body>
+</html>

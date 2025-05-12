@@ -108,10 +108,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       <Card>
         <CardContent className="p-4 relative">
           <div className="overflow-auto">
-            {/* Use an iframe to load the seat selection HTML with eventId */}
+            {/* Use an iframe to load the table selection HTML with eventId */}
             <iframe
               ref={iframeRef}
-              src={`/permanent-mezzanine-seats.html?eventId=${eventId}`}
+              src={`/permanent-mezzanine-tables.html?eventId=${eventId}`}
               className="w-full border-none overflow-auto"
               title="Mezzanine Seating"
               style={{ minHeight: '600px', height: '600px', overflow: 'auto' }}
