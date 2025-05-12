@@ -17,6 +17,7 @@ import {
   DoorOpen,
   QrCode,
   Link as LinkIcon,
+  TableProperties,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -78,6 +79,12 @@ export function BackofficeLayout({ children }: Props) {
       href: "/backoffice/food",
       icon: Utensils,
       roles: ['admin', 'venue_owner', 'venue_manager'],
+    },
+    {
+      name: "Layout Settings",
+      href: "/backoffice/layout-settings",
+      icon: TableProperties,
+      roles: ['admin', 'venue_owner'],
     },
     {
       name: "Users",
