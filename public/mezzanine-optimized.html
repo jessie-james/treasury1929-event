@@ -99,7 +99,7 @@
       justify-content: center;
       align-items: center;
       font-weight: bold;
-      font-size: 14px;
+      font-size: 11px;
       color: #333;
       cursor: pointer;
       z-index: 10;
@@ -108,19 +108,19 @@
     
     .table-circle.available {
       background-color: rgba(74, 222, 128, 0.4);
-      border: 2px solid rgba(22, 163, 74, 0.7);
+      border: 1px solid rgba(22, 163, 74, 0.7);
     }
     
     .table-circle.unavailable {
       background-color: rgba(156, 163, 175, 0.5);
-      border: 2px solid rgba(107, 114, 128, 0.7);
+      border: 1px solid rgba(107, 114, 128, 0.7);
       cursor: not-allowed;
     }
     
     .table-circle.selected {
       background-color: rgba(59, 130, 246, 0.5);
       border-color: rgba(37, 99, 235, 0.9);
-      box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+      box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
     }
     
     .tooltip {
@@ -249,15 +249,15 @@
         }
       });
       
-      // Table definitions with optimized positions and smaller sizes
+      // Table definitions with sizes reduced to 65% and perfectly centered
       const tableDefinitions = [
-        { id: 1, left: 939, top: 320, width: 40, height: 40, status: 'available' },
-        { id: 2, left: 838, top: 397, width: 40, height: 40, status: 'available' },
-        { id: 3, left: 675, top: 397, width: 40, height: 40, status: 'available' },
-        { id: 4, left: 518, top: 397, width: 40, height: 40, status: 'unavailable' },
-        { id: 5, left: 359, top: 397, width: 40, height: 40, status: 'unavailable' },
-        { id: 6, left: 181, top: 397, width: 40, height: 40, status: 'available' },
-        { id: 7, left: 83, top: 320, width: 40, height: 40, status: 'available' }
+        { id: 1, left: 939, top: 320, width: 26, height: 26, status: 'available' },
+        { id: 2, left: 838, top: 397, width: 26, height: 26, status: 'available' },
+        { id: 3, left: 675, top: 397, width: 26, height: 26, status: 'available' },
+        { id: 4, left: 518, top: 397, width: 26, height: 26, status: 'unavailable' },
+        { id: 5, left: 359, top: 397, width: 26, height: 26, status: 'unavailable' },
+        { id: 6, left: 181, top: 397, width: 26, height: 26, status: 'available' },
+        { id: 7, left: 83, top: 320, width: 26, height: 26, status: 'available' }
       ];
       
       // Function to create table elements dynamically
