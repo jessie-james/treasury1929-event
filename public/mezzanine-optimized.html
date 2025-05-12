@@ -249,15 +249,15 @@
         }
       });
       
-      // Table definitions with sizes reduced to ~66% and positioned exactly in the center of each seating arc with 15px upward shift
+      // Table definitions with precise positioning based on user feedback
       const tableDefinitions = [
         { id: 1, left: 939, top: 305, width: 17, height: 17, status: 'available' },
         { id: 2, left: 838, top: 382, width: 17, height: 17, status: 'available' },
-        { id: 3, left: 675, top: 382, width: 17, height: 17, status: 'available' },
-        { id: 4, left: 518, top: 382, width: 17, height: 17, status: 'unavailable' },
-        { id: 5, left: 359, top: 382, width: 17, height: 17, status: 'unavailable' },
-        { id: 6, left: 181, top: 382, width: 17, height: 17, status: 'available' },
-        { id: 7, left: 83, top: 305, width: 17, height: 17, status: 'available' }
+        { id: 3, left: 665, top: 372, width: 17, height: 17, status: 'available' },  // 10px left and 10px up
+        { id: 4, left: 518, top: 367, width: 17, height: 17, status: 'unavailable' }, // 15px up
+        { id: 5, left: 349, top: 372, width: 17, height: 17, status: 'unavailable' }, // 10px left and 10px up
+        { id: 6, left: 171, top: 382, width: 17, height: 17, status: 'available' },  // 10px left
+        { id: 7, left: 83, top: 300, width: 17, height: 17, status: 'available' }    // 5px up
       ];
       
       // Function to create table elements dynamically
