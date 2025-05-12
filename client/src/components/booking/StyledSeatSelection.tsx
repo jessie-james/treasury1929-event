@@ -169,7 +169,7 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
                 className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
                   isSeatSelected(1, 1) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
                 }`}
-                style={{ left: '952px', top: '284px', transform: 'translate(-50%, -50%)' }}
+                style={{ left: '944px', top: '282px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 1, tableId: 1, seatNumber: 1 })}
               >
                 {isSeatSelected(1, 1) ? '1' : ''}
@@ -178,7 +178,7 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
                 className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
                   isSeatSelected(1, 2) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
                 }`}
-                style={{ left: '968px', top: '314px', transform: 'translate(-50%, -50%)' }}
+                style={{ left: '966px', top: '311px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 2, tableId: 1, seatNumber: 2 })}
               >
                 {isSeatSelected(1, 2) ? '2' : ''}
@@ -187,7 +187,7 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
                 className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
                   isSeatSelected(1, 3) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
                 }`}
-                style={{ left: '954px', top: '347px', transform: 'translate(-50%, -50%)' }}
+                style={{ left: '953px', top: '348px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 3, tableId: 1, seatNumber: 3 })}
               >
                 {isSeatSelected(1, 3) ? '3' : ''}
