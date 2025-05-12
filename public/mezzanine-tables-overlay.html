@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mezzanine Table Selection</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+      background-color: #fafafa;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    
+    .container {
+      position: relative;
+      width: 1000px; /* Fixed width to match floor plan image */
+      height: 500px; /* Fixed height to match floor plan image */
+      margin: 0 auto;
+      overflow: hidden; /* Prevent overflow */
+    }
+    
+    .floor-plan {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      z-index: 1;
+    }
+    
+    .table-area {
+      position: absolute;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 20px;
+      color: #333;
+      border: 2px solid rgba(34, 197, 94, 0.6);
+      background-color: rgba(34, 197, 94, 0.3);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .table-area:hover {
+      background-color: rgba(34, 197, 94, 0.5);
+      border-color: rgba(34, 197, 94, 0.8);
+    }
+    
+    .table-area.selected {
+      background-color: rgba(59, 130, 246, 0.5);
+      border-color: rgba(59, 130, 246, 0.9);
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+    }
+    
+    .table-area.unavailable {
+      background-color: rgba(75, 85, 99, 0.3);
+      border-color: rgba(75, 85, 99, 0.6);
+      cursor: not-allowed;
+    }
+    
+    .table-area.unavailable:hover {
+      background-color: rgba(75, 85, 99, 0.4);
+    }
+    
+    .tooltip {
+      visibility: hidden;
+      width: 150px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      text-align: center;
+      padding: 5px 8px;
+      border-radius: 4px;
+      position: absolute;
+      z-index: 20;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 12px;
+      pointer-events: none;
+    }
+    
+    .table-area:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan" id="floorPlan">
+    <!-- Table overlays will be added here by JavaScript -->
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const container = document.querySelector('.container');
+      
+      // Get event ID from URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const eventId = urlParams.get('eventId') || 1; // Default to event 1 if not specified
+      
+      // Map to track table availability
+      const tableAvailability = {};
+      
+      // Track selected table
+      let selectedTable = null;
+      
+      // Elements tracking
+      const tableElements = [];
+      
+      // Define the mezzanine tables with precise coordinates matching the floor plan image
+      // The table IDs match exactly the numbers on the floor plan
+      const tableDefinitions = [
+        { id: 1, left: "932px", top: "322px", width: "80px", height: "80px", seatCount: 2 },
+        { id: 2, left: "830px", top: "392px", width: "80px", height: "80px", seatCount: 2 },
+        { id: 3, left: "678px", top: "392px", width: "80px", height: "80px", seatCount: 2 },
+        { id: 4, left: "517px", top: "392px", width: "80px", height: "80px", seatCount: 2 },
+        { id: 5, left: "358px", top: "392px", width: "80px", height: "80px", seatCount: 2 },
+        { id: 6, left: "170px", top: "394px", width: "80px", height: "80px", seatCount: 2 },
+        { id: 7, left: "83px", top: "320px", width: "80px", height: "80px", seatCount: 2 }
+      ];
+      
+      // Fetch seat availability from API
+      async function fetchTableAvailability() {
+        try {
+          const response = await fetch(`/api/tables/availability?eventId=${eventId}`);
+          if (!response.ok) {
+            console.error('Failed to fetch availability data');
+            return;
+          }
+          
+          const availabilityData = await response.json();
+          
+          // Process availability data
+          availabilityData.forEach(item => {
+            if (!tableAvailability[item.tableId]) {
+              tableAvailability[item.tableId] = {
+                available: true,
+                bookedSeats: []
+              };
+            }
+            
+            // If any seat is booked, mark as unavailable
+            if (item.isBooked) {
+              tableAvailability[item.tableId].available = false;
+              tableAvailability[item.tableId].bookedSeats.push(item.seatNumber);
+            }
+          });
+          
+          // Update table elements based on availability
+          updateTableElements();
+          
+        } catch (error) {
+          console.error('Error fetching availability data:', error);
+        }
+      }
+      
+      // Update table elements based on availability
+      function updateTableElements() {
+        tableElements.forEach(element => {
+          const tableId = parseInt(element.getAttribute('data-table-id'));
+          
+          if (tableAvailability[tableId] && !tableAvailability[tableId].available) {
+            // This table has at least one seat booked, mark as unavailable
+            element.classList.add('unavailable');
+            
+            // Update tooltip
+            const tooltip = element.querySelector('.tooltip');
+            if (tooltip) {
+              // Find the definition to get seatCount
+              const tableDef = tableDefinitions.find(t => t.id === tableId);
+              if (tableDef) {
+                const bookedCount = tableAvailability[tableId].bookedSeats.length;
+                const seatCount = tableDef.seatCount;
+                tooltip.textContent = `This table is unavailable (${bookedCount}/${seatCount} seats taken)`;
+              }
+            }
+            
+            // Remove click event for unavailable tables
+            const newElement = element.cloneNode(true);
+            element.parentNode.replaceChild(newElement, element);
+            tableElements[tableElements.indexOf(element)] = newElement;
+          }
+        });
+      }
+      
+      // Create table overlays on the floor plan
+      function createTables() {
+        // Create table selection areas with absolute positioning
+        tableDefinitions.forEach(table => {
+          const tableArea = document.createElement('div');
+          tableArea.className = 'table-area';
+          tableArea.setAttribute('data-table-id', table.id);
+          
+          // Apply direct positioning
+          tableArea.style.left = table.left;
+          tableArea.style.top = table.top;
+          tableArea.style.width = table.width;
+          tableArea.style.height = table.height;
+          
+          // Add table number inside circle
+          tableArea.textContent = table.id;
+          
+          // Add tooltip with information
+          const tooltip = document.createElement('div');
+          tooltip.className = 'tooltip';
+          tooltip.textContent = `Table ${table.id}: ${table.seatCount} seats`;
+          tableArea.appendChild(tooltip);
+          
+          // Add click event for table selection
+          tableArea.addEventListener('click', function() {
+            // Skip if table is unavailable
+            if (this.classList.contains('unavailable')) {
+              return;
+            }
+            
+            const tableId = parseInt(this.getAttribute('data-table-id'));
+            
+            // If this table is already selected, deselect it
+            if (selectedTable && selectedTable.tableId === tableId) {
+              this.classList.remove('selected');
+              selectedTable = null;
+            } else {
+              // Deselect any previously selected table
+              if (selectedTable) {
+                const prevElement = document.querySelector(`.table-area[data-table-id="${selectedTable.tableId}"]`);
+                if (prevElement) {
+                  prevElement.classList.remove('selected');
+                }
+              }
+              
+              // Select this table
+              this.classList.add('selected');
+              
+              // Find the table definition to get seatCount
+              const tableDef = tableDefinitions.find(t => t.id === tableId);
+              
+              selectedTable = {
+                tableId: tableId,
+                seatCount: tableDef ? tableDef.seatCount : 2,
+                isSelected: true
+              };
+            }
+            
+            // Send message to parent window
+            window.parent.postMessage({
+              type: 'TABLE_SELECTION',
+              selection: selectedTable
+            }, '*');
+          });
+          
+          container.appendChild(tableArea);
+          tableElements.push(tableArea);
+        });
+      }
+      
+      // Listen for messages from parent window to get event ID
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'SET_EVENT_ID') {
+          const newEventId = event.data.eventId;
+          if (newEventId && newEventId !== eventId) {
+            // Reset and refetch with new event ID
+            selectedTable = null;
+            fetchTableAvailability();
+          }
+        }
+      });
+      
+      // Initialize tables on the floor plan
+      createTables();
+      
+      // Fetch availability data on page load
+      fetchTableAvailability();
+    });
+  </script>
+</body>
+</html>
