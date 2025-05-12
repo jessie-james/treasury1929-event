@@ -140,7 +140,10 @@ export function registerAdminRoutes(app: Express): void {
       res.json(updatedTable);
     } catch (error) {
       console.error("Error updating table:", error);
-      res.status(500).json({ message: "Failed to update table" });
+      res.status(500).json({ 
+        message: "Failed to update table",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 

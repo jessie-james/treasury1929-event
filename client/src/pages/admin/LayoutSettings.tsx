@@ -1680,7 +1680,7 @@ export default function LayoutSettings() {
                   className="w-full justify-start"
                 >
                   {isMultiSelectMode ? (
-                    <SelectionSlash className="h-4 w-4 mr-2" />
+                    <Eraser className="h-4 w-4 mr-2" />
                   ) : (
                     <LayoutGrid className="h-4 w-4 mr-2" />
                   )}
