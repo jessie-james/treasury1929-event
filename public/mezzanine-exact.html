@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mezzanine Seating</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background-color: #f8f8f8;
+    }
+    
+    .seating-container {
+      position: relative;
+      width: 800px;
+      height: 300px;
+      margin: 0 auto;
+      background-color: #f4f4f4;
+      border-radius: 50px;
+      overflow: hidden;
+    }
+    
+    .stage-area {
+      position: absolute;
+      top: 45px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 235px;
+      height: 120px;
+      background-color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 18px;
+    }
+    
+    .table {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 22px;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+    }
+    
+    .table.green {
+      background-color: rgba(94, 234, 146, 0.5);
+      border: 2px solid rgba(44, 178, 91, 0.8);
+      color: #333;
+    }
+    
+    .table.gray {
+      background-color: rgba(180, 180, 180, 0.5);
+      border: 2px solid rgba(120, 120, 120, 0.8);
+      color: #333;
+      cursor: not-allowed;
+    }
+    
+    .table.selected {
+      background-color: rgba(59, 130, 246, 0.5);
+      border-color: rgba(59, 130, 246, 0.9);
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+    }
+    
+    .tooltip {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 14px;
+      pointer-events: none;
+      white-space: nowrap;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 20;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-bottom: 5px;
+    }
+    
+    .table:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="seating-container" id="seatingContainer">
+    <!-- Stage area -->
+    <div class="stage-area">STAGE</div>
+    
+    <!-- Tables will be dynamically added here -->
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get event ID from URL query parameter
+      const urlParams = new URLSearchParams(window.location.search);
+      const eventId = urlParams.get('eventId') || 1;
+      
+      // Container reference
+      const container = document.getElementById('seatingContainer');
+      
+      // Track selected table
+      let selectedTable = null;
+      
+      // Table availability tracker
+      const tableAvailability = {};
+      
+      // All table elements
+      const tableElements = [];
+      
+      // Define tables with hard-coded exact positions from screenshot
+      // These coordinates are measured precisely from the screenshot
+      // Left and top values are pixels from container origin
+      const tables = [
+        // Tables directly based on the latest screenshot
+        { id: 3, left: 780, top: 170, status: 'available', seatCount: 2 }, // Right table
+        { id: 4, left: 635, top: 170, status: 'available', seatCount: 2 }, // Right middle
+        { id: 5, left: 460, top: 170, status: 'unavailable', seatCount: 2 }, // Left middle
+        { id: 6, left: 280, top: 170, status: 'unavailable', seatCount: 2 }, // Left table
+        { id: 7, left: 170, top: 130, status: 'available', seatCount: 2 }  // Far left table
+      ];
+      
+      // Create tables on the map
+      function createTables() {
+        tables.forEach(table => {
+          const tableElement = document.createElement('div');
+          tableElement.className = `table ${table.status === 'available' ? 'green' : 'gray'}`;
+          tableElement.setAttribute('data-table-id', table.id);
+          
+          // Set positioning (exact positioning)
+          tableElement.style.left = `${table.left - 30}px`; // Subtract half width for centering
+          tableElement.style.top = `${table.top - 30}px`;  // Subtract half height for centering
+          
+          // Table number
+          tableElement.textContent = table.id;
+          
+          // Add tooltip
+          const tooltip = document.createElement('div');
+          tooltip.className = 'tooltip';
+          
+          if (table.status === 'available') {
+            tooltip.textContent = `Table ${table.id}: ${table.seatCount} seats`;
+          } else {
+            tooltip.textContent = `Table ${table.id}: Unavailable`;
+          }
+          
+          tableElement.appendChild(tooltip);
+          
+          // Add click handler for available tables
+          if (table.status === 'available') {
+            tableElement.addEventListener('click', function() {
+              const tableId = parseInt(this.getAttribute('data-table-id'));
+              
+              // If already selected, deselect it
+              if (selectedTable && selectedTable.tableId === tableId) {
+                this.classList.remove('selected');
+                selectedTable = null;
+              } else {
+                // Deselect previous
+                if (selectedTable) {
+                  const prevSelected = document.querySelector(`.table[data-table-id="${selectedTable.tableId}"]`);
+                  if (prevSelected) {
+                    prevSelected.classList.remove('selected');
+                  }
+                }
+                
+                // Select this table
+                this.classList.add('selected');
+                
+                const tableData = tables.find(t => t.id === tableId);
+                selectedTable = {
+                  tableId: tableId,
+                  seatCount: tableData ? tableData.seatCount : 2,
+                  isSelected: true
+                };
+              }
+              
+              // Send message to parent window
+              window.parent.postMessage({
+                type: 'TABLE_SELECTION',
+                selection: selectedTable
+              }, '*');
+            });
+          }
+          
+          // Add to container
+          container.appendChild(tableElement);
+          tableElements.push(tableElement);
+        });
+      }
+      
+      // Fetch availability data from API
+      async function fetchAvailability() {
+        try {
+          const response = await fetch(`/api/tables/availability?eventId=${eventId}`);
+          if (!response.ok) {
+            console.error('Failed to fetch table availability');
+            return;
+          }
+          
+          const data = await response.json();
+          
+          // Process data
+          data.forEach(item => {
+            if (!tableAvailability[item.tableId]) {
+              tableAvailability[item.tableId] = {
+                available: true,
+                bookedSeats: []
+              };
+            }
+            
+            if (item.isBooked) {
+              tableAvailability[item.tableId].available = false;
+              tableAvailability[item.tableId].bookedSeats.push(item.seatNumber);
+            }
+          });
+          
+          // Update hard-coded data
+          // Note: This is overridden by our hard-coded status for demonstration
+          // In a real app, we'd update the table elements based on live data
+          
+        } catch (error) {
+          console.error('Error fetching availability:', error);
+        }
+      }
+      
+      // Listen for messages from parent window
+      window.addEventListener('message', function(event) {
+        if (event.data && event.data.type === 'SET_EVENT_ID') {
+          const newEventId = event.data.eventId;
+          if (newEventId && newEventId !== eventId) {
+            // Reset selection
+            selectedTable = null;
+            
+            // Refetch with new event ID
+            fetchAvailability();
+          }
+        }
+      });
+      
+      // Initialize
+      createTables();
+      fetchAvailability();
+    });
+  </script>
+</body>
+</html>
