@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLayoutCollaboration } from "@/hooks/use-layout-collaboration";
+import { CollaborationIndicator } from "@/components/admin/CollaborationIndicator";
+import { EditorCursor } from "@/components/admin/EditorCursor";
 import { 
   Card, 
   CardContent, 
@@ -195,6 +198,11 @@ const bulkTableFormSchema = z.object({
 export default function LayoutSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // State for editor positions (for collaborative editing)
+  const [editorPositions, setEditorPositions] = useState<Map<string, { x: number; y: number; editorId: string; timestamp: number }>>(
+    new Map()
+  );
   const canvasRef = useRef<HTMLDivElement>(null);
   
   // State variables
@@ -247,8 +255,57 @@ export default function LayoutSettings() {
     }
   ]);
   const [currentTemplate, setCurrentTemplate] = useState<string | null>('concert');
-  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+  // Setup real-time collaboration
+  const { 
+    connected, 
+    editorCount, 
+    editorId,
+    sendTableUpdate,
+    sendEditorPosition 
+  } = useLayoutCollaboration({
+    venueId: selectedVenueId,
+    onTableUpdate: (tableData, action, sourceEditorId) => {
+      // Handle table updates from other editors
+      if (action === 'update') {
+        // Refresh the tables query to get the updated table data
+        queryClient.invalidateQueries({ queryKey: [`/api/admin/venues/${selectedVenueId}/tables`] });
+        
+        toast({
+          title: 'Layout Updated',
+          description: `Table ${tableData.tableNumber} was updated by another editor`,
+          variant: 'default',
+        });
+      }
+    },
+    onEditorPositionChange: (position) => {
+      // Update the editor position in our state
+      setEditorPositions(prev => {
+        const newMap = new Map(prev);
+        newMap.set(position.editorId, position);
+        return newMap;
+      });
+    },
+    onEditorJoined: (joinedEditorId, count) => {
+      // Show a notification when a new editor joins
+      if (joinedEditorId !== editorId) {
+        toast({
+          title: 'Editor Joined',
+          description: `${count} editors are now working on this layout`,
+          variant: 'default',
+        });
+      }
+    },
+    onEditorLeft: (count) => {
+      // Optional notification when an editor leaves
+      if (count > 0) {
+        toast({
+          title: 'Editor Left',
+          description: `${count} editors remaining`,
+          variant: 'default',
+        });
+      }
+    }
+  });
   
   // Form for individual table editing
   const tableForm = useForm<z.infer<typeof tableFormSchema>>({
@@ -1920,9 +1977,16 @@ export default function LayoutSettings() {
         <Card className="lg:col-span-3 order-1 lg:order-2">
           <CardHeader className="p-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">
-                {floors.find(f => f.id === currentFloor)?.name || 'Floor Plan'}
-              </CardTitle>
+              <div className="flex items-center gap-3">
+                <CardTitle className="text-lg">
+                  {floors.find(f => f.id === currentFloor)?.name || 'Floor Plan'}
+                </CardTitle>
+                <CollaborationIndicator 
+                  connected={connected} 
+                  editorCount={editorCount} 
+                  editorPositions={editorPositions} 
+                />
+              </div>
               
               <div className="flex space-x-2">
                 <Button variant="outline" size="sm" onClick={() => handleZoom(zoom - 10)}>
