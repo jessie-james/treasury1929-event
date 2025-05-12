@@ -520,18 +520,15 @@ export async function registerRoutes(app: Express) {
         );
       });
       
-      // Get all tables (for this implementation, assume tables 1-10 with seats 1-4 or 1-2)
+      // Get all tables in the mezzanine (tables 1-7, all with 2 seats)
       const tables = [
-        { id: 1, seatCount: 4 },
+        { id: 1, seatCount: 2 },
         { id: 2, seatCount: 2 },
         { id: 3, seatCount: 2 },
         { id: 4, seatCount: 2 },
         { id: 5, seatCount: 2 },
         { id: 6, seatCount: 2 },
-        { id: 7, seatCount: 2 },
-        { id: 8, seatCount: 2 },
-        { id: 9, seatCount: 2 },
-        { id: 10, seatCount: 2 }
+        { id: 7, seatCount: 2 }
       ];
       
       // Create availability data for all tables
@@ -584,13 +581,8 @@ export async function registerRoutes(app: Express) {
         }
       });
       
-      // Get seat count for this table
-      let seatCount = 2; // Default for all tables
-      
-      // Table 1 has 4 seats, all others have 2
-      if (tableId === 1) {
-        seatCount = 4;
-      }
+      // All tables in the mezzanine have 2 seats
+      const seatCount = 2;
       
       // Create seat availability data
       const tableSeats = Array.from({ length: seatCount }, (_, i) => {

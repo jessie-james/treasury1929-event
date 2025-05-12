@@ -111,7 +111,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
             {/* Use an iframe to load the table selection HTML with eventId */}
             <iframe
               ref={iframeRef}
-              src={`/original-mezzanine.html?eventId=${eventId}`}
+              src={`/mezzanine-optimized.html?eventId=${eventId}`}
               className="w-full border-none overflow-auto"
               title="Mezzanine Seating"
               style={{ minHeight: '500px', height: '500px', overflow: 'auto' }}
