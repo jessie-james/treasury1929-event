@@ -107,15 +107,38 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
 
       <Card>
         <CardContent className="p-4 relative">
-          <div className="overflow-auto">
-            {/* Use an iframe to load the table selection HTML with eventId */}
-            <iframe
-              ref={iframeRef}
-              src={`/mezzanine-optimized.html?eventId=${eventId}`}
-              className="w-full border-none overflow-auto"
-              title="Mezzanine Seating"
-              style={{ minHeight: '500px', height: '500px', overflow: 'auto' }}
-            />
+          <div className="mb-4">
+            <div className="flex justify-between items-center p-2 mb-2 border-b">
+              <h3 className="text-lg font-medium">Mezzanine Floor Plan</h3>
+              <div className="flex gap-2">
+                <button 
+                  className="flex items-center justify-center w-8 h-8 bg-white border rounded-full hover:bg-gray-50"
+                  onClick={() => {
+                    iframeRef.current?.contentWindow?.postMessage({ type: 'ZOOM_IN' }, '*');
+                  }}
+                >
+                  <span className="text-xl font-bold">+</span>
+                </button>
+                <button 
+                  className="flex items-center justify-center w-8 h-8 bg-white border rounded-full hover:bg-gray-50"
+                  onClick={() => {
+                    iframeRef.current?.contentWindow?.postMessage({ type: 'RESET_ZOOM' }, '*');
+                  }}
+                >
+                  <span className="text-xs">Reset</span>
+                </button>
+              </div>
+            </div>
+            <div className="overflow-hidden">
+              {/* Use an iframe to load the table selection HTML with eventId */}
+              <iframe
+                ref={iframeRef}
+                src={`/mezzanine-optimized.html?eventId=${eventId}`}
+                className="w-full border-none"
+                title="Mezzanine Seating"
+                style={{ height: '500px', overflow: 'hidden' }}
+              />
+            </div>
           </div>
           
           {/* Selection Summary */}

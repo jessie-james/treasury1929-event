@@ -151,15 +151,6 @@
 </head>
 <body>
   <div class="wrapper">
-    <!-- Control Area -->
-    <div class="control-area">
-      <div class="reset-view-btn" id="resetView">Reset View</div>
-      <div class="zoom-controls">
-        <button class="zoom-btn" id="zoomOut">−</button>
-        <button class="zoom-btn" id="zoomIn">+</button>
-      </div>
-    </div>
-    
     <!-- Floor Plan Container -->
     <div class="container" id="floorplanContainer">
       <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan">
@@ -210,14 +201,11 @@
       
       // Zoom functionality
       const container = document.getElementById('floorplanContainer');
-      const zoomInBtn = document.getElementById('zoomIn');
-      const zoomOutBtn = document.getElementById('zoomOut');
-      const resetViewBtn = document.getElementById('resetView');
       
       let currentZoom = 1;
-      const zoomStep = 0.1;
-      const minZoom = 0.5;
-      const maxZoom = 2;
+      const zoomStep = 0.05;
+      const minZoom = 1; // Minimum zoom is 100% (no zoom out)
+      const maxZoom = 1.3; // Maximum zoom is 130% (30% zoom in)
       
       // Initialize pan variables
       let isPanning = false;
@@ -240,40 +228,23 @@
         }
       }
       
-      // Zoom out function
-      function zoomOut() {
-        if (currentZoom > minZoom) {
-          currentZoom = Math.max(currentZoom - zoomStep, minZoom);
-          applyTransform();
-        }
-      }
-      
       // Reset view
       function resetView() {
         currentZoom = 1;
         translateX = 0;
         translateY = 0;
         applyTransform();
+        
+        // Also notify the parent about the reset
+        window.parent.postMessage({
+          type: 'ZOOM_CHANGE',
+          currentZoom: currentZoom
+        }, '*');
       }
-      
-      // Add event listeners
-      zoomInBtn.addEventListener('click', zoomIn);
-      zoomOutBtn.addEventListener('click', zoomOut);
-      resetViewBtn.addEventListener('click', resetView);
-      
-      // Mouse wheel zoom
-      container.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        if (e.deltaY < 0) {
-          zoomIn();
-        } else {
-          zoomOut();
-        }
-      });
       
       // Handle panning with mouse
       container.addEventListener('mousedown', (e) => {
-        if (e.button === 0) { // Left mouse button
+        if (e.button === 0 && currentZoom > 1) { // Left mouse button and only if zoomed in
           isPanning = true;
           startX = e.clientX;
           startY = e.clientY;
@@ -294,31 +265,24 @@
       document.addEventListener('mouseup', () => {
         if (isPanning) {
           isPanning = false;
-          container.style.cursor = 'grab';
+          container.style.cursor = 'default';
         }
       });
       
-      // Touch events for mobile
-      container.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-          isPanning = true;
-          startX = e.touches[0].clientX;
-          startY = e.touches[0].clientY;
-          startTranslateX = translateX;
-          startTranslateY = translateY;
+      // Listen for messages from parent for zoom control
+      window.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'ZOOM_IN') {
+          zoomIn();
+          
+          // Send back current zoom level
+          window.parent.postMessage({
+            type: 'ZOOM_CHANGE',
+            currentZoom: currentZoom
+          }, '*');
         }
-      });
-      
-      document.addEventListener('touchmove', (e) => {
-        if (isPanning && e.touches.length === 1) {
-          translateX = startTranslateX + (e.touches[0].clientX - startX);
-          translateY = startTranslateY + (e.touches[0].clientY - startY);
-          applyTransform();
+        else if (e.data && e.data.type === 'RESET_ZOOM') {
+          resetView();
         }
-      });
-      
-      document.addEventListener('touchend', () => {
-        isPanning = false;
       });
       
       // Table definitions with optimized positions
