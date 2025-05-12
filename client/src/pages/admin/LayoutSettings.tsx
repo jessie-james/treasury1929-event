@@ -203,6 +203,9 @@ export default function LayoutSettings() {
   const [editorPositions, setEditorPositions] = useState<Map<string, { x: number; y: number; editorId: string; timestamp: number }>>(
     new Map()
   );
+  
+  // Refs for throttling position updates
+  const lastPositionUpdate = useRef<number>(0);
   const canvasRef = useRef<HTMLDivElement>(null);
   
   // State variables
@@ -798,13 +801,30 @@ export default function LayoutSettings() {
   // Handle single table form submission
   const handleTableFormSubmit = (data: z.infer<typeof tableFormSchema>) => {
     if (isAddMode) {
-      createTableMutation.mutate(data);
+      createTableMutation.mutate(data, {
+        onSuccess: (newTable) => {
+          // Broadcast the new table to other editors
+          if (sendTableUpdate) {
+            sendTableUpdate(newTable, 'create');
+          }
+        }
+      });
     } else if (selectedTable) {
-      updateTableMutation.mutate({
+      const updatedTable = {
         ...selectedTable,
         ...data,
+      };
+      
+      updateTableMutation.mutate(updatedTable, {
+        onSuccess: () => {
+          setSelectedTable(null);
+          
+          // Broadcast the updated table to other editors
+          if (sendTableUpdate) {
+            sendTableUpdate(updatedTable, 'update');
+          }
+        }
       });
-      setSelectedTable(null);
     }
   };
 
@@ -2036,7 +2056,39 @@ export default function LayoutSettings() {
           </CardHeader>
           
           <CardContent className="p-4 pt-0">
-            <div className="relative border rounded-md overflow-hidden">
+            <div 
+              className="relative border rounded-md overflow-hidden" 
+              ref={canvasRef}
+              onMouseMove={(e) => {
+                if (sendEditorPosition) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const x = e.clientX - rect.left;
+                  const y = e.clientY - rect.top;
+                  
+                  // Throttle position updates to avoid overloading the server
+                  const now = Date.now();
+                  if (now - lastPositionUpdate.current > 100) { // Send every 100ms
+                    sendEditorPosition(x, y);
+                    lastPositionUpdate.current = now;
+                  }
+                }
+              }}
+            >
+              {/* Render editor cursors for other collaborators */}
+              {editorPositions && Array.from(editorPositions.entries()).map(([cursorEditorId, position]) => {
+                // Don't show cursor for current user
+                if (cursorEditorId !== editorId) {
+                  return (
+                    <EditorCursor 
+                      key={cursorEditorId}
+                      editorId={cursorEditorId} 
+                      position={{ x: position.x, y: position.y }}
+                    />
+                  );
+                }
+                return null;
+              })}
+            
               <div 
                 className="absolute top-2 left-2 z-20 flex flex-col space-y-2 bg-white/80 p-2 rounded shadow-sm"
               >
