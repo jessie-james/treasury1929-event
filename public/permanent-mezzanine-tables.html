@@ -116,16 +116,16 @@
       // Elements tracking
       const tableElements = [];
       
-      // Define the mezzanine tables with accurate positions and sizes based on the actual layout
+      // Define the mezzanine tables with accurate positions and sizes based on the screenshots
       const tableDefinitions = [
-        { id: 3, center: { x: 820, y: 418 }, size: 55, seatCount: 2 },
-        { id: 4, center: { x: 700, y: 424 }, size: 55, seatCount: 2 },
-        { id: 5, center: { x: 515, y: 424 }, size: 55, seatCount: 2 },
-        { id: 6, center: { x: 325, y: 437 }, size: 55, seatCount: 2 },
-        { id: 7, center: { x: 217, y: 355 }, size: 55, seatCount: 2 },
-        { id: 8, center: { x: 257, y: 280 }, size: 55, seatCount: 2 },
-        { id: 9, center: { x: 354, y: 245 }, size: 55, seatCount: 2 },
-        { id: 10, center: { x: 486, y: 245 }, size: 55, seatCount: 2 }
+        { id: 3, center: { x: 810, y: 408 }, size: 60, seatCount: 2 },
+        { id: 4, center: { x: 635, y: 408 }, size: 60, seatCount: 2 },
+        { id: 5, center: { x: 485, y: 406 }, size: 60, seatCount: 2 },
+        { id: 6, center: { x: 330, y: 406 }, size: 60, seatCount: 2 },
+        { id: 7, center: { x: 167, y: 308 }, size: 60, seatCount: 2 },
+        { id: 8, center: { x: 228, y: 240 }, size: 60, seatCount: 2 },
+        { id: 9, center: { x: 350, y: 202 }, size: 60, seatCount: 2 },
+        { id: 10, center: { x: 485, y: 202 }, size: 60, seatCount: 2 }
       ];
       
       // Fetch seat availability from API
@@ -148,7 +148,7 @@
               };
             }
             
-            // If any seat is booked, the table is unavailable
+            // If any seat is booked, mark as unavailable
             if (item.isBooked) {
               tableAvailability[item.tableId].available = false;
               tableAvailability[item.tableId].bookedSeats.push(item.seatNumber);
@@ -180,7 +180,7 @@
               if (tableDef) {
                 const bookedCount = tableAvailability[tableId].bookedSeats.length;
                 const seatCount = tableDef.seatCount;
-                tooltip.textContent = `This table is partially booked (${bookedCount}/${seatCount} seats taken)`;
+                tooltip.textContent = `This table is unavailable (${bookedCount}/${seatCount} seats taken)`;
               }
             }
             
