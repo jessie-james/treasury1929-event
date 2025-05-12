@@ -559,13 +559,14 @@ export async function registerRoutes(app: Express) {
   // Endpoint to get seats for a specific table
   app.get("/api/tables/:tableId/seats", async (req, res) => {
     try {
+      const tableId = parseInt(req.params.tableId);
       const eventId = parseInt(req.query.eventId as string);
       
-      if (isNaN(eventId)) {
-        return res.status(400).json({ message: 'Invalid event ID' });
+      if (isNaN(eventId) || isNaN(tableId)) {
+        return res.status(400).json({ message: 'Invalid table ID or event ID' });
       }
       
-      console.log(`Getting availability for all tables, event ${eventId}`);
+      console.log(`Getting seat availability for table ${tableId}, event ${eventId}`);
       
       // Get all bookings for this event
       const allBookings = await storage.getBookings();
@@ -575,51 +576,38 @@ export async function registerRoutes(app: Express) {
                   booking.status !== "refunded"
       );
       
-      // Create a map of booked seats by table
-      const bookedSeatsByTable: Record<number, Set<number>> = {};
-      
+      // Find which seats are booked for this table
+      const bookedSeats = new Set<number>();
       eventBookings.forEach(booking => {
-        if (!bookedSeatsByTable[booking.tableId]) {
-          bookedSeatsByTable[booking.tableId] = new Set<number>();
+        if (booking.tableId === tableId) {
+          booking.seatNumbers.forEach(seatNum => bookedSeats.add(seatNum));
         }
-        booking.seatNumbers.forEach(seatNum => 
-          bookedSeatsByTable[booking.tableId].add(seatNum)
-        );
       });
       
-      // Get all tables (for this implementation, assume tables 1-10 with seats 1-4 or 1-2)
-      const tables = [
-        { id: 1, seatCount: 4 },
-        { id: 2, seatCount: 2 },
-        { id: 3, seatCount: 2 },
-        { id: 4, seatCount: 2 },
-        { id: 5, seatCount: 2 },
-        { id: 6, seatCount: 2 },
-        { id: 7, seatCount: 2 },
-        { id: 8, seatCount: 2 },
-        { id: 9, seatCount: 2 },
-        { id: 10, seatCount: 2 }
-      ];
+      // Define table seat counts
+      const tableSeatCounts = {
+        1: 4,  // Table 1 has 4 seats
+        2: 2, 3: 2, 4: 2, 5: 2, 6: 2, 7: 2, 8: 2, 9: 2, 10: 2  // All others have 2
+      };
       
-      // Create availability data for all tables
-      const availability = [];
+      // Get seat count for this table
+      const seatCount = tableSeatCounts[tableId] || 2;
       
-      for (const table of tables) {
-        for (let seatNum = 1; seatNum <= table.seatCount; seatNum++) {
-          const isBooked = bookedSeatsByTable[table.id]?.has(seatNum) || false;
-          
-          availability.push({
-            tableId: table.id,
-            seatNumber: seatNum,
-            isBooked
-          });
-        }
-      }
+      // Create seat availability data
+      const tableSeats = Array.from({ length: seatCount }, (_, i) => {
+        const seatNumber = i + 1;
+        return {
+          id: seatNumber,
+          tableId: tableId,
+          seatNumber: seatNumber,
+          isAvailable: !bookedSeats.has(seatNumber)
+        };
+      });
       
-      res.json(availability);
+      res.json(tableSeats);
     } catch (error) {
-      console.error("Error fetching table availability:", error);
-      res.status(500).json({ message: 'Error fetching table availability' });
+      console.error("Error fetching seats:", error);
+      res.status(500).json({ message: "Failed to fetch seats" });
     }
   });
 
