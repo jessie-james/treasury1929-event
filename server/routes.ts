@@ -584,14 +584,13 @@ export async function registerRoutes(app: Express) {
         }
       });
       
-      // Define table seat counts
-      const tableSeatCounts = {
-        1: 4,  // Table 1 has 4 seats
-        2: 2, 3: 2, 4: 2, 5: 2, 6: 2, 7: 2, 8: 2, 9: 2, 10: 2  // All others have 2
-      };
-      
       // Get seat count for this table
-      const seatCount = tableSeatCounts[tableId] || 2;
+      let seatCount = 2; // Default for all tables
+      
+      // Table 1 has 4 seats, all others have 2
+      if (tableId === 1) {
+        seatCount = 4;
+      }
       
       // Create seat availability data
       const tableSeats = Array.from({ length: seatCount }, (_, i) => {

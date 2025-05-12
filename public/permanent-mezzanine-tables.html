@@ -35,21 +35,22 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 14px;
       font-weight: bold;
-      color: white;
-      border: 2px solid rgba(34, 197, 94, 0.3);
-      background-color: rgba(34, 197, 94, 0.2);
+      color: #333;
+      border: 2px solid rgba(34, 197, 94, 0.6);
+      background-color: rgba(34, 197, 94, 0.3);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
     .table-area:hover {
-      background-color: rgba(34, 197, 94, 0.4);
-      border-color: rgba(34, 197, 94, 0.6);
+      background-color: rgba(34, 197, 94, 0.5);
+      border-color: rgba(34, 197, 94, 0.8);
     }
     
     .table-area.selected {
-      background-color: rgba(59, 130, 246, 0.4);
-      border-color: rgba(59, 130, 246, 0.8);
+      background-color: rgba(59, 130, 246, 0.5);
+      border-color: rgba(59, 130, 246, 0.9);
+      box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
     }
     
     .table-area.unavailable {
@@ -63,24 +64,9 @@
       transform: translate(-50%, -50%);
     }
     
-    .table-label {
-      position: absolute;
-      font-size: 12px;
-      font-weight: bold;
-      color: #333;
-      transform: translate(-50%, -50%);
-      text-shadow: 0 0 2px white, 0 0 2px white, 0 0 2px white, 0 0 2px white;
-    }
-    
-    .seat {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      background-color: rgba(34, 197, 94, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      z-index: 5;
+    .table-number {
+      font-size: 16px;
+      text-shadow: 0 0 3px white, 0 0 3px white, 0 0 3px white, 0 0 3px white;
     }
     
     .tooltip {
@@ -130,81 +116,17 @@
       // Elements tracking
       const tableElements = [];
       
-      // PERMANENT SEAT POSITIONS - These are from the previous file
-      const seatPositions = [
-        {"tableId": 1, "seatNumber": 1, "left": 930, "top": 279},
-        {"tableId": 1, "seatNumber": 2, "left": 946, "top": 304},
-        {"tableId": 1, "seatNumber": 3, "left": 933, "top": 341},
-        {"tableId": 1, "seatNumber": 4, "left": 904, "top": 351},
-        {"tableId": 2, "seatNumber": 1, "left": 835, "top": 389},
-        {"tableId": 2, "seatNumber": 2, "left": 796, "top": 397},
-        {"tableId": 3, "seatNumber": 1, "left": 678, "top": 390},
-        {"tableId": 3, "seatNumber": 2, "left": 635, "top": 390},
-        {"tableId": 4, "seatNumber": 1, "left": 536, "top": 402},
-        {"tableId": 4, "seatNumber": 2, "left": 494, "top": 402},
-        {"tableId": 5, "seatNumber": 1, "left": 369, "top": 402},
-        {"tableId": 5, "seatNumber": 2, "left": 328, "top": 402},
-        {"tableId": 6, "seatNumber": 1, "left": 167, "top": 422},
-        {"tableId": 6, "seatNumber": 2, "left": 139, "top": 394},
-        {"tableId": 7, "seatNumber": 1, "left": 47, "top": 352},
-        {"tableId": 7, "seatNumber": 2, "left": 32, "top": 316},
-        {"tableId": 8, "seatNumber": 1, "left": 74, "top": 256},
-        {"tableId": 8, "seatNumber": 2, "left": 110, "top": 243},
-        {"tableId": 9, "seatNumber": 1, "left": 170, "top": 215},
-        {"tableId": 9, "seatNumber": 2, "left": 214, "top": 215},
-        {"tableId": 10, "seatNumber": 1, "left": 299, "top": 215},
-        {"tableId": 10, "seatNumber": 2, "left": 343, "top": 215}
+      // Define the mezzanine tables with accurate positions and sizes
+      const tableDefinitions = [
+        { id: 3, center: { x: 701, y: 349 }, size: 55, seatCount: 2 },
+        { id: 4, center: { x: 561, y: 363 }, size: 55, seatCount: 2 },
+        { id: 5, center: { x: 396, y: 363 }, size: 55, seatCount: 2 },
+        { id: 6, center: { x: 208, y: 373 }, size: 55, seatCount: 2 },
+        { id: 7, center: { x: 97, y: 289 }, size: 55, seatCount: 2 },
+        { id: 8, center: { x: 138, y: 220 }, size: 55, seatCount: 2 },
+        { id: 9, center: { x: 236, y: 183 }, size: 55, seatCount: 2 },
+        { id: 10, center: { x: 367, y: 183 }, size: 55, seatCount: 2 }
       ];
-      
-      // Define table centers and sizes based on their seats
-      function calculateTableInfo() {
-        const tables = {};
-        
-        // Group seats by table ID and calculate centers
-        seatPositions.forEach(seat => {
-          if (!tables[seat.tableId]) {
-            tables[seat.tableId] = {
-              seats: [],
-              seatCount: 0,
-              center: { x: 0, y: 0 },
-              size: 0
-            };
-          }
-          tables[seat.tableId].seats.push({ x: seat.left, y: seat.top });
-          tables[seat.tableId].seatCount++;
-        });
-        
-        // Calculate center and size for each table
-        Object.keys(tables).forEach(tableId => {
-          const table = tables[tableId];
-          
-          // Calculate center as average of seat positions
-          const sumX = table.seats.reduce((sum, seat) => sum + seat.x, 0);
-          const sumY = table.seats.reduce((sum, seat) => sum + seat.y, 0);
-          table.center = {
-            x: sumX / table.seats.length,
-            y: sumY / table.seats.length
-          };
-          
-          // Calculate size based on distance from center to furthest seat plus padding
-          let maxDistance = 0;
-          table.seats.forEach(seat => {
-            const distance = Math.sqrt(
-              Math.pow(seat.x - table.center.x, 2) + 
-              Math.pow(seat.y - table.center.y, 2)
-            );
-            maxDistance = Math.max(maxDistance, distance);
-          });
-          
-          // Set size with padding
-          table.size = maxDistance * 1.8;
-        });
-        
-        return tables;
-      }
-      
-      // Calculate table information
-      const tables = calculateTableInfo();
       
       // Fetch seat availability from API
       async function fetchTableAvailability() {
@@ -253,9 +175,13 @@
             // Update tooltip
             const tooltip = element.querySelector('.tooltip');
             if (tooltip) {
-              const bookedCount = tableAvailability[tableId].bookedSeats.length;
-              const seatCount = tables[tableId].seatCount;
-              tooltip.textContent = `This table is partially booked (${bookedCount}/${seatCount} seats taken)`;
+              // Find the definition to get seatCount
+              const tableDef = tableDefinitions.find(t => t.id === tableId);
+              if (tableDef) {
+                const bookedCount = tableAvailability[tableId].bookedSeats.length;
+                const seatCount = tableDef.seatCount;
+                tooltip.textContent = `This table is partially booked (${bookedCount}/${seatCount} seats taken)`;
+              }
             }
             
             // Remove click event for unavailable tables
@@ -268,30 +194,27 @@
       
       // Draw all tables on the floor plan
       function createTables() {
-        // First, create table selection areas
-        Object.keys(tables).forEach(tableId => {
-          const table = tables[tableId];
+        // Create table selection areas
+        tableDefinitions.forEach(table => {
           const tableArea = document.createElement('div');
           tableArea.className = 'table-area';
-          tableArea.setAttribute('data-table-id', tableId);
+          tableArea.setAttribute('data-table-id', table.id);
           tableArea.style.left = `${table.center.x}px`;
           tableArea.style.top = `${table.center.y}px`;
           tableArea.style.width = `${table.size}px`;
           tableArea.style.height = `${table.size}px`;
           
+          // Add table number inside circle
+          const tableNumber = document.createElement('div');
+          tableNumber.className = 'table-number';
+          tableNumber.textContent = table.id;
+          tableArea.appendChild(tableNumber);
+          
           // Add tooltip with information
           const tooltip = document.createElement('div');
           tooltip.className = 'tooltip';
-          tooltip.textContent = `Table ${tableId}: ${table.seatCount} seats`;
+          tooltip.textContent = `Table ${table.id}: ${table.seatCount} seats`;
           tableArea.appendChild(tooltip);
-          
-          // Add table number label
-          const label = document.createElement('div');
-          label.className = 'table-label';
-          label.textContent = `Table ${tableId}`;
-          label.style.left = `${table.center.x}px`;
-          label.style.top = `${table.center.y - (table.size/2) - 15}px`;
-          container.appendChild(label);
           
           // Add click event for table selection
           tableArea.addEventListener('click', function() {
@@ -317,9 +240,13 @@
               
               // Select this table
               this.classList.add('selected');
+              
+              // Find the table definition to get seatCount
+              const tableDef = tableDefinitions.find(t => t.id === tableId);
+              
               selectedTable = {
                 tableId: tableId,
-                seatCount: tables[tableId].seatCount,
+                seatCount: tableDef ? tableDef.seatCount : 2,
                 isSelected: true
               };
             }
@@ -333,15 +260,6 @@
           
           container.appendChild(tableArea);
           tableElements.push(tableArea);
-        });
-        
-        // Then, create seat indicators (visual only)
-        seatPositions.forEach(pos => {
-          const seat = document.createElement('div');
-          seat.className = 'seat';
-          seat.style.left = `${pos.left}px`;
-          seat.style.top = `${pos.top}px`;
-          container.appendChild(seat);
         });
       }
       
