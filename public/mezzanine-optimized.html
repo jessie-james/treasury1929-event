@@ -154,38 +154,38 @@
     <div class="container" id="floorplanContainer">
       <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan">
       
-      <!-- Table positions from the editor -->
-      <div class="table-circle available" style="width: 56px; height: 56px; top: 326px; left: 825px;" data-table-id="1">
+      <!-- Table positions with exact calculations -->
+      <div class="table-circle available" style="width: 60px; height: 60px; left: 909px; top: 290px;" data-table-id="1">
         1
         <div class="tooltip">Table 1: 2 seats</div>
       </div>
 
-      <div class="table-circle available" style="width: 40px; height: 40px; top: 389px; left: 743px;" data-table-id="2">
+      <div class="table-circle available" style="width: 60px; height: 60px; left: 808px; top: 367px;" data-table-id="2">
         2
         <div class="tooltip">Table 2: 2 seats</div>
       </div>
 
-      <div class="table-circle available" style="width: 40px; height: 40px; top: 389px; left: 596px;" data-table-id="3">
+      <div class="table-circle available" style="width: 60px; height: 60px; left: 645px; top: 367px;" data-table-id="3">
         3
         <div class="tooltip">Table 3: 2 seats</div>
       </div>
 
-      <div class="table-circle unavailable" style="width: 40px; height: 40px; top: 389px; left: 458px;" data-table-id="4">
+      <div class="table-circle unavailable" style="width: 60px; height: 60px; left: 488px; top: 367px;" data-table-id="4">
         4
         <div class="tooltip">Table 4: Unavailable</div>
       </div>
 
-      <div class="table-circle unavailable" style="width: 40px; height: 40px; top: 389px; left: 300px;" data-table-id="5">
+      <div class="table-circle unavailable" style="width: 60px; height: 60px; left: 329px; top: 367px;" data-table-id="5">
         5
         <div class="tooltip">Table 5: Unavailable</div>
       </div>
 
-      <div class="table-circle available" style="width: 40px; height: 40px; top: 401px; left: 138px;" data-table-id="6">
+      <div class="table-circle available" style="width: 60px; height: 60px; left: 151px; top: 367px;" data-table-id="6">
         6
         <div class="tooltip">Table 6: 2 seats</div>
       </div>
 
-      <div class="table-circle available" style="width: 40px; height: 40px; top: 342px; left: 38px;" data-table-id="7">
+      <div class="table-circle available" style="width: 60px; height: 60px; left: 53px; top: 290px;" data-table-id="7">
         7
         <div class="tooltip">Table 7: 2 seats</div>
       </div>
@@ -286,13 +286,13 @@
       
       // Table definitions with optimized positions
       const tableDefinitions = [
-        { id: 1, left: 825, top: 326, width: 56, height: 56, status: 'available' },
-        { id: 2, left: 743, top: 389, width: 40, height: 40, status: 'available' },
-        { id: 3, left: 596, top: 389, width: 40, height: 40, status: 'available' },
-        { id: 4, left: 458, top: 389, width: 40, height: 40, status: 'unavailable' },
-        { id: 5, left: 300, top: 389, width: 40, height: 40, status: 'unavailable' },
-        { id: 6, left: 138, top: 401, width: 40, height: 40, status: 'available' },
-        { id: 7, left: 38, top: 342, width: 40, height: 40, status: 'available' }
+        { id: 1, left: 939, top: 320, width: 60, height: 60, status: 'available' },
+        { id: 2, left: 838, top: 397, width: 60, height: 60, status: 'available' },
+        { id: 3, left: 675, top: 397, width: 60, height: 60, status: 'available' },
+        { id: 4, left: 518, top: 397, width: 60, height: 60, status: 'unavailable' },
+        { id: 5, left: 359, top: 397, width: 60, height: 60, status: 'unavailable' },
+        { id: 6, left: 181, top: 397, width: 60, height: 60, status: 'available' },
+        { id: 7, left: 83, top: 320, width: 60, height: 60, status: 'available' }
       ];
       
       // Map to track table availability
