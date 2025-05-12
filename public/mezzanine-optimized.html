@@ -99,11 +99,11 @@
       justify-content: center;
       align-items: center;
       font-weight: bold;
-      font-size: 11px;
+      font-size: 9px;
       color: #333;
       cursor: pointer;
       z-index: 10;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
     }
     
     .table-circle.available {
@@ -249,15 +249,15 @@
         }
       });
       
-      // Table definitions with sizes reduced to 65% and perfectly centered
+      // Table definitions with sizes reduced to ~66% and positioned exactly in the center of each seating arc with 15px upward shift
       const tableDefinitions = [
-        { id: 1, left: 939, top: 320, width: 26, height: 26, status: 'available' },
-        { id: 2, left: 838, top: 397, width: 26, height: 26, status: 'available' },
-        { id: 3, left: 675, top: 397, width: 26, height: 26, status: 'available' },
-        { id: 4, left: 518, top: 397, width: 26, height: 26, status: 'unavailable' },
-        { id: 5, left: 359, top: 397, width: 26, height: 26, status: 'unavailable' },
-        { id: 6, left: 181, top: 397, width: 26, height: 26, status: 'available' },
-        { id: 7, left: 83, top: 320, width: 26, height: 26, status: 'available' }
+        { id: 1, left: 939, top: 305, width: 17, height: 17, status: 'available' },
+        { id: 2, left: 838, top: 382, width: 17, height: 17, status: 'available' },
+        { id: 3, left: 675, top: 382, width: 17, height: 17, status: 'available' },
+        { id: 4, left: 518, top: 382, width: 17, height: 17, status: 'unavailable' },
+        { id: 5, left: 359, top: 382, width: 17, height: 17, status: 'unavailable' },
+        { id: 6, left: 181, top: 382, width: 17, height: 17, status: 'available' },
+        { id: 7, left: 83, top: 305, width: 17, height: 17, status: 'available' }
       ];
       
       // Function to create table elements dynamically
