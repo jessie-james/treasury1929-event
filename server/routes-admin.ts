@@ -1,6 +1,8 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "./storage";
-import { insertTableSchema, insertSeatSchema } from "@shared/schema";
+import { insertTableSchema, insertSeatSchema, tables } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 /**
  * Register admin routes for venue layout management
@@ -32,7 +34,7 @@ export function registerAdminRoutes(app: Express): void {
     }
   });
 
-  // Get all tables for a venue with their seats
+  // Get all tables for a venue without the seat information
   app.get("/api/admin/tables", requireAdminOrVenueOwner, async (req, res) => {
     try {
       const venueId = parseInt(req.query.venueId as string);
@@ -40,8 +42,9 @@ export function registerAdminRoutes(app: Express): void {
         return res.status(400).json({ message: "Invalid venue ID" });
       }
 
-      const tables = await storage.getTablesWithSeats(venueId);
-      res.json(tables);
+      // Since getTablesWithSeats has issues, let's directly query the tables
+      const venueTables = await db.select().from(tables).where(eq(tables.venueId, venueId));
+      res.json(venueTables);
     } catch (error) {
       console.error("Error fetching tables:", error);
       res.status(500).json({ message: "Failed to fetch tables" });
