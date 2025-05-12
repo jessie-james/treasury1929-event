@@ -154,7 +154,7 @@
     <div class="container" id="floorplanContainer">
       <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan">
       
-      <!-- Table positions with exact calculations -->
+      <!-- Table positions with editor calculation applied: left = table.left - table.width/2 -->
       <div class="table-circle available" style="width: 60px; height: 60px; left: 909px; top: 290px;" data-table-id="1">
         1
         <div class="tooltip">Table 1: 2 seats</div>
@@ -284,7 +284,7 @@
         }
       });
       
-      // Table definitions with optimized positions
+      // Table definitions with optimized positions (match exactly with the editor positions)
       const tableDefinitions = [
         { id: 1, left: 939, top: 320, width: 60, height: 60, status: 'available' },
         { id: 2, left: 838, top: 397, width: 60, height: 60, status: 'available' },
