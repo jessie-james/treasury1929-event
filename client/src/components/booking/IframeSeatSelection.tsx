@@ -11,21 +11,21 @@ interface Props {
   hasExistingBooking?: boolean;
 }
 
-interface SeatData {
-  key: string;
+interface TableData {
   tableId: number;
-  seatNumber: number;
+  seatCount: number;
+  isSelected: boolean;
 }
 
 export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }: Props) {
-  const [selectedSeats, setSelectedSeats] = useState<SeatData[]>([]);
+  const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
   // Listen for messages from the iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'SEAT_SELECTION') {
-        setSelectedSeats(event.data.selection);
+      if (event.data.type === 'TABLE_SELECTION') {
+        setSelectedTable(event.data.selection);
       }
     };
     
@@ -43,35 +43,28 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     }
   }, [eventId]);
   
-  // Format selected seats for display
-  const formatSelectedSeats = () => {
-    // Group seats by table
-    const byTable: Record<number, number[]> = {};
+  // Format selected table for display
+  const formatSelectedTable = () => {
+    if (!selectedTable) return "";
     
-    selectedSeats.forEach(seat => {
-      if (!byTable[seat.tableId]) {
-        byTable[seat.tableId] = [];
-      }
-      byTable[seat.tableId].push(seat.seatNumber);
-    });
-    
-    // Format the text
-    return Object.entries(byTable).map(([tableId, seatNumbers]) => {
-      return `Table ${tableId}: Seat${seatNumbers.length > 1 ? 's' : ''} ${seatNumbers.sort().join(', ')}`;
-    }).join('; ');
+    const seatText = selectedTable.seatCount === 1 ? 'seat' : 'seats';
+    return `Table ${selectedTable.tableId} (${selectedTable.seatCount} ${seatText})`;
   };
   
   // Prepare data for submission
-  const getGroupedSeatsForSubmission = () => {
-    if (selectedSeats.length === 0) return null;
+  const getSeatsForSubmission = () => {
+    if (!selectedTable) return null;
     
-    // For the current simplified implementation, we're just taking the first table
-    const firstTableId = selectedSeats[0].tableId;
-    const seatNumbers = selectedSeats
-      .filter(seat => seat.tableId === firstTableId)
-      .map(seat => seat.seatNumber);
+    // Generate all seat numbers for the table (1 to seatCount)
+    const seatNumbers = Array.from(
+      { length: selectedTable.seatCount }, 
+      (_, index) => index + 1
+    );
     
-    return { tableId: firstTableId, seatNumbers };
+    return { 
+      tableId: selectedTable.tableId, 
+      seatNumbers 
+    };
   };
   
   return (
@@ -97,14 +90,18 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
         
         <div>
           <p className="text-muted-foreground">
-            Click on green circles to select up to 4 seats (max 4 per booking)
+            Select a table to book all seats at that table
           </p>
         </div>
         
         <div className="flex items-center justify-end">
-          <Badge variant="secondary" className="text-xs">
-            {selectedSeats.length} {selectedSeats.length === 1 ? 'seat' : 'seats'} selected
-          </Badge>
+          {selectedTable ? (
+            <Badge variant="secondary">
+              {formatSelectedTable()}
+            </Badge>
+          ) : (
+            <Badge variant="outline">No table selected</Badge>
+          )}
         </div>
       </div>
 
@@ -122,10 +119,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
           </div>
           
           {/* Selection Summary */}
-          {selectedSeats.length > 0 && (
+          {selectedTable && (
             <div className="mt-4 p-3 bg-slate-50 rounded-md">
-              <h3 className="font-medium mb-1">Selected Seats:</h3>
-              <p className="text-sm">{formatSelectedSeats()}</p>
+              <h3 className="font-medium mb-1">Selected Table:</h3>
+              <p className="text-sm">{formatSelectedTable()}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                You will need to provide guest details for each seat at this table.
+              </p>
             </div>
           )}
         </CardContent>
@@ -136,12 +136,12 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
         <Button
           size="lg"
           onClick={() => {
-            const submission = getGroupedSeatsForSubmission();
+            const submission = getSeatsForSubmission();
             if (submission) {
               onComplete(submission);
             }
           }}
-          disabled={selectedSeats.length === 0}
+          disabled={!selectedTable}
         >
           Continue to Guest Details
         </Button>
