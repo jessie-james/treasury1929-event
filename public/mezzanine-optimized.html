@@ -12,11 +12,20 @@
       background-color: #f8f8f8;
     }
     
+    .wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+    
     .container {
       position: relative;
-      width: 1000px;
-      height: 500px;
+      width: 100%;
+      height: 450px;
       margin: 0 auto;
+      transition: transform 0.2s ease;
+      transform-origin: center;
     }
     
     .floor-plan {
@@ -26,6 +35,54 @@
       width: 100%;
       height: 100%;
       object-fit: contain;
+    }
+    
+    .zoom-controls {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      display: flex;
+      gap: 5px;
+      z-index: 100;
+    }
+    
+    .zoom-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: white;
+      border: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      color: #333;
+      user-select: none;
+    }
+    
+    .zoom-btn:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .zoom-btn:active {
+      transform: scale(0.97);
+    }
+    
+    .reset-view-btn {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background-color: white;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      color: #333;
+      z-index: 100;
     }
     
     .table-circle {
@@ -86,14 +143,15 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan">
-    
-    <!-- Table positions from the editor -->
-    <div class="table-circle available" style="width: 56px; height: 56px; top: 356px; left: 853px;" data-table-id="1">
-      1
-      <div class="tooltip">Table 1: 2 seats</div>
-    </div>
+  <div class="wrapper">
+    <div class="container" id="floorplanContainer">
+      <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan">
+      
+      <!-- Table positions from the editor -->
+      <div class="table-circle available" style="width: 56px; height: 56px; top: 356px; left: 853px;" data-table-id="1">
+        1
+        <div class="tooltip">Table 1: 2 seats</div>
+      </div>
 
     <div class="table-circle available" style="width: 40px; height: 40px; top: 410px; left: 763px;" data-table-id="2">
       2
@@ -124,6 +182,16 @@
       7
       <div class="tooltip">Table 7: 2 seats</div>
     </div>
+    </div>
+    
+    <!-- Zoom Controls -->
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="zoomIn">+</button>
+      <button class="zoom-btn" id="zoomOut">−</button>
+    </div>
+    
+    <!-- Reset View Button -->
+    <button class="reset-view-btn" id="resetView">Reset View</button>
   </div>
   
   <script>
@@ -131,6 +199,119 @@
       // Get event ID from URL params
       const urlParams = new URLSearchParams(window.location.search);
       const eventId = urlParams.get('eventId') || 1;
+      
+      // Zoom functionality
+      const container = document.getElementById('floorplanContainer');
+      const zoomInBtn = document.getElementById('zoomIn');
+      const zoomOutBtn = document.getElementById('zoomOut');
+      const resetViewBtn = document.getElementById('resetView');
+      
+      let currentZoom = 1;
+      const zoomStep = 0.1;
+      const minZoom = 0.5;
+      const maxZoom = 2;
+      
+      // Initialize pan variables
+      let isPanning = false;
+      let startX, startY, startTranslateX = 0, startTranslateY = 0;
+      
+      // Current transform values
+      let translateX = 0;
+      let translateY = 0;
+      
+      // Apply transform
+      function applyTransform() {
+        container.style.transform = `translate(${translateX}px, ${translateY}px) scale(${currentZoom})`;
+      }
+      
+      // Zoom in function
+      function zoomIn() {
+        if (currentZoom < maxZoom) {
+          currentZoom = Math.min(currentZoom + zoomStep, maxZoom);
+          applyTransform();
+        }
+      }
+      
+      // Zoom out function
+      function zoomOut() {
+        if (currentZoom > minZoom) {
+          currentZoom = Math.max(currentZoom - zoomStep, minZoom);
+          applyTransform();
+        }
+      }
+      
+      // Reset view
+      function resetView() {
+        currentZoom = 1;
+        translateX = 0;
+        translateY = 0;
+        applyTransform();
+      }
+      
+      // Add event listeners
+      zoomInBtn.addEventListener('click', zoomIn);
+      zoomOutBtn.addEventListener('click', zoomOut);
+      resetViewBtn.addEventListener('click', resetView);
+      
+      // Mouse wheel zoom
+      container.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+          zoomIn();
+        } else {
+          zoomOut();
+        }
+      });
+      
+      // Handle panning with mouse
+      container.addEventListener('mousedown', (e) => {
+        if (e.button === 0) { // Left mouse button
+          isPanning = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          startTranslateX = translateX;
+          startTranslateY = translateY;
+          container.style.cursor = 'grabbing';
+        }
+      });
+      
+      document.addEventListener('mousemove', (e) => {
+        if (isPanning) {
+          translateX = startTranslateX + (e.clientX - startX);
+          translateY = startTranslateY + (e.clientY - startY);
+          applyTransform();
+        }
+      });
+      
+      document.addEventListener('mouseup', () => {
+        if (isPanning) {
+          isPanning = false;
+          container.style.cursor = 'grab';
+        }
+      });
+      
+      // Touch events for mobile
+      container.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          isPanning = true;
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          startTranslateX = translateX;
+          startTranslateY = translateY;
+        }
+      });
+      
+      document.addEventListener('touchmove', (e) => {
+        if (isPanning && e.touches.length === 1) {
+          translateX = startTranslateX + (e.touches[0].clientX - startX);
+          translateY = startTranslateY + (e.touches[0].clientY - startY);
+          applyTransform();
+        }
+      });
+      
+      document.addEventListener('touchend', () => {
+        isPanning = false;
+      });
       
       // Table definitions with optimized positions
       const tableDefinitions = [
