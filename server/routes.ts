@@ -2729,5 +2729,10 @@ export async function registerRoutes(app: Express) {
       const stats = await storage.getEventCheckInStats(eventId);
       res.json(stats);
     } catch (error) {
-      ```text
-The code changes address an issue with the crypto module import in the payment token generation logic.
+      console.error("Error getting event check-in stats:", error);
+      res.status(500).json({ message: "Error getting event check-in stats" });
+    }
+  });
+  
+  return httpServer;
+}
