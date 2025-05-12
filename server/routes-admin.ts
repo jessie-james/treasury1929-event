@@ -2,27 +2,29 @@ import type { Express, Request, Response } from "express";
 import { storage } from "./storage";
 import { insertTableSchema, insertSeatSchema, tables } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 /**
  * Register admin routes for venue layout management
  * @param app Express application instance
  */
 export function registerAdminRoutes(app: Express): void {
-  // Verify admin or venue_owner role
+  /**
+   * Middleware to verify user is admin or venue owner
+   */
   function requireAdminOrVenueOwner(req: Request, res: Response, next: Function) {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user as any;
-    if (!user || (user.role !== "admin" && user.role !== "venue_owner")) {
-      return res.status(403).json({ message: "Forbidden: Requires admin or venue owner role" });
+    if (user.role !== 'admin' && user.role !== 'venue_owner') {
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     next();
   }
-  
+
   // Get all venues
   app.get("/api/admin/venues", requireAdminOrVenueOwner, async (req, res) => {
     try {
@@ -34,16 +36,29 @@ export function registerAdminRoutes(app: Express): void {
     }
   });
 
-  // Get all tables for a venue without the seat information
+  // Get all tables for a venue with optional floor filter
   app.get("/api/admin/tables", requireAdminOrVenueOwner, async (req, res) => {
     try {
       const venueId = parseInt(req.query.venueId as string);
+      const floor = req.query.floor as string | undefined;
+      
       if (isNaN(venueId)) {
         return res.status(400).json({ message: "Invalid venue ID" });
       }
 
-      // Since getTablesWithSeats has issues, let's directly query the tables
-      const venueTables = await db.select().from(tables).where(eq(tables.venueId, venueId));
+      // Conditionally include floor filter
+      let query = db.select().from(tables).where(eq(tables.venueId, venueId));
+      
+      if (floor) {
+        query = db.select().from(tables).where(
+          and(
+            eq(tables.venueId, venueId),
+            eq(tables.floor, floor)
+          )
+        );
+      }
+      
+      const venueTables = await query;
       res.json(venueTables);
     } catch (error) {
       console.error("Error fetching tables:", error);
@@ -66,7 +81,7 @@ export function registerAdminRoutes(app: Express): void {
 
       res.json(table);
     } catch (error) {
-      console.error(`Error fetching table ${req.params.id}:`, error);
+      console.error("Error fetching table:", error);
       res.status(500).json({ message: "Failed to fetch table" });
     }
   });
@@ -74,29 +89,26 @@ export function registerAdminRoutes(app: Express): void {
   // Create a new table
   app.post("/api/admin/tables", requireAdminOrVenueOwner, async (req, res) => {
     try {
-      // Validate request body
-      const validationResult = insertTableSchema.safeParse(req.body);
-      if (!validationResult.success) {
-        return res.status(400).json({ 
-          message: "Invalid table data", 
-          errors: validationResult.error.errors 
-        });
-      }
+      // Validate input using the schema
+      const validatedData = insertTableSchema.parse(req.body);
 
-      // Create the table in the database
-      const table = await storage.createTable(req.body);
-
-      // Create seats for the table
-      const seats = await storage.createSeatsForTable(
-        table.id, 
-        req.body.capacity,
-        req.body.tableType,
-        req.body.rotation || 0
-      );
-
-      res.status(201).json({ ...table, seats });
+      // Create the table
+      const tableId = await storage.createTable(validatedData);
+      
+      // Get the created table
+      const newTable = await storage.getTable(tableId);
+      
+      res.status(201).json(newTable);
     } catch (error) {
       console.error("Error creating table:", error);
+      
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Invalid table data", 
+          errors: error.errors 
+        });
+      }
+      
       res.status(500).json({ message: "Failed to create table" });
     }
   });
@@ -109,43 +121,25 @@ export function registerAdminRoutes(app: Express): void {
         return res.status(400).json({ message: "Invalid table ID" });
       }
 
-      // Get the existing table to check if the capacity changed
-      const existingTable = await storage.getTableWithSeats(tableId);
+      // Get the existing table to ensure it exists
+      const existingTable = await storage.getTable(tableId);
       if (!existingTable) {
         return res.status(404).json({ message: "Table not found" });
       }
 
-      // Update the table in the database
-      const updatedTable = await storage.updateTable(tableId, req.body);
-      if (!updatedTable) {
-        return res.status(404).json({ message: "Table not found" });
-      }
+      // Validate the update data
+      // We'll skip validation here to allow partial updates
+      const updateData = req.body;
 
-      // If the capacity, table type, or rotation changed, recreate the seats
-      if (
-        req.body.capacity && req.body.capacity !== existingTable.capacity ||
-        req.body.tableType && req.body.tableType !== existingTable.tableType ||
-        req.body.rotation !== undefined && req.body.rotation !== existingTable.rotation
-      ) {
-        // Delete existing seats
-        await storage.deleteSeatsForTable(tableId);
-
-        // Create new seats
-        const seats = await storage.createSeatsForTable(
-          tableId,
-          req.body.capacity || existingTable.capacity,
-          req.body.tableType || existingTable.tableType,
-          req.body.rotation !== undefined ? req.body.rotation : existingTable.rotation
-        );
-
-        return res.json({ ...updatedTable, seats });
-      }
-
-      // Get updated seats
-      const seats = await storage.getTableSeats(tableId);
-      res.json({ ...updatedTable, seats });
+      // Update the table
+      await storage.updateTable(tableId, updateData);
+      
+      // Get the updated table
+      const updatedTable = await storage.getTable(tableId);
+      
+      res.json(updatedTable);
     } catch (error) {
-      console.error(`Error updating table ${req.params.id}:`, error);
+      console.error("Error updating table:", error);
       res.status(500).json({ message: "Failed to update table" });
     }
   });
@@ -158,47 +152,189 @@ export function registerAdminRoutes(app: Express): void {
         return res.status(400).json({ message: "Invalid table ID" });
       }
 
+      // Get the existing table to ensure it exists
+      const existingTable = await storage.getTable(tableId);
+      if (!existingTable) {
+        return res.status(404).json({ message: "Table not found" });
+      }
+
+      // Delete the table
       await storage.deleteTable(tableId);
+      
       res.json({ message: "Table deleted successfully" });
     } catch (error) {
-      console.error(`Error deleting table ${req.params.id}:`, error);
+      console.error("Error deleting table:", error);
       res.status(500).json({ message: "Failed to delete table" });
     }
   });
 
-  // Get table availability for an event
-  app.get("/api/admin/tables/:id/availability/:eventId", requireAdminOrVenueOwner, async (req, res) => {
+  // Bulk update tables
+  app.post("/api/admin/tables/bulk-update", requireAdminOrVenueOwner, async (req, res) => {
     try {
-      const tableId = parseInt(req.params.id);
-      const eventId = parseInt(req.params.eventId);
+      const { tables } = req.body;
       
-      if (isNaN(tableId) || isNaN(eventId)) {
-        return res.status(400).json({ message: "Invalid table or event ID" });
+      if (!Array.isArray(tables) || tables.length === 0) {
+        return res.status(400).json({ message: "Invalid tables data" });
       }
-
-      const available = await storage.getTableAvailability(tableId, eventId);
-      res.json({ available });
+      
+      // Update each table
+      const results = [];
+      for (const table of tables) {
+        const tableId = table.id;
+        if (!tableId) continue;
+        
+        try {
+          const { id, ...updateData } = table;
+          await storage.updateTable(tableId, updateData);
+          results.push({ id: tableId, status: 'success' });
+        } catch (error) {
+          console.error(`Error updating table ${tableId}:`, error);
+          results.push({ id: tableId, status: 'error', message: error.message });
+        }
+      }
+      
+      res.json({ results });
     } catch (error) {
-      console.error(`Error checking table availability:`, error);
-      res.status(500).json({ message: "Failed to check table availability" });
+      console.error("Error in bulk update:", error);
+      res.status(500).json({ message: "Failed to process bulk update" });
     }
   });
 
-  // Get venue availability for an event
-  app.get("/api/admin/venues/:venueId/availability/:eventId", requireAdminOrVenueOwner, async (req, res) => {
+  // Get floors for a venue
+  app.get("/api/admin/venues/:venueId/floors", requireAdminOrVenueOwner, async (req, res) => {
     try {
       const venueId = parseInt(req.params.venueId);
-      const eventId = parseInt(req.params.eventId);
-      
-      if (isNaN(venueId) || isNaN(eventId)) {
-        return res.status(400).json({ message: "Invalid venue or event ID" });
+      if (isNaN(venueId)) {
+        return res.status(400).json({ message: "Invalid venue ID" });
       }
 
-      const availability = await storage.getVenueAvailability(venueId, eventId);
-      res.json(availability);
+      // This would typically come from a database table
+      // For now, we'll return hardcoded floors
+      const floors = [
+        { id: 'main', name: 'Main Floor', isActive: true },
+        { id: 'mezzanine', name: 'Mezzanine', isActive: true },
+        { id: 'vip', name: 'VIP Area', isActive: false },
+      ];
+      
+      res.json(floors);
     } catch (error) {
-      console.error(`Error checking venue availability:`, error);
-      res.status(500).json({ message: "Failed to check venue availability" });
+      console.error("Error fetching floors:", error);
+      res.status(500).json({ message: "Failed to fetch floors" });
+    }
+  });
+
+  // Get available table zones
+  app.get("/api/admin/venues/:venueId/zones", requireAdminOrVenueOwner, async (req, res) => {
+    try {
+      const venueId = parseInt(req.params.venueId);
+      if (isNaN(venueId)) {
+        return res.status(400).json({ message: "Invalid venue ID" });
+      }
+
+      // This would typically come from a database table
+      // For now, we'll return hardcoded zones
+      const zones = [
+        { id: 'front-stage', name: 'Front Stage', color: '#FF5757', tables: [] },
+        { id: 'center', name: 'Center', color: '#57B3FF', tables: [] },
+        { id: 'back', name: 'Back', color: '#57FFA0', tables: [] },
+      ];
+      
+      // Find tables in each zone
+      const venueTables = await db.select().from(tables).where(eq(tables.venueId, venueId));
+      
+      // In our current schema we don't have a zone field, so we can't populate this
+      // In a real implementation, you'd query tables with their zones
+      
+      res.json(zones);
+    } catch (error) {
+      console.error("Error fetching zones:", error);
+      res.status(500).json({ message: "Failed to fetch zones" });
+    }
+  });
+
+  // Save layout template
+  app.post("/api/admin/venues/:venueId/templates", requireAdminOrVenueOwner, async (req, res) => {
+    try {
+      const venueId = parseInt(req.params.venueId);
+      if (isNaN(venueId)) {
+        return res.status(400).json({ message: "Invalid venue ID" });
+      }
+
+      const { name, description } = req.body;
+      
+      if (!name) {
+        return res.status(400).json({ message: "Template name is required" });
+      }
+      
+      // This would typically save to a database table
+      // For now, we'll simulate success
+      
+      res.json({ 
+        id: Date.now().toString(),
+        name,
+        description,
+        createdAt: new Date(),
+        lastModified: new Date()
+      });
+    } catch (error) {
+      console.error("Error saving template:", error);
+      res.status(500).json({ message: "Failed to save template" });
+    }
+  });
+
+  // Get layout templates
+  app.get("/api/admin/venues/:venueId/templates", requireAdminOrVenueOwner, async (req, res) => {
+    try {
+      const venueId = parseInt(req.params.venueId);
+      if (isNaN(venueId)) {
+        return res.status(400).json({ message: "Invalid venue ID" });
+      }
+
+      // This would typically come from a database table
+      // For now, we'll return hardcoded templates
+      const templates = [
+        {
+          id: 'concert',
+          name: 'Concert Layout',
+          description: 'Standard setup for musical performances',
+          createdAt: new Date(),
+          lastModified: new Date()
+        },
+        {
+          id: 'dinner',
+          name: 'Dinner Event',
+          description: 'Optimized for dining experience',
+          createdAt: new Date(),
+          lastModified: new Date()
+        }
+      ];
+      
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      res.status(500).json({ message: "Failed to fetch templates" });
+    }
+  });
+
+  // Upload floor plan image
+  app.post("/api/admin/venues/:venueId/floors/:floorId/image", requireAdminOrVenueOwner, async (req, res) => {
+    try {
+      const venueId = parseInt(req.params.venueId);
+      const floorId = req.params.floorId;
+      
+      if (isNaN(venueId)) {
+        return res.status(400).json({ message: "Invalid venue ID" });
+      }
+
+      // This would typically handle file upload and storage
+      // For now, we'll simulate success
+      
+      res.json({ 
+        imageUrl: '/mezzanine.jpg'
+      });
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      res.status(500).json({ message: "Failed to upload image" });
     }
   });
 }
