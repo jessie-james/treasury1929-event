@@ -292,7 +292,7 @@ export default function LayoutSettings() {
     }
   };
   
-  const getPriceCategoryBadgeClass = (category: string) => {
+  const getPriceCategoryBadgeClass = (category?: string) => {
     switch (category) {
       case 'premium':
         return 'bg-purple-100 text-purple-800 border-purple-300';
@@ -300,6 +300,7 @@ export default function LayoutSettings() {
         return 'bg-amber-100 text-amber-800 border-amber-300';
       case 'budget':
         return 'bg-teal-100 text-teal-800 border-teal-300';
+      case 'standard':
       default:
         return 'bg-blue-100 text-blue-800 border-blue-300';
     }
@@ -818,13 +819,20 @@ export default function LayoutSettings() {
                                         selectedTables.some(t => t.id === table.id);
                       
                       // Dynamic styles based on table attributes
+                      const statusColorMap = {
+                        'available': '#10b981',
+                        'reserved': '#3b82f6',
+                        'unavailable': '#ef4444',
+                      };
+                      
                       const baseStyle = {
-                        backgroundColor: table.status === 'unavailable' ? '#f87171' : 
-                                        table.status === 'reserved' ? '#fbbf24' : 
+                        backgroundColor: isSelected ? '#8b5cf650' : 
+                                        statusColorMap[table.status as keyof typeof statusColorMap] || 
                                         zones.find(z => z.id === table.zone)?.color || '#60a5fa',
                         position: 'absolute' as const,
                         cursor: table.isLocked ? 'not-allowed' : 'pointer',
                         opacity: table.status === 'unavailable' ? 0.7 : 1,
+                        border: isSelected ? '2px solid #8b5cf6' : `2px solid ${statusColorMap[table.status as keyof typeof statusColorMap] || '#60a5fa'}`,
                       };
                       
                       // Size based on capacity
@@ -1355,12 +1363,12 @@ export default function LayoutSettings() {
                             </TableCell>
                             <TableCell>
                               <Badge className={getStatusColor(table.status)}>
-                                {table.status || 'Unknown'}
+                                {table.status ? table.status.charAt(0).toUpperCase() + table.status.slice(1) : 'Unknown'}
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <Badge className={getPriceCategoryBadgeClass(table.priceCategory)}>
-                                {table.priceCategory || 'Standard'}
+                              <Badge variant="outline" className={getPriceCategoryBadgeClass(table.priceCategory)}>
+                                {table.priceCategory ? table.priceCategory.charAt(0).toUpperCase() + table.priceCategory.slice(1) : 'Standard'}
                               </Badge>
                             </TableCell>
                             <TableCell>
