@@ -522,8 +522,20 @@ export default function LayoutSettings() {
     
     ws.onmessage = (event) => {
       try {
+        // Make sure the event data is not empty or invalid
+        if (!event.data) {
+          console.error('Received empty WebSocket message');
+          return;
+        }
+        
         const message = JSON.parse(event.data);
         console.log('Received WebSocket message:', message);
+        
+        // Validate required message fields
+        if (!message || !message.type) {
+          console.error('Invalid WebSocket message format:', message);
+          return;
+        }
         
         switch (message.type) {
           case 'table_updated':
@@ -1050,26 +1062,35 @@ export default function LayoutSettings() {
 
   // Select a single table
   const handleSelectTable = (table: Table, event: React.MouseEvent) => {
-    if (event.defaultPrevented) return; // Skip if this was part of a drag operation
-    
-    if (isPanMode) return; // Skip if in pan mode
-    
-    if (isMultiSelectMode) {
-      // In multi-select mode, add/remove from selection
-      setSelectedTables(prev => {
-        const isSelected = prev.some(t => t.id === table.id);
-        if (isSelected) {
-          return prev.filter(t => t.id !== table.id);
-        } else {
-          return [...prev, table];
-        }
+    try {
+      if (event.defaultPrevented) return; // Skip if this was part of a drag operation
+      
+      if (isPanMode) return; // Skip if in pan mode
+      
+      if (isMultiSelectMode) {
+        // In multi-select mode, add/remove from selection
+        setSelectedTables(prev => {
+          const isSelected = prev.some(t => t.id === table.id);
+          if (isSelected) {
+            return prev.filter(t => t.id !== table.id);
+          } else {
+            return [...prev, table];
+          }
+        });
+      } else {
+        // Regular selection mode
+        setIsAddMode(false);
+        setIsBulkAddMode(false);
+        setSelectedTable(table);
+        setSelectedTables([]);
+      }
+    } catch (error) {
+      console.error('Error in handleSelectTable:', error);
+      toast({
+        title: "Error",
+        description: "Something went wrong when selecting the table.",
+        variant: "destructive",
       });
-    } else {
-      // Regular selection mode
-      setIsAddMode(false);
-      setIsBulkAddMode(false);
-      setSelectedTable(table);
-      setSelectedTables([]);
     }
   };
 
