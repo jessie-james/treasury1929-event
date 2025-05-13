@@ -289,7 +289,7 @@ export async function registerRoutes(app: Express) {
       });
 
       // Send to clients who subscribed to this event
-      clientSubscriptions.forEach((subscriptions, client) => {
+      clientEventSubscriptions.forEach((subscriptions, client) => {
         if (client.readyState === WebSocket.OPEN && subscriptions.has(eventId)) {
           client.send(message);
         }
