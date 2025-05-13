@@ -512,36 +512,39 @@ export default function LayoutSettings() {
       };
     });
     
-    // In a real implementation, you would batch create these tables
+    // Create tables in sequence
     toast({
       title: "Bulk Create Initiated",
       description: `Creating ${count} tables...`,
     });
     
-    // For demonstration, simulate success after a short delay
-    setTimeout(() => {
-      toast({
-        title: "Success",
-        description: `Created ${count} tables successfully`,
-      });
-      
-      // Add dummy IDs for demo
-      const tablesWithIds = newTables.map((table, index) => ({ 
-        ...table, 
-        id: Math.max(0, ...currentFloorTables.map(t => t.id)) + index + 1 
-      }));
-      
-      // In a real implementation, you would refresh the data
-      queryClient.setQueryData(
-        [`/api/venue/${selectedVenueId}/tables`],
-        [
-          ...(tablesData || []),
-          ...tablesWithIds
-        ]
-      );
-      
-      setIsBulkAddMode(false);
-    }, 1000);
+    // Create tables sequentially
+    const createTablesSequentially = async () => {
+      try {
+        for (const tableData of newTables) {
+          await apiRequest(
+            "POST",
+            `/api/venue/${selectedVenueId}/tables`,
+            tableData
+          );
+        }
+        
+        toast({
+          title: "Success",
+          description: `${count} tables created successfully`,
+        });
+        queryClient.invalidateQueries({ queryKey: ['venue-tables', selectedVenueId] });
+        setIsBulkAddMode(false);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: `Failed to create tables: ${(error as Error).message}`,
+          variant: "destructive",
+        });
+      }
+    };
+    
+    createTablesSequentially();
   };
   
   // Function to get appropriate class for status
