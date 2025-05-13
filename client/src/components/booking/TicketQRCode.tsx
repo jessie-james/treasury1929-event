@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Music, Calendar, MapPin, Users, Image, Info } from "lucide-react";
+import { Download, Music, Calendar, MapPin, Users, Image, Info, Link2, Share2 } from "lucide-react";
 import html2canvas from "html2canvas";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface TicketQRCodeProps {
   bookingId: number;
@@ -19,6 +20,10 @@ interface TicketQRCodeProps {
   status?: string;
   containerSelector?: string; // Selector for the entire ticket container
   venue?: string;
+  location?: string; // Venue location address
+  notes?: string; // Additional ticket notes
+  showShareButton?: boolean; // Whether to show share button
+  showAdditionalInfo?: boolean; // Whether to show additional event information
 }
 
 export function TicketQRCode({ 
@@ -32,7 +37,11 @@ export function TicketQRCode({
   seatNumbers = [],
   status,
   containerSelector,
-  venue = "The Treasury 1929"
+  venue = "The Treasury 1929",
+  location = "1929 Wabash Street, Chicago, IL 60605",
+  notes,
+  showShareButton = false,
+  showAdditionalInfo = false
 }: TicketQRCodeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const qrComponentRef = useRef<HTMLDivElement>(null);
@@ -54,7 +63,10 @@ export function TicketQRCode({
           event: eventTitle,
           date: eventDate,
           table: tableId,
-          seats: seatNumbers
+          seats: seatNumbers,
+          venue: venue,
+          status: status,
+          location: location
         });
         
         // Generate QR code on canvas
@@ -141,14 +153,14 @@ export function TicketQRCode({
         return;
       }
       
-      // Temporarily hide download buttons before capturing
-      const downloadButtons = document.querySelectorAll('.download-ticket-btn');
-      downloadButtons.forEach(btn => {
+      // Temporarily hide action buttons before capturing
+      const actionButtons = document.querySelectorAll('.ticket-action-btn');
+      actionButtons.forEach(btn => {
         (btn as HTMLElement).style.display = 'none';
       });
       
       try {
-        // Use html2canvas to capture the selected element without the download button
+        // Use html2canvas to capture the selected element without the action buttons
         const canvas = await html2canvas(elementToCapture as HTMLElement, {
           backgroundColor: bgColor,
           scale: 2, // Higher resolution for better quality
@@ -177,8 +189,8 @@ export function TicketQRCode({
         link.click();
         document.body.removeChild(link);
       } finally {
-        // Always restore download buttons visibility after capturing
-        downloadButtons.forEach(btn => {
+        // Always restore action buttons visibility after capturing
+        actionButtons.forEach(btn => {
           (btn as HTMLElement).style.display = '';
         });
       }
@@ -186,6 +198,84 @@ export function TicketQRCode({
       console.error("Error downloading ticket:", error);
     } finally {
       setIsDownloading(false);
+    }
+  };
+  
+  // Function to share ticket
+  const handleShare = async () => {
+    if (!navigator.share) {
+      console.warn("Web Share API not supported");
+      return;
+    }
+    
+    try {
+      // Create a blob from the canvas
+      const elementToCapture = containerSelector 
+        ? document.querySelector(containerSelector) 
+        : qrComponentRef.current;
+        
+      if (!elementToCapture) {
+        console.error("Element to capture not found");
+        return;
+      }
+      
+      // Temporarily hide action buttons before capturing
+      const actionButtons = document.querySelectorAll('.ticket-action-btn');
+      actionButtons.forEach(btn => {
+        (btn as HTMLElement).style.display = 'none';
+      });
+      
+      try {
+        const canvas = await html2canvas(elementToCapture as HTMLElement, {
+          backgroundColor: bgColor,
+          scale: 2,
+          logging: false,
+          useCORS: true,
+          allowTaint: true
+        });
+        
+        // Convert canvas to blob
+        const blob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else throw new Error("Failed to create blob");
+          }, 'image/png');
+        });
+        
+        // Create file for sharing
+        const formattedEventName = eventTitle 
+          ? eventTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase() 
+          : '';
+          
+        const filename = `ticket-${venue.replace(/\s+/g, '-').toLowerCase()}-${bookingId}${formattedEventName ? `-${formattedEventName}` : ''}.png`;
+        const file = new File([blob], filename, { type: 'image/png' });
+        
+        // Share content
+        await navigator.share({
+          title: `${venue} - ${eventTitle || 'Event'} Ticket`,
+          text: `My ticket for ${eventTitle || 'the event'} at ${venue} on ${formatDate(eventDate)}`,
+          files: [file]
+        });
+      } finally {
+        // Always restore action buttons visibility
+        actionButtons.forEach(btn => {
+          (btn as HTMLElement).style.display = '';
+        });
+      }
+    } catch (error) {
+      console.error("Error sharing ticket:", error);
+      
+      // Fallback for devices that don't support file sharing
+      if (error instanceof TypeError && error.message.includes('files')) {
+        try {
+          await navigator.share({
+            title: `${venue} - ${eventTitle || 'Event'} Ticket`,
+            text: `My ticket for ${eventTitle || 'the event'} at ${venue} on ${formatDate(eventDate)}`
+          });
+        } catch (fallbackError) {
+          console.error("Fallback sharing failed:", fallbackError);
+        }
+      }
     }
   };
   
@@ -236,6 +326,28 @@ export function TicketQRCode({
               </div>
             </div>
             
+            {showAdditionalInfo && (
+              <div className="mt-3">
+                <div className="text-xs text-gray-500 mb-1 flex items-center">
+                  <MapPin className="h-3 w-3 mr-1" /> VENUE LOCATION
+                </div>
+                <div className="text-xs text-gray-600">
+                  {location}
+                </div>
+              </div>
+            )}
+            
+            {notes && (
+              <div className="mt-3">
+                <div className="text-xs text-gray-500 mb-1 flex items-center">
+                  <Info className="h-3 w-3 mr-1" /> NOTES
+                </div>
+                <div className="text-xs text-gray-600">
+                  {notes}
+                </div>
+              </div>
+            )}
+            
             <Separator className="my-3" />
             
             <div className="text-xs text-center text-gray-500">
@@ -244,29 +356,50 @@ export function TicketQRCode({
           </div>
           
           <div className="flex items-center justify-center">
-            <div className="border rounded-md p-1 bg-white">
-              <canvas 
-                ref={canvasRef} 
-                width={size} 
-                height={size}
-                className="max-w-full h-auto"
-              />
-            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="border rounded-md p-1 bg-white shadow-sm hover:shadow-md transition-shadow">
+                    <canvas 
+                      ref={canvasRef} 
+                      width={size} 
+                      height={size}
+                      className="max-w-full h-auto"
+                    />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>QR code contains your ticket information</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </CardContent>
       
-      <CardFooter className="flex justify-center p-3 pt-0 bg-gray-50">
+      <CardFooter className="flex justify-between p-3 pt-0 bg-gray-50 gap-2">
         <Button 
           variant="outline" 
           size="sm" 
-          className="flex items-center gap-1 download-ticket-btn w-full"
+          className="flex items-center gap-1 ticket-action-btn"
           onClick={handleDownload}
           disabled={isDownloading || !qrGenerated}
         >
           <Download className="h-4 w-4" />
-          {isDownloading ? "Downloading..." : "Download Ticket"}
+          {isDownloading ? "Downloading..." : "Download"}
         </Button>
+        
+        {showShareButton && navigator.share && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-1 ticket-action-btn"
+            onClick={handleShare}
+          >
+            <Share2 className="h-4 w-4" />
+            Share
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

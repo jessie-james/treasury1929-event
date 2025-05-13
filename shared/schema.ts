@@ -338,6 +338,17 @@ export interface BookingWithDetails extends Booking {
   table: Table;
 }
 
+// Food options interface for ticket selections
+export interface FoodOption {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  category: string;
+  quantity: number;
+  seatNumber: number;
+}
+
 // Enum-like types for allergies and dietary restrictions
 export type Allergen = 'gluten' | 'dairy' | 'nuts' | 'peanuts' | 'shellfish' | 'eggs' | 'soy' | 'fish';
 export type DietaryRestriction = 'vegetarian' | 'vegan' | 'halal' | 'kosher' | 'gluten-free' | 'dairy-free' | 'nut-free';
