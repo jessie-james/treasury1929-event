@@ -132,7 +132,6 @@ export const menuItems = pgTable("menu_items", {
   image: varchar("image", { length: 255 }),
   containsAllergens: json("contains_allergens").$type<Allergen[]>().default([]),
   dietaryInfo: json("dietary_info").$type<DietaryRestriction[]>().default([]),
-  displayOrder: integer("display_order").default(0),
 });
 
 // Venue Staff Table
@@ -337,19 +336,6 @@ export interface BookingWithDetails extends Booking {
   event: Event;
   user: User;
   table: Table;
-}
-
-// Food options interface for ticket selections
-export interface FoodOption {
-  id: number;
-  name: string;
-  description?: string;
-  price: number;
-  category: string;
-  quantity: number;
-  seatNumber: number;
-  allergens?: Allergen[];
-  dietaryInfo?: DietaryRestriction[];
 }
 
 // Enum-like types for allergies and dietary restrictions

@@ -87,12 +87,6 @@ export function BackofficeLayout({ children }: Props) {
       roles: ['admin', 'venue_owner'],
     },
     {
-      name: "Menu Management",
-      href: "/backoffice/menu",
-      icon: Menu,
-      roles: ['admin', 'venue_owner'],
-    },
-    {
       name: "Users",
       href: "/backoffice/users",
       icon: Users,

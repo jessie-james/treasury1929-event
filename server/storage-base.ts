@@ -1,7 +1,6 @@
 import {
   type User, type Event, type Ticket, type Booking, type BookingWithDetails,
-  type Table, type Seat, type TableWithSeats, type MenuItem, type VenueStaff,
-  type FoodOption
+  type Table, type Seat, type TableWithSeats, type MenuItem, type VenueStaff
 } from "@shared/schema";
 
 /**
@@ -69,7 +68,6 @@ export interface IStorage {
   createMenuItem(itemData: any): Promise<number>;
   updateMenuItem(id: number, itemData: Partial<MenuItem>): Promise<boolean>;
   deleteMenuItem(id: number): Promise<boolean>;
-  getFoodOptionsByDisplayOrder(): Promise<FoodOption[]>;
 
   // Staff methods
   getVenueStaff(): Promise<VenueStaff[]>;
@@ -88,17 +86,6 @@ export interface IStorage {
   getLayoutTemplates(venueId: number): Promise<any[]>;
   saveLayoutTemplate(venueId: number, templateData: any): Promise<any>;
   updateFloorImage(venueId: number, floorId: string, imageUrl: string): Promise<boolean>;
-
-  // Admin log methods
-  createAdminLog(logData: {
-    userId: number;
-    action: string;
-    entityType: string;
-    entityId?: number;
-    details?: Record<string, any>;
-    ipAddress?: string;
-    userAgent?: string;
-  }): Promise<void>;
 }
 
 /**
@@ -374,22 +361,6 @@ export class MemStorage implements IStorage {
     return true;
   }
   
-  async getFoodOptionsByDisplayOrder(): Promise<FoodOption[]> {
-    // Convert menu items to food options
-    // This is a simplified implementation
-    return this.menuItems.map((item, index) => ({
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      price: item.price || 0,
-      category: item.category || 'Standard',
-      quantity: 0,
-      seatNumber: 0,
-      allergens: item.containsAllergens,
-      dietaryInfo: item.dietaryInfo
-    }));
-  }
-  
   // Staff Methods
   async getVenueStaff(): Promise<VenueStaff[]> {
     return this.venueStaffMembers;
@@ -477,19 +448,5 @@ export class MemStorage implements IStorage {
   
   async updateFloorImage(venueId: number, floorId: string, imageUrl: string): Promise<boolean> {
     return true;
-  }
-
-  // Admin logging functionality
-  async createAdminLog(logData: {
-    userId: number;
-    action: string;
-    entityType: string;
-    entityId?: number;
-    details?: Record<string, any>;
-    ipAddress?: string;
-    userAgent?: string;
-  }): Promise<void> {
-    // For in-memory storage, we'll just log to console
-    console.log("ADMIN LOG (Memory):", JSON.stringify(logData));
   }
 }

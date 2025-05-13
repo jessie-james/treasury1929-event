@@ -28,7 +28,7 @@ if (!stripeKey) {
 }
 
 // Create a stable Stripe promise - with comprehensive error handling
-let stripePromise: Promise<any> | null = null;
+let stripePromise;
 try {
   if (!stripeKey) {
     throw new Error("Missing Stripe publishable key");
@@ -78,7 +78,6 @@ function StripeCheckoutForm({
   const { toast } = useToast();
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -90,76 +89,29 @@ function StripeCheckoutForm({
     }
 
     setIsProcessing(true);
-    setErrorMessage("");
 
     // Confirm payment with Stripe
-    try {
-      // Handle Stripe payment confirmation
-      const { paymentIntent, error } = await stripe.confirmPayment({
-        //`Elements` instance that was used to create the Payment Element
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/success`,
-        },
-        redirect: 'if_required'
+    const { paymentIntent, error } = await stripe.confirmPayment({
+      //`Elements` instance that was used to create the Payment Element
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/success`,
+      },
+      redirect: 'if_required'
+    });
+
+    if (error) {
+      toast({
+        title: "Payment Failed",
+        description: error.message || "An unexpected error occurred.",
+        variant: "destructive",
       });
+      setIsProcessing(false);
+      return;
+    }
 
-      if (error) {
-        console.log("Payment confirmation error:", error);
-        
-        // Handle different error types with specific user guidance
-        let errorTitle = "Payment Failed";
-        let errorDescription = error.message || "An unexpected error occurred.";
-        let action: React.ReactElement | undefined = undefined;
-        
-        if (error.type === "card_error") {
-          // Card errors are typically end-user issues
-          errorTitle = "Card Issue";
-          errorDescription = `${error.message}. Please check your card information.`;
-        } else if (error.type === "validation_error") {
-          // Validation errors are typically developer mistakes
-          errorTitle = "Form Error";
-          errorDescription = `Please check your payment information. ${error.message}`;
-        } else if (error.type === "api_error" || error.type === "api_connection_error") {
-          // API errors indicate something wrong with Stripe or server-side
-          errorTitle = "Payment System Error";
-          errorDescription = "The payment system is temporarily unavailable. Please try again in a few moments.";
-          
-          // Add retry button
-          action = (
-            <Button variant="outline" size="sm" onClick={() => {
-              toast({
-                title: "Retrying Payment",
-                description: "Please wait while we prepare the payment form again."
-              });
-              
-              // After a short delay, refresh the page to get a fresh payment intent
-              setTimeout(() => {
-                window.location.reload();
-              }, 1500);
-            }}>
-              Retry Payment
-            </Button>
-          );
-        }
-        
-        toast({
-          title: errorTitle,
-          description: errorDescription,
-          variant: "destructive",
-          action: action as any // Using type assertion to fix TypeScript issue
-        });
-        
-        setErrorMessage(errorDescription);
-        setIsProcessing(false);
-        return;
-      }
-
-      if (paymentIntent && paymentIntent.status === 'succeeded') {
-        // Clear any previous error messages
-        setErrorMessage("");
-        
-        // Payment succeeded, now create booking in our system
+    if (paymentIntent && paymentIntent.status === 'succeeded') {
+      // Payment succeeded, now create booking in our system
       try {
         if (!user) throw new Error("User not authenticated");
 
@@ -256,147 +208,26 @@ function StripeCheckoutForm({
       });
     }
 
-    } catch (err: any) {
-      console.error("Unexpected error in payment process:", err);
-      toast({
-        title: "Payment Error",
-        description: `An unexpected error occurred: ${err.message || "Unknown error"}`,
-        variant: "destructive",
-      });
-      setErrorMessage(err.message || "Unknown error");
-      setIsProcessing(false);
-    }
+    setIsProcessing(false);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Payment progress indicator */}
-      <div className="mb-5">
-        <div className="relative flex items-center justify-between">
-          <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 bg-gray-200"></div>
-          <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
-            1
-          </div>
-          <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white">
-            2
-          </div>
-          <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gray-200 text-gray-600">
-            3
-          </div>
-        </div>
-        <div className="mt-2 flex justify-between text-xs">
-          <span>Seats Selected</span>
-          <span className="font-medium">Payment</span>
-          <span>Confirmation</span>
-        </div>
-      </div>
-      
-      {/* Payment security notice - redesigned for better readability */}
-      <div className="mb-4 space-y-3">
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-          <div className="flex items-start">
-            <div className="text-blue-600 mr-3 mt-0.5">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="16" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12.01" y2="8" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-blue-800">Secure Payment</h3>
-              <p className="mt-1 text-xs text-blue-700">
-                Your payment information is securely processed by Stripe. The Treasury 1929 does not store your full card details.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <PaymentElement options={{
-        layout: {
-          type: 'tabs',
-          defaultCollapsed: false,
-        },
-        fields: {
-          billingDetails: {
-            address: {
-              country: 'never',
-            }
-          }
-        },
-        terms: {
-          card: 'always',
-        }
-      }} />
-
-      <div className="mt-4 mb-2 space-y-3">
-        <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
-          <h3 className="text-sm font-medium mb-3">Order Summary</h3>
-          
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Tickets ({selectedSeats.length} × $19.99):</span>
-              <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>
-            </div>
-            
-            {/* Show selected seats */}
-            <div className="text-xs text-gray-600 ml-1">
-              Table #{tableId}, Seats: {selectedSeats.sort((a, b) => a - b).join(", ")}
-            </div>
-            
-            {/* Show selected food if any */}
-            {foodSelections && foodSelections.length > 0 && foodSelections.some(item => Object.values(item).some(val => val > 0)) && (
-              <div className="text-xs text-gray-600 mt-1 ml-1">
-                <span>Food selection included</span>
-              </div>
-            )}
-            
-            <div className="border-t border-gray-200 my-2 pt-2 flex justify-between font-medium">
-              <span>Total:</span>
-              <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>
-            </div>
-          </div>
-          
-          <div className="text-xs text-gray-500 mt-3 flex items-center">
-            <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Beverages will be available for purchase at the event
-          </div>
-        </div>
-      </div>
-
-      {/* Enhanced payment button with more informative states */}
+      <PaymentElement />
       <Button 
         type="submit" 
-        className="w-full mt-4"
+        className="w-full"
         disabled={!stripe || !elements || isProcessing}
-        size="lg"
       >
         {isProcessing ? (
-          <span className="flex items-center justify-center">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Processing Payment...
-          </span>
-        ) : errorMessage ? (
-          <span className="flex items-center justify-center">
-            <AlertTriangle className="mr-2 h-5 w-5" />
-            Retry Payment
+          <span className="flex items-center">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing...
           </span>
         ) : (
-          <span className="flex items-center justify-center">
-            <span className="mr-1">Pay</span>
-            <span className="font-bold">${(19.99 * selectedSeats.length).toFixed(2)}</span>
-          </span>
+          `Pay $${(19.99 * selectedSeats.length).toFixed(2)}`
         )}
       </Button>
-      
-      {/* Display any error message below the button */}
-      {errorMessage && (
-        <div className="mt-3 text-sm text-center text-destructive">
-          <p>{errorMessage}</p>
-        </div>
-      )}
     </form>
   );
 }
@@ -619,69 +450,13 @@ export function CheckoutForm({
       setRetryCount(0); // Reset retry count on success
     } catch (error) {
       console.error("Payment setup error:", error);
-      
-      // Get a more specific error type if possible
-      const errorMsg = error instanceof Error ? error.message : "Could not initialize payment system";
-      
-      // Check for network-related issues
-      const isNetworkError = errorMsg.includes("network") || 
-        errorMsg.includes("connection") || 
-        errorMsg.includes("unreachable") ||
-        errorMsg.includes("timeout");
-      
-      // Check for authentication-related issues
-      const isAuthError = errorMsg.includes("authentication") || 
-        errorMsg.includes("unauthorized") || 
-        errorMsg.includes("logged in") || 
-        errorMsg.includes("session");
-      
-      // Check for Stripe specific issues
-      const isStripeError = errorMsg.includes("Stripe") ||
-        errorMsg.includes("payment method") ||
-        errorMsg.includes("card");
-      
-      let actionButton;
-      
-      if (isAuthError) {
-        // For auth errors, offer to go to login page
-        actionButton = (
-          <Button variant="outline" size="sm" onClick={() => setLocation("/auth")}>
-            Log In Again
-          </Button>
-        );
-      } else if (isNetworkError) {
-        // For network errors, offer a retry button
-        actionButton = (
-          <Button variant="outline" size="sm" onClick={() => getClientSecret()}>
-            Retry Connection
-          </Button>
-        );
-      } else if (retryCount < 3) {
-        // For other errors under retry limit, offer generic retry
-        actionButton = (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => {
-              setRetryCount(prev => prev + 1);
-              getClientSecret();
-            }}
-          >
-            Try Again
-          </Button>
-        );
-      }
-      
       toast({
-        title: isAuthError ? "Authentication Error" : 
-               isNetworkError ? "Connection Error" :
-               isStripeError ? "Payment System Error" : "Payment Setup Failed",
-        description: errorMsg,
+        title: "Payment Setup Failed",
+        description: error instanceof Error 
+          ? error.message 
+          : "Could not initialize payment system. Please try again.",
         variant: "destructive",
-        action: actionButton as any // Type assertion to fix TypeScript issue
       });
-      
-      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }

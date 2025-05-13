@@ -2,9 +2,6 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLayoutCollaboration } from "@/hooks/use-layout-collaboration";
-import { CollaborationIndicator } from "@/components/admin/CollaborationIndicator";
-import { EditorCursor } from "@/components/admin/EditorCursor";
 import { 
   Card, 
   CardContent, 
@@ -198,14 +195,6 @@ const bulkTableFormSchema = z.object({
 export default function LayoutSettings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  // State for editor positions (for collaborative editing)
-  const [editorPositions, setEditorPositions] = useState<Map<string, { x: number; y: number; editorId: string; timestamp: number }>>(
-    new Map()
-  );
-  
-  // Refs for throttling position updates
-  const lastPositionUpdate = useRef<number>(0);
   const canvasRef = useRef<HTMLDivElement>(null);
   
   // State variables
@@ -258,57 +247,8 @@ export default function LayoutSettings() {
     }
   ]);
   const [currentTemplate, setCurrentTemplate] = useState<string | null>('concert');
-  // Setup real-time collaboration
-  const { 
-    connected, 
-    editorCount, 
-    editorId,
-    sendTableUpdate,
-    sendEditorPosition 
-  } = useLayoutCollaboration({
-    venueId: selectedVenueId,
-    onTableUpdate: (tableData, action, sourceEditorId) => {
-      // Handle table updates from other editors
-      if (action === 'update') {
-        // Refresh the tables query to get the updated table data
-        queryClient.invalidateQueries({ queryKey: [`/api/admin/venues/${selectedVenueId}/tables`] });
-        
-        toast({
-          title: 'Layout Updated',
-          description: `Table ${tableData.tableNumber} was updated by another editor`,
-          variant: 'default',
-        });
-      }
-    },
-    onEditorPositionChange: (position) => {
-      // Update the editor position in our state
-      setEditorPositions(prev => {
-        const newMap = new Map(prev);
-        newMap.set(position.editorId, position);
-        return newMap;
-      });
-    },
-    onEditorJoined: (joinedEditorId, count) => {
-      // Show a notification when a new editor joins
-      if (joinedEditorId !== editorId) {
-        toast({
-          title: 'Editor Joined',
-          description: `${count} editors are now working on this layout`,
-          variant: 'default',
-        });
-      }
-    },
-    onEditorLeft: (count) => {
-      // Optional notification when an editor leaves
-      if (count > 0) {
-        toast({
-          title: 'Editor Left',
-          description: `${count} editors remaining`,
-          variant: 'default',
-        });
-      }
-    }
-  });
+  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   
   // Form for individual table editing
   const tableForm = useForm<z.infer<typeof tableFormSchema>>({
@@ -479,7 +419,7 @@ export default function LayoutSettings() {
       }
       return response.json();
     },
-    onSuccess: (_, tableId) => {
+    onSuccess: () => {
       toast({
         title: "Success",
         description: "Table deleted successfully",
@@ -487,11 +427,6 @@ export default function LayoutSettings() {
       queryClient.invalidateQueries({ queryKey: ['tables', selectedVenueId, currentFloor] });
       setSelectedTable(null);
       addToHistory(currentFloorTables);
-      
-      // Notify other editors about the table deletion
-      if (sendTableUpdate) {
-        sendTableUpdate({ id: tableId }, 'delete');
-      }
     },
     onError: (error) => {
       toast({
@@ -806,30 +741,13 @@ export default function LayoutSettings() {
   // Handle single table form submission
   const handleTableFormSubmit = (data: z.infer<typeof tableFormSchema>) => {
     if (isAddMode) {
-      createTableMutation.mutate(data, {
-        onSuccess: (newTable) => {
-          // Broadcast the new table to other editors
-          if (sendTableUpdate) {
-            sendTableUpdate(newTable, 'create');
-          }
-        }
-      });
+      createTableMutation.mutate(data);
     } else if (selectedTable) {
-      const updatedTable = {
+      updateTableMutation.mutate({
         ...selectedTable,
         ...data,
-      };
-      
-      updateTableMutation.mutate(updatedTable, {
-        onSuccess: () => {
-          setSelectedTable(null);
-          
-          // Broadcast the updated table to other editors
-          if (sendTableUpdate) {
-            sendTableUpdate(updatedTable, 'update');
-          }
-        }
       });
+      setSelectedTable(null);
     }
   };
 
@@ -1497,7 +1415,7 @@ export default function LayoutSettings() {
     }
     
     // Render based on shape
-    if (table.shape === 'round') {
+    if (table.shape === 'round' || table.shape === 'circle') {
       return (
         <div
           key={table.id}
@@ -2002,16 +1920,9 @@ export default function LayoutSettings() {
         <Card className="lg:col-span-3 order-1 lg:order-2">
           <CardHeader className="p-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-lg">
-                  {floors.find(f => f.id === currentFloor)?.name || 'Floor Plan'}
-                </CardTitle>
-                <CollaborationIndicator 
-                  connected={connected} 
-                  editorCount={editorCount} 
-                  editorPositions={editorPositions} 
-                />
-              </div>
+              <CardTitle className="text-lg">
+                {floors.find(f => f.id === currentFloor)?.name || 'Floor Plan'}
+              </CardTitle>
               
               <div className="flex space-x-2">
                 <Button variant="outline" size="sm" onClick={() => handleZoom(zoom - 10)}>
@@ -2061,39 +1972,7 @@ export default function LayoutSettings() {
           </CardHeader>
           
           <CardContent className="p-4 pt-0">
-            <div 
-              className="relative border rounded-md overflow-hidden" 
-              ref={canvasRef}
-              onMouseMove={(e) => {
-                if (sendEditorPosition) {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const x = e.clientX - rect.left;
-                  const y = e.clientY - rect.top;
-                  
-                  // Throttle position updates to avoid overloading the server
-                  const now = Date.now();
-                  if (now - lastPositionUpdate.current > 100) { // Send every 100ms
-                    sendEditorPosition(x, y);
-                    lastPositionUpdate.current = now;
-                  }
-                }
-              }}
-            >
-              {/* Render editor cursors for other collaborators */}
-              {editorPositions && Array.from(editorPositions.entries()).map(([cursorEditorId, position]) => {
-                // Don't show cursor for current user
-                if (cursorEditorId !== editorId) {
-                  return (
-                    <EditorCursor 
-                      key={cursorEditorId}
-                      editorId={cursorEditorId} 
-                      position={{ x: position.x, y: position.y }}
-                    />
-                  );
-                }
-                return null;
-              })}
-            
+            <div className="relative border rounded-md overflow-hidden">
               <div 
                 className="absolute top-2 left-2 z-20 flex flex-col space-y-2 bg-white/80 p-2 rounded shadow-sm"
               >
@@ -2103,7 +1982,7 @@ export default function LayoutSettings() {
                   onClick={toggleMultiSelectMode}
                   title={isMultiSelectMode ? "Cancel Multi-Select" : "Enable Multi-Select"}
                 >
-                  {isMultiSelectMode ? <Eraser className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+                  {isMultiSelectMode ? <SelectionSlash className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
                 </Button>
                 
                 <Button 
