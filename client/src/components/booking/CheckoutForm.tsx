@@ -78,6 +78,7 @@ function StripeCheckoutForm({
   const { toast } = useToast();
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -89,29 +90,77 @@ function StripeCheckoutForm({
     }
 
     setIsProcessing(true);
+    setErrorMessage("");
 
     // Confirm payment with Stripe
-    const { paymentIntent, error } = await stripe.confirmPayment({
-      //`Elements` instance that was used to create the Payment Element
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/success`,
-      },
-      redirect: 'if_required'
-    });
-
-    if (error) {
-      toast({
-        title: "Payment Failed",
-        description: error.message || "An unexpected error occurred.",
-        variant: "destructive",
+    try {
+      const { paymentIntent, error } = await stripe.confirmPayment({
+        //`Elements` instance that was used to create the Payment Element
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/success`,
+        },
+        redirect: 'if_required'
       });
-      setIsProcessing(false);
-      return;
-    }
 
-    if (paymentIntent && paymentIntent.status === 'succeeded') {
-      // Payment succeeded, now create booking in our system
+      if (error) {
+        console.log("Payment confirmation error:", error);
+        
+        // Handle different error types with specific user guidance
+        let errorTitle = "Payment Failed";
+        let errorDescription = error.message || "An unexpected error occurred.";
+        let action = null;
+        
+        if (error.type === "card_error") {
+          // Card errors are typically end-user issues
+          errorTitle = "Card Issue";
+          errorDescription = `${error.message}. Please check your card information.`;
+        } else if (error.type === "validation_error") {
+          // Validation errors are typically developer mistakes
+          errorTitle = "Form Error";
+          errorDescription = `Please check your payment information. ${error.message}`;
+        } else if (error.type === "api_error" || error.type === "api_connection_error") {
+          // API errors indicate something wrong with Stripe or server-side
+          errorTitle = "Payment System Error";
+          errorDescription = "The payment system is temporarily unavailable. Please try again in a few moments.";
+          
+          // Add retry button
+          action = (
+            <Button variant="outline" size="sm" onClick={() => {
+              toast({
+                title: "Retrying Payment",
+                description: "Please wait while we prepare the payment form again."
+              });
+              
+              // After a short delay, retry fetching a fresh payment intent
+              setTimeout(() => {
+                if (typeof getClientSecret === 'function') {
+                  getClientSecret();
+                }
+              }, 1500);
+            }}>
+              Retry Payment
+            </Button>
+          );
+        }
+        
+        toast({
+          title: errorTitle,
+          description: errorDescription,
+          variant: "destructive",
+          action: action
+        });
+        
+        setErrorMessage(errorDescription);
+        setIsProcessing(false);
+        return;
+      }
+
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
+        // Clear any previous error messages
+        setErrorMessage("");
+        
+        // Payment succeeded, now create booking in our system
       try {
         if (!user) throw new Error("User not authenticated");
 
