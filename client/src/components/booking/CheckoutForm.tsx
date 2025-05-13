@@ -147,7 +147,7 @@ function StripeCheckoutForm({
           title: errorTitle,
           description: errorDescription,
           variant: "destructive",
-          action: action
+          action: action as any // Using type assertion to fix TypeScript issue
         });
         
         setErrorMessage(errorDescription);
@@ -581,40 +581,32 @@ export function CheckoutForm({
       
       if (isAuthError) {
         // For auth errors, offer to go to login page
-        actionButton = {
-          altText: "Log In Again",
-          onClick: () => setLocation("/auth"),
-          children: (
-            <Button variant="outline" size="sm">
-              Log In Again
-            </Button>
-          )
-        };
+        actionButton = (
+          <Button variant="outline" size="sm" onClick={() => setLocation("/auth")}>
+            Log In Again
+          </Button>
+        );
       } else if (isNetworkError) {
         // For network errors, offer a retry button
-        actionButton = {
-          altText: "Retry Connection",
-          onClick: () => getClientSecret(),
-          children: (
-            <Button variant="outline" size="sm">
-              Retry Connection
-            </Button>
-          )
-        };
+        actionButton = (
+          <Button variant="outline" size="sm" onClick={() => getClientSecret()}>
+            Retry Connection
+          </Button>
+        );
       } else if (retryCount < 3) {
         // For other errors under retry limit, offer generic retry
-        actionButton = {
-          altText: "Try Again",
-          onClick: () => {
-            setRetryCount(prev => prev + 1);
-            getClientSecret();
-          },
-          children: (
-            <Button variant="outline" size="sm">
-              Try Again
-            </Button>
-          )
-        };
+        actionButton = (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              setRetryCount(prev => prev + 1);
+              getClientSecret();
+            }}
+          >
+            Try Again
+          </Button>
+        );
       }
       
       toast({
@@ -623,7 +615,7 @@ export function CheckoutForm({
                isStripeError ? "Payment System Error" : "Payment Setup Failed",
         description: errorMsg,
         variant: "destructive",
-        action: actionButton
+        action: actionButton as any // Type assertion to fix TypeScript issue
       });
       
       setError(errorMsg);
