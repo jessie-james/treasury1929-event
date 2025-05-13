@@ -270,6 +270,28 @@ function StripeCheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Payment progress indicator */}
+      <div className="mb-5">
+        <div className="relative flex items-center justify-between">
+          <div className="absolute left-0 right-0 top-1/2 h-0.5 -translate-y-1/2 bg-gray-200"></div>
+          <div className="relative flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
+            1
+          </div>
+          <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white">
+            2
+          </div>
+          <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-gray-200 text-gray-600">
+            3
+          </div>
+        </div>
+        <div className="mt-2 flex justify-between text-xs">
+          <span>Seats Selected</span>
+          <span className="font-medium">Payment</span>
+          <span>Confirmation</span>
+        </div>
+      </div>
+      
+      {/* Payment security notice - redesigned for better readability */}
       <div className="mb-4 space-y-3">
         <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
           <div className="flex items-start">
@@ -307,18 +329,44 @@ function StripeCheckoutForm({
         }
       }} />
 
-      <div className="mt-2 space-y-3">
-        <div className="border-t pt-4">
-          <div className="flex justify-between text-sm font-medium">
-            <span>Ticket cost ({selectedSeats.length} seats):</span>
-            <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>
+      <div className="mt-4 mb-2 space-y-3">
+        <div className="border border-gray-200 rounded-md p-4 bg-gray-50">
+          <h3 className="text-sm font-medium mb-3">Order Summary</h3>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Tickets ({selectedSeats.length} × $19.99):</span>
+              <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>
+            </div>
+            
+            {/* Show selected seats */}
+            <div className="text-xs text-gray-600 ml-1">
+              Table #{tableId}, Seats: {selectedSeats.sort((a, b) => a - b).join(", ")}
+            </div>
+            
+            {/* Show selected food if any */}
+            {foodSelections && foodSelections.length > 0 && foodSelections.some(item => Object.values(item).some(val => val > 0)) && (
+              <div className="text-xs text-gray-600 mt-1 ml-1">
+                <span>Food selection included</span>
+              </div>
+            )}
+            
+            <div className="border-t border-gray-200 my-2 pt-2 flex justify-between font-medium">
+              <span>Total:</span>
+              <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>
+            </div>
           </div>
-          <div className="text-xs text-gray-500 mt-1">
+          
+          <div className="text-xs text-gray-500 mt-3 flex items-center">
+            <svg className="w-3 h-3 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
             Beverages will be available for purchase at the event
           </div>
         </div>
       </div>
 
+      {/* Enhanced payment button with more informative states */}
       <Button 
         type="submit" 
         className="w-full mt-4"
@@ -326,14 +374,29 @@ function StripeCheckoutForm({
         size="lg"
       >
         {isProcessing ? (
-          <span className="flex items-center">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <span className="flex items-center justify-center">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             Processing Payment...
           </span>
+        ) : errorMessage ? (
+          <span className="flex items-center justify-center">
+            <AlertTriangle className="mr-2 h-5 w-5" />
+            Retry Payment
+          </span>
         ) : (
-          `Pay $${(19.99 * selectedSeats.length).toFixed(2)}`
+          <span className="flex items-center justify-center">
+            <span className="mr-1">Pay</span>
+            <span className="font-bold">${(19.99 * selectedSeats.length).toFixed(2)}</span>
+          </span>
         )}
       </Button>
+      
+      {/* Display any error message below the button */}
+      {errorMessage && (
+        <div className="mt-3 text-sm text-center text-destructive">
+          <p>{errorMessage}</p>
+        </div>
+      )}
     </form>
   );
 }
