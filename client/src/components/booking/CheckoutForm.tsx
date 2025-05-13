@@ -213,16 +213,65 @@ function StripeCheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
+      <div className="mb-4 space-y-3">
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+          <div className="flex items-start">
+            <div className="text-blue-600 mr-3 mt-0.5">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-blue-800">Secure Payment</h3>
+              <p className="mt-1 text-xs text-blue-700">
+                Your payment information is securely processed by Stripe. The Treasury 1929 does not store your full card details.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <PaymentElement options={{
+        layout: {
+          type: 'tabs',
+          defaultCollapsed: false,
+        },
+        fields: {
+          billingDetails: {
+            address: {
+              country: 'never',
+            }
+          }
+        },
+        terms: {
+          card: 'always',
+        }
+      }} />
+
+      <div className="mt-2 space-y-3">
+        <div className="border-t pt-4">
+          <div className="flex justify-between text-sm font-medium">
+            <span>Ticket cost ({selectedSeats.length} seats):</span>
+            <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            Beverages will be available for purchase at the event
+          </div>
+        </div>
+      </div>
+
       <Button 
         type="submit" 
-        className="w-full"
+        className="w-full mt-4"
         disabled={!stripe || !elements || isProcessing}
+        size="lg"
       >
         {isProcessing ? (
           <span className="flex items-center">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
+            Processing Payment...
           </span>
         ) : (
           `Pay $${(19.99 * selectedSeats.length).toFixed(2)}`
@@ -450,13 +499,65 @@ export function CheckoutForm({
       setRetryCount(0); // Reset retry count on success
     } catch (error) {
       console.error("Payment setup error:", error);
+      
+      // Get a more specific error type if possible
+      const errorMsg = error instanceof Error ? error.message : "Could not initialize payment system";
+      
+      // Check for network-related issues
+      const isNetworkError = errorMsg.includes("network") || 
+        errorMsg.includes("connection") || 
+        errorMsg.includes("unreachable") ||
+        errorMsg.includes("timeout");
+      
+      // Check for authentication-related issues
+      const isAuthError = errorMsg.includes("authentication") || 
+        errorMsg.includes("unauthorized") || 
+        errorMsg.includes("logged in") || 
+        errorMsg.includes("session");
+      
+      // Check for Stripe specific issues
+      const isStripeError = errorMsg.includes("Stripe") ||
+        errorMsg.includes("payment method") ||
+        errorMsg.includes("card");
+      
+      let actionButton = null;
+      
+      if (isAuthError) {
+        // For auth errors, offer to go to login page
+        actionButton = (
+          <Button variant="outline" size="sm" onClick={() => setLocation("/auth")}>
+            Log In Again
+          </Button>
+        );
+      } else if (isNetworkError) {
+        // For network errors, offer a retry button
+        actionButton = (
+          <Button variant="outline" size="sm" onClick={() => getClientSecret()}>
+            Retry Connection
+          </Button>
+        );
+      } else if (retryCount < 3) {
+        // For other errors under retry limit, offer generic retry
+        actionButton = (
+          <Button variant="outline" size="sm" onClick={() => {
+            setRetryCount(prev => prev + 1);
+            getClientSecret();
+          }}>
+            Try Again
+          </Button>
+        );
+      }
+      
       toast({
-        title: "Payment Setup Failed",
-        description: error instanceof Error 
-          ? error.message 
-          : "Could not initialize payment system. Please try again.",
+        title: isAuthError ? "Authentication Error" : 
+               isNetworkError ? "Connection Error" :
+               isStripeError ? "Payment System Error" : "Payment Setup Failed",
+        description: errorMsg,
         variant: "destructive",
+        action: actionButton
       });
+      
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
