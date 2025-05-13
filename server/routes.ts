@@ -267,6 +267,25 @@ export async function registerRoutes(app: Express) {
             });
           }
         }
+        
+        // Handle floor change notifications
+        else if (data.type === 'floor_change') {
+          // Broadcast to all clients subscribed to this venue
+          const venueId = data.venueId;
+          if (typeof venueId === 'number') {
+            clientVenueSubscriptions.forEach((subscriptions, client) => {
+              if (client.readyState === WebSocket.OPEN && 
+                  client !== ws && // Don't send back to originator
+                  subscriptions.has(venueId)) {
+                client.send(JSON.stringify({
+                  type: 'floor_changed',
+                  venueId: data.venueId,
+                  floorId: data.floorId
+                }));
+              }
+            });
+          }
+        }
       } catch (error) {
         console.error('Failed to parse WebSocket message:', error);
       }

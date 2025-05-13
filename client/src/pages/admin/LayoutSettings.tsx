@@ -561,6 +561,19 @@ export default function LayoutSettings() {
             }
             break;
             
+          case 'floor_changed':
+            // Another user switched to a different floor in the layout editor
+            toast({
+              title: "Floor Change",
+              description: "Another user changed to a different floor view",
+            });
+            
+            // Optionally, you could follow them to that floor:
+            // if (message.floorId !== currentFloor) {
+            //   handleSelectFloor(message.floorId);
+            // }
+            break;
+            
           case 'ping':
             // Keep-alive ping, no action needed
             break;
@@ -630,6 +643,17 @@ export default function LayoutSettings() {
     };
   }, []);
 
+  // Handle venue ID changes - update WebSocket subscription
+  useEffect(() => {
+    if (wsConnection && wsConnection.readyState === WebSocket.OPEN && selectedVenueId) {
+      console.log(`Subscribing to venue ${selectedVenueId} after venue change`);
+      wsConnection.send(JSON.stringify({
+        type: 'subscribe_venue',
+        venueId: selectedVenueId
+      }));
+    }
+  }, [selectedVenueId, wsConnection]);
+  
   // Set venues when data is loaded
   useEffect(() => {
     if (venueData) {
@@ -752,6 +776,16 @@ export default function LayoutSettings() {
     setSelectedTables([]);
     setHistoryIndex(-1);
     setHistory([]);
+    
+    // Notify other collaborators via WebSocket when changing floors
+    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+      console.log(`Broadcasting floor change to ${floorId}`);
+      wsConnection.send(JSON.stringify({
+        type: 'floor_change',
+        venueId: selectedVenueId,
+        floorId: floorId
+      }));
+    }
   };
 
   // Handle table creation mode
