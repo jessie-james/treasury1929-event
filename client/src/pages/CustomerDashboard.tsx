@@ -190,7 +190,8 @@ export default function CustomerDashboard() {
                       </div>
                       <TicketQRCode 
                         bookingId={booking.id} 
-                        eventTitle={booking.event.title} 
+                        eventTitle={booking.event.title}
+                        eventDate={booking.event.date}
                         containerSelector={`#ticket-container-${booking.id}`}
                         tableId={booking.tableId}
                         seatNumbers={booking.seatNumbers}
