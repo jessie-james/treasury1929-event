@@ -70,7 +70,7 @@ const ALLERGENS = ['gluten', 'dairy', 'nuts', 'peanuts', 'shellfish', 'eggs', 's
 const DIETARY_RESTRICTIONS = ['vegetarian', 'vegan', 'halal', 'kosher', 'gluten-free', 'dairy-free', 'nut-free'];
 const CATEGORIES = ['Starter', 'Main', 'Dessert', 'Drink', 'Special'];
 
-const MenuManagement = () => {
+function MenuManagement() {
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -804,6 +804,6 @@ const MenuManagement = () => {
       </AlertDialog>
     </BackofficeLayout>
   );
-};
+}
 
 export default MenuManagement;
