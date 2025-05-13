@@ -77,10 +77,19 @@ class PgStorage implements IStorage {
   async getActiveEvents(): Promise<Event[]> {
     return db.select().from(events).where(eq(events.isActive, true)).orderBy(asc(events.displayOrder));
   }
+  
+  async getEventsByDisplayOrder(): Promise<Event[]> {
+    return this.getAllEvents(); // This already orders by displayOrder
+  }
 
   async getEventById(id: number): Promise<Event | null> {
     const results = await db.select().from(events).where(eq(events.id, id));
     return results.length > 0 ? results[0] : null;
+  }
+  
+  // Alias for getEventById for backward compatibility
+  async getEvent(id: number): Promise<Event | null> {
+    return this.getEventById(id);
   }
 
   async createEvent(eventData: NewEvent): Promise<number> {
