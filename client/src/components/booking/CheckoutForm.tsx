@@ -94,6 +94,7 @@ function StripeCheckoutForm({
 
     // Confirm payment with Stripe
     try {
+      // Handle Stripe payment confirmation
       const { paymentIntent, error } = await stripe.confirmPayment({
         //`Elements` instance that was used to create the Payment Element
         elements,
@@ -257,7 +258,16 @@ function StripeCheckoutForm({
       });
     }
 
-    setIsProcessing(false);
+    } catch (err: any) {
+      console.error("Unexpected error in payment process:", err);
+      toast({
+        title: "Payment Error",
+        description: `An unexpected error occurred: ${err.message || "Unknown error"}`,
+        variant: "destructive",
+      });
+      setErrorMessage(err.message || "Unknown error");
+      setIsProcessing(false);
+    }
   };
 
   return (
