@@ -28,7 +28,7 @@ if (!stripeKey) {
 }
 
 // Create a stable Stripe promise - with comprehensive error handling
-let stripePromise;
+let stripePromise: Promise<any> | null = null;
 try {
   if (!stripeKey) {
     throw new Error("Missing Stripe publishable key");
@@ -110,7 +110,7 @@ function StripeCheckoutForm({
         // Handle different error types with specific user guidance
         let errorTitle = "Payment Failed";
         let errorDescription = error.message || "An unexpected error occurred.";
-        let action = null;
+        let action: React.ReactElement | undefined = undefined;
         
         if (error.type === "card_error") {
           // Card errors are typically end-user issues
@@ -133,11 +133,9 @@ function StripeCheckoutForm({
                 description: "Please wait while we prepare the payment form again."
               });
               
-              // After a short delay, retry fetching a fresh payment intent
+              // After a short delay, refresh the page to get a fresh payment intent
               setTimeout(() => {
-                if (typeof getClientSecret === 'function') {
-                  getClientSecret();
-                }
+                window.location.reload();
               }, 1500);
             }}>
               Retry Payment
