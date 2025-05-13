@@ -86,6 +86,17 @@ export interface IStorage {
   getLayoutTemplates(venueId: number): Promise<any[]>;
   saveLayoutTemplate(venueId: number, templateData: any): Promise<any>;
   updateFloorImage(venueId: number, floorId: string, imageUrl: string): Promise<boolean>;
+
+  // Admin log methods
+  createAdminLog(logData: {
+    userId: number;
+    action: string;
+    entityType: string;
+    entityId?: number;
+    details?: Record<string, any>;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<void>;
 }
 
 /**
@@ -448,5 +459,19 @@ export class MemStorage implements IStorage {
   
   async updateFloorImage(venueId: number, floorId: string, imageUrl: string): Promise<boolean> {
     return true;
+  }
+
+  // Admin logging functionality
+  async createAdminLog(logData: {
+    userId: number;
+    action: string;
+    entityType: string;
+    entityId?: number;
+    details?: Record<string, any>;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<void> {
+    // For in-memory storage, we'll just log to console
+    console.log("ADMIN LOG (Memory):", JSON.stringify(logData));
   }
 }

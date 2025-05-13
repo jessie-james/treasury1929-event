@@ -634,6 +634,27 @@ class PgStorage implements IStorage {
     // For now, just return success
     return true;
   }
+
+  // Admin logging functionality
+  async createAdminLog(logData: {
+    userId: number;
+    action: string;
+    entityType: string;
+    entityId?: number;
+    details?: Record<string, any>;
+    ipAddress?: string;
+    userAgent?: string;
+  }): Promise<void> {
+    try {
+      // For now, just log to console in development
+      console.log("ADMIN LOG:", JSON.stringify(logData));
+      
+      // In a production environment, this would be persisted to the database
+      // This will be implemented when the adminLogs table is added to the schema
+    } catch (error) {
+      console.error("Error creating admin log:", error);
+    }
+  }
 }
 
 // Use Postgres storage
