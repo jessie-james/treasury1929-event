@@ -125,8 +125,8 @@ export default function LayoutSettings() {
   // State variables
   const [currentFloor, setCurrentFloor] = useState<string>("mezzanine");
   const [floors, setFloors] = useState<Floor[]>([
-    { id: "main", name: "Main Floor", image: "/floor-plans/main-floor.jpg", isActive: true },
-    { id: "mezzanine", name: "Mezzanine", image: "/floor-plans/mezzanine.jpg", isActive: true },
+    { id: "main", name: "Main Floor", image: "/floor-plans/main-floor.png", isActive: true },
+    { id: "mezzanine", name: "Mezzanine", image: "/floor-plans/mezzanine-floor.png", isActive: true },
   ]);
   
   const [selectedVenueId, setSelectedVenueId] = useState<number | null>(1);
@@ -202,10 +202,10 @@ export default function LayoutSettings() {
   
   // Data fetching - tables
   const { data: tablesData, isLoading: isLoadingTables, error: tablesError } = useQuery({
-    queryKey: ['venue-tables', selectedVenueId],
+    queryKey: ['venue-tables', selectedVenueId, currentFloor],
     queryFn: async () => {
       if (!selectedVenueId) return [];
-      const response = await fetch(`/api/venue/${selectedVenueId}/tables`);
+      const response = await fetch(`/api/admin/tables?venueId=${selectedVenueId}&floor=${currentFloor}`);
       if (!response.ok) {
         throw new Error('Failed to fetch tables');
       }
@@ -218,7 +218,7 @@ export default function LayoutSettings() {
   const { data: venueData, isLoading: isLoadingVenues, error: venuesError } = useQuery({
     queryKey: ['venues'],
     queryFn: async () => {
-      const response = await fetch('/api/venues');
+      const response = await fetch('/api/admin/venues');
       if (!response.ok) {
         throw new Error('Failed to fetch venues');
       }
@@ -226,6 +226,34 @@ export default function LayoutSettings() {
     }
   });
   
+  // Get data for floors
+  const { data: floorsData } = useQuery({
+    queryKey: ['venue-floors', selectedVenueId],
+    queryFn: async () => {
+      if (!selectedVenueId) return [];
+      const response = await fetch(`/api/admin/venues/${selectedVenueId}/floors`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch floors');
+      }
+      return response.json();
+    },
+    enabled: !!selectedVenueId
+  });
+
+  // Get data for zones
+  const { data: zonesData } = useQuery({
+    queryKey: ['venue-zones', selectedVenueId],
+    queryFn: async () => {
+      if (!selectedVenueId) return [];
+      const response = await fetch(`/api/admin/venues/${selectedVenueId}/zones`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch zones');
+      }
+      return response.json();
+    },
+    enabled: !!selectedVenueId
+  });
+
   // Get tables specific to the current floor
   const currentFloorTables = useMemo(() => {
     if (!tablesData) return [];
@@ -309,8 +337,8 @@ export default function LayoutSettings() {
   const updateTableMutation = useMutation({
     mutationFn: async (tableData: Table) => {
       const response = await apiRequest(
-        tableData.id ? "PATCH" : "POST",
-        tableData.id ? `/api/tables/${tableData.id}` : `/api/venue/${selectedVenueId}/tables`,
+        tableData.id ? "PUT" : "POST",
+        tableData.id ? `/api/admin/tables/${tableData.id}` : `/api/admin/tables`,
         tableData
       );
       return response.json();
@@ -320,7 +348,7 @@ export default function LayoutSettings() {
         title: "Success",
         description: "Table updated successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ['venue-tables', selectedVenueId] });
+      queryClient.invalidateQueries({ queryKey: ['venue-tables', selectedVenueId, currentFloor] });
       setSelectedTable(null);
       setIsAddMode(false);
     },
@@ -342,7 +370,7 @@ export default function LayoutSettings() {
       
       const response = await apiRequest(
         "POST",
-        `/api/venue/${selectedVenueId}/floor-plans`,
+        `/api/admin/venues/${selectedVenueId}/floors/${data.floorId}/image`,
         formData
       );
       return response.json();
