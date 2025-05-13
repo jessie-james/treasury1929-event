@@ -210,7 +210,7 @@ export async function registerRoutes(app: Express) {
   // Test database connection
   app.get("/api/health", async (_req, res) => {
     try {
-      await storage.getUser(1);
+      await storage.getUserById(1);
       res.json({ status: "healthy", database: "connected" });
     } catch (error) {
       console.error("Database health check failed:", error);
@@ -669,7 +669,7 @@ export async function registerRoutes(app: Express) {
 
       // Enrich logs with user data
       const enrichedLogs = await Promise.all(logs.map(async (log) => {
-        const user = await storage.getUser(log.userId);
+        const user = await storage.getUserById(log.userId);
         return {
           ...log,
           user: user ? { id: user.id, email: user.email, role: user.role } : null
@@ -806,7 +806,7 @@ export async function registerRoutes(app: Express) {
 
       // Enrich logs with user data
       const enrichedLogs = await Promise.all(logs.map(async (log) => {
-        const user = await storage.getUser(log.userId);
+        const user = await storage.getUserById(log.userId);
         return {
           ...log,
           user: user ? { id: user.id, email: user.email, role: user.role } : null
@@ -1352,7 +1352,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // Get existing user
-      const existingUser = await storage.getUser(userId);
+      const existingUser = await storage.getUserById(userId);
       if (!existingUser) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -1444,7 +1444,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // Get user to be deleted for logging
-      const userToDelete = await storage.getUser(userId);
+      const userToDelete = await storage.getUserById(userId);
       if (!userToDelete) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -2228,7 +2228,7 @@ export async function registerRoutes(app: Express) {
         console.log(`Attempting non-credentialed token generation with email ${req.body.email} and user ID ${req.body.userId}`);
 
         // Verify the user exists and matches both email and ID
-        const user = await storage.getUser(Number(req.body.userId));
+        const user = await storage.getUserById(Number(req.body.userId));
 
         if (user && user.email === req.body.email) {
           console.log(`Verified user match for direct auth: ${user.id} (${user.email})`);
@@ -2368,7 +2368,7 @@ export async function registerRoutes(app: Express) {
           console.log(`Attempting direct authentication for user ID: ${req.body.userId}, email: ${req.body.userEmail}`);
 
           // Verify that both the ID and email match a user in our database
-          const user = await storage.getUser(Number(req.body.userId));
+          const user = await storage.getUserById(Number(req.body.userId));
 
           if (user && user.email === req.body.userEmail) {
             isAuthenticatedDirectly = true;

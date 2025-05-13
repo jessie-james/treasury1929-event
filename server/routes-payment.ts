@@ -57,7 +57,7 @@ export function registerPaymentRoutes(app: Express) {
         
         // Verify user exists in database
         try {
-          const user = await storage.getUser(userId);
+          const user = await storage.getUserById(userId);
           if (user && user.email === userEmail) {
             console.log(`Verified user from request body: ${userId} (${userEmail})`);
           } else {
