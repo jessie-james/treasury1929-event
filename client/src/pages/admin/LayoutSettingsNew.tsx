@@ -269,6 +269,42 @@ export default function LayoutSettings() {
     setHistoryIndex(newHistory.length - 1);
   }, [history, historyIndex]);
   
+  // Add handler function for floor selection
+  const handleFloorSelection = (floorId: string) => {
+    setCurrentFloor(floorId);
+    setSelectedTable(null);
+    setSelectedTables([]);
+    setIsAddMode(false);
+    setIsBulkAddMode(false);
+  };
+  
+  // Utility functions for table visualization
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'available':
+        return 'bg-green-500';
+      case 'reserved':
+        return 'bg-blue-500';
+      case 'unavailable':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+  
+  const getPriceCategoryBadgeClass = (category: string) => {
+    switch (category) {
+      case 'premium':
+        return 'bg-purple-100 text-purple-800 border-purple-300';
+      case 'vip':
+        return 'bg-amber-100 text-amber-800 border-amber-300';
+      case 'budget':
+        return 'bg-teal-100 text-teal-800 border-teal-300';
+      default:
+        return 'bg-blue-100 text-blue-800 border-blue-300';
+    }
+  };
+  
   // History navigation functions
   const handleUndo = useCallback(() => {
     if (historyIndex > 0) {
@@ -575,26 +611,7 @@ export default function LayoutSettings() {
     createTablesSequentially();
   };
   
-  // Function to get appropriate class for status
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'available': return 'bg-green-100 text-green-800';
-      case 'reserved': return 'bg-amber-100 text-amber-800';
-      case 'unavailable': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-  
-  // Function to get appropriate class for price category
-  const getPriceCategoryBadgeClass = (category?: string) => {
-    switch (category) {
-      case 'budget': return 'bg-green-100 text-green-800';
-      case 'standard': return 'bg-blue-100 text-blue-800';
-      case 'premium': return 'bg-purple-100 text-purple-800';
-      case 'vip': return 'bg-amber-100 text-amber-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
+  // We already have utility functions for status color and price category badges higher up in the file
   
   // Cancel current action
   const handleCancel = () => {
@@ -706,7 +723,7 @@ export default function LayoutSettings() {
                     className={`p-2 rounded cursor-pointer flex items-center justify-between ${
                       floor.id === currentFloor ? 'bg-primary/10' : 'hover:bg-muted'
                     }`}
-                    onClick={() => setCurrentFloor(floor.id)}
+                    onClick={() => handleFloorSelection(floor.id)}
                   >
                     <span>{floor.name}</span>
                     {floor.isActive && <Badge variant="outline">Active</Badge>}
