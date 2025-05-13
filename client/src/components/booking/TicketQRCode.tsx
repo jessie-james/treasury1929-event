@@ -203,7 +203,7 @@ export function TicketQRCode({
   
   // Function to share ticket
   const handleShare = async () => {
-    if (!navigator.share) {
+    if (typeof navigator === 'undefined' || !('share' in navigator)) {
       console.warn("Web Share API not supported");
       return;
     }
@@ -389,7 +389,7 @@ export function TicketQRCode({
           {isDownloading ? "Downloading..." : "Download"}
         </Button>
         
-        {showShareButton && navigator.share && (
+        {showShareButton && typeof navigator !== 'undefined' && 'share' in navigator && (
           <Button 
             variant="outline" 
             size="sm" 

@@ -191,11 +191,12 @@ export default function CustomerDashboard() {
                       <TicketQRCode 
                         bookingId={booking.id} 
                         eventTitle={booking.event.title}
-                        eventDate={booking.event.date}
+                        eventDate={format(new Date(booking.event.date), "PPP 'at' p")}
                         containerSelector={`#ticket-container-${booking.id}`}
                         tableId={booking.tableId}
                         seatNumbers={booking.seatNumbers}
                         status={booking.status}
+                        showShareButton={true}
                       />
                     </div>
                   )}

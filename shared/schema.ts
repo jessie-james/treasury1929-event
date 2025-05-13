@@ -347,6 +347,8 @@ export interface FoodOption {
   category: string;
   quantity: number;
   seatNumber: number;
+  allergens?: Allergen[];
+  dietaryInfo?: DietaryRestriction[];
 }
 
 // Enum-like types for allergies and dietary restrictions
