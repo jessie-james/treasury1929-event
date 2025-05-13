@@ -472,8 +472,29 @@ export default function LayoutSettings() {
 
   // Setup WebSocket connection for real-time collaboration
   const setupWebSocketConnection = useCallback(() => {
+    // Don't create a new connection if we already have an active one
+    if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+      console.log('WebSocket already connected and open, reusing connection');
+      
+      // Make sure we're subscribed to the current venue
+      if (selectedVenueId) {
+        wsConnection.send(JSON.stringify({
+          type: 'subscribe_venue',
+          venueId: selectedVenueId
+        }));
+      }
+      return;
+    }
+    
+    // If connection is connecting, wait for it to establish
+    if (wsConnection && wsConnection.readyState === WebSocket.CONNECTING) {
+      console.log('WebSocket is currently connecting, waiting');
+      return;
+    }
+    
     // Close any existing connection
     if (wsConnection) {
+      console.log('Closing existing WebSocket connection');
       wsConnection.close();
     }
 
@@ -552,51 +573,62 @@ export default function LayoutSettings() {
       }
     };
     
-    ws.onclose = () => {
-      console.log('WebSocket connection closed');
-      setConnectionStatus('disconnected');
+    ws.onclose = (event) => {
+      console.log('WebSocket connection closed', event.code, event.reason);
       
-      // Attempt to reconnect after a delay
-      setTimeout(() => {
-        if (document.visibilityState !== 'hidden') {
-          setupWebSocketConnection();
+      // Only change state if this is the current connection
+      if (wsConnection === ws) {
+        setConnectionStatus('disconnected');
+      
+        // Attempt to reconnect after a delay if not closed cleanly
+        if (event.code !== 1000 && event.code !== 1001) {
+          // Use setTimeout with explicit function to prevent closure issues
+          console.log('Planning reconnection in 3 seconds');
+          setTimeout(function() {
+            if (document.visibilityState !== 'hidden') {
+              console.log('Attempting reconnection after close');
+              setupWebSocketConnection();
+            }
+          }, 3000);
         }
-      }, 3000);
+      }
     };
     
     ws.onerror = (error) => {
       console.error('WebSocket error:', error);
-      setConnectionStatus('disconnected');
+      // Only change state if this is the current connection
+      if (wsConnection === ws) {
+        setConnectionStatus('disconnected');
+      }
     };
     
     setWsConnection(ws);
-    
-    // Clean up function
-    return () => {
-      ws.close();
-    };
-  }, [selectedVenueId, currentFloor, wsConnection, queryClient, toast]);
+  }, [selectedVenueId, queryClient, toast]);
   
-  // Initialize WebSocket when component mounts or when venue/floor changes
+  // Initialize WebSocket once when component mounts
   useEffect(() => {
+    console.log('Initial WebSocket setup');
     setupWebSocketConnection();
     
     // Add visibility change listener to reconnect when tab becomes visible again
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && connectionStatus !== 'connected') {
+        console.log('Tab became visible, reconnecting WebSocket');
         setupWebSocketConnection();
       }
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
+    // Clean up when component unmounts
     return () => {
+      console.log('Component unmounting, cleaning up WebSocket');
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (wsConnection) {
         wsConnection.close();
       }
     };
-  }, [setupWebSocketConnection, connectionStatus]);
+  }, []);
 
   // Set venues when data is loaded
   useEffect(() => {
