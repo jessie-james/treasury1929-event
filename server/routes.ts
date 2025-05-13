@@ -209,7 +209,7 @@ export async function registerRoutes(app: Express) {
           }
         }
         
-        // Handle table updates from layout editor
+        // Handle single table updates from layout editor
         else if (data.type === 'table_update' && typeof data.tableId === 'number') {
           // Broadcast to all clients subscribed to this venue
           const venueId = data.venueId;
@@ -219,9 +219,49 @@ export async function registerRoutes(app: Express) {
                   client !== ws && // Don't send back to originator
                   subscriptions.has(venueId)) {
                 client.send(JSON.stringify({
-                  type: 'table_updated',
+                  type: 'table_updated', // Note: With 'd', as the client expects
                   tableId: data.tableId,
-                  data: data.data
+                  data: data.data,
+                  floor: data.floor
+                }));
+              }
+            });
+          }
+        }
+        
+        // Handle bulk table updates (multiple tables at once)
+        else if (data.type === 'bulk_tables_update') {
+          // Broadcast to all clients subscribed to this venue
+          const venueId = data.venueId;
+          if (typeof venueId === 'number') {
+            clientVenueSubscriptions.forEach((subscriptions, client) => {
+              if (client.readyState === WebSocket.OPEN && 
+                  client !== ws && // Don't send back to originator
+                  subscriptions.has(venueId)) {
+                client.send(JSON.stringify({
+                  type: 'bulk_tables_updated', // Note: With 'd', as the client expects
+                  venueId: data.venueId,
+                  floor: data.floor
+                }));
+              }
+            });
+          }
+        }
+        
+        // Handle floor image updates
+        else if (data.type === 'floor_image_update') {
+          // Broadcast to all clients subscribed to this venue
+          const venueId = data.venueId;
+          if (typeof venueId === 'number') {
+            clientVenueSubscriptions.forEach((subscriptions, client) => {
+              if (client.readyState === WebSocket.OPEN && 
+                  client !== ws && // Don't send back to originator
+                  subscriptions.has(venueId)) {
+                client.send(JSON.stringify({
+                  type: 'floor_image_updated', // Note: With 'd', as the client expects
+                  floorId: data.floorId,
+                  floorName: data.floorName,
+                  imageUrl: data.imageUrl
                 }));
               }
             });

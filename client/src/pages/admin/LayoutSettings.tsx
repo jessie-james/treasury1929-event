@@ -860,7 +860,7 @@ export default function LayoutSettings() {
         // Broadcast bulk table creation via WebSocket
         if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
           wsConnection.send(JSON.stringify({
-            type: 'bulk_tables_updated',
+            type: 'bulk_tables_update', // Without 'd', as the server expects
             venueId: selectedVenueId,
             floor: data.floor,
             count: successCount,
@@ -901,6 +901,17 @@ export default function LayoutSettings() {
             setSelectedTables([]);
             queryClient.invalidateQueries({ queryKey: ['tables', selectedVenueId, currentFloor] });
             addToHistory(currentFloorTables);
+            
+            // Broadcast bulk table deletion via WebSocket
+            if (wsConnection && wsConnection.readyState === WebSocket.OPEN) {
+              wsConnection.send(JSON.stringify({
+                type: 'bulk_tables_update',
+                venueId: selectedVenueId,
+                floor: currentFloor,
+                operation: 'delete',
+                count: successCount
+              }));
+            }
           }
         };
         
