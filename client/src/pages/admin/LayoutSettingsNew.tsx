@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Undo, Redo, Save, Trash2, Plus, Pencil, Upload, Table as TableIcon, Check, ArrowDown, ArrowUp, RotateCcw } from "lucide-react";
-import { TableType } from "@/types";
+// We don't need to import TableType from external file as we define our own Table interface
 import { apiRequest } from "@/lib/queryClient";
 
 // Type definitions (same as original file)
@@ -130,7 +130,7 @@ export default function LayoutSettings() {
   ]);
   
   const [selectedVenueId, setSelectedVenueId] = useState<number | null>(1);
-  const [venues, setVenues] = useState<any[]>([]);
+  const [venues, setVenues] = useState<{id: number, name: string}[]>([]);
   const [zones, setZones] = useState<Zone[]>([
     { id: "general", name: "General", color: "#3b82f6", tables: [1, 2, 3] },
     { id: "vip", name: "VIP Zone", color: "#8b5cf6", tables: [4, 5, 6] },
@@ -253,8 +253,8 @@ export default function LayoutSettings() {
 
   // Set venues when data is loaded
   useEffect(() => {
-    if (venueData) {
-      setVenues(venueData);
+    if (venueData && Array.isArray(venueData)) {
+      setVenues(venueData as {id: number, name: string}[]);
       // Set default venue if not already set
       if (!selectedVenueId && venueData.length > 0) {
         setSelectedVenueId(venueData[0].id);
@@ -328,8 +328,7 @@ export default function LayoutSettings() {
       const response = await apiRequest(
         "POST",
         `/api/venue/${selectedVenueId}/floor-plans`,
-        formData,
-        { headers: {} } // No Content-Type for FormData
+        formData
       );
       return response.json();
     },
