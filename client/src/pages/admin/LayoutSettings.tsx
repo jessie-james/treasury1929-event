@@ -479,7 +479,7 @@ export default function LayoutSettings() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (_, tableId) => {
       toast({
         title: "Success",
         description: "Table deleted successfully",
@@ -487,6 +487,11 @@ export default function LayoutSettings() {
       queryClient.invalidateQueries({ queryKey: ['tables', selectedVenueId, currentFloor] });
       setSelectedTable(null);
       addToHistory(currentFloorTables);
+      
+      // Notify other editors about the table deletion
+      if (sendTableUpdate) {
+        sendTableUpdate({ id: tableId }, 'delete');
+      }
     },
     onError: (error) => {
       toast({
