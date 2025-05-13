@@ -177,23 +177,54 @@ export async function registerRoutes(app: Express) {
     perMessageDeflate: false // Disable compression for faster startup
   });
 
-  // Keep track of connected clients and their events of interest
-  const clientSubscriptions = new Map<WebSocket, Set<number>>();
+  // Keep track of connected clients and their subscriptions
+  const clientEventSubscriptions = new Map<WebSocket, Set<number>>();
+  const clientVenueSubscriptions = new Map<WebSocket, Set<number>>();
 
   wss.on('connection', (ws) => {
     clients.add(ws);
-    clientSubscriptions.set(ws, new Set());
+    clientEventSubscriptions.set(ws, new Set());
+    clientVenueSubscriptions.set(ws, new Set());
 
     // Handle messages from clients
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
+        
+        // Handle event subscriptions
         if (data.type === 'subscribe_event' && typeof data.eventId === 'number') {
-          // Subscribe client to updates for a specific event
-          const subscriptions = clientSubscriptions.get(ws);
+          const subscriptions = clientEventSubscriptions.get(ws);
           if (subscriptions) {
             subscriptions.add(data.eventId);
             console.log(`Client subscribed to event ${data.eventId}`);
+          }
+        }
+        
+        // Handle venue subscriptions for layout editor
+        else if (data.type === 'subscribe_venue' && typeof data.venueId === 'number') {
+          const venueSubscriptions = clientVenueSubscriptions.get(ws);
+          if (venueSubscriptions) {
+            venueSubscriptions.add(data.venueId);
+            console.log(`Client subscribed to venue ${data.venueId}`);
+          }
+        }
+        
+        // Handle table updates from layout editor
+        else if (data.type === 'table_update' && typeof data.tableId === 'number') {
+          // Broadcast to all clients subscribed to this venue
+          const venueId = data.venueId;
+          if (typeof venueId === 'number') {
+            clientVenueSubscriptions.forEach((subscriptions, client) => {
+              if (client.readyState === WebSocket.OPEN && 
+                  client !== ws && // Don't send back to originator
+                  subscriptions.has(venueId)) {
+                client.send(JSON.stringify({
+                  type: 'table_updated',
+                  tableId: data.tableId,
+                  data: data.data
+                }));
+              }
+            });
           }
         }
       } catch (error) {
@@ -203,7 +234,8 @@ export async function registerRoutes(app: Express) {
 
     ws.on('close', () => {
       clients.delete(ws);
-      clientSubscriptions.delete(ws);
+      clientEventSubscriptions.delete(ws);
+      clientVenueSubscriptions.delete(ws);
     });
   });
 
