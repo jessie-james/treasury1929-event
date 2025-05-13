@@ -1,4 +1,4 @@
-import LayoutSettings from "@/pages/admin/LayoutSettings";
+import LayoutSettings from "@/pages/admin/LayoutSettingsNew";
 import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
 
 export default function LayoutSettingsPage() {
