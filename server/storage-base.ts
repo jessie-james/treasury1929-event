@@ -1,6 +1,7 @@
 import {
   type User, type Event, type Ticket, type Booking, type BookingWithDetails,
-  type Table, type Seat, type TableWithSeats, type MenuItem, type VenueStaff
+  type Table, type Seat, type TableWithSeats, type MenuItem, type VenueStaff,
+  type FoodOption
 } from "@shared/schema";
 
 /**
@@ -68,6 +69,7 @@ export interface IStorage {
   createMenuItem(itemData: any): Promise<number>;
   updateMenuItem(id: number, itemData: Partial<MenuItem>): Promise<boolean>;
   deleteMenuItem(id: number): Promise<boolean>;
+  getFoodOptionsByDisplayOrder(): Promise<FoodOption[]>;
 
   // Staff methods
   getVenueStaff(): Promise<VenueStaff[]>;
@@ -370,6 +372,22 @@ export class MemStorage implements IStorage {
     if (index === -1) return false;
     this.menuItems.splice(index, 1);
     return true;
+  }
+  
+  async getFoodOptionsByDisplayOrder(): Promise<FoodOption[]> {
+    // Convert menu items to food options
+    // This is a simplified implementation
+    return this.menuItems.map((item, index) => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      price: item.price || 0,
+      category: item.category || 'Standard',
+      quantity: 0,
+      seatNumber: 0,
+      allergens: item.containsAllergens,
+      dietaryInfo: item.dietaryInfo
+    }));
   }
   
   // Staff Methods

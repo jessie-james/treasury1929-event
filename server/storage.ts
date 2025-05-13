@@ -1,12 +1,13 @@
 import { MemStorage, type IStorage } from "./storage-base";
 import { db } from "./db";
 import {
-  users, events, tickets, bookings, tables, seats, menu, menuItems, userDietaryPreferences,
+  users, events, tickets, bookings, tables, seats, menuItems,
   venueStaff, venueLayoutTemplates, tableZones, floors,
   type NewUser, type User, type NewEvent, type Event, type NewTicket, type Ticket,
   type NewBooking, type Booking, type BookingWithDetails, type NewTable, type Table,
   type NewSeat, type Seat, type TableWithSeats, type NewMenuItem, type MenuItem,
-  type NewVenueStaff, type VenueStaff, type DietaryRestriction, type Allergen
+  type NewVenueStaff, type VenueStaff, type DietaryRestriction, type Allergen,
+  type FoodOption
 } from "@shared/schema";
 import { eq, and, inArray, isNull, or, sql, desc, asc } from "drizzle-orm";
 import { hashPassword } from "./auth";
@@ -514,6 +515,28 @@ class PgStorage implements IStorage {
   async deleteMenuItem(id: number): Promise<boolean> {
     await db.delete(menuItems).where(eq(menuItems.id, id));
     return true;
+  }
+  
+  async getFoodOptionsByDisplayOrder(): Promise<FoodOption[]> {
+    try {
+      const items = await db.select().from(menuItems).orderBy(asc(menuItems.id));
+      
+      // Convert menu items to food options format
+      return items.map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description || undefined,
+        price: item.price || 0,
+        category: item.category || 'Standard',
+        quantity: 0,
+        seatNumber: 0,
+        allergens: item.containsAllergens || [],
+        dietaryInfo: item.dietaryInfo || []
+      }));
+    } catch (error) {
+      console.error("Error fetching food options:", error);
+      return [];
+    }
   }
 
   // Venue Staff Management
