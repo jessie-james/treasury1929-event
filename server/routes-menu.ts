@@ -97,7 +97,7 @@ export function registerMenuRoutes(app: Express): void {
       
       // Log admin action
       await storage.createAdminLog({
-        userId: req.user.id,
+        userId: req.user?.id || 0,
         action: "update",
         entityType: "menuItem",
         entityId: id,
@@ -130,7 +130,7 @@ export function registerMenuRoutes(app: Express): void {
       
       // Log admin action
       await storage.createAdminLog({
-        userId: req.user.id,
+        userId: req.user?.id || 0,
         action: "delete",
         entityType: "menuItem",
         entityId: id,
@@ -157,7 +157,7 @@ export function registerMenuRoutes(app: Express): void {
       
       // Log admin action
       await storage.createAdminLog({
-        userId: req.user.id,
+        userId: req.user?.id || 0,
         action: "reorder",
         entityType: "menuItems",
         details: { items },
