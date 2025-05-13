@@ -1096,84 +1096,94 @@ export default function LayoutSettings() {
 
   // Handle table dragging
   const handleMouseDown = (event: React.MouseEvent, table: Table) => {
-    if (!canvasRef.current) return;
-    
-    // Check if the table is locked and abort if so
-    if (table.isLocked) {
-      toast({
-        title: "Table Locked",
-        description: "This table is locked and cannot be moved",
-        variant: "default",
-      });
-      return;
-    }
-    
-    // Get canvas offset
-    const rect = canvasRef.current.getBoundingClientRect();
-    
-    // Calculate start position
-    setDragStart({
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
-    });
-    
-    if (isMultiSelectMode) {
-      // In multi-select mode, check if the table is already selected
-      const isSelected = selectedTables.some(t => t.id === table.id);
-      if (!isSelected) {
-        setSelectedTables(prev => [...prev, table]);
+    try {
+      if (!canvasRef.current) return;
+      
+      // Check if the table is locked and abort if so
+      if (table.isLocked) {
+        toast({
+          title: "Table Locked",
+          description: "This table is locked and cannot be moved",
+          variant: "default",
+        });
+        return;
       }
-    } else {
-      // Regular mode, select just this table
-      setSelectedTable(table);
-      setSelectedTables([]);
-      setIsAddMode(false);
-      setIsBulkAddMode(false);
+      
+      // Get canvas offset
+      const rect = canvasRef.current.getBoundingClientRect();
+      
+      // Calculate start position
+      setDragStart({
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top
+      });
+      
+      if (isMultiSelectMode) {
+        // In multi-select mode, check if the table is already selected
+        const isSelected = selectedTables.some(t => t.id === table.id);
+        if (!isSelected) {
+          setSelectedTables(prev => [...prev, table]);
+        }
+      } else {
+        // Regular mode, select just this table
+        setSelectedTable(table);
+        setSelectedTables([]);
+        setIsAddMode(false);
+        setIsBulkAddMode(false);
+      }
+      
+      event.preventDefault();
+    } catch (error) {
+      console.error('Error in handleMouseDown:', error);
+      toast({
+        title: "Error",
+        description: "Something went wrong when handling mouse interaction.",
+        variant: "destructive",
+      });
     }
-    
-    event.preventDefault();
   };
 
   // Handle mouse movement for dragging
   const handleMouseMove = (event: React.MouseEvent) => {
-    if (!canvasRef.current) return;
-    
-    if (isPanMode && event.buttons === 1) {
-      // Pan the canvas
-      setPan(prev => ({
-        x: prev.x + event.movementX,
-        y: prev.y + event.movementY
-      }));
-      return;
-    }
-    
-    if (!dragStart) return;
-    
-    // Get canvas offset
-    const rect = canvasRef.current.getBoundingClientRect();
-    
-    // Calculate current position
-    const currentX = event.clientX - rect.left;
-    const currentY = event.clientY - rect.top;
-    
-    // Calculate delta movement
-    const deltaX = currentX - dragStart.x;
-    const deltaY = currentY - dragStart.y;
-    
-    // Update positions
-    if (isMultiSelectMode && selectedTables.length > 0) {
-      // Move all selected tables
-      setSelectedTables(prev => prev.map(table => ({
-        ...table,
-        x: Math.max(0, table.x + deltaX),
-        y: Math.max(0, table.y + deltaY)
-      })));
-    } else if (selectedTable) {
-      // Move just the selected table
-      setSelectedTable({
-        ...selectedTable,
-        x: Math.max(0, selectedTable.x + deltaX),
-        y: Math.max(0, selectedTable.y + deltaY)
+    try {
+      if (!canvasRef.current) return;
+      
+      if (isPanMode && event.buttons === 1) {
+        // Pan the canvas
+        setPan(prev => ({
+          x: prev.x + event.movementX,
+          y: prev.y + event.movementY
+        }));
+        return;
+      }
+      
+      if (!dragStart) return;
+      
+      // Get canvas offset
+      const rect = canvasRef.current.getBoundingClientRect();
+      
+      // Calculate current position
+      const currentX = event.clientX - rect.left;
+      const currentY = event.clientY - rect.top;
+      
+      // Calculate delta movement
+      const deltaX = currentX - dragStart.x;
+      const deltaY = currentY - dragStart.y;
+      
+      // Update positions
+      if (isMultiSelectMode && selectedTables.length > 0) {
+        // Move all selected tables
+        setSelectedTables(prev => prev.map(table => ({
+          ...table,
+          x: Math.max(0, table.x + deltaX),
+          y: Math.max(0, table.y + deltaY)
+        })));
+      } else if (selectedTable) {
+        // Move just the selected table
+        setSelectedTable({
+          ...selectedTable,
+          x: Math.max(0, selectedTable.x + deltaX),
+          y: Math.max(0, selectedTable.y + deltaY)
       });
     }
     
@@ -1182,26 +1192,41 @@ export default function LayoutSettings() {
       x: currentX,
       y: currentY
     });
+    
+    } catch (error) {
+      console.error('Error in handleMouseMove:', error);
+      // Don't show toast here as it would be spammy during drag operations
+    }
   };
 
   // Handle mouse up after dragging
   const handleMouseUp = () => {
-    if (dragStart) {
-      // Update positions in the database
-      if (isMultiSelectMode && selectedTables.length > 0) {
-        // Update all selected tables
-        selectedTables.forEach(table => {
-          if (!table.isLocked) {
-            updateTableMutation.mutate(table);
-          }
-        });
-      } else if (selectedTable && !selectedTable.isLocked) {
-        // Update the selected table
-        updateTableMutation.mutate(selectedTable);
+    try {
+      if (dragStart) {
+        // Update positions in the database
+        if (isMultiSelectMode && selectedTables.length > 0) {
+          // Update all selected tables
+          selectedTables.forEach(table => {
+            if (!table.isLocked) {
+              updateTableMutation.mutate(table);
+            }
+          });
+        } else if (selectedTable && !selectedTable.isLocked) {
+          // Update the selected table
+          updateTableMutation.mutate(selectedTable);
+        }
+        
+        setDragStart(null);
+        addToHistory(currentFloorTables);
       }
-      
+    } catch (error) {
+      console.error('Error in handleMouseUp:', error);
       setDragStart(null);
-      addToHistory(currentFloorTables);
+      toast({
+        title: "Error",
+        description: "Something went wrong when finishing the drag operation.",
+        variant: "destructive",
+      });
     }
   };
 
