@@ -202,13 +202,28 @@ export default function LayoutSettings() {
   
   // Data fetching - tables
   const { data: tablesData, isLoading: isLoadingTables, error: tablesError } = useQuery({
-    queryKey: [`/api/venue/${selectedVenueId}/tables`],
+    queryKey: ['venue-tables', selectedVenueId],
+    queryFn: async () => {
+      if (!selectedVenueId) return [];
+      const response = await fetch(`/api/venue/${selectedVenueId}/tables`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch tables');
+      }
+      return response.json();
+    },
     enabled: !!selectedVenueId
   });
   
   // Data fetching - venues
   const { data: venueData, isLoading: isLoadingVenues, error: venuesError } = useQuery({
-    queryKey: ['/api/venues'],
+    queryKey: ['venues'],
+    queryFn: async () => {
+      const response = await fetch('/api/venues');
+      if (!response.ok) {
+        throw new Error('Failed to fetch venues');
+      }
+      return response.json();
+    }
   });
   
   // Get tables specific to the current floor
@@ -305,7 +320,7 @@ export default function LayoutSettings() {
         title: "Success",
         description: "Table updated successfully",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/venue/${selectedVenueId}/tables`] });
+      queryClient.invalidateQueries({ queryKey: ['venue-tables', selectedVenueId] });
       setSelectedTable(null);
       setIsAddMode(false);
     },
