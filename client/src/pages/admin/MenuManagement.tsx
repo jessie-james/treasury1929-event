@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { X, Plus, GripVertical, Save, ArrowUpDown, Edit, Trash2 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import BackofficeLayout from "@/components/backoffice/BackofficeLayout";
+import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
 import { Button } from "@/components/ui/button";
 import {
   Card,

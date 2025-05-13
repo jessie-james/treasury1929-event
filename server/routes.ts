@@ -14,6 +14,7 @@ import { eq } from "drizzle-orm";
 import { db } from "./db";
 import crypto from 'crypto';
 import { registerAdminRoutes } from "./routes-admin";
+import { registerMenuRoutes } from "./routes-menu";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -167,6 +168,9 @@ export async function registerRoutes(app: Express) {
   
   // Register admin routes for venue layout management
   registerAdminRoutes(app);
+  
+  // Register menu management routes
+  registerMenuRoutes(app);
 
   const httpServer = createServer(app);
 
