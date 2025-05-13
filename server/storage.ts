@@ -1,7 +1,7 @@
 import { MemStorage, type IStorage } from "./storage-base";
 import { db } from "./db";
 import {
-  users, events, tickets, bookings, tables, seats, menu, menuItems, userDietaryPreferences,
+  users, events, tickets, bookings, tables, seats, menuItems,
   venueStaff, venueLayoutTemplates, tableZones, floors,
   type NewUser, type User, type NewEvent, type Event, type NewTicket, type Ticket,
   type NewBooking, type Booking, type BookingWithDetails, type NewTable, type Table,
@@ -30,7 +30,7 @@ class PgStorage implements IStorage {
       userData.password = await hashPassword(userData.password);
     }
 
-    const result = await db.insert(users).values(userData).returning({ id: users.id });
+    const result = await db.insert(users).values([userData]).returning({ id: users.id });
     return result[0].id;
   }
 

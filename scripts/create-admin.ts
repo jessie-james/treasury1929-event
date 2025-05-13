@@ -15,9 +15,7 @@ async function createAdmin() {
     
     if (existingUser) {
       console.log(`User ${email} already exists, updating password instead.`);
-      await storage.updateUser(existingUser.id, {
-        password: hashedPassword
-      });
+      await storage.updateUserPassword(existingUser.id, hashedPassword);
       console.log(`Password updated for ${email}`);
     } else {
       // Create the user
