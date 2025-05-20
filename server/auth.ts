@@ -5,9 +5,20 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { type User } from "@shared/schema";
+import { type User, type InsertAdminLog } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+
+// Safe admin logging function that won't crash the app if it fails
+async function safeCreateAdminLog(logData: InsertAdminLog): Promise<boolean> {
+  try {
+    await storage.createAdminLog(logData);
+    return true;
+  } catch (error) {
+    console.error("Failed to create admin log:", error);
+    return false;
+  }
+}
 
 declare global {
   namespace Express {
@@ -241,42 +252,32 @@ export function setupAuth(app: Express) {
       if (err) {
         console.error("Authentication error:", err);
         // Log failed login with error
-        try {
-          if (req.body.email) {
-            await storage.createAdminLog({
-              userId: -1, // We don't have a user ID for failed logins
-              action: "FAILED_LOGIN_ERROR",
-              entityType: "auth",
-              details: { 
-                email: req.body.email,
-                error: err.message || "Authentication error"
-              }
-            });
-          }
-        } catch (logError) {
-          console.error("Failed to log authentication error:", logError);
-          // Continue with auth flow even if logging fails
+        if (req.body.email) {
+          await safeCreateAdminLog({
+            userId: -1, // We don't have a user ID for failed logins
+            action: "FAILED_LOGIN_ERROR",
+            entityType: "auth",
+            details: { 
+              email: req.body.email,
+              error: err.message || "Authentication error"
+            }
+          });
         }
         return next(err);
       }
       if (!user) {
         console.log("Authentication failed");
         // Log failed login with invalid credentials
-        try {
-          if (req.body.email) {
-            await storage.createAdminLog({
-              userId: -1, // We don't have a user ID for failed logins
-              action: "FAILED_LOGIN",
-              entityType: "auth",
-              details: { 
-                email: req.body.email,
-                reason: "Invalid credentials"
-              }
-            });
-          }
-        } catch (logError) {
-          console.error("Failed to log failed login:", logError);
-          // Continue with auth flow even if logging fails
+        if (req.body.email) {
+          await safeCreateAdminLog({
+            userId: -1, // We don't have a user ID for failed logins
+            action: "FAILED_LOGIN",
+            entityType: "auth",
+            details: { 
+              email: req.body.email,
+              reason: "Invalid credentials"
+            }
+          });
         }
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -285,40 +286,30 @@ export function setupAuth(app: Express) {
         if (err) {
           console.error("Login error:", err);
           // Log failed login during session creation
-          try {
-            await storage.createAdminLog({
-              userId: user.id,
-              action: "FAILED_LOGIN_SESSION",
-              entityType: "auth",
-              details: { 
-                email: user.email,
-                error: err.message || "Session error"
-              }
-            });
-          } catch (logError) {
-            console.error("Failed to log session error:", logError);
-            // Continue with auth flow even if logging fails
-          }
+          await safeCreateAdminLog({
+            userId: user.id,
+            action: "FAILED_LOGIN_SESSION",
+            entityType: "auth",
+            details: { 
+              email: user.email,
+              error: err.message || "Session error"
+            }
+          });
           return next(err);
         }
         console.log("Login successful for user:", user.email);
         
         // Log successful login
-        try {
-          if (user.role !== 'customer') {
-            await storage.createAdminLog({
-              userId: user.id,
-              action: "LOGIN",
-              entityType: "auth",
-              details: { 
-                email: user.email,
-                role: user.role
-              }
-            });
-          }
-        } catch (logError) {
-          console.error("Failed to log successful login:", logError);
-          // Continue with login flow even if logging fails
+        if (user.role !== 'customer') {
+          await safeCreateAdminLog({
+            userId: user.id,
+            action: "LOGIN",
+            entityType: "auth",
+            details: { 
+              email: user.email,
+              role: user.role
+            }
+          });
         }
         
         res.json(user);
@@ -330,7 +321,7 @@ export function setupAuth(app: Express) {
     // Only log logout for admin users
     if (req.isAuthenticated() && req.user && req.user.role !== 'customer') {
       const user = req.user as User;
-      await storage.createAdminLog({
+      await safeCreateAdminLog({
         userId: user.id,
         action: "LOGOUT",
         entityType: "auth",
