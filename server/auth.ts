@@ -241,32 +241,42 @@ export function setupAuth(app: Express) {
       if (err) {
         console.error("Authentication error:", err);
         // Log failed login with error
-        if (req.body.email) {
-          await storage.createAdminLog({
-            userId: -1, // We don't have a user ID for failed logins
-            action: "FAILED_LOGIN_ERROR",
-            entityType: "auth",
-            details: { 
-              email: req.body.email,
-              error: err.message || "Authentication error"
-            }
-          });
+        try {
+          if (req.body.email) {
+            await storage.createAdminLog({
+              userId: -1, // We don't have a user ID for failed logins
+              action: "FAILED_LOGIN_ERROR",
+              entityType: "auth",
+              details: { 
+                email: req.body.email,
+                error: err.message || "Authentication error"
+              }
+            });
+          }
+        } catch (logError) {
+          console.error("Failed to log authentication error:", logError);
+          // Continue with auth flow even if logging fails
         }
         return next(err);
       }
       if (!user) {
         console.log("Authentication failed");
         // Log failed login with invalid credentials
-        if (req.body.email) {
-          await storage.createAdminLog({
-            userId: -1, // We don't have a user ID for failed logins
-            action: "FAILED_LOGIN",
-            entityType: "auth",
-            details: { 
-              email: req.body.email,
-              reason: "Invalid credentials"
-            }
-          });
+        try {
+          if (req.body.email) {
+            await storage.createAdminLog({
+              userId: -1, // We don't have a user ID for failed logins
+              action: "FAILED_LOGIN",
+              entityType: "auth",
+              details: { 
+                email: req.body.email,
+                reason: "Invalid credentials"
+              }
+            });
+          }
+        } catch (logError) {
+          console.error("Failed to log failed login:", logError);
+          // Continue with auth flow even if logging fails
         }
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -275,30 +285,40 @@ export function setupAuth(app: Express) {
         if (err) {
           console.error("Login error:", err);
           // Log failed login during session creation
-          await storage.createAdminLog({
-            userId: user.id,
-            action: "FAILED_LOGIN_SESSION",
-            entityType: "auth",
-            details: { 
-              email: user.email,
-              error: err.message || "Session error"
-            }
-          });
+          try {
+            await storage.createAdminLog({
+              userId: user.id,
+              action: "FAILED_LOGIN_SESSION",
+              entityType: "auth",
+              details: { 
+                email: user.email,
+                error: err.message || "Session error"
+              }
+            });
+          } catch (logError) {
+            console.error("Failed to log session error:", logError);
+            // Continue with auth flow even if logging fails
+          }
           return next(err);
         }
         console.log("Login successful for user:", user.email);
         
         // Log successful login
-        if (user.role !== 'customer') {
-          await storage.createAdminLog({
-            userId: user.id,
-            action: "LOGIN",
-            entityType: "auth",
-            details: { 
-              email: user.email,
-              role: user.role
-            }
-          });
+        try {
+          if (user.role !== 'customer') {
+            await storage.createAdminLog({
+              userId: user.id,
+              action: "LOGIN",
+              entityType: "auth",
+              details: { 
+                email: user.email,
+                role: user.role
+              }
+            });
+          }
+        } catch (logError) {
+          console.error("Failed to log successful login:", logError);
+          // Continue with login flow even if logging fails
         }
         
         res.json(user);
