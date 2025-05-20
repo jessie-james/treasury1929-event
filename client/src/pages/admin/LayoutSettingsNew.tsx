@@ -14,7 +14,13 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Undo, Redo, Save, Trash2, Plus, Pencil, Upload, Table as TableIcon, Check, ArrowDown, ArrowUp, RotateCcw } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { 
+  Undo, Redo, Save, Trash2, Plus, Pencil, Upload, Table as TableIcon, 
+  Check, ArrowDown, ArrowUp, RotateCcw, Lock, Unlock, Move, RotateCw,
+  ZoomIn, ZoomOut, MousePointer, Grid, Copy, Maximize2
+} from "lucide-react";
 // We don't need to import TableType from external file as we define our own Table interface
 import { apiRequest } from "@/lib/queryClient";
 
@@ -142,6 +148,15 @@ export default function LayoutSettings() {
   const [isAddMode, setIsAddMode] = useState(false);
   const [isBulkAddMode, setIsBulkAddMode] = useState(false);
   const [mousePosition, setMousePosition] = useState<CanvasPosition>({ x: 0, y: 0 });
+  
+  // Drag and drop states
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPosition, setDragStartPosition] = useState<CanvasPosition | null>(null);
+  const [draggedTable, setDraggedTable] = useState<Table | null>(null);
+  const [snapToGrid, setSnapToGrid] = useState(true);
+  const [gridSize, setGridSize] = useState(10); // Grid size in pixels
+  const [zoom, setZoom] = useState(100); // Zoom level percentage
+  const [editMode, setEditMode] = useState<'select' | 'move' | 'add' | 'delete'>('select');
   
   // History for undo/redo
   const [history, setHistory] = useState<Table[][]>([[]]);
@@ -440,14 +455,53 @@ export default function LayoutSettings() {
     setSelectedTables([]);
   };
   
+  // Toggle table lock state
+  const handleToggleTableLock = (table: Table, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    const updatedTable = {
+      ...table,
+      isLocked: !table.isLocked
+    };
+    
+    updateTableMutation.mutate(updatedTable);
+  };
+  
   // Table selection handlers
   const handleSelectTable = (table: Table) => {
+    if (editMode === 'delete') {
+      if (confirm(`Are you sure you want to delete Table ${table.tableNumber}?`)) {
+        // Delete the table
+        apiRequest("DELETE", `/api/admin/tables/${table.id}`)
+          .then(() => {
+            toast({
+              title: "Table Deleted",
+              description: `Table ${table.tableNumber} has been deleted`
+            });
+            queryClient.invalidateQueries({ queryKey: ['venue-tables', selectedVenueId, currentFloor] });
+          })
+          .catch(error => {
+            toast({
+              title: "Error",
+              description: `Failed to delete table: ${error.message}`,
+              variant: "destructive"
+            });
+          });
+      }
+      return;
+    }
+    
     setSelectedTable(table);
     setIsAddMode(false);
     setIsBulkAddMode(false);
   };
   
   const handleMultiSelectTable = (table: Table, event: React.MouseEvent) => {
+    if (editMode === 'delete') {
+      handleSelectTable(table);
+      return;
+    }
+    
     if (event.ctrlKey || event.metaKey) {
       setSelectedTables(prev => {
         const isSelected = prev.some(t => t.id === table.id);
@@ -460,6 +514,135 @@ export default function LayoutSettings() {
     } else {
       handleSelectTable(table);
     }
+  };
+  
+  // Render a table with visual indicators for state
+  const renderTable = (table: Table) => {
+    const isSelected = selectedTable?.id === table.id || 
+                        selectedTables.some(t => t.id === table.id);
+    const isDragged = draggedTable?.id === table.id;
+    
+    // Determine position to render - use draggedTable position if being dragged
+    const position = isDragged && draggedTable ? 
+      { x: draggedTable.x, y: draggedTable.y } : 
+      { x: table.x, y: table.y };
+      
+    // Get size based on capacity and shape
+    const baseSize = 30 + (table.capacity * 2);
+    
+    // Determine class names for styling
+    const tableClasses = [
+      "absolute cursor-move transition-transform flex items-center justify-center select-none",
+      getStatusColor(table.status),
+      isSelected ? "ring-4 ring-primary shadow-lg z-10" : "",
+      table.isLocked ? "ring-2 ring-yellow-400" : "",
+      isDragged ? "opacity-70 shadow-lg scale-105 z-20" : ""
+    ].filter(Boolean).join(" ");
+    
+    // Prepare style based on shape
+    let style: React.CSSProperties = {
+      left: `${position.x}px`,
+      top: `${position.y}px`,
+      height: `${baseSize}px`,
+      width: `${baseSize}px`,
+      transform: isDragged ? 'scale(1.05)' : undefined
+    };
+    
+    // Render appropriate shape
+    let tableElement;
+    
+    if (table.shape === 'round') {
+      style.borderRadius = '50%';
+      tableElement = (
+        <div 
+          className={tableClasses} 
+          style={style}
+          onClick={(e) => handleMultiSelectTable(table, e)}
+          onMouseDown={(e) => editMode === 'move' && handleTableDragStart(table, e)}
+        >
+          <div className="text-white text-sm font-bold">{table.tableNumber}</div>
+          {table.isLocked && (
+            <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 rounded-full p-1">
+              <Lock className="h-3 w-3" />
+            </div>
+          )}
+          {isSelected && (
+            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 flex space-x-1">
+              <Button
+                size="icon" 
+                variant="outline" 
+                className="h-6 w-6 bg-white"
+                onClick={(e) => handleToggleTableLock(table, e)}
+              >
+                {table.isLocked ? <Unlock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+              </Button>
+            </div>
+          )}
+        </div>
+      );
+    } else if (table.shape === 'square') {
+      tableElement = (
+        <div 
+          className={tableClasses} 
+          style={style}
+          onClick={(e) => handleMultiSelectTable(table, e)}
+          onMouseDown={(e) => editMode === 'move' && handleTableDragStart(table, e)}
+        >
+          <div className="text-white text-sm font-bold">{table.tableNumber}</div>
+          {table.isLocked && (
+            <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 rounded-full p-1">
+              <Lock className="h-3 w-3" />
+            </div>
+          )}
+          {isSelected && (
+            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 flex space-x-1">
+              <Button
+                size="icon" 
+                variant="outline" 
+                className="h-6 w-6 bg-white"
+                onClick={(e) => handleToggleTableLock(table, e)}
+              >
+                {table.isLocked ? <Unlock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+              </Button>
+            </div>
+          )}
+        </div>
+      );
+    } else if (table.shape === 'half-circle') {
+      // Adjust style for half-circle
+      style.borderRadius = '100% 100% 0 0';
+      style.height = `${baseSize / 2}px`;
+      
+      tableElement = (
+        <div 
+          className={tableClasses} 
+          style={style}
+          onClick={(e) => handleMultiSelectTable(table, e)}
+          onMouseDown={(e) => editMode === 'move' && handleTableDragStart(table, e)}
+        >
+          <div className="text-white text-sm font-bold">{table.tableNumber}</div>
+          {table.isLocked && (
+            <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 rounded-full p-1">
+              <Lock className="h-3 w-3" />
+            </div>
+          )}
+          {isSelected && (
+            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 flex space-x-1">
+              <Button
+                size="icon" 
+                variant="outline" 
+                className="h-6 w-6 bg-white"
+                onClick={(e) => handleToggleTableLock(table, e)}
+              >
+                {table.isLocked ? <Unlock className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+              </Button>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    return tableElement;
   };
   
   // Enable table adding mode
@@ -498,6 +681,110 @@ export default function LayoutSettings() {
     });
   };
   
+  // Apply grid snapping if enabled
+  const applyGridSnap = (position: CanvasPosition): CanvasPosition => {
+    if (!snapToGrid) return position;
+    
+    return {
+      x: Math.round(position.x / gridSize) * gridSize,
+      y: Math.round(position.y / gridSize) * gridSize
+    };
+  };
+  
+  // Start dragging a table
+  const handleTableDragStart = (table: Table, e: React.MouseEvent) => {
+    if (table.isLocked) {
+      toast({
+        title: "Table Locked",
+        description: "This table is locked and cannot be moved.",
+        variant: "warning"
+      });
+      return;
+    }
+    
+    e.stopPropagation();
+    
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    
+    setIsDragging(true);
+    setDraggedTable(table);
+    setDragStartPosition({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    });
+    
+    // Set global mouse event handlers
+    document.addEventListener('mousemove', handleDocumentMouseMove);
+    document.addEventListener('mouseup', handleDocumentMouseUp);
+  };
+  
+  // Handle document-level mouse move (for dragging outside the component)
+  const handleDocumentMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging || !draggedTable || !canvasRef.current || !dragStartPosition) return;
+    
+    const rect = canvasRef.current.getBoundingClientRect();
+    const currentX = e.clientX - rect.left;
+    const currentY = e.clientY - rect.top;
+    
+    // Calculate new position with offset
+    const dx = currentX - dragStartPosition.x;
+    const dy = currentY - dragStartPosition.y;
+    
+    const newX = draggedTable.x + dx;
+    const newY = draggedTable.y + dy;
+    
+    // Apply grid snapping if enabled
+    const snappedPosition = applyGridSnap({ x: newX, y: newY });
+    
+    // Update the dragged table position visually - we'll persist on mouse up
+    setDraggedTable({
+      ...draggedTable,
+      x: snappedPosition.x,
+      y: snappedPosition.y
+    });
+    
+    // Update drag start position for next move
+    setDragStartPosition({
+      x: currentX,
+      y: currentY
+    });
+  }, [isDragging, draggedTable, dragStartPosition, canvasRef, snapToGrid, gridSize]);
+  
+  // End dragging and save new position
+  const handleDocumentMouseUp = useCallback(() => {
+    if (isDragging && draggedTable && selectedVenueId) {
+      // Persist the table's new position to the database
+      const updatedTable = { ...draggedTable };
+      updateTableMutation.mutate(updatedTable);
+      
+      // Add to history for undo/redo
+      if (tablesData) {
+        const updatedTables = (tablesData as Table[]).map(t => 
+          t.id === draggedTable.id ? draggedTable : t
+        );
+        addToHistory(updatedTables);
+      }
+    }
+    
+    // Reset dragging state
+    setIsDragging(false);
+    setDraggedTable(null);
+    setDragStartPosition(null);
+    
+    // Remove global event listeners
+    document.removeEventListener('mousemove', handleDocumentMouseMove);
+    document.removeEventListener('mouseup', handleDocumentMouseUp);
+  }, [isDragging, draggedTable, selectedVenueId, updateTableMutation, tablesData, addToHistory]);
+  
+  // Cleanup event listeners on unmount
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleDocumentMouseMove);
+      document.removeEventListener('mouseup', handleDocumentMouseUp);
+    };
+  }, [handleDocumentMouseMove, handleDocumentMouseUp]);
+  
   // Handle mouse movement on the canvas
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!canvasRef.current) return;
@@ -506,26 +793,36 @@ export default function LayoutSettings() {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
-    setMousePosition({ x, y });
+    // If in add mode, show a visual preview of where the table will be placed
+    const snappedPosition = snapToGrid ? applyGridSnap({ x, y }) : { x, y };
+    setMousePosition(snappedPosition);
   };
   
   // Handle mouse click on the canvas
   const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // If we're in add mode, create a new table at the clicked position
     if (isAddMode && canvasRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
+      
+      // Apply grid snapping if enabled
+      const snappedPosition = snapToGrid ? applyGridSnap({ x, y }) : { x, y };
       
       // Create new table at clicked position
       const newTableData = {
         ...tableForm.getValues(),
         venueId: selectedVenueId as number,
         floor: currentFloor,
-        x,
-        y,
+        x: snappedPosition.x,
+        y: snappedPosition.y,
       };
       
       updateTableMutation.mutate(newTableData as Table);
+    } else if (!isDragging) {
+      // If not in add mode and not dragging, deselect the current table
+      setSelectedTable(null);
+      setSelectedTables([]);
     }
   };
   
@@ -558,10 +855,22 @@ export default function LayoutSettings() {
     const startX = centerX - (spacing * (tablesPerRow - 1)) / 2;
     const startY = centerY - (spacing * (rows - 1)) / 2;
     
+    // Apply grid snapping if enabled
+    const snappedStartPosition = snapToGrid 
+      ? applyGridSnap({ x: startX, y: startY }) 
+      : { x: startX, y: startY };
+    
     // Create array of table data for bulk creation
     const newTables = Array.from({ length: count }, (_, i) => {
       const row = Math.floor(i / tablesPerRow);
       const col = i % tablesPerRow;
+      
+      // Calculate position with snapping
+      const rawX = snappedStartPosition.x + col * spacing;
+      const rawY = snappedStartPosition.y + row * spacing;
+      const position = snapToGrid 
+        ? applyGridSnap({ x: rawX, y: rawY }) 
+        : { x: rawX, y: rawY };
       
       return {
         tableNumber: startNumber + i,
@@ -572,8 +881,9 @@ export default function LayoutSettings() {
         priceCategory,
         venueId: selectedVenueId,
         floor: currentFloor,
-        x: startX + col * spacing,
-        y: startY + row * spacing,
+        x: position.x,
+        y: position.y,
+        isLocked: false
       };
     });
     
@@ -589,7 +899,7 @@ export default function LayoutSettings() {
         for (const tableData of newTables) {
           await apiRequest(
             "POST",
-            `/api/venue/${selectedVenueId}/tables`,
+            `/api/admin/tables`,
             tableData
           );
         }
