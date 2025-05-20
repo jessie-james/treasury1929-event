@@ -1,6 +1,7 @@
 import {
   type User, type Event, type Ticket, type Booking, type BookingWithDetails,
-  type Table, type Seat, type TableWithSeats, type MenuItem, type VenueStaff
+  type Table, type Seat, type TableWithSeats, type MenuItem, type VenueStaff,
+  type InsertAdminLog, type AdminLog
 } from "@shared/schema";
 
 /**
@@ -79,6 +80,11 @@ export interface IStorage {
 
   // Utility methods
   clearAllBookings(): Promise<boolean>;
+  
+  // Admin Log methods
+  createAdminLog(logData: InsertAdminLog): Promise<number>;
+  getAdminLogs(): Promise<AdminLog[]>;
+  getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]>;
   
   // Layout methods
   getFloors(venueId: number): Promise<any[]>;
@@ -448,5 +454,18 @@ export class MemStorage implements IStorage {
   
   async updateFloorImage(venueId: number, floorId: string, imageUrl: string): Promise<boolean> {
     return true;
+  }
+
+  // Admin Log methods
+  async createAdminLog(logData: InsertAdminLog): Promise<number> {
+    return 1; // Just return a dummy ID for in-memory storage
+  }
+  
+  async getAdminLogs(): Promise<AdminLog[]> {
+    return [];
+  }
+  
+  async getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]> {
+    return [];
   }
 }
