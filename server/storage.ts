@@ -2,11 +2,12 @@ import { MemStorage, type IStorage } from "./storage-base";
 import { db } from "./db";
 import {
   users, events, tickets, bookings, tables, seats, menuItems,
-  venueStaff, venueLayoutTemplates, tableZones, floors,
+  venueStaff, venueLayoutTemplates, tableZones, floors, adminLogs,
   type NewUser, type User, type NewEvent, type Event, type NewTicket, type Ticket,
   type NewBooking, type Booking, type BookingWithDetails, type NewTable, type Table,
   type NewSeat, type Seat, type TableWithSeats, type NewMenuItem, type MenuItem,
-  type NewVenueStaff, type VenueStaff, type DietaryRestriction, type Allergen
+  type NewVenueStaff, type VenueStaff, type DietaryRestriction, type Allergen,
+  type InsertAdminLog, type AdminLog
 } from "@shared/schema";
 import { eq, and, inArray, isNull, or, sql, desc, asc } from "drizzle-orm";
 import { hashPassword } from "./auth";
@@ -67,6 +68,23 @@ class PgStorage implements IStorage {
       stripeSubscriptionId: stripeInfo.stripeSubscriptionId
     }).where(eq(users.id, userId));
     return this.getUserById(userId);
+  }
+  
+  // Admin Log methods
+  async createAdminLog(logData: InsertAdminLog): Promise<number> {
+    const result = await db.insert(adminLogs).values(logData).returning({ id: adminLogs.id });
+    return result[0].id;
+  }
+  
+  async getAdminLogs(): Promise<AdminLog[]> {
+    return db.select().from(adminLogs).orderBy(desc(adminLogs.createdAt));
+  }
+  
+  async getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]> {
+    return db.select()
+      .from(adminLogs)
+      .where(eq(adminLogs.entityType, entityType))
+      .orderBy(desc(adminLogs.createdAt));
   }
 
   // Event Methods

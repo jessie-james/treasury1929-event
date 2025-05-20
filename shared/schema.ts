@@ -341,3 +341,19 @@ export interface BookingWithDetails extends Booking {
 // Enum-like types for allergies and dietary restrictions
 export type Allergen = 'gluten' | 'dairy' | 'nuts' | 'peanuts' | 'shellfish' | 'eggs' | 'soy' | 'fish';
 export type DietaryRestriction = 'vegetarian' | 'vegan' | 'halal' | 'kosher' | 'gluten-free' | 'dairy-free' | 'nut-free';
+
+// Admin Logs Table
+export const adminLogs = pgTable("admin_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  entityType: varchar("entity_type", { length: 50 }).notNull(),
+  entityId: integer("entity_id"),
+  details: json("details").$type<Record<string, any>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  ipAddress: varchar("ip_address", { length: 100 }),
+});
+
+export const insertAdminLogSchema = createInsertSchema(adminLogs).omit({ id: true, createdAt: true });
+export type InsertAdminLog = z.infer<typeof insertAdminLogSchema>;
+export type AdminLog = typeof adminLogs.$inferSelect;
