@@ -647,18 +647,29 @@ export default function LayoutSettings() {
   
   // Enable table adding mode
   const handleAddTable = () => {
+    setEditMode('add');
     setIsAddMode(true);
     setIsBulkAddMode(false);
     setSelectedTable(null);
+    setSelectedTables([]);
     
     // Set default values for new table
+    const nextTableNumber = currentFloorTables.length > 0 
+      ? Math.max(0, ...currentFloorTables.map(t => t.tableNumber)) + 1 
+      : 1;
+    
     tableForm.reset({
-      tableNumber: Math.max(0, ...currentFloorTables.map(t => t.tableNumber)) + 1,
+      tableNumber: nextTableNumber,
       capacity: 8,
       shape: "round",
       status: "available",
       priceCategory: "standard",
       isLocked: false
+    });
+    
+    toast({
+      title: "Add Table Mode",
+      description: "Click anywhere on the floor plan to place a table"
     });
   };
   

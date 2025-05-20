@@ -72,8 +72,15 @@ class PgStorage implements IStorage {
   
   // Admin Log methods
   async createAdminLog(logData: InsertAdminLog): Promise<number> {
-    const result = await db.insert(adminLogs).values(logData).returning({ id: adminLogs.id });
-    return result[0].id;
+    try {
+      // Remove ipAddress from the data if it's present (since schema may not have this column yet)
+      const { ipAddress, ...safeLogData } = logData as any;
+      const result = await db.insert(adminLogs).values(safeLogData).returning({ id: adminLogs.id });
+      return result[0].id;
+    } catch (error) {
+      console.error("Failed to create admin log:", error);
+      return -1; // Return -1 to indicate failure
+    }
   }
   
   async getAdminLogs(): Promise<AdminLog[]> {
