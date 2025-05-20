@@ -681,13 +681,21 @@ export default function LayoutSettings() {
     });
   };
   
-  // Apply grid snapping if enabled
+  // Apply grid snapping if enabled and convert to integers
   const applyGridSnap = (position: CanvasPosition): CanvasPosition => {
-    if (!snapToGrid) return position;
+    let result = position;
     
+    if (snapToGrid) {
+      result = {
+        x: Math.round(position.x / gridSize) * gridSize,
+        y: Math.round(position.y / gridSize) * gridSize
+      };
+    }
+    
+    // Always ensure positions are integers to avoid API errors
     return {
-      x: Math.round(position.x / gridSize) * gridSize,
-      y: Math.round(position.y / gridSize) * gridSize
+      x: Math.round(result.x),
+      y: Math.round(result.y)
     };
   };
   
@@ -697,7 +705,7 @@ export default function LayoutSettings() {
       toast({
         title: "Table Locked",
         description: "This table is locked and cannot be moved.",
-        variant: "warning"
+        variant: "destructive"
       });
       return;
     }
