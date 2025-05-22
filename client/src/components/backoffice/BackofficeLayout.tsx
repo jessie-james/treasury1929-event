@@ -81,20 +81,8 @@ export function BackofficeLayout({ children }: Props) {
       roles: ['admin', 'venue_owner', 'venue_manager'],
     },
     {
-      name: "Layout Settings",
-      href: "/backoffice/layout-settings",
-      icon: TableProperties,
-      roles: ['admin', 'venue_owner'],
-    },
-    {
-      name: "Simple Layout Editor",
-      href: "/backoffice/simple-layout-editor",
-      icon: TableProperties,
-      roles: ['admin', 'venue_owner'],
-    },
-    {
-      name: "Basic Layout Editor",
-      href: "/backoffice/basic-layout-editor",
+      name: "Venue Designer",
+      href: "/backoffice/venue-designer",
       icon: TableProperties,
       roles: ['admin', 'venue_owner'],
     },
