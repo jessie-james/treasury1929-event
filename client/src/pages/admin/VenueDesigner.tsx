@@ -7,19 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { VenueLayoutDesigner } from '@/components/venue/VenueLayoutDesigner';
 import { Plus, Building, Settings } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
-
-interface Venue {
-  id: number;
-  name: string;
-  description?: string;
-  width: number;
-  height: number;
-  bounds?: { x: number; y: number; width: number; height: number };
-  isActive: boolean;
-  createdAt: Date;
-}
+import type { Venue, Stage, Table } from '@shared/schema';
 
 export default function VenueDesigner() {
   const { toast } = useToast();
@@ -74,12 +65,49 @@ export default function VenueDesigner() {
     }
   });
 
+  // Fetch venue layout data
+  const { data: venueData, isLoading: isLoadingVenue } = useQuery({
+    queryKey: ['venue-layout', selectedVenueId],
+    queryFn: async () => {
+      if (!selectedVenueId) return null;
+      const response = await apiRequest('GET', `/api/admin/venues/${selectedVenueId}/layout`);
+      if (!response.ok) {
+        if (response.status === 404) return null; // No layout exists yet
+        throw new Error('Failed to fetch venue layout');
+      }
+      return response.json();
+    },
+    enabled: !!selectedVenueId
+  });
+
   // Set first venue as default if none selected
   useEffect(() => {
     if (!selectedVenueId && venues.length > 0) {
       setSelectedVenueId(venues[0].id);
     }
   }, [venues, selectedVenueId]);
+
+  // Save layout handler
+  const handleSaveLayout = async (layoutData: { venue: Venue; stages: Stage[]; tables: Table[] }) => {
+    if (!selectedVenueId) return;
+    
+    try {
+      const response = await apiRequest('PUT', `/api/admin/venues/${selectedVenueId}/layout`, layoutData);
+      if (!response.ok) throw new Error('Failed to save layout');
+      
+      queryClient.invalidateQueries({ queryKey: ['venue-layout', selectedVenueId] });
+      toast({
+        title: "Layout Saved",
+        description: "Venue layout has been saved successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save venue layout.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const handleCreateVenue = () => {
     if (!newVenueName.trim()) {
@@ -195,25 +223,28 @@ export default function VenueDesigner() {
         </CardContent>
       </Card>
 
-      {/* Simple Canvas Placeholder */}
-      {selectedVenueId ? (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center">
-              <div className="w-full h-96 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 mb-4">
-                <div className="text-center">
-                  <Settings className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-600 mb-2">Canvas Designer</h3>
-                  <p className="text-gray-500 mb-4">
-                    Interactive venue layout designer will be displayed here.
-                  </p>
-                  <Button>Start Designing Layout</Button>
-                </div>
+      {/* Layout Designer */}
+      {selectedVenueId && (
+        <>
+          {isLoadingVenue ? (
+            <div className="flex items-center justify-center min-h-96">
+              <div className="text-center">
+                <div className="animate-spin h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p>Loading venue layout...</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
+          ) : (
+            <VenueLayoutDesigner
+              venue={venues.find((v: any) => v.id === selectedVenueId)!}
+              initialStages={venueData?.stages || []}
+              initialTables={venueData?.tables || []}
+              onSave={handleSaveLayout}
+            />
+          )}
+        </>
+      )}
+
+      {!selectedVenueId && (
         <Card>
           <CardContent className="py-12">
             <div className="text-center">
