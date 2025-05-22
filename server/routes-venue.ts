@@ -85,13 +85,10 @@ export function registerVenueRoutes(app: Express): void {
         height: Number(height)
       };
       
-      console.log("Creating venue with data:", venueData);
       const venueId = await storage.createVenue(venueData);
-      console.log("Created venue with ID:", venueId);
       const newVenue = await storage.getVenueById(venueId);
-      console.log("Retrieved venue:", newVenue);
       
-      res.status(201).json(newVenue);
+      res.json(newVenue);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
