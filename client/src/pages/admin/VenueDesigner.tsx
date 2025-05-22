@@ -45,12 +45,14 @@ export default function VenueDesigner() {
     mutationFn: async (venueData: { name: string; description: string }) => {
       const response = await apiRequest('POST', '/api/admin/venues', {
         name: venueData.name,
-        description: venueData.description,
-        width: 1000,
-        height: 700
+        description: venueData.description
       });
-      if (!response.ok) throw new Error('Failed to create venue');
-      return response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      const result = await response.json();
+      return result;
     },
     onSuccess: (newVenue) => {
       queryClient.invalidateQueries({ queryKey: ['venues'] });

@@ -1,6 +1,7 @@
 import { Express, Request, Response } from "express";
 import { storage } from "./storage.js";
-import { insertVenueSchema, insertStageSchema, insertTableSchema } from "@shared/schema";
+import { db } from "./db.js";
+import * as schema from "@shared/schema";
 import { z } from "zod";
 
 /**
@@ -66,37 +67,35 @@ export function registerVenueRoutes(app: Express): void {
     }
   });
 
-  // Create venue
+  // Create venue - simplified
   app.post("/api/admin/venues", async (req: Request, res: Response) => {
     try {
-      const { name, description = '' } = req.body;
+      const { name = '', description = '' } = req.body || {};
       
-      if (!name) {
+      if (!name || name.trim() === '') {
         return res.status(400).json({ message: "Venue name is required" });
       }
       
-      const venueData = {
-        name: String(name).trim(),
-        description: String(description),
+      // Create venue with minimal data first
+      const result = await db.insert(schema.venues).values({
+        name: name.trim(),
+        description: description || '',
         width: 1000,
         height: 700
-      };
+      }).returning({ id: schema.venues.id });
       
-      const venueId = await storage.createVenue(venueData);
+      const newVenueId = result[0].id;
       
-      // Return a simple, clean response
-      const response = {
-        id: venueId,
-        name: venueData.name,
-        description: venueData.description,
-        width: venueData.width,
-        height: venueData.height
-      };
-      
-      res.json(response);
+      res.json({
+        id: newVenueId,
+        name: name.trim(),
+        description: description || '',
+        width: 1000,
+        height: 700
+      });
     } catch (error) {
-      console.error("Error creating venue:", error);
-      res.status(500).json({ message: "Failed to create venue", error: error.message });
+      console.error("Venue creation error:", error);
+      res.status(500).json({ message: "Failed to create venue" });
     }
   });
 
