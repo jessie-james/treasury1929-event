@@ -872,7 +872,7 @@ export function VenueLayoutDesigner({
 
         {/* Canvas Area */}
         <div className="flex-1">
-        <div className="border rounded-lg shadow-sm bg-white">
+          <div className="border rounded-lg shadow-sm bg-white">
           <canvas
             ref={canvasRef}
             width={1000}
@@ -970,6 +970,8 @@ export function VenueLayoutDesigner({
             </p>
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );
