@@ -424,53 +424,7 @@ export class MemStorage implements IStorage {
   }
   
   // Layout Methods
-  async getFloors(venueId: number): Promise<any[]> {
-    return [
-      { id: 'main', name: 'Main Floor', isActive: true },
-      { id: 'mezzanine', name: 'Mezzanine', isActive: true },
-    ];
-  }
-  
-  async getZones(venueId: number): Promise<any[]> {
-    return [
-      { id: 'front-stage', name: 'Front Stage', color: '#FF5757', tables: [] },
-      { id: 'center', name: 'Center', color: '#57B3FF', tables: [] },
-      { id: 'back', name: 'Back', color: '#57FFA0', tables: [] },
-    ];
-  }
-  
-  async getLayoutTemplates(venueId: number): Promise<any[]> {
-    return [
-      {
-        id: 'concert',
-        name: 'Concert Layout',
-        description: 'Standard setup for musical performances',
-        createdAt: new Date(),
-        lastModified: new Date()
-      },
-      {
-        id: 'dinner',
-        name: 'Dinner Event',
-        description: 'Optimized for dining experience',
-        createdAt: new Date(),
-        lastModified: new Date()
-      }
-    ];
-  }
-  
-  async saveLayoutTemplate(venueId: number, templateData: any): Promise<any> {
-    return {
-      id: Date.now().toString(),
-      name: templateData.name,
-      description: templateData.description,
-      createdAt: new Date(),
-      lastModified: new Date()
-    };
-  }
-  
-  async updateFloorImage(venueId: number, floorId: string, imageUrl: string): Promise<boolean> {
-    return true;
-  }
+  // Legacy layout methods - removed in favor of simplified venue design
 
   // Admin Log methods
   async createAdminLog(logData: InsertAdminLog): Promise<number> {

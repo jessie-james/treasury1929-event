@@ -2,7 +2,7 @@ import express, { type Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertBookingSchema, insertAdminLogSchema, bookings, events, adminLogs, InsertUser, User } from "@shared/schema";
+import { insertBookingSchema, insertAdminLogSchema, bookings, events, adminLogs, NewUser, User } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, hashPassword } from "./auth";
 import Stripe from "stripe";
