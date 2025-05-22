@@ -741,6 +741,48 @@ export function VenueLayoutDesigner({
                 />
               </div>
               
+              {selectedObjects.length > 0 && selectedObjects.some(id => tables.some(t => t.id === id)) && (
+                <div>
+                  <Label>Rotate Selected Tables</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        setTables(prev => prev.map(table => 
+                          selectedObjects.includes(table.id) 
+                            ? { 
+                                ...table, 
+                                rotation: (table.rotation - 15) % 360,
+                                data: { ...table.data, rotation: (table.data.rotation - 15) % 360 }
+                              }
+                            : table
+                        ));
+                      }}
+                    >
+                      ↺ -15°
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => {
+                        setTables(prev => prev.map(table => 
+                          selectedObjects.includes(table.id) 
+                            ? { 
+                                ...table, 
+                                rotation: (table.rotation + 15) % 360,
+                                data: { ...table.data, rotation: (table.data.rotation + 15) % 360 }
+                              }
+                            : table
+                        ));
+                      }}
+                    >
+                      ↻ +15°
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
               <div className="flex items-center space-x-2">
                 <Checkbox 
                   id="stage-lines"
@@ -887,9 +929,13 @@ export function VenueLayoutDesigner({
                   table.id === draggedObjectId 
                     ? { 
                         ...table, 
-                        x: table.x + deltaX, 
-                        y: table.y + deltaY,
-                        data: { ...table.data, x: table.data.x + deltaX, y: table.data.y + deltaY }
+                        x: Math.max(0, table.x + deltaX), 
+                        y: Math.max(0, table.y + deltaY),
+                        data: { 
+                          ...table.data, 
+                          x: Math.max(0, table.data.x + deltaX), 
+                          y: Math.max(0, table.data.y + deltaY) 
+                        }
                       }
                     : table
                 ));
