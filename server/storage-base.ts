@@ -18,6 +18,21 @@ export interface IStorage {
   updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | null>;
   updateUserStripeInfo(userId: number, stripeInfo: { stripeCustomerId: string, stripeSubscriptionId: string }): Promise<User | null>;
 
+  // Venue methods
+  getAllVenues(): Promise<Venue[]>;
+  getVenueById(id: number): Promise<Venue | null>;
+  getVenueWithTables(id: number): Promise<VenueWithTables | null>;
+  createVenue(venueData: any): Promise<number>;
+  updateVenue(id: number, venueData: Partial<Venue>): Promise<Venue | null>;
+  deleteVenue(id: number): Promise<boolean>;
+
+  // Stage methods
+  getStagesByVenue(venueId: number): Promise<Stage[]>;
+  getStage(id: number): Promise<Stage | null>;
+  createStage(stageData: any): Promise<number>;
+  updateStage(id: number, stageData: Partial<Stage>): Promise<Stage | null>;
+  deleteStage(id: number): Promise<boolean>;
+
   // Event methods
   getAllEvents(): Promise<Event[]>;
   getActiveEvents(): Promise<Event[]>;
@@ -26,7 +41,7 @@ export interface IStorage {
   updateEvent(id: number, eventData: Partial<any>): Promise<Event | null>;
   deleteEvent(id: number): Promise<boolean>;
 
-  // Booking methods
+  // Booking methods - Updated for table-based booking
   getBookings(): Promise<Booking[]>;
   getBookingsByUserId(userId: number): Promise<BookingWithDetails[]>;
   getBookingsByEventId(eventId: number): Promise<BookingWithDetails[]>;
@@ -36,7 +51,8 @@ export interface IStorage {
   createBooking(bookingData: any): Promise<number>;
   updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | null>;
   deleteBooking(id: number): Promise<boolean>;
-  getSeatsByEventId(eventId: number): Promise<any[]>;
+  getTablesByEventId(eventId: number): Promise<Table[]>;
+  getAvailableTablesByEventId(eventId: number): Promise<Table[]>;
   updateEventAvailability(eventId: number): Promise<boolean>;
   checkInBooking(bookingId: number, checkedInBy: number): Promise<Booking | null>;
   updateBookingStatus(id: number, status: string, modifiedBy?: number): Promise<Booking | null>;
