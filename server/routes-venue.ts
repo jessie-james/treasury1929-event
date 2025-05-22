@@ -87,11 +87,15 @@ export function registerVenueRoutes(app: Express): void {
   // Create venue - simplified
   app.post("/api/admin/venues", requireAdminOrVenueOwner, async (req: Request, res: Response) => {
     try {
+      console.log("Venue creation request received:", req.body);
       const { name = '', description = '' } = req.body || {};
       
       if (!name || name.trim() === '') {
+        console.log("Venue name validation failed");
         return res.status(400).json({ message: "Venue name is required" });
       }
+      
+      console.log("Creating venue with data:", { name: name.trim(), description: description || '' });
       
       // Create venue with minimal data first
       const result = await db.insert(schema.venues).values({
@@ -102,14 +106,18 @@ export function registerVenueRoutes(app: Express): void {
       }).returning({ id: schema.venues.id });
       
       const newVenueId = result[0].id;
+      console.log("Venue created successfully with ID:", newVenueId);
       
-      res.json({
+      const responseData = {
         id: newVenueId,
         name: name.trim(),
         description: description || '',
         width: 1000,
         height: 700
-      });
+      };
+      
+      console.log("Sending response:", responseData);
+      res.json(responseData);
     } catch (error) {
       console.error("Venue creation error:", error);
       res.status(500).json({ message: "Failed to create venue" });
