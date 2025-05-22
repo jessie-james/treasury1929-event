@@ -833,21 +833,17 @@ export function VenueLayoutDesigner({
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
 
-        {/* Final Actions */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white bg-gray-500">
-                🔄
-              </div>
-              Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {!readonly && (
+          {/* Actions Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm">Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {!readonly && (
               <>
                 <Button 
                   onClick={handleSave}
@@ -865,8 +861,8 @@ export function VenueLayoutDesigner({
                   Reset Everything
                 </Button>
               </>
-            )}
-          </CardContent>
+              )}
+            </CardContent>
           </Card>
         </div>
 
