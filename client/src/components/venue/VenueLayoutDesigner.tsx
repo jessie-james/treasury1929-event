@@ -601,18 +601,73 @@ export function VenueLayoutDesigner({
             </Button>
             <Button 
               onClick={addStage}
-              disabled={readonly || currentStep !== 2}
+              disabled={readonly || currentStep !== 2 || !venueObject || stages.length > 0}
               className="w-full"
             >
-              Add Stage
+              <Plus className="w-4 h-4 mr-2" />
+              {stages.length > 0 ? 'Stage Added' : 'Add Stage'}
             </Button>
+            
+            {stages.length > 0 && currentStep === 2 && (
+              <div className="space-y-2 p-3 bg-gray-50 rounded">
+                <p className="text-sm font-medium">Stage Controls:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Width</Label>
+                    <Input 
+                      type="number" 
+                      value={stages[0]?.width || 200}
+                      onChange={(e) => {
+                        const newWidth = Number(e.target.value);
+                        setStages(prev => prev.map(stage => ({ 
+                          ...stage, 
+                          width: newWidth, 
+                          data: { ...stage.data, width: newWidth }
+                        })));
+                      }}
+                      min={50}
+                      max={500}
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Height</Label>
+                    <Input 
+                      type="number" 
+                      value={stages[0]?.height || 100}
+                      onChange={(e) => {
+                        const newHeight = Number(e.target.value);
+                        setStages(prev => prev.map(stage => ({ 
+                          ...stage, 
+                          height: newHeight, 
+                          data: { ...stage.data, height: newHeight }
+                        })));
+                      }}
+                      min={50}
+                      max={300}
+                      className="h-8"
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => setStages([])}
+                  variant="outline" 
+                  size="sm"
+                  className="w-full"
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Remove Stage
+                </Button>
+              </div>
+            )}
+            
             <Button 
               onClick={() => setCurrentStep(3)}
               disabled={currentStep !== 2}
               variant="outline"
               className="w-full"
             >
-              Skip Stage & Continue →
+              {stages.length > 0 ? 'Continue to Tables' : 'Skip (No Stage)'}
             </Button>
           </CardContent>
         </Card>
