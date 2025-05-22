@@ -83,18 +83,20 @@ export function registerVenueRoutes(app: Express): void {
       };
       
       const venueId = await storage.createVenue(venueData);
-      const newVenue = await storage.getVenueById(venueId);
       
-      res.json(newVenue);
+      // Return a simple, clean response
+      const response = {
+        id: venueId,
+        name: venueData.name,
+        description: venueData.description,
+        width: venueData.width,
+        height: venueData.height
+      };
+      
+      res.json(response);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Invalid venue data", 
-          errors: error.errors 
-        });
-      }
       console.error("Error creating venue:", error);
-      res.status(500).json({ message: "Failed to create venue" });
+      res.status(500).json({ message: "Failed to create venue", error: error.message });
     }
   });
 
