@@ -10,8 +10,24 @@ import { z } from "zod";
  */
 export function registerVenueRoutes(app: Express): void {
   
+  /**
+   * Middleware to verify user is admin or venue owner
+   */
+  function requireAdminOrVenueOwner(req: Request, res: Response, next: Function) {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const user = req.user as any;
+    if (user.role !== 'admin' && user.role !== 'venue_owner') {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
+    next();
+  }
+  
   // Get all venues
-  app.get("/api/admin/venues", async (req: Request, res: Response) => {
+  app.get("/api/admin/venues", requireAdminOrVenueOwner, async (req: Request, res: Response) => {
     try {
       const venues = await storage.getAllVenues();
       res.json(venues);
@@ -69,7 +85,7 @@ export function registerVenueRoutes(app: Express): void {
   });
 
   // Create venue - simplified
-  app.post("/api/admin/venues", async (req: Request, res: Response) => {
+  app.post("/api/admin/venues", requireAdminOrVenueOwner, async (req: Request, res: Response) => {
     try {
       const { name = '', description = '' } = req.body || {};
       
@@ -101,7 +117,7 @@ export function registerVenueRoutes(app: Express): void {
   });
 
   // Update venue
-  app.put("/api/admin/venues/:id", async (req: Request, res: Response) => {
+  app.put("/api/admin/venues/:id", requireAdminOrVenueOwner, async (req: Request, res: Response) => {
     try {
       const venueId = parseInt(req.params.id);
       if (isNaN(venueId)) {
