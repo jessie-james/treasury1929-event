@@ -492,9 +492,9 @@ export function VenueLayoutDesigner({
   const stepIsCompleted = (step: WorkflowStep) => step < currentStep || (step === 2 && currentStep === 3 && stages.length === 0);
 
   return (
-    <div className="flex gap-6 p-6 max-w-7xl mx-auto">
-      {/* Control Panel */}
-      <div className="w-80 space-y-4">
+    <div className="space-y-6">
+      {/* Workflow Steps */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Step 1: Create Venue */}
         <Card className={cn(
           "border-2",
@@ -518,8 +518,380 @@ export function VenueLayoutDesigner({
               disabled={readonly || currentStep !== 1}
               className="w-full"
             >
+              <Square className="w-4 h-4 mr-2" />
               {venueObject ? 'Venue Created' : 'Create Venue Rectangle'}
             </Button>
+            
+            {venueObject && currentStep === 1 && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Venue Size</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs text-gray-500">Width</Label>
+                    <Input
+                      type="number"
+                      value={venueObject.width}
+                      onChange={(e) => updateVenueSize('width', parseInt(e.target.value) || 0)}
+                      min="100"
+                      max="800"
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Height</Label>
+                    <Input
+                      type="number"
+                      value={venueObject.height}
+                      onChange={(e) => updateVenueSize('height', parseInt(e.target.value) || 0)}
+                      min="100"
+                      max="500"
+                      className="h-8"
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => setCurrentStep(2)}
+                  className="w-full mt-2"
+                >
+                  Continue to Stage Setup
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Step 2: Add Stage */}
+        <Card className={cn(
+          "border-2",
+          stepIsActive(2) && "border-blue-500 bg-blue-50",
+          stepIsCompleted(2) && "border-green-500 bg-green-50",
+          currentStep < 2 && "opacity-50"
+        )}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <div className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white",
+                stepIsCompleted(2) ? "bg-green-500" : currentStep === 2 ? "bg-blue-500" : "bg-gray-400"
+              )}>
+                2
+              </div>
+              Add Stage (Optional)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {stages.length === 0 ? (
+              <Button 
+                onClick={createStage} 
+                disabled={readonly || currentStep !== 2}
+                className="w-full"
+                variant="outline"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Stage
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <div className="text-sm text-green-600 font-medium">✓ Stage Added</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs text-gray-500">Width</Label>
+                    <Input
+                      type="number"
+                      value={stages[0]?.width || 0}
+                      onChange={(e) => updateStageSize('width', parseInt(e.target.value) || 0)}
+                      min="50"
+                      max="400"
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Height</Label>
+                    <Input
+                      type="number"
+                      value={stages[0]?.height || 0}
+                      onChange={(e) => updateStageSize('height', parseInt(e.target.value) || 0)}
+                      min="30"
+                      max="200"
+                      className="h-8"
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => setStages([])}
+                  disabled={readonly}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Remove Stage
+                </Button>
+              </div>
+            )}
+            
+            <Button 
+              onClick={() => setCurrentStep(3)}
+              disabled={currentStep !== 2}
+              className="w-full"
+            >
+              Continue to Table Setup
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Step 3: Add Tables */}
+        <Card className={cn(
+          "border-2",
+          stepIsActive(3) && "border-blue-500 bg-blue-50",
+          stepIsCompleted(3) && "border-green-500 bg-green-50",
+          currentStep < 3 && "opacity-50"
+        )}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <div className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white",
+                stepIsCompleted(3) ? "bg-green-500" : currentStep === 3 ? "bg-blue-500" : "bg-gray-400"
+              )}>
+                3
+              </div>
+              Add Tables
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <Button 
+                onClick={() => createTable(4)} 
+                disabled={readonly || currentStep !== 3}
+                variant="outline"
+                size="sm"
+              >
+                <Users className="w-3 h-3 mr-1" />
+                4-Seat
+              </Button>
+              <Button 
+                onClick={() => createTable(6)} 
+                disabled={readonly || currentStep !== 3}
+                variant="outline"
+                size="sm"
+              >
+                <Users className="w-3 h-3 mr-1" />
+                6-Seat
+              </Button>
+              <Button 
+                onClick={() => createTable(8)} 
+                disabled={readonly || currentStep !== 3}
+                variant="outline"
+                size="sm"
+              >
+                <Users className="w-3 h-3 mr-1" />
+                8-Seat
+              </Button>
+              <Button 
+                onClick={() => createTable(10)} 
+                disabled={readonly || currentStep !== 3}
+                variant="outline"
+                size="sm"
+              >
+                <Users className="w-3 h-3 mr-1" />
+                10-Seat
+              </Button>
+            </div>
+            
+            {tables.length > 0 && (
+              <div className="text-sm text-green-600 font-medium">
+                ✓ {tables.length} Table{tables.length !== 1 ? 's' : ''} Added
+              </div>
+            )}
+
+            {selectedObjects.length > 0 && (
+              <div className="space-y-2 p-2 bg-gray-50 rounded">
+                <div className="text-sm font-medium">Multi-Selection ({selectedObjects.length})</div>
+                <div className="grid grid-cols-2 gap-1">
+                  <Button 
+                    onClick={() => rotateSelected(15)}
+                    disabled={readonly}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <RotateCw className="w-3 h-3 mr-1" />
+                    Rotate
+                  </Button>
+                  <Button 
+                    onClick={deleteSelected}
+                    disabled={readonly}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Main Layout Area */}
+      <div className="flex gap-6 h-full">
+        {/* Controls Sidebar */}
+        <div className="w-80 space-y-4">
+          {/* Selection Tools */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <MousePointer2 className="w-4 h-4" />
+                Selection Tools
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button 
+                onClick={selectAll}
+                disabled={readonly || tables.length === 0}
+                variant="outline"
+                className="w-full"
+              >
+                Select All Tables
+              </Button>
+              <Button 
+                onClick={() => setSelectedObjects([])}
+                disabled={readonly || selectedObjects.length === 0}
+                variant="outline"
+                className="w-full"
+              >
+                Clear Selection
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Actions */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>
+                Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {!readonly && (
+                <>
+                  <Button 
+                    onClick={handleSave}
+                    disabled={!venueObject}
+                    className="w-full"
+                  >
+                    Save Layout
+                  </Button>
+                  <Button 
+                    onClick={resetAll}
+                    variant="destructive"
+                    className="w-full"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset Everything
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Canvas Area */}
+        <div className="flex-1">
+          <div className="border rounded-lg shadow-sm bg-white">
+            <canvas
+              ref={canvasRef}
+              width={1000}
+              height={700}
+              className="block border rounded-lg cursor-crosshair"
+              onMouseDown={(e) => {
+                const pos = getMousePos(e);
+                const obj = getObjectAtPosition(pos.x, pos.y);
+                
+                if (obj) {
+                  setIsDragging(true);
+                  setDragStartPos(pos);
+                  setDraggedObjectId(obj.id);
+                  
+                  // Handle multi-selection
+                  if (e.shiftKey) {
+                    setSelectedObjects(prev => {
+                      const isSelected = prev.some(id => id === obj.id);
+                      if (isSelected) {
+                        return prev.filter(id => id !== obj.id);
+                      } else {
+                        return [...prev, obj.id];
+                      }
+                    });
+                  } else if (!selectedObjects.includes(obj.id)) {
+                    setSelectedObjects([obj.id]);
+                  }
+                } else {
+                  setSelectedObjects([]);
+                }
+              }}
+              onMouseMove={(e) => {
+                if (!isDragging || !draggedObjectId) return;
+                
+                const pos = getMousePos(e);
+                const deltaX = pos.x - dragStartPos.x;
+                const deltaY = pos.y - dragStartPos.y;
+                
+                if (draggedObjectId === 'venue' && venueObject && currentStep === 1) {
+                  setVenueObject(prev => prev ? {
+                    ...prev,
+                    x: Math.max(0, prev.x + deltaX),
+                    y: Math.max(0, prev.y + deltaY)
+                  } : null);
+                } else if (currentStep === 2) {
+                  // Update stages
+                  setStages(prev => prev.map(stage => 
+                    stage.id === draggedObjectId 
+                      ? { ...stage, x: stage.x + deltaX, y: stage.y + deltaY }
+                      : stage
+                  ));
+                } else if (currentStep === 3) {
+                  // Update tables
+                  setTables(prev => prev.map(table => 
+                    table.id === draggedObjectId 
+                      ? { 
+                          ...table, 
+                          x: Math.max(0, table.x + deltaX), 
+                          y: Math.max(0, table.y + deltaY),
+                          data: { 
+                            ...table.data, 
+                            x: Math.max(0, table.data.x + deltaX), 
+                            y: Math.max(0, table.data.y + deltaY) 
+                          }
+                        }
+                      : table
+                  ));
+                }
+                
+                setDragStartPos(pos);
+              }}
+              onMouseUp={() => {
+                setIsDragging(false);
+                setDraggedObjectId(null);
+              }}
+            />
+          </div>
+          
+          {/* Status Bar */}
+          {(selectedObjects.length > 0 || tables.length > 0 || stages.length > 0) && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg border">
+              <p className="text-sm text-gray-600">
+                Selected: {selectedObjects.length} object(s)
+                {tables.length > 0 && ` • Tables: ${tables.length}`}
+                {stages.length > 0 && ` • Stages: ${stages.length}`}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
             
             {venueObject && currentStep === 1 && (
               <div className="space-y-2 p-3 bg-gray-50 rounded">
@@ -873,9 +1245,72 @@ export function VenueLayoutDesigner({
           </CardContent>
         </Card>
       </div>
+      
+      {/* Main Layout Area */}
+      <div className="flex gap-6 h-full">
+        {/* Controls Sidebar */}
+        <div className="w-80 space-y-4">
+          {/* Selection Tools */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <MousePointer2 className="w-4 h-4" />
+                Selection Tools
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button 
+                onClick={selectAll}
+                disabled={readonly || tables.length === 0}
+                variant="outline"
+                className="w-full"
+              >
+                Select All Tables
+              </Button>
+              <Button 
+                onClick={() => setSelectedObjects([])}
+                disabled={readonly || selectedObjects.length === 0}
+                variant="outline"
+                className="w-full"
+              >
+                Clear Selection
+              </Button>
+            </CardContent>
+          </Card>
 
-      {/* Canvas Area */}
-      <div className="flex-1">
+          {/* Actions */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle>
+                Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {!readonly && (
+                <>
+                  <Button 
+                    onClick={handleSave}
+                    disabled={!venueObject}
+                    className="w-full"
+                  >
+                    Save Layout
+                  </Button>
+                  <Button 
+                    onClick={resetAll}
+                    variant="destructive"
+                    className="w-full"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset Everything
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Canvas Area */}
+        <div className="flex-1">
         <div className="border rounded-lg shadow-sm bg-white">
           <canvas
             ref={canvasRef}
@@ -974,6 +1409,7 @@ export function VenueLayoutDesigner({
             </p>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
