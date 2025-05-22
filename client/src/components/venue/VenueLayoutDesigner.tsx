@@ -768,7 +768,7 @@ export function VenueLayoutDesigner({
               const deltaX = pos.x - dragStartPos.x;
               const deltaY = pos.y - dragStartPos.y;
               
-              if (draggedObjectId === 'venue' && venueObject) {
+              if (draggedObjectId === 'venue' && venueObject && currentStep === 1) {
                 setVenueObject(prev => prev ? {
                   ...prev,
                   x: Math.max(0, prev.x + deltaX),
