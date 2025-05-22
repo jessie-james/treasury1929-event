@@ -56,8 +56,54 @@ export function VenueLayoutDesigner({
   // Status
   const [status, setStatus] = useState('Welcome! Start by creating your venue boundaries.');
   
+  // Mouse interaction state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
+  const [draggedObjectId, setDraggedObjectId] = useState<string | null>(null);
+  
   const canvas = canvasRef.current;
   const ctx = canvas?.getContext('2d');
+
+  // Get mouse position relative to canvas
+  const getMousePos = useCallback((e: React.MouseEvent) => {
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+  }, [canvas]);
+
+  // Check if mouse is over an object
+  const getObjectAtPosition = useCallback((x: number, y: number) => {
+    // Check venue first
+    if (venueObject && 
+        x >= venueObject.x && x <= venueObject.x + venueObject.width &&
+        y >= venueObject.y && y <= venueObject.y + venueObject.height) {
+      return venueObject;
+    }
+    
+    // Check stages
+    for (const stage of stages) {
+      if (x >= stage.x && x <= stage.x + stage.width &&
+          y >= stage.y && y <= stage.y + stage.height) {
+        return stage;
+      }
+    }
+    
+    // Check tables
+    for (const table of tables) {
+      const centerX = table.x + table.width / 2;
+      const centerY = table.y + table.height / 2;
+      const radius = table.width / 2;
+      const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+      if (distance <= radius) {
+        return table;
+      }
+    }
+    
+    return null;
+  }, [venueObject, stages, tables]);
 
   // Initialize venue object
   useEffect(() => {
@@ -688,6 +734,69 @@ export function VenueLayoutDesigner({
             width={1000}
             height={700}
             className="block border rounded-lg cursor-crosshair"
+            onMouseDown={(e) => {
+              const pos = getMousePos(e);
+              const obj = getObjectAtPosition(pos.x, pos.y);
+              
+              if (obj) {
+                setIsDragging(true);
+                setDragStartPos(pos);
+                setDraggedObjectId(obj.id);
+                
+                // Select the clicked object
+                if (e.shiftKey) {
+                  setSelectedObjects(prev => 
+                    prev.includes(obj.id) 
+                      ? prev.filter(id => id !== obj.id)
+                      : [...prev, obj.id]
+                  );
+                } else {
+                  setSelectedObjects([obj.id]);
+                }
+              } else {
+                setSelectedObjects([]);
+              }
+            }}
+            onMouseMove={(e) => {
+              if (!isDragging || !draggedObjectId) return;
+              
+              const pos = getMousePos(e);
+              const deltaX = pos.x - dragStartPos.x;
+              const deltaY = pos.y - dragStartPos.y;
+              
+              if (draggedObjectId === 'venue' && venueObject) {
+                setVenueObject(prev => prev ? {
+                  ...prev,
+                  x: Math.max(0, prev.x + deltaX),
+                  y: Math.max(0, prev.y + deltaY)
+                } : null);
+              } else {
+                // Update stages
+                setStages(prev => prev.map(stage => 
+                  stage.id === draggedObjectId 
+                    ? { ...stage, x: stage.x + deltaX, y: stage.y + deltaY }
+                    : stage
+                ));
+                
+                // Update tables
+                setTables(prev => prev.map(table => 
+                  table.id === draggedObjectId 
+                    ? { 
+                        ...table, 
+                        x: table.x + deltaX, 
+                        y: table.y + deltaY,
+                        data: { ...table.data, x: table.data.x + deltaX, y: table.data.y + deltaY }
+                      }
+                    : table
+                ));
+              }
+              
+              setDragStartPos(pos);
+            }}
+            onMouseUp={() => {
+              setIsDragging(false);
+              setDraggedObjectId(null);
+            }}
           />
         </div>
         
