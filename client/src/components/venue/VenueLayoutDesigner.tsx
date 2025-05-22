@@ -360,6 +360,32 @@ export function VenueLayoutDesigner({
     setSelectedObjects(allIds);
   }, [stages, tables]);
 
+  // Update selected tables with current settings
+  const updateSelectedTables = useCallback(() => {
+    if (selectedObjects.length === 0) return;
+    
+    setTables(prev => prev.map(table => {
+      if (selectedObjects.includes(table.id)) {
+        const size = tableSize * 10;
+        return {
+          ...table,
+          width: size,
+          height: size,
+          data: {
+            ...table.data,
+            capacity: seatCount,
+            shape: tableType,
+            tableSize,
+            width: size,
+            height: size
+          }
+        };
+      }
+      return table;
+    }));
+    setStatus(`Updated ${selectedObjects.filter(id => tables.some(t => t.id === id)).length} tables.`);
+  }, [selectedObjects, tables, tableSize, seatCount, tableType]);
+
   const resetAll = useCallback(() => {
     setVenueObject(null);
     setStages([]);
@@ -585,6 +611,15 @@ export function VenueLayoutDesigner({
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Table
+              </Button>
+              
+              <Button 
+                onClick={updateSelectedTables}
+                disabled={readonly || selectedObjects.filter(id => tables.some(t => t.id === id)).length === 0}
+                variant="outline"
+                className="w-full mb-2"
+              >
+                Update Selected Tables
               </Button>
               
               <div className="grid grid-cols-2 gap-2">

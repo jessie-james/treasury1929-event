@@ -383,8 +383,11 @@ export class PgStorage implements IStorage {
   }
 
   async deleteTable(id: number): Promise<boolean> {
+    // First delete all seats associated with this table
+    await db.delete(schema.seats).where(eq(schema.seats.tableId, id));
+    // Then delete the table
     const result = await db.delete(schema.tables).where(eq(schema.tables.id, id));
-    return result.rowCount > 0;
+    return result.rowCount! > 0;
   }
 
   // Seat methods
