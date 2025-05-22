@@ -2,6 +2,7 @@ import { Express, Request, Response } from "express";
 import { storage } from "./storage.js";
 import { db } from "./db.js";
 import * as schema from "@shared/schema";
+import { insertVenueSchema, insertStageSchema, insertTableSchema } from "@shared/schema";
 import { z } from "zod";
 
 /**
