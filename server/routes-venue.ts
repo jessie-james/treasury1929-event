@@ -117,6 +117,7 @@ export function registerVenueRoutes(app: Express): void {
       };
       
       console.log("Sending response:", responseData);
+      res.setHeader('Content-Type', 'application/json');
       res.json(responseData);
     } catch (error) {
       console.error("Venue creation error:", error);
