@@ -516,15 +516,60 @@ export function VenueLayoutDesigner({
               disabled={readonly || currentStep !== 1}
               className="w-full"
             >
-              Create Venue Rectangle
+              {venueObject ? 'Venue Created' : 'Create Venue Rectangle'}
             </Button>
+            
+            {venueObject && currentStep === 1 && (
+              <div className="space-y-2 p-3 bg-gray-50 rounded">
+                <p className="text-sm font-medium">Venue Controls:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Width</Label>
+                    <Input 
+                      type="number" 
+                      value={venueObject.width}
+                      onChange={(e) => {
+                        const newWidth = Number(e.target.value);
+                        setVenueObject(prev => prev ? { 
+                          ...prev, 
+                          width: newWidth,
+                          data: { ...prev.data, width: newWidth }
+                        } : null);
+                      }}
+                      min={200}
+                      max={1000}
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Height</Label>
+                    <Input 
+                      type="number" 
+                      value={venueObject.height}
+                      onChange={(e) => {
+                        const newHeight = Number(e.target.value);
+                        setVenueObject(prev => prev ? { 
+                          ...prev, 
+                          height: newHeight,
+                          data: { ...prev.data, height: newHeight }
+                        } : null);
+                      }}
+                      min={200}
+                      max={700}
+                      className="h-8"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <Button 
               onClick={() => setCurrentStep(2)} 
               disabled={!venueObject}
               variant="outline"
               className="w-full"
             >
-              Next: Add Stage →
+              Continue to Stages
             </Button>
           </CardContent>
         </Card>
