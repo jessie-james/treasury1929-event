@@ -893,15 +893,22 @@ export function VenueLayoutDesigner({
                 
                 // Select the clicked object
                 if (e.shiftKey) {
+                  // Shift+click: toggle selection
                   setSelectedObjects(prev => 
                     prev.includes(obj.id) 
                       ? prev.filter(id => id !== obj.id)
                       : [...prev, obj.id]
                   );
                 } else {
-                  setSelectedObjects([obj.id]);
+                  // Regular click: select only this object (unless it's already selected with others)
+                  if (selectedObjects.includes(obj.id) && selectedObjects.length > 1) {
+                    // Keep multiple selection if clicking on an already selected object
+                  } else {
+                    setSelectedObjects([obj.id]);
+                  }
                 }
               } else {
+                // Click on empty space: clear selection
                 setSelectedObjects([]);
               }
             }}
