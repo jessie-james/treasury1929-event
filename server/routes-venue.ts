@@ -69,9 +69,27 @@ export function registerVenueRoutes(app: Express): void {
   // Create venue
   app.post("/api/admin/venues", async (req: Request, res: Response) => {
     try {
-      const validatedData = insertVenueSchema.parse(req.body);
-      const venueId = await storage.createVenue(validatedData);
+      console.log("Received venue data:", req.body);
+      
+      // Simple validation instead of using schema for now
+      const { name, description, width = 1000, height = 700 } = req.body;
+      
+      if (!name || typeof name !== 'string') {
+        return res.status(400).json({ message: "Venue name is required" });
+      }
+      
+      const venueData = {
+        name: name.trim(),
+        description: description || '',
+        width: Number(width),
+        height: Number(height)
+      };
+      
+      console.log("Creating venue with data:", venueData);
+      const venueId = await storage.createVenue(venueData);
+      console.log("Created venue with ID:", venueId);
       const newVenue = await storage.getVenueById(venueId);
+      console.log("Retrieved venue:", newVenue);
       
       res.status(201).json(newVenue);
     } catch (error) {

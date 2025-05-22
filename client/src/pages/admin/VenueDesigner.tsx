@@ -44,10 +44,10 @@ export default function VenueDesigner() {
   const createVenueMutation = useMutation({
     mutationFn: async (venueData: { name: string; description: string }) => {
       const response = await apiRequest('POST', '/api/admin/venues', {
-        ...venueData,
+        name: venueData.name,
+        description: venueData.description,
         width: 1000,
-        height: 700,
-        isActive: true
+        height: 700
       });
       if (!response.ok) throw new Error('Failed to create venue');
       return response.json();
