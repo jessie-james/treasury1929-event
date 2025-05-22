@@ -96,9 +96,11 @@ export function VenueLayoutDesigner({
     // Check tables (only if on step 3)
     if (currentStep === 3) {
       for (const table of tables) {
-        const centerX = table.x + table.width / 2;
-        const centerY = table.y + table.height / 2;
-        const radius = table.width / 2;
+        // Use table size for better click detection
+        const tableSize = Math.max(40, Math.min(120, table.data.tableSize * 10));
+        const centerX = table.x + tableSize / 2;
+        const centerY = table.y + tableSize / 2;
+        const radius = tableSize / 2 + 5; // Add 5px buffer for easier clicking
         const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
         if (distance <= radius) {
           return table;
