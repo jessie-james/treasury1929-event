@@ -76,34 +76,38 @@ export function VenueLayoutDesigner({
 
   // Check if mouse is over an object
   const getObjectAtPosition = useCallback((x: number, y: number) => {
-    // Check venue first
-    if (venueObject && 
+    // Check venue first (only if on step 1)
+    if (venueObject && currentStep === 1 &&
         x >= venueObject.x && x <= venueObject.x + venueObject.width &&
         y >= venueObject.y && y <= venueObject.y + venueObject.height) {
       return venueObject;
     }
     
-    // Check stages
-    for (const stage of stages) {
-      if (x >= stage.x && x <= stage.x + stage.width &&
-          y >= stage.y && y <= stage.y + stage.height) {
-        return stage;
+    // Check stages (only if on step 2)
+    if (currentStep === 2) {
+      for (const stage of stages) {
+        if (x >= stage.x && x <= stage.x + stage.width &&
+            y >= stage.y && y <= stage.y + stage.height) {
+          return stage;
+        }
       }
     }
     
-    // Check tables
-    for (const table of tables) {
-      const centerX = table.x + table.width / 2;
-      const centerY = table.y + table.height / 2;
-      const radius = table.width / 2;
-      const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-      if (distance <= radius) {
-        return table;
+    // Check tables (only if on step 3)
+    if (currentStep === 3) {
+      for (const table of tables) {
+        const centerX = table.x + table.width / 2;
+        const centerY = table.y + table.height / 2;
+        const radius = table.width / 2;
+        const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+        if (distance <= radius) {
+          return table;
+        }
       }
     }
     
     return null;
-  }, [venueObject, stages, tables]);
+  }, [venueObject, stages, tables, currentStep]);
 
   // Initialize venue object
   useEffect(() => {
