@@ -58,6 +58,31 @@ export const tickets = pgTable("tickets", {
   checkedInAt: timestamp("checked_in_at"),
 });
 
+// Venues Table
+export const venues = pgTable("venues", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  width: integer("width").default(1000).notNull(),
+  height: integer("height").default(700).notNull(),
+  bounds: json("bounds").$type<{x: number, y: number, width: number, height: number}>(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Stages Table
+export const stages = pgTable("stages", {
+  id: serial("id").primaryKey(),
+  venueId: integer("venue_id").notNull(),
+  name: varchar("name", { length: 100 }).default("Main Stage").notNull(),
+  x: integer("x").notNull(),
+  y: integer("y").notNull(),
+  width: integer("width").default(200).notNull(),
+  height: integer("height").default(100).notNull(),
+  rotation: integer("rotation").default(0),
+  isActive: boolean("is_active").default(true),
+});
+
 // Tables Table
 export const tables = pgTable("tables", {
   id: serial("id").primaryKey(),
@@ -67,7 +92,10 @@ export const tables = pgTable("tables", {
   floor: varchar("floor", { length: 50 }).default("main").notNull(),
   x: integer("x").notNull(),
   y: integer("y").notNull(),
-  shape: varchar("shape", { length: 20 }).default("round").notNull(),
+  width: integer("width").default(80).notNull(),
+  height: integer("height").default(80).notNull(),
+  shape: varchar("shape", { length: 20 }).default("full").notNull(), // 'full' or 'half' circle
+  tableSize: integer("table_size").default(8).notNull(), // 1-9 size scale
   status: varchar("status", { length: 20 }).default("available"),
   zone: varchar("zone", { length: 50 }),
   priceCategory: varchar("price_category", { length: 20 }).default("standard"),
@@ -84,15 +112,15 @@ export const seats = pgTable("seats", {
   yOffset: integer("y_offset").default(0),
 });
 
-// Bookings Table
+// Bookings Table - Updated for table-based booking
 export const bookings = pgTable("bookings", {
   id: serial("id").primaryKey(),
   eventId: integer("event_id").notNull(),
   userId: integer("user_id").notNull(),
   tableId: integer("table_id").notNull(),
-  seatNumbers: json("seat_numbers").$type<number[]>().notNull(),
+  partySize: integer("party_size").notNull(), // Number of people at the table
+  guestNames: json("guest_names").$type<string[]>().default([]), // Array of guest names
   foodSelections: json("food_selections").$type<any[]>().default([]),
-  guestNames: json("guest_names").$type<Record<string, string>>().default({}),
   customerEmail: varchar("customer_email", { length: 255 }).notNull(),
   stripePaymentId: varchar("stripe_payment_id", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -107,17 +135,16 @@ export const bookings = pgTable("bookings", {
   checkedInBy: integer("checked_in_by"),
 });
 
-// Unique constraint for bookings (one seat per event)
-// This constraint helps prevent double-bookings for the same seat at an event
-export const bookingSeatEventUnique = pgTable(
-  "booking_seat_event_unique",
+// Unique constraint for bookings (one table per event)
+// This constraint helps prevent double-bookings for the same table at an event
+export const bookingTableEventUnique = pgTable(
+  "booking_table_event_unique",
   {
     eventId: integer("event_id").notNull(),
     tableId: integer("table_id").notNull(),
-    seatNumber: integer("seat_number").notNull(),
   },
   (t) => ({
-    pk: primaryKey({ columns: [t.eventId, t.tableId, t.seatNumber] }),
+    pk: primaryKey({ columns: [t.eventId, t.tableId] }),
   })
 );
 
@@ -197,16 +224,40 @@ export const usersRelations = relations(users, ({ many }) => ({
   venueStaff: many(venueStaff),
 }));
 
-export const eventsRelations = relations(events, ({ many }) => ({
-  bookings: many(bookings),
-  tickets: many(tickets),
+export const venuesRelations = relations(venues, ({ many }) => ({
+  events: many(events),
+  tables: many(tables),
+  stages: many(stages),
+  floors: many(floors),
+  tableZones: many(tableZones),
+  layoutTemplates: many(venueLayoutTemplates),
 }));
 
-export const tablesRelations = relations(tables, ({ many }) => ({
+export const stagesRelations = relations(stages, ({ one }) => ({
+  venue: one(venues, {
+    fields: [stages.venueId],
+    references: [venues.id],
+  }),
+}));
+
+export const eventsRelations = relations(events, ({ many, one }) => ({
+  bookings: many(bookings),
+  tickets: many(tickets),
+  venue: one(venues, {
+    fields: [events.venueId],
+    references: [venues.id],
+  }),
+}));
+
+export const tablesRelations = relations(tables, ({ many, one }) => ({
   seats: many(seats),
   bookings: many(bookings),
   tickets: many(tickets),
   templateAssociations: many(templateTableAssociations),
+  venue: one(venues, {
+    fields: [tables.venueId],
+    references: [venues.id],
+  }),
 }));
 
 export const seatsRelations = relations(seats, ({ one }) => ({
@@ -254,15 +305,25 @@ export const venueStaffRelations = relations(venueStaff, ({ one }) => ({
 }));
 
 export const floorsRelations = relations(floors, ({ one }) => ({
-  // This would reference a venues table if it existed
+  venue: one(venues, {
+    fields: [floors.venueId],
+    references: [venues.id],
+  }),
 }));
 
 export const tableZonesRelations = relations(tableZones, ({ one }) => ({
-  // This would reference a venues table if it existed
+  venue: one(venues, {
+    fields: [tableZones.venueId],
+    references: [venues.id],
+  }),
 }));
 
-export const venueLayoutTemplatesRelations = relations(venueLayoutTemplates, ({ many }) => ({
+export const venueLayoutTemplatesRelations = relations(venueLayoutTemplates, ({ many, one }) => ({
   tableAssociations: many(templateTableAssociations),
+  venue: one(venues, {
+    fields: [venueLayoutTemplates.venueId],
+    references: [venues.id],
+  }),
 }));
 
 export const templateTableAssociationsRelations = relations(templateTableAssociations, ({ one }) => ({
@@ -278,6 +339,8 @@ export const templateTableAssociationsRelations = relations(templateTableAssocia
 
 // Schema validation with Zod
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
+export const insertVenueSchema = createInsertSchema(venues).omit({ id: true, createdAt: true });
+export const insertStageSchema = createInsertSchema(stages).omit({ id: true });
 export const insertEventSchema = createInsertSchema(events).omit({ id: true });
 export const insertTicketSchema = createInsertSchema(tickets).omit({ id: true, createdAt: true });
 export const insertTableSchema = createInsertSchema(tables).omit({ id: true });
@@ -293,6 +356,12 @@ export const insertTemplateTableAssociationSchema = createInsertSchema(templateT
 // Type definitions
 export type NewUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export type NewVenue = z.infer<typeof insertVenueSchema>;
+export type Venue = typeof venues.$inferSelect;
+
+export type NewStage = z.infer<typeof insertStageSchema>;
+export type Stage = typeof stages.$inferSelect;
 
 export type NewEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
@@ -328,6 +397,11 @@ export type NewTemplateTableAssociation = z.infer<typeof insertTemplateTableAsso
 export type TemplateTableAssociation = typeof templateTableAssociations.$inferSelect;
 
 // Extended types
+export interface VenueWithTables extends Venue {
+  tables: Table[];
+  stages: Stage[];
+}
+
 export interface TableWithSeats extends Table {
   seats: Seat[];
 }
