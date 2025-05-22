@@ -25,6 +25,7 @@ import PaymentLinksPage from "@/pages/backoffice/PaymentLinksPage";
 import LayoutSettingsPage from "@/pages/backoffice/LayoutSettingsPage";
 import SimpleLayoutEditorPage from "@/pages/backoffice/SimpleLayoutEditorPage";
 import BasicLayoutEditor from "@/pages/backoffice/BasicLayoutEditor";
+import VenueDesigner from "@/pages/admin/VenueDesigner";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import ProfilePage from "@/pages/ProfilePage";
 import StripeDiagnostics from "@/pages/StripeDiagnostics";
