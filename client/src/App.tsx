@@ -22,9 +22,7 @@ import LogsPage from "@/pages/backoffice/LogsPage";
 import BookingManagementPage from "@/pages/backoffice/BookingManagementPage";
 import EntrancePage from "@/pages/backoffice/EntrancePage";
 import PaymentLinksPage from "@/pages/backoffice/PaymentLinksPage";
-import LayoutSettingsPage from "@/pages/backoffice/LayoutSettingsPage";
-import SimpleLayoutEditorPage from "@/pages/backoffice/SimpleLayoutEditorPage";
-import BasicLayoutEditor from "@/pages/backoffice/BasicLayoutEditor";
+// Removed old layout components - now using VenueDesigner only
 import VenueDesigner from "@/pages/admin/VenueDesigner";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import ProfilePage from "@/pages/ProfilePage";
@@ -64,13 +62,10 @@ function Router() {
         <ProtectedRoute path="/backoffice/payment-links" component={PaymentLinksPage} />
         <ProtectedRoute path="/backoffice/events" component={EventsPage} />
         <ProtectedRoute path="/backoffice/food" component={FoodPage} />
-        <ProtectedRoute path="/backoffice/layout-settings" component={LayoutSettingsPage} requiredRole="admin" />
-        <ProtectedRoute path="/backoffice/simple-layout-editor" component={SimpleLayoutEditorPage} requiredRole="admin" />
-        <ProtectedRoute path="/backoffice/basic-layout-editor" component={BasicLayoutEditor} requiredRole="admin" />
+        <ProtectedRoute path="/backoffice/venue-designer" component={VenueDesigner} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/users" component={UsersPage} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/logs" component={LogsPage} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/stripe-diagnostics" component={StripeDiagnostics} requiredRole="admin" />
-        <ProtectedRoute path="/backoffice/venue-designer" component={VenueDesigner} requiredRole="admin" />
         <ProtectedRoute path="/dashboard" component={CustomerDashboard} />
         <Route path="/profile" component={ProfilePage} />
         <Route path="/standalone-payment/:reference" component={StandalonePaymentPage} />
