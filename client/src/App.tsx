@@ -69,6 +69,7 @@ function Router() {
         <ProtectedRoute path="/backoffice/users" component={UsersPage} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/logs" component={LogsPage} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/stripe-diagnostics" component={StripeDiagnostics} requiredRole="admin" />
+        <ProtectedRoute path="/backoffice/venue-designer" component={VenueDesigner} requiredRole="admin" />
         <ProtectedRoute path="/dashboard" component={CustomerDashboard} />
         <Route path="/profile" component={ProfilePage} />
         <Route path="/standalone-payment/:reference" component={StandalonePaymentPage} />

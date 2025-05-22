@@ -4,6 +4,7 @@ import { registerPaymentRoutes } from "./routes-payment";
 import { registerStandalonePaymentRoutes } from "./routes-standalone";
 import { registerOtpRoutes } from "./routes-otp";
 import { registerDirectPaymentRoutes } from "./routes-direct";
+import { registerVenueRoutes } from "./routes-venue";
 import { setupVite, log, serveStatic } from "./vite";
 import { storage } from "./storage";
 import cors from 'cors';
