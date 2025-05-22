@@ -1334,7 +1334,7 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const allBookings = await storage.getBookingWithDetails();
+      const allBookings = await storage.getBookings();
       const userBookings = allBookings.filter(booking => booking.userId === req.user?.id);
       res.json(userBookings);
     } catch (error) {

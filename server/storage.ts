@@ -501,35 +501,7 @@ export class PgStorage implements IStorage {
       .orderBy(desc(schema.adminLogs.createdAt));
   }
 
-  // Layout methods
-  async getFloors(venueId: number): Promise<any[]> {
-    return await db.select().from(schema.floors)
-      .where(and(eq(schema.floors.venueId, venueId), eq(schema.floors.isActive, true)));
-  }
-
-  async getZones(venueId: number): Promise<any[]> {
-    return await db.select().from(schema.tableZones)
-      .where(and(eq(schema.tableZones.venueId, venueId), eq(schema.tableZones.isActive, true)));
-  }
-
-  async getLayoutTemplates(venueId: number): Promise<any[]> {
-    return await db.select().from(schema.venueLayoutTemplates)
-      .where(and(eq(schema.venueLayoutTemplates.venueId, venueId), eq(schema.venueLayoutTemplates.isActive, true)));
-  }
-
-  async saveLayoutTemplate(venueId: number, templateData: any): Promise<any> {
-    const result = await db.insert(schema.venueLayoutTemplates)
-      .values({ ...templateData, venueId })
-      .returning();
-    return result[0];
-  }
-
-  async updateFloorImage(venueId: number, floorId: string, imageUrl: string): Promise<boolean> {
-    const result = await db.update(schema.floors)
-      .set({ image: imageUrl })
-      .where(and(eq(schema.floors.venueId, venueId), eq(schema.floors.floorKey, floorId)));
-    return result.rowCount > 0;
-  }
+  // Legacy layout methods removed - using simplified venue design
 }
 
 export const storage = new PgStorage();

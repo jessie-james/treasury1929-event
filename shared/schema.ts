@@ -269,10 +269,7 @@ export const insertSeatSchema = createInsertSchema(seats).omit({ id: true });
 export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true });
 export const insertMenuItemSchema = createInsertSchema(menuItems).omit({ id: true });
 export const insertVenueStaffSchema = createInsertSchema(venueStaff).omit({ id: true, hireDate: true });
-export const insertFloorSchema = createInsertSchema(floors).omit({ id: true });
-export const insertTableZoneSchema = createInsertSchema(tableZones).omit({ id: true });
-export const insertVenueLayoutTemplateSchema = createInsertSchema(venueLayoutTemplates).omit({ id: true, createdAt: true, lastModified: true });
-export const insertTemplateTableAssociationSchema = createInsertSchema(templateTableAssociations).omit({ id: true });
+// Old schema imports removed
 
 // Type definitions
 export type NewUser = z.infer<typeof insertUserSchema>;
@@ -305,17 +302,7 @@ export type MenuItem = typeof menuItems.$inferSelect;
 export type NewVenueStaff = z.infer<typeof insertVenueStaffSchema>;
 export type VenueStaff = typeof venueStaff.$inferSelect;
 
-export type NewFloor = z.infer<typeof insertFloorSchema>;
-export type Floor = typeof floors.$inferSelect;
-
-export type NewTableZone = z.infer<typeof insertTableZoneSchema>;
-export type TableZone = typeof tableZones.$inferSelect;
-
-export type NewVenueLayoutTemplate = z.infer<typeof insertVenueLayoutTemplateSchema>;
-export type VenueLayoutTemplate = typeof venueLayoutTemplates.$inferSelect;
-
-export type NewTemplateTableAssociation = z.infer<typeof insertTemplateTableAssociationSchema>;
-export type TemplateTableAssociation = typeof templateTableAssociations.$inferSelect;
+// Old type definitions removed
 
 // Extended types
 export interface VenueWithTables extends Venue {
