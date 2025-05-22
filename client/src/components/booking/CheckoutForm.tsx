@@ -21,7 +21,7 @@ import { OtpPaymentForm } from "./OtpPaymentForm";
 // recreating the Stripe object on every render
 // This is your test publishable API key.
 // Check for both possible variable names
-const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || import.meta.env.VITE_STRIPE_PUBLIC_KEY;
 
 if (!stripeKey) {
   console.error("Stripe publishable key is not defined. Please check your environment variables (VITE_STRIPE_PUBLIC_KEY or VITE_STRIPE_PUBLISHABLE_KEY).");
