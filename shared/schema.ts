@@ -172,51 +172,7 @@ export const venueStaff = pgTable("venue_staff", {
   hireDate: timestamp("hire_date").defaultNow().notNull(),
 });
 
-// Floors Table (New addition for layout management)
-export const floors = pgTable("floors", {
-  id: serial("id").primaryKey(),
-  venueId: integer("venue_id").notNull(),
-  name: varchar("name", { length: 100 }).notNull(),
-  floorKey: varchar("floor_key", { length: 50 }).notNull(),
-  image: varchar("image", { length: 255 }),
-  isActive: boolean("is_active").default(true),
-  displayOrder: integer("display_order").default(0),
-});
-
-// Table Zones Table (New addition for layout management)
-export const tableZones = pgTable("table_zones", {
-  id: serial("id").primaryKey(),
-  venueId: integer("venue_id").notNull(),
-  name: varchar("name", { length: 100 }).notNull(),
-  color: varchar("color", { length: 7 }).notNull(),
-  isActive: boolean("is_active").default(true),
-});
-
-// Venue Layout Templates Table (New addition for layout management)
-export const venueLayoutTemplates = pgTable("venue_layout_templates", {
-  id: serial("id").primaryKey(),
-  venueId: integer("venue_id").notNull(),
-  name: varchar("name", { length: 100 }).notNull(),
-  description: text("description"),
-  isActive: boolean("is_active").default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  lastModified: timestamp("last_modified").defaultNow().notNull(),
-});
-
-// Table template associations (New addition for layout management)
-export const templateTableAssociations = pgTable("template_table_associations", {
-  id: serial("id").primaryKey(),
-  templateId: integer("template_id").notNull(),
-  tableId: integer("table_id").notNull(),
-  overrideX: integer("override_x"),
-  overrideY: integer("override_y"),
-  overrideShape: varchar("override_shape", { length: 20 }),
-  overrideStatus: varchar("override_status", { length: 20 }),
-  overrideZone: varchar("override_zone", { length: 50 }),
-  overridePriceCategory: varchar("override_price_category", { length: 20 }),
-}, (t) => ({
-  uniqueConstraint: unique().on(t.templateId, t.tableId),
-}));
+// Old floor and template tables removed - using simplified venue design
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
@@ -228,9 +184,6 @@ export const venuesRelations = relations(venues, ({ many }) => ({
   events: many(events),
   tables: many(tables),
   stages: many(stages),
-  floors: many(floors),
-  tableZones: many(tableZones),
-  layoutTemplates: many(venueLayoutTemplates),
 }));
 
 export const stagesRelations = relations(stages, ({ one }) => ({
@@ -253,7 +206,6 @@ export const tablesRelations = relations(tables, ({ many, one }) => ({
   seats: many(seats),
   bookings: many(bookings),
   tickets: many(tickets),
-  templateAssociations: many(templateTableAssociations),
   venue: one(venues, {
     fields: [tables.venueId],
     references: [venues.id],
@@ -304,38 +256,7 @@ export const venueStaffRelations = relations(venueStaff, ({ one }) => ({
   }),
 }));
 
-export const floorsRelations = relations(floors, ({ one }) => ({
-  venue: one(venues, {
-    fields: [floors.venueId],
-    references: [venues.id],
-  }),
-}));
-
-export const tableZonesRelations = relations(tableZones, ({ one }) => ({
-  venue: one(venues, {
-    fields: [tableZones.venueId],
-    references: [venues.id],
-  }),
-}));
-
-export const venueLayoutTemplatesRelations = relations(venueLayoutTemplates, ({ many, one }) => ({
-  tableAssociations: many(templateTableAssociations),
-  venue: one(venues, {
-    fields: [venueLayoutTemplates.venueId],
-    references: [venues.id],
-  }),
-}));
-
-export const templateTableAssociationsRelations = relations(templateTableAssociations, ({ one }) => ({
-  template: one(venueLayoutTemplates, {
-    fields: [templateTableAssociations.templateId],
-    references: [venueLayoutTemplates.id],
-  }),
-  table: one(tables, {
-    fields: [templateTableAssociations.tableId],
-    references: [tables.id],
-  }),
-}));
+// Old relations removed
 
 // Schema validation with Zod
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
