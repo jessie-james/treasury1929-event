@@ -1,7 +1,7 @@
 import {
   type User, type Event, type Ticket, type Booking, type BookingWithDetails,
   type Table, type Seat, type TableWithSeats, type MenuItem, type VenueStaff,
-  type InsertAdminLog, type AdminLog
+  type InsertAdminLog, type AdminLog, type Venue, type Stage, type VenueWithTables
 } from "@shared/schema";
 
 /**

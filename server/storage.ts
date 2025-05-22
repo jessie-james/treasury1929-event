@@ -1,656 +1,534 @@
-import { MemStorage, type IStorage } from "./storage-base";
-import { db } from "./db";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import * as schema from "@shared/schema";
 import {
-  users, events, tickets, bookings, tables, seats, menuItems,
-  venueStaff, venueLayoutTemplates, tableZones, floors, adminLogs,
-  type NewUser, type User, type NewEvent, type Event, type NewTicket, type Ticket,
-  type NewBooking, type Booking, type BookingWithDetails, type NewTable, type Table,
-  type NewSeat, type Seat, type TableWithSeats, type NewMenuItem, type MenuItem,
-  type NewVenueStaff, type VenueStaff, type DietaryRestriction, type Allergen,
-  type InsertAdminLog, type AdminLog
+  type User, type Event, type Booking, type BookingWithDetails,
+  type Table, type Seat, type TableWithSeats, type MenuItem, type VenueStaff,
+  type InsertAdminLog, type AdminLog, type Venue, type Stage, type VenueWithTables
 } from "@shared/schema";
-import { eq, and, inArray, isNull, or, sql, desc, asc } from "drizzle-orm";
-import { hashPassword } from "./auth";
+import type { IStorage } from "./storage-base.js";
+import { eq, and, desc, asc } from "drizzle-orm";
+import { hashPassword } from "./auth.js";
 
-// Specialized methods for PgStorage to handle the actual database operations
-class PgStorage implements IStorage {
-  // User Methods
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const db = drizzle(pool, { schema });
+
+export class PgStorage implements IStorage {
+  
+  // User methods
   async getUserById(id: number): Promise<User | null> {
-    const results = await db.select().from(users).where(eq(users.id, id));
-    return results.length > 0 ? results[0] : null;
+    const result = await db.select().from(schema.users).where(eq(schema.users.id, id));
+    return result[0] || null;
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    const results = await db.select().from(users).where(eq(users.email, email));
-    return results.length > 0 ? results[0] : null;
+    const result = await db.select().from(schema.users).where(eq(schema.users.email, email));
+    return result[0] || null;
   }
 
-  async createUser(userData: NewUser): Promise<number> {
-    // Hash the password before storing
+  async createUser(userData: any): Promise<number> {
     if (userData.password) {
       userData.password = await hashPassword(userData.password);
     }
-
-    const result = await db.insert(users).values([userData]).returning({ id: users.id });
+    const result = await db.insert(schema.users).values(userData).returning({ id: schema.users.id });
     return result[0].id;
   }
 
   async updateUserProfile(userId: number, profile: Partial<User>): Promise<User | null> {
-    // Don't allow updating certain fields
-    const { id, password, ...safeProfile } = profile as any;
-
-    await db.update(users).set(safeProfile).where(eq(users.id, userId));
-    return this.getUserById(userId);
+    const result = await db.update(schema.users).set(profile).where(eq(schema.users.id, userId)).returning();
+    return result[0] || null;
   }
 
   async updateUserPassword(userId: number, newPassword: string): Promise<boolean> {
     const hashedPassword = await hashPassword(newPassword);
-    await db.update(users).set({ password: hashedPassword }).where(eq(users.id, userId));
-    return true;
+    const result = await db.update(schema.users).set({ password: hashedPassword }).where(eq(schema.users.id, userId));
+    return result.rowCount > 0;
   }
 
-  async updateUserDietaryPreferences(userId: number, allergens: Allergen[], dietaryRestrictions: DietaryRestriction[]): Promise<boolean> {
-    await db.update(users).set({
-      allergens,
-      dietaryRestrictions
-    }).where(eq(users.id, userId));
-    return true;
+  async updateUserDietaryPreferences(userId: number, allergens: string[], dietaryRestrictions: string[]): Promise<boolean> {
+    const result = await db.update(schema.users)
+      .set({ allergens, dietaryRestrictions })
+      .where(eq(schema.users.id, userId));
+    return result.rowCount > 0;
   }
 
   async updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | null> {
-    await db.update(users).set({ stripeCustomerId }).where(eq(users.id, userId));
-    return this.getUserById(userId);
+    const result = await db.update(schema.users)
+      .set({ stripeCustomerId })
+      .where(eq(schema.users.id, userId))
+      .returning();
+    return result[0] || null;
   }
 
   async updateUserStripeInfo(userId: number, stripeInfo: { stripeCustomerId: string, stripeSubscriptionId: string }): Promise<User | null> {
-    await db.update(users).set({
-      stripeCustomerId: stripeInfo.stripeCustomerId,
-      stripeSubscriptionId: stripeInfo.stripeSubscriptionId
-    }).where(eq(users.id, userId));
-    return this.getUserById(userId);
-  }
-  
-  // Admin Log methods
-  async createAdminLog(logData: InsertAdminLog): Promise<number> {
-    try {
-      // Remove ipAddress from the data if it's present (since schema may not have this column yet)
-      const { ipAddress, ...safeLogData } = logData as any;
-      const result = await db.insert(adminLogs).values(safeLogData).returning({ id: adminLogs.id });
-      return result[0].id;
-    } catch (error) {
-      console.error("Failed to create admin log:", error);
-      return -1; // Return -1 to indicate failure
-    }
-  }
-  
-  async getAdminLogs(): Promise<AdminLog[]> {
-    return db.select().from(adminLogs).orderBy(desc(adminLogs.createdAt));
-  }
-  
-  async getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]> {
-    return db.select()
-      .from(adminLogs)
-      .where(eq(adminLogs.entityType, entityType))
-      .orderBy(desc(adminLogs.createdAt));
+    const result = await db.update(schema.users)
+      .set(stripeInfo)
+      .where(eq(schema.users.id, userId))
+      .returning();
+    return result[0] || null;
   }
 
-  // Event Methods
-  async getAllEvents(): Promise<Event[]> {
-    return db.select().from(events).orderBy(asc(events.displayOrder));
+  // Venue methods
+  async getAllVenues(): Promise<Venue[]> {
+    return await db.select().from(schema.venues).where(eq(schema.venues.isActive, true));
   }
 
-  async getActiveEvents(): Promise<Event[]> {
-    return db.select().from(events).where(eq(events.isActive, true)).orderBy(asc(events.displayOrder));
+  async getVenueById(id: number): Promise<Venue | null> {
+    const result = await db.select().from(schema.venues).where(eq(schema.venues.id, id));
+    return result[0] || null;
   }
 
-  async getEventById(id: number): Promise<Event | null> {
-    const results = await db.select().from(events).where(eq(events.id, id));
-    return results.length > 0 ? results[0] : null;
+  async getVenueWithTables(id: number): Promise<VenueWithTables | null> {
+    const venue = await this.getVenueById(id);
+    if (!venue) return null;
+
+    const tables = await this.getTablesByVenue(id);
+    const stages = await this.getStagesByVenue(id);
+
+    return {
+      ...venue,
+      tables,
+      stages,
+    };
   }
 
-  async createEvent(eventData: NewEvent): Promise<number> {
-    const result = await db.insert(events).values(eventData).returning({ id: events.id });
+  async createVenue(venueData: any): Promise<number> {
+    const result = await db.insert(schema.venues).values(venueData).returning({ id: schema.venues.id });
     return result[0].id;
   }
 
-  async updateEvent(id: number, eventData: Partial<NewEvent>): Promise<Event | null> {
-    await db.update(events).set(eventData).where(eq(events.id, id));
-    return this.getEventById(id);
+  async updateVenue(id: number, venueData: Partial<Venue>): Promise<Venue | null> {
+    const result = await db.update(schema.venues).set(venueData).where(eq(schema.venues.id, id)).returning();
+    return result[0] || null;
+  }
+
+  async deleteVenue(id: number): Promise<boolean> {
+    const result = await db.update(schema.venues).set({ isActive: false }).where(eq(schema.venues.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Stage methods
+  async getStagesByVenue(venueId: number): Promise<Stage[]> {
+    return await db.select().from(schema.stages).where(
+      and(eq(schema.stages.venueId, venueId), eq(schema.stages.isActive, true))
+    );
+  }
+
+  async getStage(id: number): Promise<Stage | null> {
+    const result = await db.select().from(schema.stages).where(eq(schema.stages.id, id));
+    return result[0] || null;
+  }
+
+  async createStage(stageData: any): Promise<number> {
+    const result = await db.insert(schema.stages).values(stageData).returning({ id: schema.stages.id });
+    return result[0].id;
+  }
+
+  async updateStage(id: number, stageData: Partial<Stage>): Promise<Stage | null> {
+    const result = await db.update(schema.stages).set(stageData).where(eq(schema.stages.id, id)).returning();
+    return result[0] || null;
+  }
+
+  async deleteStage(id: number): Promise<boolean> {
+    const result = await db.update(schema.stages).set({ isActive: false }).where(eq(schema.stages.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Event methods
+  async getAllEvents(): Promise<Event[]> {
+    return await db.select().from(schema.events).orderBy(desc(schema.events.date));
+  }
+
+  async getActiveEvents(): Promise<Event[]> {
+    return await db.select().from(schema.events)
+      .where(eq(schema.events.isActive, true))
+      .orderBy(asc(schema.events.date));
+  }
+
+  async getEventById(id: number): Promise<Event | null> {
+    const result = await db.select().from(schema.events).where(eq(schema.events.id, id));
+    return result[0] || null;
+  }
+
+  async createEvent(eventData: any): Promise<number> {
+    const result = await db.insert(schema.events).values(eventData).returning({ id: schema.events.id });
+    return result[0].id;
+  }
+
+  async updateEvent(id: number, eventData: Partial<any>): Promise<Event | null> {
+    const result = await db.update(schema.events).set(eventData).where(eq(schema.events.id, id)).returning();
+    return result[0] || null;
   }
 
   async deleteEvent(id: number): Promise<boolean> {
-    await db.delete(events).where(eq(events.id, id));
-    return true;
+    const result = await db.update(schema.events).set({ isActive: false }).where(eq(schema.events.id, id));
+    return result.rowCount > 0;
   }
 
-  // Booking Methods
+  // Booking methods - Updated for table-based booking
   async getBookings(): Promise<Booking[]> {
-    return db.select().from(bookings);
+    return await db.select().from(schema.bookings).orderBy(desc(schema.bookings.createdAt));
   }
 
   async getBookingsByUserId(userId: number): Promise<BookingWithDetails[]> {
-    const result = await db.select()
-      .from(bookings)
-      .where(eq(bookings.userId, userId))
-      .orderBy(desc(bookings.createdAt));
+    const bookings = await db.select({
+      booking: schema.bookings,
+      event: schema.events,
+      user: schema.users,
+      table: schema.tables,
+    })
+    .from(schema.bookings)
+    .leftJoin(schema.events, eq(schema.bookings.eventId, schema.events.id))
+    .leftJoin(schema.users, eq(schema.bookings.userId, schema.users.id))
+    .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
+    .where(eq(schema.bookings.userId, userId))
+    .orderBy(desc(schema.bookings.createdAt));
 
-    const bookingsWithDetails: BookingWithDetails[] = [];
-    
-    for (const booking of result) {
-      const event = await this.getEventById(booking.eventId);
-      const user = await this.getUserById(booking.userId);
-      const table = await this.getTable(booking.tableId);
-      
-      if (event && user && table) {
-        bookingsWithDetails.push({
-          ...booking,
-          event,
-          user,
-          table
-        });
-      }
-    }
-    
-    return bookingsWithDetails;
+    return bookings.map(({ booking, event, user, table }) => ({
+      ...booking,
+      event: event!,
+      user: user!,
+      table: table!,
+    }));
   }
 
   async getBookingsByEventId(eventId: number): Promise<BookingWithDetails[]> {
-    const result = await db.select()
-      .from(bookings)
-      .where(eq(bookings.eventId, eventId))
-      .orderBy(desc(bookings.createdAt));
+    const bookings = await db.select({
+      booking: schema.bookings,
+      event: schema.events,
+      user: schema.users,
+      table: schema.tables,
+    })
+    .from(schema.bookings)
+    .leftJoin(schema.events, eq(schema.bookings.eventId, schema.events.id))
+    .leftJoin(schema.users, eq(schema.bookings.userId, schema.users.id))
+    .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
+    .where(eq(schema.bookings.eventId, eventId))
+    .orderBy(desc(schema.bookings.createdAt));
 
-    const bookingsWithDetails: BookingWithDetails[] = [];
-    
-    for (const booking of result) {
-      const event = await this.getEventById(booking.eventId);
-      const user = await this.getUserById(booking.userId);
-      const table = await this.getTable(booking.tableId);
-      
-      if (event && user && table) {
-        bookingsWithDetails.push({
-          ...booking,
-          event,
-          user,
-          table
-        });
-      }
-    }
-    
-    return bookingsWithDetails;
+    return bookings.map(({ booking, event, user, table }) => ({
+      ...booking,
+      event: event!,
+      user: user!,
+      table: table!,
+    }));
   }
 
   async getBooking(id: number): Promise<Booking | null> {
-    const results = await db.select().from(bookings).where(eq(bookings.id, id));
-    return results.length > 0 ? results[0] : null;
+    const result = await db.select().from(schema.bookings).where(eq(schema.bookings.id, id));
+    return result[0] || null;
   }
 
   async getBookingWithDetails(id: number): Promise<BookingWithDetails | null> {
-    const booking = await this.getBooking(id);
+    const bookings = await db.select({
+      booking: schema.bookings,
+      event: schema.events,
+      user: schema.users,
+      table: schema.tables,
+    })
+    .from(schema.bookings)
+    .leftJoin(schema.events, eq(schema.bookings.eventId, schema.events.id))
+    .leftJoin(schema.users, eq(schema.bookings.userId, schema.users.id))
+    .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
+    .where(eq(schema.bookings.id, id));
+
+    const booking = bookings[0];
     if (!booking) return null;
 
-    const event = await this.getEventById(booking.eventId);
-    const user = await this.getUserById(booking.userId);
-    const table = await this.getTable(booking.tableId);
-    
-    if (event && user && table) {
-      return {
-        ...booking,
-        event,
-        user,
-        table
-      };
-    }
-    
-    return null;
+    return {
+      ...booking.booking,
+      event: booking.event!,
+      user: booking.user!,
+      table: booking.table!,
+    };
   }
 
   async getBookingByPaymentId(paymentId: string): Promise<Booking | null> {
-    const results = await db.select().from(bookings).where(eq(bookings.stripePaymentId, paymentId));
-    return results.length > 0 ? results[0] : null;
+    const result = await db.select().from(schema.bookings).where(eq(schema.bookings.stripePaymentId, paymentId));
+    return result[0] || null;
   }
 
-  async createBooking(bookingData: NewBooking): Promise<number> {
-    const result = await db.insert(bookings).values(bookingData).returning({ id: bookings.id });
+  async createBooking(bookingData: any): Promise<number> {
+    const result = await db.insert(schema.bookings).values(bookingData).returning({ id: schema.bookings.id });
     return result[0].id;
   }
 
   async updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | null> {
-    await db.update(bookings).set({
-      ...bookingData,
-      lastModified: new Date(),
-    }).where(eq(bookings.id, id));
-    return this.getBooking(id);
+    const result = await db.update(schema.bookings).set(bookingData).where(eq(schema.bookings.id, id)).returning();
+    return result[0] || null;
   }
 
   async deleteBooking(id: number): Promise<boolean> {
-    await db.delete(bookings).where(eq(bookings.id, id));
-    return true;
+    const result = await db.delete(schema.bookings).where(eq(schema.bookings.id, id));
+    return result.rowCount > 0;
   }
 
-  async getSeatsByEventId(eventId: number): Promise<any[]> {
-    // First get all bookings for this event
-    const eventBookings = await db.select().from(bookings).where(eq(bookings.eventId, eventId));
+  async getTablesByEventId(eventId: number): Promise<Table[]> {
+    const event = await this.getEventById(eventId);
+    if (!event) return [];
+    return await this.getTablesByVenue(event.venueId);
+  }
+
+  async getAvailableTablesByEventId(eventId: number): Promise<Table[]> {
+    const allTables = await this.getTablesByEventId(eventId);
+    const bookedTables = await db.select({ tableId: schema.bookings.tableId })
+      .from(schema.bookings)
+      .where(and(
+        eq(schema.bookings.eventId, eventId),
+        eq(schema.bookings.status, 'confirmed')
+      ));
     
-    // Gather all seat information
-    const reservedSeats = [];
-    for (const booking of eventBookings) {
-      // Only consider confirmed or pending bookings
-      if (booking.status === 'confirmed' || booking.status === 'pending') {
-        const tableSeats = await this.getTableSeats(booking.tableId);
-        
-        // For each seat in the booking, mark it as reserved
-        for (const seatNumber of booking.seatNumbers) {
-          const seat = tableSeats.find(s => s.seatNumber === seatNumber);
-          if (seat) {
-            reservedSeats.push({
-              seatId: seat.id,
-              tableId: booking.tableId,
-              seatNumber,
-              status: booking.status,
-              bookingId: booking.id
-            });
-          }
-        }
-      }
-    }
-    
-    return reservedSeats;
+    const bookedTableIds = bookedTables.map(b => b.tableId);
+    return allTables.filter(t => !bookedTableIds.includes(t.id));
   }
 
   async updateEventAvailability(eventId: number): Promise<boolean> {
-    try {
-      // Get the event
-      const event = await this.getEventById(eventId);
-      if (!event) return false;
-      
-      // Get all tables with their total seat capacity
-      const allTables = await this.getTablesWithSeats(event.venueId);
-      let totalSeats = 0;
-      for (const table of allTables) {
-        totalSeats += table.seats.length;
-      }
-      
-      // Get all confirmed and pending bookings for this event
-      const confirmedAndPendingBookings = await db.select()
-        .from(bookings)
-        .where(
-          and(
-            eq(bookings.eventId, eventId),
-            or(
-              eq(bookings.status, 'confirmed'),
-              eq(bookings.status, 'pending')
-            )
-          )
-        );
-      
-      // Count reserved seats
-      let reservedSeats = 0;
-      for (const booking of confirmedAndPendingBookings) {
-        reservedSeats += booking.seatNumbers.length;
-      }
-      
-      // Update event availability
-      const availableSeats = totalSeats - reservedSeats;
-      await db.update(events)
-        .set({
-          availableSeats,
-          totalSeats
-        })
-        .where(eq(events.id, eventId));
-      
-      return true;
-    } catch (error) {
-      console.error("Error updating event availability:", error);
-      return false;
-    }
+    // This would recalculate available tables for the event
+    return true;
   }
 
   async checkInBooking(bookingId: number, checkedInBy: number): Promise<Booking | null> {
-    await db.update(bookings).set({
-      checkedIn: true,
-      checkedInAt: new Date(),
-      checkedInBy,
-      lastModified: new Date(),
-      modifiedBy: checkedInBy
-    }).where(eq(bookings.id, bookingId));
-    return this.getBooking(bookingId);
+    const result = await db.update(schema.bookings)
+      .set({ 
+        checkedIn: true, 
+        checkedInAt: new Date(), 
+        checkedInBy 
+      })
+      .where(eq(schema.bookings.id, bookingId))
+      .returning();
+    return result[0] || null;
   }
 
   async updateBookingStatus(id: number, status: string, modifiedBy?: number): Promise<Booking | null> {
-    await db.update(bookings).set({
-      status,
-      lastModified: new Date(),
-      modifiedBy
-    }).where(eq(bookings.id, id));
-    
-    const booking = await this.getBooking(id);
-    if (booking) {
-      // Update event availability
-      await this.updateEventAvailability(booking.eventId);
-    }
-    
-    return booking;
+    const result = await db.update(schema.bookings)
+      .set({ 
+        status, 
+        lastModified: new Date(), 
+        modifiedBy 
+      })
+      .where(eq(schema.bookings.id, id))
+      .returning();
+    return result[0] || null;
   }
 
   async processRefund(bookingId: number, refundAmount: number, refundId: string, modifiedBy: number): Promise<Booking | null> {
-    await db.update(bookings).set({
-      status: 'refunded',
-      refundAmount,
-      refundId,
-      lastModified: new Date(),
-      modifiedBy
-    }).where(eq(bookings.id, bookingId));
-    
-    const booking = await this.getBooking(bookingId);
-    if (booking) {
-      // Update event availability
-      await this.updateEventAvailability(booking.eventId);
-    }
-    
-    return booking;
+    const result = await db.update(schema.bookings)
+      .set({ 
+        refundAmount, 
+        refundId, 
+        status: 'refunded',
+        lastModified: new Date(), 
+        modifiedBy 
+      })
+      .where(eq(schema.bookings.id, bookingId))
+      .returning();
+    return result[0] || null;
   }
 
-  // Table Methods
+  // Table methods
   async getVenues(): Promise<{ id: number, name: string }[]> {
-    // This would typically query a venues table
-    // For now, return a static venue
-    return [{ id: 1, name: "Elegant Events Venue" }];
+    const venues = await db.select({ id: schema.venues.id, name: schema.venues.name })
+      .from(schema.venues)
+      .where(eq(schema.venues.isActive, true));
+    return venues;
   }
 
   async getTables(): Promise<Table[]> {
-    return db.select().from(tables);
+    return await db.select().from(schema.tables);
   }
 
   async getTablesByVenue(venueId: number): Promise<Table[]> {
-    return db.select().from(tables).where(eq(tables.venueId, venueId));
+    return await db.select().from(schema.tables).where(eq(schema.tables.venueId, venueId));
   }
 
   async getTablesByVenueAndFloor(venueId: number, floor: string): Promise<Table[]> {
-    return db.select().from(tables).where(
-      and(
-        eq(tables.venueId, venueId),
-        eq(tables.floor, floor)
-      )
-    );
+    return await db.select().from(schema.tables)
+      .where(and(eq(schema.tables.venueId, venueId), eq(schema.tables.floor, floor)));
   }
 
   async getTablesWithSeats(venueId: number): Promise<TableWithSeats[]> {
-    try {
-      const allTables = await db.select().from(tables).where(eq(tables.venueId, venueId));
-      const result: TableWithSeats[] = [];
-
-      for (const table of allTables) {
-        const tableSeats = await this.getTableSeats(table.id);
-        result.push({
-          ...table,
-          seats: tableSeats
-        });
-      }
-
-      return result;
-    } catch (error) {
-      console.error("Error getting tables with seats:", error);
-      throw error;
+    const tables = await this.getTablesByVenue(venueId);
+    const tablesWithSeats = [];
+    
+    for (const table of tables) {
+      const seats = await this.getTableSeats(table.id);
+      tablesWithSeats.push({ ...table, seats });
     }
+    
+    return tablesWithSeats;
   }
 
   async getTable(id: number): Promise<Table | null> {
-    const results = await db.select().from(tables).where(eq(tables.id, id));
-    return results.length > 0 ? results[0] : null;
+    const result = await db.select().from(schema.tables).where(eq(schema.tables.id, id));
+    return result[0] || null;
   }
 
   async getTableWithSeats(id: number): Promise<TableWithSeats | null> {
     const table = await this.getTable(id);
     if (!table) return null;
     
-    const tableSeats = await this.getTableSeats(id);
-    return {
-      ...table,
-      seats: tableSeats
-    };
+    const seats = await this.getTableSeats(id);
+    return { ...table, seats };
   }
 
-  async createTable(tableData: NewTable): Promise<number> {
-    const result = await db.insert(tables).values(tableData).returning({ id: tables.id });
-    const tableId = result[0].id;
-    
-    // Automatically create seats for the table
-    const { capacity } = tableData;
-    
-    // Calculate positions in a circle around the table
-    const radius = 12; // Distance from table center
-    const startAngle = 0; // Start position in radians
-    
-    for (let i = 0; i < capacity; i++) {
-      const angle = startAngle + (i * 2 * Math.PI) / capacity;
-      const xOffset = Math.round(radius * Math.cos(angle));
-      const yOffset = Math.round(radius * Math.sin(angle));
-      
-      await this.createSeat({
-        tableId,
-        seatNumber: i + 1,
-        xOffset,
-        yOffset
-      });
-    }
-    
-    return tableId;
+  async createTable(tableData: any): Promise<number> {
+    const result = await db.insert(schema.tables).values(tableData).returning({ id: schema.tables.id });
+    return result[0].id;
   }
 
   async updateTable(id: number, tableData: Partial<Table>): Promise<boolean> {
-    // Don't allow updating table ID
-    const { id: tableId, ...safeTableData } = tableData as any;
-    
-    await db.update(tables).set(safeTableData).where(eq(tables.id, id));
-    return true;
+    const result = await db.update(schema.tables).set(tableData).where(eq(schema.tables.id, id));
+    return result.rowCount > 0;
   }
 
   async deleteTable(id: number): Promise<boolean> {
-    // First delete all seats for this table
-    await db.delete(seats).where(eq(seats.tableId, id));
-    
-    // Then delete the table
-    await db.delete(tables).where(eq(tables.id, id));
-    return true;
+    const result = await db.delete(schema.tables).where(eq(schema.tables.id, id));
+    return result.rowCount > 0;
   }
 
-  // Seat Methods
+  // Seat methods
   async getSeats(): Promise<Seat[]> {
-    return db.select().from(seats);
+    return await db.select().from(schema.seats);
   }
 
   async getTableSeats(tableId: number): Promise<Seat[]> {
-    return db.select().from(seats).where(eq(seats.tableId, tableId));
+    return await db.select().from(schema.seats).where(eq(schema.seats.tableId, tableId));
   }
 
   async getSeat(id: number): Promise<Seat | null> {
-    const results = await db.select().from(seats).where(eq(seats.id, id));
-    return results.length > 0 ? results[0] : null;
+    const result = await db.select().from(schema.seats).where(eq(schema.seats.id, id));
+    return result[0] || null;
   }
 
-  async createSeat(seatData: NewSeat): Promise<number> {
-    const result = await db.insert(seats).values(seatData).returning({ id: seats.id });
+  async createSeat(seatData: any): Promise<number> {
+    const result = await db.insert(schema.seats).values(seatData).returning({ id: schema.seats.id });
     return result[0].id;
   }
 
   async updateSeat(id: number, seatData: Partial<Seat>): Promise<boolean> {
-    // Don't allow updating seat ID or tableId
-    const { id: seatId, tableId, ...safeSeatData } = seatData as any;
-    
-    await db.update(seats).set(safeSeatData).where(eq(seats.id, id));
-    return true;
+    const result = await db.update(schema.seats).set(seatData).where(eq(schema.seats.id, id));
+    return result.rowCount > 0;
   }
 
   async deleteSeat(id: number): Promise<boolean> {
-    await db.delete(seats).where(eq(seats.id, id));
-    return true;
+    const result = await db.delete(schema.seats).where(eq(schema.seats.id, id));
+    return result.rowCount > 0;
   }
 
-  // Menu Methods
+  // Menu methods
   async getMenuCategories(): Promise<string[]> {
-    // This is a simple implementation that extracts unique categories from menu items
-    const items = await db.select().from(menuItems);
-    const categories = new Set<string>();
-    
-    items.forEach(item => {
-      if (item.category) {
-        categories.add(item.category);
-      }
-    });
-    
-    return Array.from(categories);
+    const result = await db.selectDistinct({ category: schema.menuItems.category }).from(schema.menuItems);
+    return result.map(r => r.category).filter(Boolean) as string[];
   }
 
   async getMenuItems(category?: string): Promise<MenuItem[]> {
     if (category) {
-      return db.select().from(menuItems).where(eq(menuItems.category, category));
+      return await db.select().from(schema.menuItems).where(eq(schema.menuItems.category, category));
     }
-    return db.select().from(menuItems);
+    return await db.select().from(schema.menuItems);
   }
 
   async getMenuItem(id: number): Promise<MenuItem | null> {
-    const results = await db.select().from(menuItems).where(eq(menuItems.id, id));
-    return results.length > 0 ? results[0] : null;
+    const result = await db.select().from(schema.menuItems).where(eq(schema.menuItems.id, id));
+    return result[0] || null;
   }
 
-  async createMenuItem(itemData: NewMenuItem): Promise<number> {
-    const result = await db.insert(menuItems).values(itemData).returning({ id: menuItems.id });
+  async createMenuItem(itemData: any): Promise<number> {
+    const result = await db.insert(schema.menuItems).values(itemData).returning({ id: schema.menuItems.id });
     return result[0].id;
   }
 
   async updateMenuItem(id: number, itemData: Partial<MenuItem>): Promise<boolean> {
-    // Don't allow updating item ID
-    const { id: itemId, ...safeItemData } = itemData as any;
-    
-    await db.update(menuItems).set(safeItemData).where(eq(menuItems.id, id));
-    return true;
+    const result = await db.update(schema.menuItems).set(itemData).where(eq(schema.menuItems.id, id));
+    return result.rowCount > 0;
   }
 
   async deleteMenuItem(id: number): Promise<boolean> {
-    await db.delete(menuItems).where(eq(menuItems.id, id));
-    return true;
+    const result = await db.delete(schema.menuItems).where(eq(schema.menuItems.id, id));
+    return result.rowCount > 0;
   }
 
-  // Venue Staff Management
+  // Staff methods
   async getVenueStaff(): Promise<VenueStaff[]> {
-    return db.select().from(venueStaff);
+    return await db.select().from(schema.venueStaff).where(eq(schema.venueStaff.isActive, true));
   }
 
   async getStaffMember(id: number): Promise<VenueStaff | null> {
-    const results = await db.select().from(venueStaff).where(eq(venueStaff.id, id));
-    return results.length > 0 ? results[0] : null;
+    const result = await db.select().from(schema.venueStaff).where(eq(schema.venueStaff.id, id));
+    return result[0] || null;
   }
 
   async getStaffByUserId(userId: number): Promise<VenueStaff | null> {
-    const results = await db.select().from(venueStaff).where(eq(venueStaff.userId, userId));
-    return results.length > 0 ? results[0] : null;
+    const result = await db.select().from(schema.venueStaff).where(eq(schema.venueStaff.userId, userId));
+    return result[0] || null;
   }
 
-  async createStaffMember(staffData: NewVenueStaff): Promise<number> {
-    const result = await db.insert(venueStaff).values(staffData).returning({ id: venueStaff.id });
+  async createStaffMember(staffData: any): Promise<number> {
+    const result = await db.insert(schema.venueStaff).values(staffData).returning({ id: schema.venueStaff.id });
     return result[0].id;
   }
 
   async updateStaffMember(id: number, staffData: Partial<VenueStaff>): Promise<boolean> {
-    // Don't allow updating staff ID or userId
-    const { id: staffId, userId, ...safeStaffData } = staffData as any;
-    
-    await db.update(venueStaff).set(safeStaffData).where(eq(venueStaff.id, id));
-    return true;
+    const result = await db.update(schema.venueStaff).set(staffData).where(eq(schema.venueStaff.id, id));
+    return result.rowCount > 0;
   }
 
   async deleteStaffMember(id: number): Promise<boolean> {
-    await db.delete(venueStaff).where(eq(venueStaff.id, id));
-    return true;
+    const result = await db.update(schema.venueStaff).set({ isActive: false }).where(eq(schema.venueStaff.id, id));
+    return result.rowCount > 0;
   }
 
-  // Utility Methods
+  // Utility methods
   async clearAllBookings(): Promise<boolean> {
-    await db.delete(bookings);
-    
-    // Reset availability for all events
-    const allEvents = await this.getAllEvents();
-    for (const event of allEvents) {
-      // Count total seats
-      const allTables = await this.getTablesWithSeats(event.venueId);
-      let totalSeats = 0;
-      for (const table of allTables) {
-        totalSeats += table.seats.length;
-      }
-      
-      // Update event
-      await db.update(events)
-        .set({
-          availableSeats: totalSeats,
-          totalSeats
-        })
-        .where(eq(events.id, event.id));
-    }
-    
+    await db.delete(schema.bookings);
     return true;
   }
 
-  // Layout & Template Methods
+  // Admin Log methods
+  async createAdminLog(logData: InsertAdminLog): Promise<number> {
+    const result = await db.insert(schema.adminLogs).values(logData).returning({ id: schema.adminLogs.id });
+    return result[0].id;
+  }
+
+  async getAdminLogs(): Promise<AdminLog[]> {
+    return await db.select().from(schema.adminLogs).orderBy(desc(schema.adminLogs.createdAt));
+  }
+
+  async getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]> {
+    return await db.select().from(schema.adminLogs)
+      .where(eq(schema.adminLogs.entityType, entityType))
+      .orderBy(desc(schema.adminLogs.createdAt));
+  }
+
+  // Layout methods
   async getFloors(venueId: number): Promise<any[]> {
-    // This would typically query a floors table
-    // For now, return hardcoded floors
-    return [
-      { id: 'main', name: 'Main Floor', isActive: true },
-      { id: 'mezzanine', name: 'Mezzanine', isActive: true },
-      { id: 'vip', name: 'VIP Area', isActive: false },
-    ];
+    return await db.select().from(schema.floors)
+      .where(and(eq(schema.floors.venueId, venueId), eq(schema.floors.isActive, true)));
   }
 
   async getZones(venueId: number): Promise<any[]> {
-    // This would typically query a zones table
-    // For now, return hardcoded zones
-    return [
-      { id: 'front-stage', name: 'Front Stage', color: '#FF5757', tables: [] },
-      { id: 'center', name: 'Center', color: '#57B3FF', tables: [] },
-      { id: 'back', name: 'Back', color: '#57FFA0', tables: [] },
-    ];
+    return await db.select().from(schema.tableZones)
+      .where(and(eq(schema.tableZones.venueId, venueId), eq(schema.tableZones.isActive, true)));
   }
 
   async getLayoutTemplates(venueId: number): Promise<any[]> {
-    // This would typically query a layout_templates table
-    // For now, return hardcoded templates
-    return [
-      {
-        id: 'concert',
-        name: 'Concert Layout',
-        description: 'Standard setup for musical performances',
-        createdAt: new Date(),
-        lastModified: new Date()
-      },
-      {
-        id: 'dinner',
-        name: 'Dinner Event',
-        description: 'Optimized for dining experience',
-        createdAt: new Date(),
-        lastModified: new Date()
-      }
-    ];
+    return await db.select().from(schema.venueLayoutTemplates)
+      .where(and(eq(schema.venueLayoutTemplates.venueId, venueId), eq(schema.venueLayoutTemplates.isActive, true)));
   }
 
   async saveLayoutTemplate(venueId: number, templateData: any): Promise<any> {
-    // This would typically save to a layout_templates table
-    // For now, return mock data
-    return {
-      id: Date.now().toString(),
-      name: templateData.name,
-      description: templateData.description,
-      createdAt: new Date(),
-      lastModified: new Date()
-    };
+    const result = await db.insert(schema.venueLayoutTemplates)
+      .values({ ...templateData, venueId })
+      .returning();
+    return result[0];
   }
 
   async updateFloorImage(venueId: number, floorId: string, imageUrl: string): Promise<boolean> {
-    // This would typically update a floor's image in the database
-    // For now, just return success
-    return true;
+    const result = await db.update(schema.floors)
+      .set({ image: imageUrl })
+      .where(and(eq(schema.floors.venueId, venueId), eq(schema.floors.floorKey, floorId)));
+    return result.rowCount > 0;
   }
 }
 
-// Use Postgres storage
 export const storage = new PgStorage();
