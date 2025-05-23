@@ -1,0 +1,191 @@
+# Finding Hidden Validation in Your Event Booking App
+
+## Most Likely Culprits (Check These First)
+
+### 1. Database Schema Constraints
+Even if you updated your Drizzle schema, the actual database might still have the constraint:
+
+```sql
+-- Check current database constraints
+SELECT 
+    tc.constraint_name, 
+    tc.table_name, 
+    kcu.column_name,
+    cc.check_clause
+FROM information_schema.table_constraints tc
+JOIN information_schema.key_column_usage kcu 
+    ON tc.constraint_name = kcu.constraint_name
+LEFT JOIN information_schema.check_constraints cc 
+    ON tc.constraint_name = cc.constraint_name
+WHERE tc.table_name = 'bookings' 
+    AND kcu.column_name = 'partySize';
+```
+
+**Solution:** Run a migration to drop the NOT NULL constraint:
+```sql
+ALTER TABLE bookings ALTER COLUMN "partySize" DROP NOT NULL;
+```
+
+### 2. Drizzle Insert Schema Validation
+Check if you have separate insert/select schemas in your Drizzle setup:
+
+```typescript
+// Look for something like this in your schema files
+export const insertBookingSchema = createInsertSchema(bookings);
+export const selectBookingSchema = createSelectSchema(bookings);
+```
+
+### 3. Middleware Validation
+Search your entire codebase for these patterns:
+
+```bash
+# Search for validation middleware
+grep -r "validate" --include="*.ts" --include="*.js" server/
+grep -r "schema" --include="*.ts" --include="*.js" server/middleware/
+grep -r "zod" --include="*.ts" --include="*.js" server/
+grep -r "partySize" --include="*.ts" --include="*.js" server/
+```
+
+## Debugging Steps
+
+### Step 1: Add Debug Logging
+Add this to your booking creation endpoint:
+
+```typescript
+// At the very start of your booking endpoint
+console.log('=== BOOKING DEBUG START ===');
+console.log('Raw req.body:', JSON.stringify(req.body, null, 2));
+console.log('Calculated partySize:', req.body.seatNumbers?.length || req.body.partySize || 2);
+
+const bookingData = {
+    eventId: req.body.eventId,
+    userId: req.body.userId,
+    tableId: req.body.tableId,
+    partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
+    customerEmail: req.body.customerEmail,
+    stripePaymentId: req.body.stripePaymentId,
+    guestNames: req.body.guestNames || [],
+    foodSelections: req.body.foodSelections || [],
+    status: 'confirmed'
+};
+
+console.log('Final bookingData before DB insert:', JSON.stringify(bookingData, null, 2));
+console.log('=== BOOKING DEBUG END ===');
+```
+
+### Step 2: Check Drizzle Insert Operation
+Examine your actual database insert code in `server/storage.ts`:
+
+```typescript
+// Look for something like this and add logging
+try {
+    console.log('About to insert:', bookingData);
+    const result = await db.insert(bookings).values(bookingData).returning();
+    console.log('Insert successful:', result);
+} catch (error) {
+    console.log('Insert failed:', error);
+    throw error;
+}
+```
+
+### Step 3: Verify Database Schema
+Check your actual database schema vs your Drizzle definition:
+
+```sql
+-- Get the actual table structure
+\d bookings
+
+-- Or use this query
+SELECT column_name, data_type, is_nullable, column_default
+FROM information_schema.columns 
+WHERE table_name = 'bookings' 
+ORDER BY ordinal_position;
+```
+
+## Common Hidden Validation Locations
+
+### 1. Express Middleware Stack
+```typescript
+// Check for middleware like this in your app setup
+app.use('/api', validateBooking, routes);
+```
+
+### 2. Route-Level Validation
+```typescript
+// Check for validation at the route level
+router.post('/bookings', validateSchema(bookingSchema), async (req, res) => {
+```
+
+### 3. ORM-Level Validation
+```typescript
+// Check if Drizzle has validation hooks
+// Look for beforeInsert, beforeUpdate hooks in your schema
+```
+
+### 4. Environment-Specific Validation
+```typescript
+// Check if validation is only enabled in certain environments
+if (process.env.NODE_ENV !== 'development') {
+    // validation logic
+}
+```
+
+## Quick Fixes to Try
+
+### Fix 1: Force the Value
+```typescript
+const bookingData = {
+    // ... other fields
+    partySize: Number(req.body.seatNumbers?.length || req.body.partySize || 2),
+    // ... rest of fields
+};
+```
+
+### Fix 2: Remove Undefined Values
+```typescript
+const bookingData = {
+    eventId: req.body.eventId,
+    userId: req.body.userId,
+    tableId: req.body.tableId,
+    customerEmail: req.body.customerEmail,
+    stripePaymentId: req.body.stripePaymentId,
+    guestNames: req.body.guestNames || [],
+    foodSelections: req.body.foodSelections || [],
+    status: 'confirmed'
+};
+
+// Only add partySize if it has a value
+const partySize = req.body.seatNumbers?.length || req.body.partySize;
+if (partySize !== undefined) {
+    bookingData.partySize = partySize;
+}
+```
+
+### Fix 3: Check for Global Error Handlers
+Look for error handling middleware that might be adding validation:
+
+```typescript
+// Search for error handlers like this
+app.use((error, req, res, next) => {
+    if (error.name === 'ValidationError') {
+        // This might be where your error is coming from
+    }
+});
+```
+
+## Files to Search Thoroughly
+
+1. **All middleware files**: `server/middleware/`
+2. **App setup file**: `server/app.ts` or `server/index.ts`
+3. **Database migration files**: Look for recent migrations
+4. **Any validation utility files**: `server/utils/`, `server/lib/`
+5. **Type definition files**: Look for TypeScript interfaces that might enforce validation
+
+## Next Steps
+
+1. Run the debug logging code first
+2. Check the database constraints with the SQL queries
+3. Search your codebase for the validation patterns
+4. If still stuck, temporarily bypass validation by setting `partySize: 999` to see if the error changes
+
+The fact that the error message is so specific ("Required" for partySize) suggests there's still a Zod schema or similar validation running somewhere in your stack.
