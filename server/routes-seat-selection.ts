@@ -7,6 +7,7 @@ export function registerSeatSelectionRoutes(app: Express): void {
   // Get venue layout by event ID for seat selection
   app.get("/api/venue-layout", async (req, res) => {
     try {
+      console.log("[VENUE-LAYOUT] API called with eventId:", req.query.eventId);
       const eventId = req.query.eventId;
       if (!eventId) {
         return res.status(400).json({ message: "Event ID is required" });
