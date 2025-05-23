@@ -12,7 +12,8 @@ export function registerSeatSelectionRoutes(app: Express): void {
         return res.status(400).json({ message: "Event ID is required" });
       }
 
-      const event = await storage.getEvent(parseInt(eventId as string));
+      const events = await storage.getAllEvents();
+      const event = events.find((e: any) => e.id === parseInt(eventId as string));
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
@@ -27,13 +28,15 @@ export function registerSeatSelectionRoutes(app: Express): void {
       }
 
       // Get tables and stages for this venue
-      const tables = await storage.getTablesByVenue(venueId);
-      const stages = await storage.getStagesByVenue(venueId);
+      const tables = await storage.getTables();
+      const venueTables = tables.filter((t: any) => t.venueId === venueId);
+      const stages = await storage.getStage(venueId);
+      const venueStages = stages ? [stages] : [];
 
       const venueLayout = {
         venue: venue,
-        tables: tables || [],
-        stages: stages || []
+        tables: venueTables || [],
+        stages: venueStages || []
       };
 
       res.json(venueLayout);
@@ -51,7 +54,7 @@ export function registerSeatSelectionRoutes(app: Express): void {
         return res.status(400).json({ message: "Event ID is required" });
       }
 
-      const bookings = await storage.getBookingsByEvent(parseInt(eventId as string));
+      const bookings = await storage.getBookingsByEventId(parseInt(eventId as string));
       res.json(bookings || []);
     } catch (error) {
       console.error("Error fetching event bookings:", error);
