@@ -201,24 +201,21 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
+    // Set up serving mode based on environment BEFORE starting server
+    if (app.get("env") === "development") {
+      log("Setting up Vite development server...");
+      await setupVite(app, server);
+    } else {
+      log("Setting up static file serving for production...");
+      serveStatic(app);
+    }
+
     // Force port 5000 for Replit
     const port = 5000;
     log(`Attempting to start server on port ${port}...`);
 
     server.listen(port, "0.0.0.0", () => {
       log(`Server successfully started on port ${port}`);
-
-      // Set up serving mode based on environment
-      if (app.get("env") === "development") {
-        log("Setting up Vite development server...");
-        setupVite(app, server).catch(error => {
-          console.error("Failed to setup Vite:", error);
-          process.exit(1); // Exit if Vite setup fails
-        });
-      } else {
-        log("Setting up static file serving for production...");
-        serveStatic(app);
-      }
     }).on('error', (err: NodeJS.ErrnoException) => {
       if (err.code === 'EADDRINUSE') {
         console.error(`Port ${port} is already in use, attempting to close existing connections...`);
