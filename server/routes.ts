@@ -1751,6 +1751,8 @@ export async function registerRoutes(app: Express) {
       try {
         // Remove non-booking fields from request
         const { paymentToken, ...cleanBody } = req.body;
+        console.log("After removing paymentToken:", JSON.stringify(cleanBody, null, 2));
+        console.log("cleanBody.partySize:", cleanBody.partySize, "Type:", typeof cleanBody.partySize);
         
         // Get the actual database fields to avoid trying to insert non-existent fields
         const bookingData = {
@@ -1767,6 +1769,18 @@ export async function registerRoutes(app: Express) {
 
         console.log("Final booking data being validated:", JSON.stringify(bookingData, null, 2));
         console.log("Final partySize value:", bookingData.partySize, "Type:", typeof bookingData.partySize);
+        
+        // Debug the schema itself
+        console.log("Testing schema parse with simple object:");
+        const testData = { partySize: 2 };
+        console.log("Test data:", testData);
+        try {
+          const testResult = insertBookingSchema.parse(testData);
+          console.log("Test parse successful:", testResult);
+        } catch (testError) {
+          console.log("Test parse failed:", testError);
+        }
+        
         var booking = insertBookingSchema.parse(bookingData);
       } catch (zodError) {
         if (zodError instanceof z.ZodError) {
