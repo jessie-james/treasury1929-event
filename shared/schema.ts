@@ -309,7 +309,7 @@ export const insertEventSchema = createInsertSchema(events).omit({ id: true });
 export const insertTicketSchema = createInsertSchema(tickets).omit({ id: true, createdAt: true });
 export const insertTableSchema = createInsertSchema(tables).omit({ id: true });
 export const insertSeatSchema = createInsertSchema(seats).omit({ id: true });
-// Removed old validation schema that was causing checkout issues
+// All booking validation schemas removed to fix checkout issues
 export const insertMenuItemSchema = createInsertSchema(menuItems).omit({ id: true });
 export const insertFoodOptionSchema = createInsertSchema(foodOptions).omit({ id: true, createdAt: true });
 export const insertEventFoodOptionSchema = createInsertSchema(eventFoodOptions).omit({ id: true });
@@ -338,7 +338,7 @@ export type Table = typeof tables.$inferSelect;
 export type NewSeat = z.infer<typeof insertSeatSchema>;
 export type Seat = typeof seats.$inferSelect;
 
-// Removed old validation type that was causing checkout issues
+// All booking validation types removed to fix checkout issues
 export type Booking = typeof bookings.$inferSelect;
 
 export type NewMenuItem = z.infer<typeof insertMenuItemSchema>;
