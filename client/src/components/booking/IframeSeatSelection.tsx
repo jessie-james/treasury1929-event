@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 
 interface Props {
   eventId: number;
@@ -25,159 +23,192 @@ interface VenueTable {
   status: string;
 }
 
-interface TableData {
-  tableId: number;
-  seatCount: number;
-  isSelected: boolean;
-}
-
 export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }: Props) {
   const [selectedTable, setSelectedTable] = useState<VenueTable | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Fetch event details to get venue ID
-  const { data: eventData } = useQuery({
-    queryKey: ['event', eventId],
-    queryFn: async () => {
-      const response = await apiRequest('GET', `/api/events/${eventId}`);
-      if (!response.ok) throw new Error('Failed to fetch event');
-      return response.json();
-    }
-  });
-
-  // Fetch venue layout for the event's venue
+  // Fetch venue layout
   const { data: venueLayout, isLoading: isLoadingLayout } = useQuery({
-    queryKey: ['venue-layout', eventData?.venueId],
-    queryFn: async () => {
-      if (!eventData?.venueId) return null;
-      const response = await apiRequest('GET', `/api/admin/venues/${eventData.venueId}/layout`);
-      if (!response.ok) return null;
-      return response.json();
-    },
-    enabled: !!eventData?.venueId
+    queryKey: ['/api/venue-layout', eventId],
+    enabled: !!eventId
   });
 
-  // Fetch existing bookings to filter out booked tables
+  // Fetch existing bookings to filter out unavailable tables
   const { data: existingBookings } = useQuery({
-    queryKey: ['event-bookings', eventId],
-    queryFn: async () => {
-      const response = await apiRequest('GET', `/api/events/${eventId}/bookings`);
-      if (!response.ok) return [];
-      return response.json();
-    }
+    queryKey: ['/api/event-bookings', eventId],
+    enabled: !!eventId
   });
-  
-  // Listen for messages from the iframe
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'TABLE_SELECTION') {
-        setSelectedTable(event.data.selection);
-      }
-    };
-    
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-  
-  // Filter available tables (not already booked)
+
+  // Filter available tables (exclude booked ones)
   const availableTables = venueLayout?.tables?.filter((table: VenueTable) => {
-    const isBooked = existingBookings?.some((booking: any) => booking.tableId === table.id);
-    return !isBooked;
+    const bookedTableIds = existingBookings?.map(booking => booking.tableId) || [];
+    return table.status === 'available' && !bookedTableIds.includes(table.id);
   }) || [];
 
-  // Draw the venue layout on canvas
+  // Draw venue on canvas when data loads
   useEffect(() => {
+    if (canvasRef.current && venueLayout) {
+      drawVenueLayout();
+    }
+  }, [venueLayout, selectedTable, existingBookings]);
+
+  const drawVenueLayout = () => {
     const canvas = canvasRef.current;
     if (!canvas || !venueLayout) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size to match venue
-    canvas.width = venueLayout.venue.width;
-    canvas.height = venueLayout.venue.height;
+    // Set canvas size
+    const container = canvas.parentElement;
+    if (container) {
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
 
     // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#f8f9fa';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw venue boundaries if they exist
-    if (venueLayout.venue.bounds) {
-      const bounds = venueLayout.venue.bounds;
-      ctx.strokeStyle = '#e0e0e0';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-      ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
-      ctx.setLineDash([]);
-    }
+    // Draw venue boundaries
+    const venue = venueLayout.venue;
+    const scaleX = canvas.width / venue.width;
+    const scaleY = canvas.height / venue.height;
+    const scale = Math.min(scaleX, scaleY) * 0.9;
 
-    // Draw stage
-    if (venueLayout.stages?.[0]) {
-      const stage = venueLayout.stages[0];
-      ctx.fillStyle = '#6B7280';
-      ctx.fillRect(stage.x, stage.y, stage.width, stage.height);
+    const offsetX = (canvas.width - venue.width * scale) / 2;
+    const offsetY = (canvas.height - venue.height * scale) / 2;
+
+    // Draw venue outline
+    ctx.strokeStyle = '#d1d5db';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.strokeRect(offsetX, offsetY, venue.width * scale, venue.height * scale);
+    ctx.setLineDash([]);
+
+    // Draw stage if exists
+    if (venueLayout.stage) {
+      const stage = venueLayout.stage;
+      ctx.fillStyle = '#374151';
+      ctx.fillRect(
+        offsetX + stage.x * scale,
+        offsetY + stage.y * scale,
+        stage.width * scale,
+        stage.height * scale
+      );
       
-      // Stage label
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = '14px sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `${Math.max(12, 14 * scale)}px Arial`;
       ctx.textAlign = 'center';
-      ctx.fillText('STAGE', stage.x + stage.width / 2, stage.y + stage.height / 2 + 5);
+      ctx.fillText(
+        'STAGE',
+        offsetX + (stage.x + stage.width / 2) * scale,
+        offsetY + (stage.y + stage.height / 2) * scale + 5
+      );
     }
+
+    // Get booked table IDs
+    const bookedTableIds = existingBookings?.map(booking => booking.tableId) || [];
 
     // Draw tables
     availableTables.forEach((table: VenueTable) => {
+      const tableX = offsetX + table.x * scale;
+      const tableY = offsetY + table.y * scale;
+      const tableWidth = table.width * scale;
+      const tableHeight = table.height * scale;
+
+      // Determine table colors
       const isSelected = selectedTable?.id === table.id;
+      const isBooked = bookedTableIds.includes(table.id);
       
-      // Table fill
-      ctx.fillStyle = isSelected ? '#60A5FA' : '#10B981'; // Blue if selected, green if available
-      
-      if (table.shape === 'full') {
-        // Full circle table
-        ctx.beginPath();
-        ctx.arc(table.x + table.width / 2, table.y + table.height / 2, table.width / 2, 0, 2 * Math.PI);
-        ctx.fill();
+      if (isBooked) {
+        ctx.fillStyle = '#ef4444'; // Red for booked
+        ctx.strokeStyle = '#dc2626';
+      } else if (isSelected) {
+        ctx.fillStyle = '#3b82f6'; // Blue for selected
+        ctx.strokeStyle = '#2563eb';
       } else {
-        // Half circle table
-        ctx.beginPath();
-        ctx.arc(table.x + table.width / 2, table.y + table.height / 2, table.width / 2, 0, Math.PI);
-        ctx.fill();
+        ctx.fillStyle = '#e0e0e0'; // Light gray for available
+        ctx.strokeStyle = '#555555';
       }
 
-      // Table number
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 16px sans-serif';
+      // Draw table (circle for round, rectangle for others)
+      ctx.lineWidth = 2;
+      if (table.shape === 'circle') {
+        const radius = Math.min(tableWidth, tableHeight) / 2;
+        ctx.beginPath();
+        ctx.arc(tableX + tableWidth / 2, tableY + tableHeight / 2, radius, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+      } else {
+        ctx.fillRect(tableX, tableY, tableWidth, tableHeight);
+        ctx.strokeRect(tableX, tableY, tableWidth, tableHeight);
+      }
+
+      // Draw table number
+      ctx.fillStyle = isBooked ? '#ffffff' : (isSelected ? '#ffffff' : '#000000');
+      ctx.font = `${Math.max(10, 12 * scale)}px Arial`;
       ctx.textAlign = 'center';
       ctx.fillText(
         table.tableNumber.toString(),
-        table.x + table.width / 2,
-        table.y + table.height / 2 + 5
+        tableX + tableWidth / 2,
+        tableY + tableHeight / 2 + 4
       );
-    });
-  }, [venueLayout, availableTables, selectedTable]);
 
-  // Handle canvas clicks to select tables
+      // Draw seats around table
+      if (!isBooked) {
+        const seatRadius = Math.max(3, 4 * scale);
+        const seats = table.capacity;
+        const tableRadius = Math.min(tableWidth, tableHeight) / 2;
+        
+        for (let i = 0; i < seats; i++) {
+          const angle = (i / seats) * 2 * Math.PI;
+          const seatX = tableX + tableWidth / 2 + Math.cos(angle) * (tableRadius + seatRadius + 2);
+          const seatY = tableY + tableHeight / 2 + Math.sin(angle) * (tableRadius + seatRadius + 2);
+          
+          ctx.fillStyle = '#4CAF50'; // Green for seats
+          ctx.strokeStyle = '#2E7D32';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(seatX, seatY, seatRadius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+    });
+  };
+
   const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
-    if (!canvas || !availableTables.length) return;
+    if (!canvas || !venueLayout) return;
 
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
 
-    // Check if click is within any table
-    for (const table of availableTables) {
-      const centerX = table.x + table.width / 2;
-      const centerY = table.y + table.height / 2;
-      const radius = table.width / 2;
-      
-      const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-      
-      if (distance <= radius) {
+    // Convert to venue coordinates
+    const venue = venueLayout.venue;
+    const scaleX = canvas.width / venue.width;
+    const scaleY = canvas.height / venue.height;
+    const scale = Math.min(scaleX, scaleY) * 0.9;
+
+    const offsetX = (canvas.width - venue.width * scale) / 2;
+    const offsetY = (canvas.height - venue.height * scale) / 2;
+
+    // Check if click is on any table
+    availableTables.forEach((table: VenueTable) => {
+      const tableX = offsetX + table.x * scale;
+      const tableY = offsetY + table.y * scale;
+      const tableWidth = table.width * scale;
+      const tableHeight = table.height * scale;
+
+      if (x >= tableX && x <= tableX + tableWidth && 
+          y >= tableY && y <= tableY + tableHeight) {
         setSelectedTable(table);
-        break;
       }
-    }
+    });
   };
-  
+
   // Format selected table for display
   const formatSelectedTable = () => {
     if (!selectedTable) return "";
@@ -201,43 +232,14 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       seatNumbers 
     };
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        {hasExistingBooking && (
-          <Alert variant="destructive" className="bg-yellow-50 border-yellow-200">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertTitle className="text-yellow-800">Existing Booking</AlertTitle>
-            <AlertDescription className="text-yellow-700">
-              You already have tickets for this event. Additional bookings will be separate from your existing reservation.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <Alert className="bg-blue-50 border-blue-200">
-          <AlertTriangle className="h-4 w-4 text-blue-600" />
-          <AlertTitle className="text-blue-800">Large Party Notice</AlertTitle>
-          <AlertDescription className="text-blue-700">
-            For parties larger than 4 people, please email us at <span className="font-medium">Info@TheTreasury1929.com</span> to arrange your reservation.
-          </AlertDescription>
-        </Alert>
-        
-        <div>
-          <p className="text-muted-foreground">
-            Select a table to book all seats at that table
-          </p>
-        </div>
-        
-        <div className="flex items-center justify-end">
-          {selectedTable ? (
-            <Badge variant="secondary">
-              {formatSelectedTable()}
-            </Badge>
-          ) : (
-            <Badge variant="outline">No table selected</Badge>
-          )}
-        </div>
+        <h2 className="text-2xl font-bold">Select Your Table</h2>
+        <p className="text-muted-foreground">
+          Choose a table from the venue layout below. {hasExistingBooking ? 'Update your current selection.' : 'Available tables are shown in gray.'}
+        </p>
       </div>
 
       <Card>
