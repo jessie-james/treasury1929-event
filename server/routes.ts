@@ -3029,6 +3029,63 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ message: "Error getting event check-in stats" });
     }
   });
+
+  // Add direct venue layout endpoint with authentic data
+  app.get("/api/venue-layout/:venueId", async (req, res) => {
+    try {
+      const venueId = parseInt(req.params.venueId);
+      
+      if (isNaN(venueId)) {
+        return res.status(400).json({ error: "Invalid venue ID" });
+      }
+
+      // Get venue details
+      const venue = await storage.getVenueById(venueId);
+      if (!venue) {
+        return res.status(404).json({ error: "Venue not found" });
+      }
+
+      // Get tables for this venue using authentic data
+      const tables = await storage.getTablesByVenue(venueId);
+      
+      // Get stages for this venue (if any)
+      const stages = await storage.getStagesByVenue(venueId);
+
+      const layout = {
+        venue: {
+          id: venue.id,
+          name: venue.name,
+          width: venue.width || 1000,
+          height: venue.height || 700
+        },
+        tables: tables.map((table: any) => ({
+          id: table.id,
+          tableNumber: table.tableNumber,
+          x: table.x,
+          y: table.y,
+          width: table.width,
+          height: table.height,
+          capacity: table.capacity,
+          shape: table.shape,
+          rotation: table.rotation || 0,
+          status: 'available'
+        })),
+        stages: stages.map((stage: any) => ({
+          id: stage.id,
+          x: stage.x,
+          y: stage.y,
+          width: stage.width,
+          height: stage.height,
+          rotation: stage.rotation || 0
+        }))
+      };
+
+      res.json(layout);
+    } catch (error) {
+      console.error("Error fetching venue layout:", error);
+      res.status(500).json({ error: "Failed to fetch venue layout" });
+    }
+  });
   
   return httpServer;
 }

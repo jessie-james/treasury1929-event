@@ -55,10 +55,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     enabled: !!eventId
   });
 
-  // Fetch venue layout
+  // Fetch venue layout using the new endpoint that works with authentic data
   const { data: venueLayout, isLoading: isLoadingLayout } = useQuery<VenueLayout>({
-    queryKey: ['/api/venues', eventData?.venueId, 'layout'],
-    queryFn: () => fetch(`/api/venues/${eventData.venueId}/layout`).then(res => res.json()),
+    queryKey: ['/api/venue-layout', eventData?.venueId],
+    queryFn: () => fetch(`/api/venue-layout/${eventData.venueId}`).then(res => res.json()),
     enabled: !!eventData?.venueId
   });
 
