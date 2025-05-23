@@ -597,14 +597,20 @@ export async function registerRoutes(app: Express) {
       let venueLayout = null;
       if (event.venueId) {
         try {
+          console.log(`Fetching venue layout for venue ID: ${event.venueId}`);
+          
           // Get venue details
           const venue = await storage.getVenueById(event.venueId);
+          console.log(`Venue found:`, venue);
+          
           if (venue) {
             // Get authentic tables for this venue
             const tables = await storage.getTablesByVenue(event.venueId);
+            console.log(`Tables found for venue ${event.venueId}:`, tables.length);
             
             // Get stages for this venue (if any)
             const stages = await storage.getStagesByVenue(event.venueId);
+            console.log(`Stages found for venue ${event.venueId}:`, stages.length);
 
             venueLayout = {
               venue: {
@@ -634,6 +640,10 @@ export async function registerRoutes(app: Express) {
                 rotation: stage.rotation || 0
               }))
             };
+            
+            console.log(`Final venue layout:`, JSON.stringify(venueLayout, null, 2));
+          } else {
+            console.log(`No venue found with ID: ${event.venueId}`);
           }
         } catch (venueError) {
           console.error("Error fetching venue layout:", venueError);
