@@ -109,7 +109,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
         <CardContent className="p-4 relative">
           <div className="mb-4">
             <div className="flex justify-between items-center p-2 mb-2 border-b">
-              <h3 className="text-lg font-medium">Mezzanine Floor Plan</h3>
+              <h3 className="text-lg font-medium">Venue Layout</h3>
               <div className="flex gap-2">
                 <button 
                   className="flex items-center justify-center w-8 h-8 bg-white border rounded-full hover:bg-gray-50"
