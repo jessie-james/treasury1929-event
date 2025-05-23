@@ -15,6 +15,7 @@ import { db } from "./db";
 import crypto from 'crypto';
 import { registerAdminRoutes } from "./routes-admin";
 import { registerVenueRoutes } from "./routes-venue";
+import { registerSeatSelectionRoutes } from "./routes-seat-selection";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -171,6 +172,9 @@ export async function registerRoutes(app: Express) {
   
   // Register venue management routes
   registerVenueRoutes(app);
+  
+  // Register seat selection routes for booking
+  registerSeatSelectionRoutes(app);
 
   const httpServer = createServer(app);
 
