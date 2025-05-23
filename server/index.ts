@@ -71,14 +71,15 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "healthy" });
 });
 
-// EXPERT SOLUTION #3: Different API path to bypass Vite catch-all
-console.log("🎯 Registering booking endpoint with different path to bypass Vite...");
-app.post('/booking-api/create', async (req, res) => {
-  console.log('🟢 BYPASS PATH - AVOIDING VITE COMPLETELY');
+// EXPERT SOLUTION B: Non-standard path that Vite CANNOT intercept
+console.log("🎯 Registering booking endpoint with completely non-standard path...");
+app.post('/booking-direct', async (req, res) => {
+  console.log('🟢 DIRECT BOOKING ROUTE - NO VITE INTERFERENCE POSSIBLE');
   
   try {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ message: "Unauthorized" }));
     }
 
     const bookingData = {
@@ -93,27 +94,29 @@ app.post('/booking-api/create', async (req, res) => {
       status: 'confirmed'
     };
 
-    console.log('Creating booking with bypass path:', JSON.stringify(bookingData, null, 2));
+    console.log('🟢 CREATING BOOKING WITH DIRECT ROUTE:', JSON.stringify(bookingData, null, 2));
     const newBooking = await storage.createBooking(bookingData);
-    console.log('🟢 BYPASS BOOKING CREATED SUCCESSFULLY');
+    console.log('🟢 DIRECT BOOKING CREATED SUCCESSFULLY:', newBooking.id);
     
-    // Force JSON response with explicit headers
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Cache-Control', 'no-cache');
-    return res.status(201).json({
+    // Use writeHead and end for maximum control over response
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache'
+    });
+    res.end(JSON.stringify({
       success: true,
       message: 'Booking created successfully',
       booking: newBooking
-    });
+    }));
     
   } catch (error) {
-    console.log('🔴 BYPASS BOOKING ERROR:', error);
-    res.setHeader('Content-Type', 'application/json');
-    return res.status(500).json({
+    console.log('🔴 DIRECT BOOKING ERROR:', error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
       success: false,
       message: 'Booking creation failed',
       error: error instanceof Error ? error.message : String(error)
-    });
+    }));
   }
 });
 

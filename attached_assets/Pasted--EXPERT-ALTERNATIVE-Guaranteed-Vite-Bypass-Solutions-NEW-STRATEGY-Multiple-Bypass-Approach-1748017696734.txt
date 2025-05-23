@@ -1,0 +1,215 @@
+# EXPERT ALTERNATIVE: Guaranteed Vite Bypass Solutions
+
+## 🎯 NEW STRATEGY: Multiple Bypass Approaches
+
+Since early registration didn't work, Vite is likely intercepting at a deeper level. Here are guaranteed solutions:
+
+## 🔧 SOLUTION A: Different Port Strategy (Most Reliable)
+
+### Create a separate API server on different port:
+
+```typescript
+// In server/api-server.ts (new file)
+import express from 'express';
+import { storage } from './storage';
+
+const apiApp = express();
+const API_PORT = 3001; // Different port from main app
+
+apiApp.use(express.json());
+
+apiApp.post('/create-booking', async (req, res) => {
+  console.log('🟢 DEDICATED API SERVER - NO VITE INTERFERENCE');
+  
+  const bookingData = {
+    eventId: req.body.eventId,
+    userId: req.body.userId,
+    tableId: req.body.tableId,
+    partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
+    customerEmail: req.body.customerEmail,
+    stripePaymentId: req.body.stripePaymentId,
+    guestNames: req.body.guestNames || [],
+    foodSelections: req.body.foodSelections || [],
+    status: 'confirmed'
+  };
+
+  try {
+    const result = await storage.createBooking(bookingData);
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, booking: result });
+  } catch (error) {
+    console.error('Booking error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+apiApp.listen(API_PORT, () => {
+  console.log(`🚀 Dedicated API server running on port ${API_PORT}`);
+});
+```
+
+### Update your frontend to use the dedicated API server:
+
+```typescript
+// In your frontend booking code:
+const API_BASE_URL = process.env.NODE_ENV === 'development' 
+  ? 'http://localhost:3001'  // Dedicated API server
+  : window.location.origin;   // Same origin in production
+
+const response = await fetch(`${API_BASE_URL}/create-booking`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(bookingData)
+});
+```
+
+## 🔧 SOLUTION B: Non-Standard API Path (Quick Fix)
+
+Use a path that Vite definitely won't intercept:
+
+```typescript
+// In your server/routes.ts or server/index.ts
+app.post('/booking-endpoint-direct', async (req, res) => {
+  console.log('🟢 NON-STANDARD PATH - BYPASSING VITE');
+  
+  // Exact same booking logic as before
+  const bookingData = {
+    eventId: req.body.eventId,
+    userId: req.body.userId,
+    tableId: req.body.tableId,
+    partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
+    customerEmail: req.body.customerEmail,
+    stripePaymentId: req.body.stripePaymentId,
+    guestNames: req.body.guestNames || [],
+    foodSelections: req.body.foodSelections || [],
+    status: 'confirmed'
+  };
+
+  try {
+    const result = await storage.createBooking(bookingData);
+    res.setHeader('Content-Type', 'application/json');
+    res.json({ success: true, booking: result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+```
+
+### Update frontend:
+```typescript
+const response = await fetch('/booking-endpoint-direct', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(bookingData)
+});
+```
+
+## 🔧 SOLUTION C: Force Response Headers (Response Intercept Fix)
+
+Add middleware that forces JSON for API responses:
+
+```typescript
+// Add this middleware VERY EARLY in your app setup
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    console.log('🛡️ FORCING JSON RESPONSE FOR:', req.path);
+    
+    // Override res.end to ensure JSON response
+    const originalEnd = res.end;
+    res.end = function(chunk, encoding) {
+      res.setHeader('Content-Type', 'application/json');
+      return originalEnd.call(this, chunk, encoding);
+    };
+    
+    // Override res.send to ensure JSON
+    const originalSend = res.send;
+    res.send = function(data) {
+      res.setHeader('Content-Type', 'application/json');
+      return originalSend.call(this, data);
+    };
+  }
+  next();
+});
+```
+
+## 🔧 SOLUTION D: Environment Variable Override
+
+Bypass Vite entirely in development when API calls are made:
+
+```typescript
+// Add this to your server/index.ts
+if (process.env.NODE_ENV === 'development') {
+  // API routes with explicit bypass
+  app.use('/api', (req, res, next) => {
+    console.log('🔄 DEVELOPMENT API BYPASS');
+    res.setHeader('X-API-Response', 'true');
+    next();
+  });
+}
+```
+
+## 🎯 RECOMMENDED IMMEDIATE ACTION
+
+**Try Solution B first (Non-Standard Path)** - it's the quickest test:
+
+### Step 1: Add this route
+```typescript
+app.post('/booking-direct', async (req, res) => {
+  console.log('🟢 DIRECT BOOKING ROUTE');
+  
+  try {
+    const bookingData = {
+      eventId: req.body.eventId,
+      userId: req.body.userId,
+      tableId: req.body.tableId,
+      partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
+      customerEmail: req.body.customerEmail,
+      stripePaymentId: req.body.stripePaymentId,
+      guestNames: req.body.guestNames || [],
+      foodSelections: req.body.foodSelections || [],
+      status: 'confirmed'
+    };
+
+    const result = await storage.createBooking(bookingData);
+    
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache'
+    });
+    res.end(JSON.stringify({ success: true, booking: result }));
+    
+  } catch (error) {
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: false, error: error.message }));
+  }
+});
+```
+
+### Step 2: Update frontend URL
+```typescript
+const response = await fetch('/booking-direct', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(bookingData)
+});
+```
+
+### Step 3: Test immediately
+This should bypass Vite's catch-all entirely.
+
+## 🔍 DEBUGGING VERIFICATION
+
+Add this to see what's happening:
+
+```typescript
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function(data) {
+    console.log(`📤 RESPONSE for ${req.path}:`, typeof data, data?.substring?.(0, 100));
+    return originalSend.call(this, data);
+  };
+  next();
+});
+```
+
+**My Prediction:** Solution B (non-standard path) will work immediately because Vite's catch-all is specifically looking for `/api/*` patterns.
