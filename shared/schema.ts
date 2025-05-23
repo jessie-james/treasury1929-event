@@ -39,6 +39,7 @@ export const events = pgTable("events", {
   date: timestamp("date").notNull(),
   availableTables: integer("available_tables").default(0),
   totalTables: integer("total_tables").default(0),
+  totalSeats: integer("total_seats").default(0),
   venueId: integer("venue_id").notNull(),
   displayOrder: integer("display_order").default(0),
   isActive: boolean("is_active").default(true),

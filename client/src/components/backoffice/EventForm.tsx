@@ -90,12 +90,14 @@ export function EventForm({ event, onClose }: Props) {
     enabled: !!selectedVenueId
   });
 
-  // Calculate total seats when venue layout changes
+  // Calculate total tables and seats when venue layout changes
   useEffect(() => {
     if (venueLayout?.tables) {
+      const calculatedTables = venueLayout.tables.length;
       const calculatedSeats = venueLayout.tables.reduce((total: number, table: any) => {
         return total + (table.capacity || 0);
       }, 0);
+      setTotalTables(calculatedTables);
       setTotalSeats(calculatedSeats);
     }
   }, [venueLayout]);
@@ -208,7 +210,9 @@ export function EventForm({ event, onClose }: Props) {
       
       const formattedData = {
         ...data,
-        totalSeats: Number(data.totalSeats),
+        totalTables: totalTables,
+        totalSeats: totalSeats,
+        availableTables: totalTables, // Initially all tables are available
         date: date.toISOString(), // Ensure we're sending a proper ISO string
       };
       
