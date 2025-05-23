@@ -1830,8 +1830,7 @@ export async function registerRoutes(app: Express) {
 
     } catch (error) {
       console.log('🔴 ERROR:', error);
-      res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });error)
-      });
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });
     }
   });
 
