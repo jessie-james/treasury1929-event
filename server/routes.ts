@@ -1764,6 +1764,18 @@ export async function registerRoutes(app: Express) {
         stripePaymentId: cleanBody.stripePaymentId
       };
 
+      // Validate the booking data using the insert schema
+      try {
+        const validatedBooking = insertBookingSchema.parse(booking);
+        console.log("Booking validation successful:", validatedBooking);
+      } catch (validationError) {
+        console.error("Validation error:", validationError.errors);
+        return res.status(400).json({
+          message: "Invalid booking data",
+          errors: validationError.errors
+        });
+      }
+
       // Check if the event exists and has enough seats
       const event = await storage.getEventById(booking.eventId);
       if (!event) {
