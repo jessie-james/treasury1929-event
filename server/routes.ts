@@ -1753,7 +1753,7 @@ export async function registerRoutes(app: Express) {
           eventId: req.body.eventId,
           userId: req.body.userId,
           tableId: req.body.tableId,
-          partySize: req.body.seatNumbers?.length || 1, // Add missing partySize field
+          partySize: req.body.partySize || req.body.seatNumbers?.length || 1, // Use partySize from request
           seatNumbers: req.body.seatNumbers,
           foodSelections: req.body.foodSelections,
           guestNames: req.body.guestNames,
