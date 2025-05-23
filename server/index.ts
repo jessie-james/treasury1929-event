@@ -129,6 +129,10 @@ app.use((req, res, next) => {
     log("Setting up authentication...");
     setupAuth(app);
     
+    // Set up seat selection routes FIRST to ensure they handle venue-layout calls
+    log("Setting up seat selection routes...");
+    registerSeatSelectionRoutes(app);
+    
     // Set up routes and error handling
     log("Setting up routes...");
     const server = await registerRoutes(app);
@@ -148,10 +152,6 @@ app.use((req, res, next) => {
     // Set up direct payment routes (completely self-contained)
     log("Setting up direct payment routes...");
     registerDirectPaymentRoutes(app);
-    
-    // Set up seat selection routes
-    log("Setting up seat selection routes...");
-    registerSeatSelectionRoutes(app);
 
     // Error logging middleware
     app.use(async (err: any, req: Request, res: Response, next: NextFunction) => {
