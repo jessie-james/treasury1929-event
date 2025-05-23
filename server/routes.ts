@@ -1748,51 +1748,21 @@ export async function registerRoutes(app: Express) {
       console.log("Creating booking with data:", JSON.stringify(req.body, null, 2));
       console.log("Raw partySize from request:", req.body.partySize, "Type:", typeof req.body.partySize);
 
-      try {
-        // Remove non-booking fields from request
-        const { paymentToken, ...cleanBody } = req.body;
-        console.log("After removing paymentToken:", JSON.stringify(cleanBody, null, 2));
-        console.log("cleanBody.partySize:", cleanBody.partySize, "Type:", typeof cleanBody.partySize);
-        
-        // Get the actual database fields to avoid trying to insert non-existent fields
-        const bookingData = {
-          eventId: cleanBody.eventId,
-          userId: cleanBody.userId,
-          tableId: cleanBody.tableId,
-          partySize: cleanBody.partySize || cleanBody.seatNumbers?.length || 1, // Use partySize from request
-          seatNumbers: cleanBody.seatNumbers,
-          foodSelections: cleanBody.foodSelections,
-          guestNames: cleanBody.guestNames,
-          customerEmail: cleanBody.customerEmail,
-          stripePaymentId: cleanBody.stripePaymentId
-        };
-
-        console.log("Final booking data being validated:", JSON.stringify(bookingData, null, 2));
-        console.log("Final partySize value:", bookingData.partySize, "Type:", typeof bookingData.partySize);
-        
-        // Debug the schema itself
-        console.log("Testing schema parse with simple object:");
-        const testData = { partySize: 2 };
-        console.log("Test data:", testData);
-        try {
-          const testResult = insertBookingSchema.parse(testData);
-          console.log("Test parse successful:", testResult);
-        } catch (testError) {
-          console.log("Test parse failed:", testError);
-        }
-        
-        // Temporarily bypass schema validation to isolate the issue
-        var booking = bookingData;
-      } catch (zodError) {
-        if (zodError instanceof z.ZodError) {
-          console.error("Validation error:", zodError.errors);
-          return res.status(400).json({ 
-            message: "Invalid booking data", 
-            errors: zodError.errors
-          });
-        }
-        throw zodError;
-      }
+      // Remove non-booking fields from request
+      const { paymentToken, ...cleanBody } = req.body;
+      
+      // Get the actual database fields to avoid trying to insert non-existent fields
+      const booking = {
+        eventId: cleanBody.eventId,
+        userId: cleanBody.userId,
+        tableId: cleanBody.tableId,
+        partySize: cleanBody.partySize || cleanBody.seatNumbers?.length || 1,
+        seatNumbers: cleanBody.seatNumbers,
+        foodSelections: cleanBody.foodSelections,
+        guestNames: cleanBody.guestNames,
+        customerEmail: cleanBody.customerEmail,
+        stripePaymentId: cleanBody.stripePaymentId
+      };
 
       // Check if the event exists and has enough seats
       const event = await storage.getEventById(booking.eventId);
