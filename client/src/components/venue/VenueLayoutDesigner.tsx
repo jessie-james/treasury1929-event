@@ -217,23 +217,24 @@ export function VenueLayoutDesigner({
     const { tableSize, shape, tableNumber, capacity } = obj.data;
     const size = Math.max(40, Math.min(120, tableSize * 10)); // Scale size 1-9 to 40-120px
     const isHalf = shape === 'half';
+    const isSelected = selectedObjects.includes(obj.id);
     
     ctx.save();
     ctx.translate(obj.x + size / 2, obj.y + size / 2);
     ctx.rotate((obj.rotation * Math.PI) / 180);
     
-    // Table surface
-    ctx.fillStyle = '#8b4513';
-    ctx.strokeStyle = '#654321';
-    ctx.lineWidth = 2;
+    // Table surface - Brown wood color
+    ctx.fillStyle = isSelected ? '#cd853f' : '#8B4513';
+    ctx.strokeStyle = isSelected ? '#ff6b35' : '#654321';
+    ctx.lineWidth = isSelected ? 3 : 2;
     
     if (isHalf) {
-      // Half circle
+      // Half circle table
       ctx.beginPath();
       ctx.arc(0, 0, size / 2, 0, Math.PI);
       ctx.closePath();
     } else {
-      // Full circle
+      // Full circle table
       ctx.beginPath();
       ctx.arc(0, 0, size / 2, 0, 2 * Math.PI);
     }
@@ -241,29 +242,57 @@ export function VenueLayoutDesigner({
     ctx.fill();
     ctx.stroke();
     
-    // Table number
+    // Table number in center - White text
     ctx.fillStyle = 'white';
-    ctx.font = 'bold 16px Arial';
+    ctx.font = `bold ${Math.max(12, size / 6)}px Arial`;
     ctx.textAlign = 'center';
-    ctx.fillText(tableNumber.toString(), 0, 5);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(tableNumber.toString(), 0, 0);
     
-    // Seat positions
+    // Draw seats around the table
     if (capacity && capacity > 0) {
-      const seatRadius = 8;
-      const tableRadius = size / 2 + 15;
+      const seatRadius = Math.max(8, size / 12);
+      const tableRadius = size / 2 + seatRadius + 8; // Distance from table center to seat center
       const angleStep = (isHalf ? Math.PI : 2 * Math.PI) / capacity;
-      const startAngle = isHalf ? 0 : 0;
+      const startAngle = isHalf ? 0 : -Math.PI / 2; // Start from top for full circle
       
-      ctx.fillStyle = '#4a90e2';
       for (let i = 0; i < capacity; i++) {
         const angle = startAngle + i * angleStep;
         const seatX = Math.cos(angle) * tableRadius;
         const seatY = Math.sin(angle) * tableRadius;
         
+        // Seat circle - Green color matching your code
+        ctx.fillStyle = '#22c55e'; // Green-500
+        ctx.strokeStyle = '#16a34a'; // Green-600
+        ctx.lineWidth = 2;
+        
         ctx.beginPath();
         ctx.arc(seatX, seatY, seatRadius, 0, 2 * Math.PI);
         ctx.fill();
+        ctx.stroke();
+        
+        // Seat number - White text
+        ctx.fillStyle = 'white';
+        ctx.font = `bold ${Math.max(8, seatRadius)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText((i + 1).toString(), seatX, seatY);
       }
+    }
+    
+    // Selection indicator
+    if (isSelected) {
+      ctx.strokeStyle = '#ff6b35';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      if (isHalf) {
+        ctx.arc(0, 0, size / 2 + 10, 0, Math.PI);
+      } else {
+        ctx.arc(0, 0, size / 2 + 10, 0, 2 * Math.PI);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
     }
     
     // Stage sight lines
