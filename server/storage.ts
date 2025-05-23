@@ -494,8 +494,62 @@ export class PgStorage implements IStorage {
   }
 
   async getRandomizedFoodOptions(eventId: number): Promise<any[]> {
-    // For now, return all food options - randomization can be added later
+    // First check if this event has specific food options configured
+    const eventFoodOptions = await this.getEventFoodOptions(eventId);
+    
+    if (eventFoodOptions.length > 0) {
+      return eventFoodOptions;
+    }
+    
+    // If no specific options configured, return all food options
     return await db.select().from(schema.foodOptions).orderBy(asc(schema.foodOptions.displayOrder));
+  }
+
+  // Event Food Options methods
+  async getEventFoodOptions(eventId: number): Promise<any[]> {
+    const result = await db
+      .select({
+        id: schema.foodOptions.id,
+        name: schema.foodOptions.name,
+        description: schema.foodOptions.description,
+        type: schema.foodOptions.type,
+        price: schema.foodOptions.price,
+        allergens: schema.foodOptions.allergens,
+        dietaryRestrictions: schema.foodOptions.dietaryRestrictions,
+        displayOrder: schema.foodOptions.displayOrder,
+        image: schema.foodOptions.image,
+        isAvailable: schema.eventFoodOptions.isAvailable,
+        customPrice: schema.eventFoodOptions.customPrice,
+      })
+      .from(schema.eventFoodOptions)
+      .innerJoin(schema.foodOptions, eq(schema.eventFoodOptions.foodOptionId, schema.foodOptions.id))
+      .where(and(
+        eq(schema.eventFoodOptions.eventId, eventId),
+        eq(schema.eventFoodOptions.isAvailable, true)
+      ))
+      .orderBy(asc(schema.foodOptions.displayOrder));
+
+    return result.map(item => ({
+      ...item,
+      price: item.customPrice || item.price // Use custom price if set
+    }));
+  }
+
+  async updateEventFoodOptions(eventId: number, foodOptionIds: number[]): Promise<void> {
+    // First, remove all existing event food options for this event
+    await db.delete(schema.eventFoodOptions)
+      .where(eq(schema.eventFoodOptions.eventId, eventId));
+
+    // Then, add the new ones
+    if (foodOptionIds.length > 0) {
+      const insertData = foodOptionIds.map(foodOptionId => ({
+        eventId,
+        foodOptionId,
+        isAvailable: true
+      }));
+
+      await db.insert(schema.eventFoodOptions).values(insertData);
+    }
   }
 
   async getFoodOptionsByIds(ids: number[]): Promise<any[]> {

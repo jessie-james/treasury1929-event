@@ -19,9 +19,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { type Event } from "@shared/schema";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { type Event, type FoodOption } from "@shared/schema";
 import { useState, useRef, useEffect } from "react";
-import { ImagePlus, Loader2, RefreshCw, X, Building } from "lucide-react";
+import { ImagePlus, Loader2, RefreshCw, X, Building, UtensilsCrossed, Check } from "lucide-react";
 
 const eventFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -46,6 +49,7 @@ export function EventForm({ event, onClose }: Props) {
   const [uploadedImage, setUploadedImage] = useState<string | null>(event?.image || null);
   const [totalTables, setTotalTables] = useState<number>(0);
   const [totalSeats, setTotalSeats] = useState<number>(0);
+  const [selectedFoodOptions, setSelectedFoodOptions] = useState<number[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch venues for selection
@@ -56,6 +60,17 @@ export function EventForm({ event, onClose }: Props) {
       if (!response.ok) throw new Error('Failed to fetch venues');
       return response.json();
     }
+  });
+
+  // Fetch all food options
+  const { data: allFoodOptions = [] } = useQuery<FoodOption[]>({
+    queryKey: ["/api/food-options"],
+  });
+
+  // Fetch current event food options if editing
+  const { data: currentEventFoodOptions = [] } = useQuery({
+    queryKey: [`/api/events/${event?.id}/food-options`],
+    enabled: !!event?.id,
   });
 
   const form = useForm<EventFormData>({
@@ -108,6 +123,14 @@ export function EventForm({ event, onClose }: Props) {
       setUploadedImage(event.image);
     }
   }, [event]);
+
+  // Load existing event food options
+  useEffect(() => {
+    if (currentEventFoodOptions.length > 0) {
+      const selectedIds = currentEventFoodOptions.map((option: any) => option.id);
+      setSelectedFoodOptions(selectedIds);
+    }
+  }, [currentEventFoodOptions]);
   
   // Function to handle image upload
   const handleImageUpload = async (file: File) => {

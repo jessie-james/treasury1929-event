@@ -845,6 +845,40 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Update food options for a specific event (admin only)
+  app.put("/api/events/:eventId/food-options", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const { foodOptionIds } = req.body;
+      
+      await storage.updateEventFoodOptions(eventId, foodOptionIds || []);
+      
+      // Create admin log
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "update_event_food_options",
+        entityType: "event",
+        entityId: eventId,
+        details: {
+          foodOptionIds: foodOptionIds || []
+        }
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating event food options:", error);
+      res.status(500).json({ error: "Failed to update event food options" });
+    }
+  });
+
   app.get("/api/bookings", async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
