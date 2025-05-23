@@ -133,54 +133,155 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       );
     });
 
-    // Draw tables
+    // Draw tables with exact same styling as VenueLayoutDesigner
     venueLayout.tables?.forEach((table) => {
-      const tableX = offsetX + table.x * scale;
-      const tableY = offsetY + table.y * scale;
-      const tableWidth = table.width * scale;
-      const tableHeight = table.height * scale;
-
-      // Determine table colors
       const isSelected = selectedTable?.id === table.id;
       const isBooked = bookedTableIds.includes(table.id);
+      const isHalf = table.shape === 'half';
       
+      // Calculate table position and radius
+      const tableRadius = Math.min(table.width, table.height) / 2;
+      const seatRadius = Math.max(6, tableRadius * 0.25);
+      const centerX = offsetX + (table.x + tableRadius) * scale;
+      const centerY = offsetY + (table.y + tableRadius) * scale;
+      const scaledTableRadius = tableRadius * scale;
+      const scaledSeatRadius = seatRadius * scale;
+      
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.rotate((table.rotation * Math.PI) / 180);
+      
+      // Add shadow
+      ctx.shadowColor = 'rgba(0,0,0,0.2)';
+      ctx.shadowBlur = 5;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 2;
+      
+      // Table surface - Light gray as per your venue designer
       if (isBooked) {
         ctx.fillStyle = '#ef4444'; // Red for booked
         ctx.strokeStyle = '#dc2626';
       } else if (isSelected) {
-        ctx.fillStyle = '#3b82f6'; // Blue for selected
-        ctx.strokeStyle = '#2563eb';
+        ctx.fillStyle = '#d0d0d0'; // Selected table
+        ctx.strokeStyle = '#333';
       } else {
-        ctx.fillStyle = '#e0e0e0'; // Light gray for available
-        ctx.strokeStyle = '#555555';
+        ctx.fillStyle = '#e0e0e0'; // Light gray for available (exact match)
+        ctx.strokeStyle = '#555'; // Dark border (exact match)
       }
-
+      
       ctx.lineWidth = 2;
-
-      // Draw table shape
-      if (table.shape === 'circle') {
-        const centerX = tableX + tableWidth / 2;
-        const centerY = tableY + tableHeight / 2;
-        const radius = Math.min(tableWidth, tableHeight) / 2;
-        
+      
+      if (isHalf) {
+        // Half circle table
         ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.arc(0, 0, scaledTableRadius, Math.PI, 2 * Math.PI);
+        ctx.closePath();
         ctx.fill();
         ctx.stroke();
       } else {
-        ctx.fillRect(tableX, tableY, tableWidth, tableHeight);
-        ctx.strokeRect(tableX, tableY, tableWidth, tableHeight);
+        // Full circle table
+        ctx.beginPath();
+        ctx.arc(0, 0, scaledTableRadius, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
       }
-
-      // Draw table number
-      ctx.fillStyle = '#333333';
-      ctx.font = `${Math.max(10, 12 * scale)}px Arial`;
+      
+      // Reset shadow for text and seats
+      ctx.shadowColor = 'transparent';
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      
+      // Table number (exact same styling as venue designer)
+      const fontSize = Math.max(12, Math.min(24, 10 + (tableRadius * scale) * 0.2));
+      ctx.fillStyle = '#333'; // Dark gray text
+      ctx.font = `bold ${fontSize}px Arial`;
       ctx.textAlign = 'center';
-      ctx.fillText(
-        table.tableNumber.toString(),
-        tableX + tableWidth / 2,
-        tableY + tableHeight / 2 + 5
-      );
+      ctx.textBaseline = 'middle';
+      const textY = isHalf ? -scaledTableRadius * 0.5 : 0;
+      ctx.fillText(table.tableNumber.toString(), 0, textY);
+      
+      // Draw seats around the table (exact same as venue designer)
+      const count = table.capacity;
+      if (count > 0) {
+        const seatOffset = scaledTableRadius + scaledSeatRadius; // Seats touch table edge
+        
+        for (let i = 0; i < count; i++) {
+          let angle;
+          
+          if (isHalf) {
+            // Half Circle Tables - Smart positioning
+            if (count === 1) {
+              angle = 270; // Single seat at the back center
+            } else if (count === 2) {
+              const angles = [225, 315]; // 90° total spread
+              angle = angles[i];
+            } else if (count === 3) {
+              const angles = [220, 270, 320]; // 100° total spread
+              angle = angles[i];
+            } else {
+              // 4+ seats: use 40° spacing method
+              const totalSpan = (count - 1) * 40;
+              const startAngle = 270 - (totalSpan / 2);
+              angle = startAngle + (i * 40);
+            }
+          } else {
+            // Full Circle Tables - Even distribution
+            angle = i * (360 / count); // Evenly spaced around 360°
+          }
+          
+          const rad = angle * Math.PI / 180;
+          const seatX = seatOffset * Math.cos(rad);
+          const seatY = seatOffset * Math.sin(rad);
+          
+          // Add shadow for seats
+          ctx.shadowColor = 'rgba(0,0,0,0.2)';
+          ctx.shadowBlur = 3;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 1;
+          
+          // Seat circle - Green color as per your venue designer
+          ctx.fillStyle = '#4CAF50'; // Green seat color (exact match)
+          ctx.strokeStyle = '#2E7D32'; // Darker green border (exact match)
+          ctx.lineWidth = 1;
+          
+          ctx.beginPath();
+          ctx.arc(seatX, seatY, scaledSeatRadius, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+          
+          // Reset shadow for seat text
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 0;
+          
+          // Seat number (exact same styling as venue designer)
+          const seatFontSize = Math.max(8, Math.min(16, scaledSeatRadius - 4));
+          ctx.fillStyle = 'white'; // White text on green seats
+          ctx.font = `bold ${seatFontSize}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText((i + 1).toString(), seatX, seatY);
+        }
+      }
+      
+      // Selection indicator - subtle highlight as per your venue designer
+      if (isSelected) {
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        if (isHalf) {
+          ctx.arc(0, 0, scaledTableRadius + 8, Math.PI, 2 * Math.PI);
+        } else {
+          ctx.arc(0, 0, scaledTableRadius + 8, 0, 2 * Math.PI);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      
+      ctx.restore();
     });
   };
 
