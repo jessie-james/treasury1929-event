@@ -437,9 +437,9 @@ export function VenueLayoutDesigner({
           
           if (isHalf) {
             // For half circles, connect from center of flat side
-            // The flat side is always at the top of the half circle, regardless of rotation
-            tableConnectionX = tableCenterX;
-            tableConnectionY = table.y; // Top edge where the flat side is
+            // The half circle is drawn with flat side at top, so connection point is at y position
+            tableConnectionX = tableCenterX; // Center horizontally
+            tableConnectionY = tableCenterY - tableRadius; // Top edge (flat side)
           } else {
             // For full circles, connect from edge closest to stage
             const dx = stageCenterX - tableCenterX;
