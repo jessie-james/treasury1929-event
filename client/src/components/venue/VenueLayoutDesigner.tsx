@@ -424,15 +424,41 @@ export function VenueLayoutDesigner({
           ctx.setLineDash([5, 5]);
           ctx.globalAlpha = 0.6;
           
-          // Dynamic stage-to-table lines that update when tables move
+          // Calculate intelligent connection points
           const stageCenterX = stage.x + stage.width / 2;
           const stageCenterY = stage.y + stage.height / 2;
-          const tableCenterX = table.x + table.width / 2;
-          const tableCenterY = table.y + table.height / 2;
+          const dimensions = getTableDimensions(table.data.tableSize);
+          const tableRadius = dimensions.tableRadius;
+          const tableCenterX = table.x + tableRadius;
+          const tableCenterY = table.y + tableRadius;
+          const isHalf = table.data.shape === 'half';
+          
+          let tableConnectionX, tableConnectionY;
+          
+          if (isHalf) {
+            // For half circles, connect from center of flat side (top edge)
+            tableConnectionX = tableCenterX;
+            tableConnectionY = table.y; // Top edge of the table
+          } else {
+            // For full circles, connect from edge closest to stage
+            const dx = stageCenterX - tableCenterX;
+            const dy = stageCenterY - tableCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 0) {
+              // Calculate point on circle edge closest to stage
+              tableConnectionX = tableCenterX + (dx / distance) * tableRadius;
+              tableConnectionY = tableCenterY + (dy / distance) * tableRadius;
+            } else {
+              // Fallback to table center if stage is directly on table
+              tableConnectionX = tableCenterX;
+              tableConnectionY = tableCenterY;
+            }
+          }
           
           ctx.beginPath();
           ctx.moveTo(stageCenterX, stageCenterY);
-          ctx.lineTo(tableCenterX, tableCenterY);
+          ctx.lineTo(tableConnectionX, tableConnectionY);
           ctx.stroke();
           
           ctx.setLineDash([]);
