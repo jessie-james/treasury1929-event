@@ -71,7 +71,7 @@ export function EventForm({ event, onClose }: Props) {
       description: "",
       image: "",
       date: new Date().toISOString().split('T')[0],
-      venueId: venues[0]?.id || 1,
+      venueId: 1, // Default to first venue
       isActive: true,
     },
   });
@@ -400,17 +400,37 @@ export function EventForm({ event, onClose }: Props) {
 
             <FormField
               control={form.control}
-              name="totalSeats"
+              name="venueId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Total Seats</FormLabel>
+                  <FormLabel>Venue</FormLabel>
                   <FormControl>
-                    <Input 
-                      {...field} 
-                      type="number" 
-                      onChange={e => field.onChange(parseInt(e.target.value))}
-                    />
+                    <Select
+                      value={field.value?.toString()}
+                      onValueChange={(value) => field.onChange(Number(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a venue" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {venues.map((venue: any) => (
+                          <SelectItem key={venue.id} value={venue.id.toString()}>
+                            <div className="flex items-center gap-2">
+                              <Building className="w-4 h-4" />
+                              {venue.name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
+                  <FormDescription>
+                    {totalSeats > 0 ? (
+                      `This venue has ${totalSeats} total seats from ${venueLayout?.tables?.length || 0} tables`
+                    ) : (
+                      'Select a venue to see available seats'
+                    )}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
