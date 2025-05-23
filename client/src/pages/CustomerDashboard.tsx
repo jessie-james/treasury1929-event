@@ -19,9 +19,38 @@ type EnrichedBooking = Booking & {
 };
 
 export default function CustomerDashboard() {
-  const { data: bookings } = useQuery<EnrichedBooking[]>({
+  const { data: bookings, isLoading, error } = useQuery<EnrichedBooking[]>({
     queryKey: ["/api/user/bookings"],
   });
+
+  // State to track which booking's QR code is being shown
+  const [expandedQRCode, setExpandedQRCode] = useState<number | null>(null);
+  
+  const toggleQRCode = (bookingId: number) => {
+    if (expandedQRCode === bookingId) {
+      setExpandedQRCode(null);
+    } else {
+      setExpandedQRCode(bookingId);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container py-8">
+        <h1 className="text-3xl font-bold mb-6">My Tickets</h1>
+        <div className="text-center">Loading your tickets...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container py-8">
+        <h1 className="text-3xl font-bold mb-6">My Tickets</h1>
+        <div className="text-center text-red-500">Error loading tickets. Please try again.</div>
+      </div>
+    );
+  }
 
   // Function to return appropriate status badge with icon
   const getStatusBadge = (status?: string) => {
