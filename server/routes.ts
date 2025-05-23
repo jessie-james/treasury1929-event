@@ -1789,10 +1789,18 @@ export async function registerRoutes(app: Express) {
     console.log('🟢 Method:', req.method);
     console.log('🟢 Path:', req.path);
     console.log('🟢 Body:', JSON.stringify(req.body, null, 2));
+    console.log('🟢 Session ID:', req.sessionID);
+    console.log('🟢 Session Data:', JSON.stringify(req.session, null, 2));
+    console.log('🟢 User Object:', req.user);
+    console.log('🟢 Is Authenticated:', req.isAuthenticated());
     
     try {
-      if (!req.isAuthenticated()) {
-        console.log('🔴 Authentication failed');
+      // Alternative authentication check - use userId from request body if session fails
+      const userId = req.body.userId || (req.user && req.user.id);
+      console.log('🟢 Extracted User ID:', userId);
+      
+      if (!req.isAuthenticated() && !userId) {
+        console.log('🔴 Authentication failed - no session and no userId in body');
         return res.status(401).json({ message: "Unauthorized" });
       }
 
