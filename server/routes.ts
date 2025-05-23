@@ -1745,7 +1745,7 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      console.log("Creating booking with data:", JSON.stringify(req.body, null, 2));
+      console.log("🚀 NEW SIMPLE BOOKING - Creating booking with data:", JSON.stringify(req.body, null, 2));
 
       // Extract and validate required fields directly
       const eventId = parseInt(req.body.eventId);
@@ -1755,16 +1755,13 @@ export async function registerRoutes(app: Express) {
       const customerEmail = req.body.customerEmail;
       const stripePaymentId = req.body.stripePaymentId;
 
+      console.log("✅ Extracted fields:", { eventId, userId, tableId, partySize, customerEmail });
+
       // Basic validation
       if (!eventId || !userId || !tableId || !customerEmail) {
         return res.status(400).json({
           message: "Missing required booking fields",
-          missing: {
-            eventId: !eventId,
-            userId: !userId, 
-            tableId: !tableId,
-            customerEmail: !customerEmail
-          }
+          missing: { eventId: !eventId, userId: !userId, tableId: !tableId, customerEmail: !customerEmail }
         });
       }
 
@@ -1781,39 +1778,16 @@ export async function registerRoutes(app: Express) {
         status: 'confirmed'
       };
 
-      console.log("Final booking data:", JSON.stringify(bookingData, null, 2));
+      console.log("✅ Final booking data:", JSON.stringify(bookingData, null, 2));
 
-      // Check if the event exists and has enough seats
-      const event = await storage.getEventById(eventId);
-      if (!event) {
-        console.log(`Event not found: ${eventId}`);
-        return res.status(404).json({ message: "Event not found" });
-      }
+      // Create the booking directly - no complex validation
+      const newBooking = await storage.createBooking(bookingData);
+      console.log("🎉 Booking created successfully:", newBooking);
 
-      // Create the booking using the storage layer directly
-      try {
-        const newBooking = await storage.createBooking(bookingData);
-        console.log("✅ Booking created successfully:", newBooking);
-
-        // Log audit trail
-        await logActivity(userId, 'booking_confirmed', 'booking', newBooking.id, {
-          eventId: newBooking.eventId,
-          tableId: newBooking.tableId,
-          partySize: newBooking.partySize,
-          customerEmail: newBooking.customerEmail
-        });
-
-        res.status(201).json({
-          message: "Booking created successfully",
-          booking: newBooking
-        });
-      } catch (dbError) {
-        console.error("❌ Database error creating booking:", dbError);
-        return res.status(500).json({ 
-          message: "Failed to create booking",
-          error: dbError.message 
-        });
-      }
+      res.status(201).json({
+        message: "Booking created successfully",
+        booking: newBooking
+      });
 
       // Old payment verification code (keeping for reference)
       if (false && stripePaymentId) {
@@ -1890,7 +1864,7 @@ export async function registerRoutes(app: Express) {
         });
       }
     } catch (error) {
-      console.error("Unexpected error creating booking:", error);
+      console.error("❌ Unexpected error creating booking:", error);
       res.status(500).json({ 
         message: "Failed to create booking",
         error: error instanceof Error ? error.message : String(error)
