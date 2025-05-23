@@ -1,9 +1,12 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Users, RotateCw, RotateCcw, Trash2, MousePointer2, ArrowRight, Square } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Plus, RotateCcw, Trash2, MousePointer2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Venue, Stage, Table } from '@shared/schema';
 
@@ -41,6 +44,7 @@ export function VenueLayoutDesigner({
   const [tables, setTables] = useState<CanvasObject[]>([]);
   const [selectedObjects, setSelectedObjects] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState<WorkflowStep>(1);
+  const [status, setStatus] = useState<string>('');
   
   // Dragging state
   const [isDragging, setIsDragging] = useState(false);
@@ -82,11 +86,9 @@ export function VenueLayoutDesigner({
     // Check tables (only if on step 3)
     if (currentStep === 3) {
       for (const table of tables) {
-        // Use table size for better click detection
-        const tableSize = Math.max(40, Math.min(120, table.data.tableSize * 10));
-        const centerX = table.x + tableSize / 2;
-        const centerY = table.y + tableSize / 2;
-        const radius = tableSize / 2 + 5; // Add 5px buffer for easier clicking
+        const centerX = table.x + table.width / 2;
+        const centerY = table.y + table.height / 2;
+        const radius = table.width / 2;
         const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
         if (distance <= radius) {
           return table;
@@ -189,10 +191,9 @@ export function VenueLayoutDesigner({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const tableSize = Math.max(40, Math.min(120, obj.data.tableSize * 10));
-    const centerX = obj.x + tableSize / 2;
-    const centerY = obj.y + tableSize / 2;
-    const radius = tableSize / 2;
+    const centerX = obj.x + obj.width / 2;
+    const centerY = obj.y + obj.height / 2;
+    const radius = obj.width / 2;
 
     // Draw table circle
     ctx.beginPath();
@@ -301,14 +302,13 @@ export function VenueLayoutDesigner({
   const createTable = useCallback((capacity: number) => {
     if (readonly || !venueObject) return;
     
-    const tableSize = Math.max(40, Math.min(120, capacity * 10));
     const newTable: CanvasObject = {
       id: `table-${Date.now()}`,
       type: 'table',
       x: venueObject.x + 100 + (tables.length * 100) % (venueObject.width - 200),
       y: venueObject.y + 150 + Math.floor((tables.length * 100) / (venueObject.width - 200)) * 100,
-      width: tableSize,
-      height: tableSize,
+      width: 80,
+      height: 80,
       rotation: 0,
       data: {
         id: Date.now(),
@@ -318,10 +318,10 @@ export function VenueLayoutDesigner({
         floor: 'main',
         x: venueObject.x + 100 + (tables.length * 100) % (venueObject.width - 200),
         y: venueObject.y + 150 + Math.floor((tables.length * 100) / (venueObject.width - 200)) * 100,
-        width: tableSize,
-        height: tableSize,
+        width: 80,
+        height: 80,
         shape: 'round',
-        tableSize: capacity,
+        tableSize: 8,
         status: 'available',
         zone: null,
         priceCategory: 'standard',
@@ -402,12 +402,27 @@ export function VenueLayoutDesigner({
     onSave(venueData);
   }, [venue, venueObject, stages, tables, onSave]);
 
+  // Update status based on step
+  useEffect(() => {
+    switch (currentStep) {
+      case 1:
+        setStatus('Welcome! Start by creating your venue boundaries.');
+        break;
+      case 2:
+        setStatus('Decide if you want to add a stage to your venue.');
+        break;
+      case 3:
+        setStatus('Now you can add tables to your venue. Double-click tables to duplicate them.');
+        break;
+    }
+  }, [currentStep]);
+
   const stepIsActive = (step: WorkflowStep) => step === currentStep;
   const stepIsCompleted = (step: WorkflowStep) => step < currentStep || (step === 2 && currentStep === 3 && stages.length === 0);
 
   return (
     <div className="space-y-6">
-      {/* Workflow Steps */}
+      {/* Workflow Steps - MOVED TO TOP */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Step 1: Create Venue */}
         <Card className={cn(
@@ -432,16 +447,15 @@ export function VenueLayoutDesigner({
               disabled={readonly || currentStep !== 1}
               className="w-full"
             >
-              <Square className="w-4 h-4 mr-2" />
               {venueObject ? 'Venue Created' : 'Create Venue Rectangle'}
             </Button>
             
             {venueObject && currentStep === 1 && (
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Venue Size</Label>
+              <div className="space-y-2 p-3 bg-gray-50 rounded">
+                <p className="text-sm font-medium">Venue Controls:</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="text-xs text-gray-500">Width</Label>
+                    <Label className="text-xs">Width</Label>
                     <Input
                       type="number"
                       value={venueObject.width}
@@ -452,7 +466,7 @@ export function VenueLayoutDesigner({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-500">Height</Label>
+                    <Label className="text-xs">Height</Label>
                     <Input
                       type="number"
                       value={venueObject.height}
@@ -465,10 +479,10 @@ export function VenueLayoutDesigner({
                 </div>
                 <Button 
                   onClick={() => setCurrentStep(2)}
-                  className="w-full mt-2"
+                  className="w-full mt-1"
+                  size="sm"
                 >
-                  Continue to Stage Setup
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  Continue to Stages
                 </Button>
               </div>
             )}
@@ -479,8 +493,7 @@ export function VenueLayoutDesigner({
         <Card className={cn(
           "border-2",
           stepIsActive(2) && "border-blue-500 bg-blue-50",
-          stepIsCompleted(2) && "border-green-500 bg-green-50",
-          currentStep < 2 && "opacity-50"
+          stepIsCompleted(2) && "border-green-500 bg-green-50"
         )}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
@@ -505,11 +518,11 @@ export function VenueLayoutDesigner({
                 Add Stage
               </Button>
             ) : (
-              <div className="space-y-2">
-                <div className="text-sm text-green-600 font-medium">✓ Stage Added</div>
+              <div className="space-y-2 p-3 bg-gray-50 rounded">
+                <p className="text-sm font-medium text-green-600">✓ Stage Added</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="text-xs text-gray-500">Width</Label>
+                    <Label className="text-xs">Width</Label>
                     <Input
                       type="number"
                       value={stages[0]?.width || 0}
@@ -520,7 +533,7 @@ export function VenueLayoutDesigner({
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-500">Height</Label>
+                    <Label className="text-xs">Height</Label>
                     <Input
                       type="number"
                       value={stages[0]?.height || 0}
@@ -547,10 +560,10 @@ export function VenueLayoutDesigner({
             <Button 
               onClick={() => setCurrentStep(3)}
               disabled={currentStep !== 2}
+              variant="outline"
               className="w-full"
             >
-              Continue to Table Setup
-              <ArrowRight className="w-4 h-4 ml-2" />
+              {stages.length > 0 ? 'Continue to Tables' : 'Skip (No Stage)'}
             </Button>
           </CardContent>
         </Card>
@@ -559,8 +572,7 @@ export function VenueLayoutDesigner({
         <Card className={cn(
           "border-2",
           stepIsActive(3) && "border-blue-500 bg-blue-50",
-          stepIsCompleted(3) && "border-green-500 bg-green-50",
-          currentStep < 3 && "opacity-50"
+          stepIsCompleted(3) && "border-green-500 bg-green-50"
         )}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
@@ -581,7 +593,6 @@ export function VenueLayoutDesigner({
                 variant="outline"
                 size="sm"
               >
-                <Users className="w-3 h-3 mr-1" />
                 4-Seat
               </Button>
               <Button 
@@ -590,7 +601,6 @@ export function VenueLayoutDesigner({
                 variant="outline"
                 size="sm"
               >
-                <Users className="w-3 h-3 mr-1" />
                 6-Seat
               </Button>
               <Button 
@@ -599,7 +609,6 @@ export function VenueLayoutDesigner({
                 variant="outline"
                 size="sm"
               >
-                <Users className="w-3 h-3 mr-1" />
                 8-Seat
               </Button>
               <Button 
@@ -608,7 +617,6 @@ export function VenueLayoutDesigner({
                 variant="outline"
                 size="sm"
               >
-                <Users className="w-3 h-3 mr-1" />
                 10-Seat
               </Button>
             </div>
@@ -620,16 +628,18 @@ export function VenueLayoutDesigner({
             )}
 
             {selectedObjects.length > 0 && (
-              <div className="space-y-2 p-2 bg-gray-50 rounded">
-                <div className="text-sm font-medium">Multi-Selection ({selectedObjects.length})</div>
-                <div className="grid grid-cols-2 gap-1">
+              <div className="space-y-2 p-2 bg-blue-50 rounded border border-blue-200">
+                <div className="text-sm font-medium text-blue-800">
+                  {selectedObjects.length} Selected
+                </div>
+                <div className="grid grid-cols-2 gap-2">
                   <Button 
                     onClick={() => rotateSelected(15)}
                     disabled={readonly}
                     variant="outline"
                     size="sm"
                   >
-                    <RotateCw className="w-3 h-3 mr-1" />
+                    <RotateCcw className="w-3 h-3 mr-1" />
                     Rotate
                   </Button>
                   <Button 
@@ -647,43 +657,94 @@ export function VenueLayoutDesigner({
           </CardContent>
         </Card>
       </div>
-      
-      {/* Main Layout Area */}
-      <div className="flex gap-6 h-full">
-        {/* Controls Sidebar */}
+
+      {/* Main Layout - Same as before */}
+      <div className="flex gap-6 p-6 max-w-7xl mx-auto">
+        {/* Control Panel - Same as before */}
         <div className="w-80 space-y-4">
-          {/* Selection Tools */}
+          {/* Selection and Object Controls */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
                 <MousePointer2 className="w-4 h-4" />
-                Selection Tools
+                Multi-Selection Tools
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <Button 
-                onClick={selectAll}
-                disabled={readonly || tables.length === 0}
-                variant="outline"
-                className="w-full"
-              >
-                Select All Tables
-              </Button>
-              <Button 
-                onClick={() => setSelectedObjects([])}
-                disabled={readonly || selectedObjects.length === 0}
-                variant="outline"
-                className="w-full"
-              >
-                Clear Selection
-              </Button>
+            <CardContent className="space-y-3">
+              {selectedObjects.length > 0 && (
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="text-sm font-medium text-blue-800 mb-2">
+                    {selectedObjects.length} Object{selectedObjects.length !== 1 ? 's' : ''} Selected
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => rotateSelected(15)}
+                        disabled={readonly}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-1" />
+                        Rotate +15°
+                      </Button>
+                      <Button 
+                        onClick={() => rotateSelected(-15)}
+                        disabled={readonly}
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-1" />
+                        Rotate -15°
+                      </Button>
+                    </div>
+                    <Button 
+                      onClick={deleteSelected}
+                      disabled={readonly || selectedObjects.length === 0}
+                      variant="destructive"
+                      size="sm"
+                      className="w-full"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Delete Selected
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={deleteSelected}
+                    disabled={readonly || selectedObjects.length === 0}
+                    variant="destructive"
+                    size="sm"
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Delete
+                  </Button>
+                  <Button 
+                    onClick={selectAll}
+                    disabled={readonly || (stages.length === 0 && tables.length === 0)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <MousePointer2 className="w-4 h-4 mr-1" />
+                    Select All
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Actions */}
+          {/* Final Actions */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white bg-gray-500">
+                  🔄
+                </div>
                 Actions
               </CardTitle>
             </CardHeader>
@@ -711,7 +772,7 @@ export function VenueLayoutDesigner({
           </Card>
         </div>
 
-        {/* Canvas Area */}
+        {/* Canvas Area - Same as before */}
         <div className="flex-1">
           <div className="border rounded-lg shadow-sm bg-white">
             <canvas
