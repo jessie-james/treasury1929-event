@@ -44,7 +44,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   // Filter available tables (exclude booked ones)
   const availableTables = venueLayout?.tables?.filter((table: VenueTable) => {
     const bookedTableIds = existingBookings?.map(booking => booking.tableId) || [];
-    return table.status === 'available' && !bookedTableIds.includes(table.id);
+    return !bookedTableIds.includes(table.id);
   }) || [];
 
   // Draw venue on canvas when data loads
