@@ -30,7 +30,7 @@ export function registerSeatSelectionRoutes(app: Express): void {
 
       // Get tables and stages for this venue
       const tables = await storage.getTables();
-      const venueTables = tables.filter((t: any) => t.venue_id === venueId);
+      const venueTables = tables.filter((t: any) => t.venue_id === venueId || t.venueId === venueId);
       const stages = await storage.getStage(venueId);
       const venueStages = stages ? [stages] : [];
 
@@ -40,10 +40,24 @@ export function registerSeatSelectionRoutes(app: Express): void {
       if (venueTables.length > 0) {
         console.log(`[SEAT-SELECTION] Sample table:`, venueTables[0]);
       }
+      
+      // Transform tables to match expected frontend format
+      const transformedTables = venueTables.map((table: any) => ({
+        id: table.id,
+        tableNumber: table.table_number,
+        capacity: table.capacity,
+        x: table.x,
+        y: table.y,
+        width: table.width,
+        height: table.height,
+        shape: table.shape,
+        status: table.status || 'available',
+        venueId: table.venue_id || table.venueId
+      }));
 
       const venueLayout = {
         venue: venue,
-        tables: venueTables || [],
+        tables: transformedTables || [],
         stages: venueStages || []
       };
 
