@@ -13,6 +13,18 @@ interface Props {
   hasExistingBooking?: boolean;
 }
 
+interface VenueTable {
+  id: number;
+  tableNumber: number;
+  capacity: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  shape: string;
+  status: string;
+}
+
 interface TableData {
   tableId: number;
   seatCount: number;
@@ -43,6 +55,16 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       return response.json();
     },
     enabled: !!eventData?.venueId
+  });
+
+  // Fetch existing bookings to filter out booked tables
+  const { data: existingBookings } = useQuery({
+    queryKey: ['event-bookings', eventId],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/events/${eventId}/bookings`);
+      if (!response.ok) return [];
+      return response.json();
+    }
   });
   
   // Listen for messages from the iframe

@@ -595,6 +595,24 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Get existing bookings for an event (to filter available tables)
+  app.get("/api/events/:eventId/bookings", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const bookings = await storage.getBookings();
+      const eventBookings = bookings.filter(booking => booking.eventId === eventId);
+      
+      res.json(eventBookings);
+    } catch (error) {
+      console.error("Error fetching event bookings:", error);
+      res.status(500).json({ message: "Failed to fetch event bookings" });
+    }
+  });
+
   app.get("/api/tables", async (_req, res) => {
     try {
       // Return a simplified temporary implementation
