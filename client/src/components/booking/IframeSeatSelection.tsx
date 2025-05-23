@@ -30,12 +30,14 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   // Fetch venue layout
   const { data: venueLayout, isLoading: isLoadingLayout } = useQuery({
     queryKey: ['/api/venue-layout', eventId],
+    queryFn: () => fetch(`/api/venue-layout?eventId=${eventId}`).then(res => res.json()),
     enabled: !!eventId
   });
 
   // Fetch existing bookings to filter out unavailable tables
   const { data: existingBookings } = useQuery({
     queryKey: ['/api/event-bookings', eventId],
+    queryFn: () => fetch(`/api/event-bookings?eventId=${eventId}`).then(res => res.json()),
     enabled: !!eventId
   });
 
