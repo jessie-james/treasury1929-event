@@ -118,6 +118,7 @@ function StripeCheckoutForm({
         const booking = {
           eventId,
           tableId,
+          partySize: selectedSeats.length, // Add missing partySize field
           seatNumbers: selectedSeats,
           foodSelections,
           guestNames,
