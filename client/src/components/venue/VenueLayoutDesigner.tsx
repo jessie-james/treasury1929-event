@@ -873,9 +873,45 @@ export function VenueLayoutDesigner({
           </CardContent>
         </Card>
       </div>
+      
+      {/* Main Layout */}
+      <div className="flex gap-6 h-full">
+        {/* Controls Sidebar */}
+        <div className="w-80 space-y-4">
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <MousePointer2 className="w-5 h-5" />
+                Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {!readonly && (
+                <>
+                  <Button 
+                    onClick={handleSave}
+                    disabled={!venueObject}
+                    className="w-full"
+                  >
+                    Save Layout
+                  </Button>
+                  <Button 
+                    onClick={resetAll}
+                    variant="destructive"
+                    className="w-full"
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Reset Everything
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Canvas Area */}
-      <div className="flex-1">
+        {/* Canvas Area */}
+        <div className="flex-1">
         <div className="border rounded-lg shadow-sm bg-white">
           <canvas
             ref={canvasRef}
@@ -974,6 +1010,7 @@ export function VenueLayoutDesigner({
             </p>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
