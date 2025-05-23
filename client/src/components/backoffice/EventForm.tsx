@@ -244,8 +244,27 @@ export function EventForm({ event, onClose }: Props) {
       const method = event ? "PATCH" : "POST";
       return apiRequest(method, endpoint, formattedData);
     },
-    onSuccess: () => {
+    onSuccess: async (response) => {
+      const savedEvent = await response.json();
+      
+      // Save food options for the event
+      if (selectedFoodOptions.length > 0) {
+        try {
+          await apiRequest("PUT", `/api/events/${savedEvent.id || event?.id}/food-options`, {
+            foodOptionIds: selectedFoodOptions
+          });
+        } catch (error) {
+          console.error("Error saving food options:", error);
+          toast({
+            title: "Warning",
+            description: "Event saved but food options could not be updated",
+            variant: "destructive",
+          });
+        }
+      }
+      
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/events/${savedEvent.id || event?.id}/food-options`] });
       toast({
         title: `Event ${event ? "updated" : "created"} successfully`,
       });
