@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Plus, RotateCcw, Trash2, MousePointer2 } from 'lucide-react';
+import { Plus, RotateCcw, Trash2, MousePointer2, Square, Circle, RotateCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Venue, Stage, Table } from '@shared/schema';
 
