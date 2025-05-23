@@ -1777,7 +1777,9 @@ export async function registerRoutes(app: Express) {
       console.log("Insert successful:", newBooking);
       console.log("🎉 Booking created successfully:", newBooking);
 
-      res.status(201).json({
+      // Ensure proper JSON response
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(201).json({
         message: "Booking created successfully",
         booking: newBooking
       });
