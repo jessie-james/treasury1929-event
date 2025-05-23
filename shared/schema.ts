@@ -309,7 +309,9 @@ export const insertEventSchema = createInsertSchema(events).omit({ id: true });
 export const insertTicketSchema = createInsertSchema(tickets).omit({ id: true, createdAt: true });
 export const insertTableSchema = createInsertSchema(tables).omit({ id: true });
 export const insertSeatSchema = createInsertSchema(seats).omit({ id: true });
-export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true });
+export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true }).extend({
+  partySize: z.number().optional().default(1)
+});
 export const insertMenuItemSchema = createInsertSchema(menuItems).omit({ id: true });
 export const insertFoodOptionSchema = createInsertSchema(foodOptions).omit({ id: true, createdAt: true });
 export const insertEventFoodOptionSchema = createInsertSchema(eventFoodOptions).omit({ id: true });
