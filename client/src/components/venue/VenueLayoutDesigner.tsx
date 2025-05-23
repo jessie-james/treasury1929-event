@@ -704,43 +704,53 @@ export function VenueLayoutDesigner({
             
             <div className="space-y-3">
               <div>
-                <Label>Table Size</Label>
+                <Label className="text-sm font-medium">Table Size</Label>
                 <Select value={tableSize.toString()} onValueChange={(v) => setTableSize(Number(v))}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[1,2,3,4,5,6,7,8,9].map(size => (
-                      <SelectItem key={size} value={size.toString()}>
-                        Size {size} {size <= 3 ? '(Small)' : size <= 6 ? '(Medium)' : '(Large)'}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="1">1 - Very Small (40px)</SelectItem>
+                    <SelectItem value="2">2 - Small (50px)</SelectItem>
+                    <SelectItem value="3">3 - Medium Small (60px)</SelectItem>
+                    <SelectItem value="4">4 - Medium (70px)</SelectItem>
+                    <SelectItem value="5">5 - Medium Large (80px)</SelectItem>
+                    <SelectItem value="6">6 - Large (90px)</SelectItem>
+                    <SelectItem value="7">7 - Very Large (100px)</SelectItem>
+                    <SelectItem value="8">8 - Extra Large (110px)</SelectItem>
+                    <SelectItem value="9">9 - Maximum (120px)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               <div>
-                <Label>Table Type</Label>
+                <Label className="text-sm font-medium">Table Shape</Label>
                 <Select value={tableType} onValueChange={(v: 'full' | 'half') => setTableType(v)}>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="full">Full Circle</SelectItem>
-                    <SelectItem value="half">Half Circle</SelectItem>
+                    <SelectItem value="full">🔵 Round Table</SelectItem>
+                    <SelectItem value="half">🌙 Half Circle</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               <div>
-                <Label>Seat Count</Label>
-                <Input 
-                  type="number" 
-                  value={seatCount} 
-                  onChange={(e) => setSeatCount(Number(e.target.value))}
-                  min={1}
-                  max={12}
-                />
+                <Label className="text-sm font-medium">Seat Capacity</Label>
+                <Select value={seatCount.toString()} onValueChange={(v) => setSeatCount(Number(v))}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="2">👥 2 people</SelectItem>
+                    <SelectItem value="4">👥👥 4 people</SelectItem>
+                    <SelectItem value="6">👥👥👥 6 people</SelectItem>
+                    <SelectItem value="8">👥👥👥👥 8 people</SelectItem>
+                    <SelectItem value="10">👥👥👥👥👥 10 people</SelectItem>
+                    <SelectItem value="12">👥👥👥👥👥👥 12 people</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
               {selectedObjects.length > 0 && selectedObjects.some(id => tables.some(t => t.id === id)) && (
