@@ -45,6 +45,7 @@ export function EventForm({ event, onClose }: Props) {
   const [uploading, setUploading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(event?.image || null);
   const [totalTables, setTotalTables] = useState<number>(0);
+  const [totalSeats, setTotalSeats] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch venues for selection
