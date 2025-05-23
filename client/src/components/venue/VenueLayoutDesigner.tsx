@@ -102,26 +102,26 @@ export function VenueLayoutDesigner({
         const centerY = table.y + tableRadius;
         const isHalf = table.data.shape === 'half';
         
+        // Simplified approach: use a rectangular bounding box for easier selection
+        const seatRadius = dimensions.seatRadius;
+        const gap = dimensions.gap;
+        const totalRadius = tableRadius + seatRadius + gap + 15; // Extra padding for easier clicking
+        
         if (isHalf) {
-          // For half circle tables, include the entire table + seats area
-          const seatRadius = dimensions.seatRadius;
-          const gap = dimensions.gap;
-          const totalRadius = tableRadius + seatRadius + gap;
-          const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-          const angle = Math.atan2(y - centerY, x - centerX);
-          const normalizedAngle = ((angle + Math.PI) % (2 * Math.PI));
+          // For half circles, create a generous rectangular selection area
+          const left = table.x - 10;
+          const right = table.x + (tableRadius * 2) + 10;
+          const top = table.y;
+          const bottom = table.y + totalRadius + 10;
           
-          // Half circle covers bottom half (π to 2π radians) including seats
-          if (distance <= totalRadius + 15 && normalizedAngle >= Math.PI && normalizedAngle <= 2 * Math.PI) {
+          // Check if click is within the rectangular bounds
+          if (x >= left && x <= right && y >= top && y <= bottom) {
             return table;
           }
         } else {
-          // For full circle tables, include seats in selection area
-          const seatRadius = dimensions.seatRadius;
-          const gap = dimensions.gap;
-          const totalRadius = tableRadius + seatRadius + gap;
+          // For full circles, use generous circular detection
           const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-          if (distance <= totalRadius + 15) {
+          if (distance <= totalRadius) {
             return table;
           }
         }
