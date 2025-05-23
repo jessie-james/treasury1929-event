@@ -492,130 +492,104 @@ export function VenueLayoutDesigner({
   const stepIsCompleted = (step: WorkflowStep) => step < currentStep || (step === 2 && currentStep === 3 && stages.length === 0);
 
   return (
-    <div className="flex gap-6 p-6 max-w-7xl mx-auto">
-      {/* Control Panel */}
-      <div className="w-80 space-y-4">
-        {/* Step 1: Create Venue */}
-        <Card className={cn(
-          "border-2",
-          stepIsActive(1) && "border-blue-500 bg-blue-50",
-          stepIsCompleted(1) && "border-green-500 bg-green-50"
-        )}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
+    <div className="space-y-4">
+      {/* Top Controls Bar */}
+      <div className="bg-white border rounded-lg shadow-sm p-4 space-y-4">
+        {/* Workflow Steps - Horizontal Layout */}
+        <div className="flex gap-4">
+          {/* Step 1: Create Venue */}
+          <div className={cn(
+            "flex-1 border-2 rounded-lg p-3",
+            stepIsActive(1) && "border-blue-500 bg-blue-50",
+            stepIsCompleted(1) && "border-green-500 bg-green-50"
+          )}>
+            <div className="flex items-center gap-2 mb-2">
               <div className={cn(
                 "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white",
                 stepIsCompleted(1) ? "bg-green-500" : "bg-blue-500"
               )}>
                 1
               </div>
-              Create Your Venue Space
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button 
-              onClick={createVenue} 
-              disabled={readonly || currentStep !== 1}
-              className="w-full"
-            >
-              {venueObject ? 'Venue Created' : 'Create Venue Rectangle'}
-            </Button>
-            
-            {venueObject && currentStep === 1 && (
-              <div className="space-y-2 p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium">Venue Controls:</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs">Width</Label>
-                    <Input 
-                      type="number" 
-                      value={venueObject.width}
-                      onChange={(e) => {
-                        const newWidth = Number(e.target.value);
-                        setVenueObject(prev => prev ? { 
-                          ...prev, 
-                          width: newWidth,
-                          data: { ...prev.data, width: newWidth }
-                        } : null);
-                      }}
-                      min={200}
-                      max={1000}
-                      className="h-8"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Height</Label>
-                    <Input 
-                      type="number" 
-                      value={venueObject.height}
-                      onChange={(e) => {
-                        const newHeight = Number(e.target.value);
-                        setVenueObject(prev => prev ? { 
-                          ...prev, 
-                          height: newHeight,
-                          data: { ...prev.data, height: newHeight }
-                        } : null);
-                      }}
-                      min={200}
-                      max={700}
-                      className="h-8"
-                    />
-                  </div>
+              <span className="font-medium text-sm">Create Venue</span>
+            </div>
+            <div className="space-y-2">
+              <Button 
+                onClick={createVenue} 
+                disabled={readonly || currentStep !== 1}
+                size="sm"
+                className="w-full"
+              >
+                {venueObject ? 'Created' : 'Create Venue'}
+              </Button>
+              
+              {venueObject && currentStep === 1 && (
+                <div className="grid grid-cols-2 gap-1">
+                  <Input 
+                    type="number" 
+                    value={venueObject.width}
+                    onChange={(e) => {
+                      const newWidth = Number(e.target.value);
+                      setVenueObject(prev => prev ? { 
+                        ...prev, 
+                        width: newWidth,
+                        data: { ...prev.data, width: newWidth }
+                      } : null);
+                    }}
+                    min={200}
+                    max={1000}
+                    className="h-7 text-xs"
+                    placeholder="Width"
+                  />
+                  <Input 
+                    type="number" 
+                    value={venueObject.height}
+                    onChange={(e) => {
+                      const newHeight = Number(e.target.value);
+                      setVenueObject(prev => prev ? { 
+                        ...prev, 
+                        height: newHeight,
+                        data: { ...prev.data, height: newHeight }
+                      } : null);
+                    }}
+                    min={200}
+                    max={700}
+                    className="h-7 text-xs"
+                    placeholder="Height"
+                  />
                 </div>
-              </div>
-            )}
-            
-            <Button 
-              onClick={() => setCurrentStep(2)} 
-              disabled={!venueObject}
-              variant="outline"
-              className="w-full"
-            >
-              Continue to Stages
-            </Button>
-          </CardContent>
-        </Card>
+              )}
+            </div>
+          </div>
 
-        {/* Step 2: Add Stage */}
-        <Card className={cn(
-          "border-2",
-          stepIsActive(2) && "border-blue-500 bg-blue-50",
-          stepIsCompleted(2) && "border-green-500 bg-green-50"
-        )}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
+          {/* Step 2: Add Stage */}
+          <div className={cn(
+            "flex-1 border-2 rounded-lg p-3",
+            stepIsActive(2) && "border-blue-500 bg-blue-50",
+            stepIsCompleted(2) && "border-green-500 bg-green-50"
+          )}>
+            <div className="flex items-center gap-2 mb-2">
               <div className={cn(
                 "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white",
                 stepIsCompleted(2) ? "bg-green-500" : "bg-blue-500"
               )}>
                 2
               </div>
-              Add Stage (Optional)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button 
-              onClick={() => setCurrentStep(1)}
-              variant="secondary"
-              className="w-full"
-            >
-              ← Back: Edit Venue
-            </Button>
-            <Button 
-              onClick={addStage}
-              disabled={readonly || currentStep !== 2 || !venueObject || stages.length > 0}
-              className="w-full"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              {stages.length > 0 ? 'Stage Added' : 'Add Stage'}
-            </Button>
-            
-            {stages.length > 0 && currentStep === 2 && (
-              <div className="space-y-2 p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium">Stage Controls:</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs">Width</Label>
+              <span className="font-medium text-sm">Add Stage</span>
+            </div>
+            <div className="space-y-2">
+              <Button 
+                onClick={addStage}
+                disabled={readonly || currentStep !== 2 || !venueObject || stages.length > 0}
+                size="sm"
+                className="w-full"
+              >
+                <Plus className="w-3 h-3 mr-1" />
+                {stages.length > 0 ? 'Added' : 'Add Stage'}
+              </Button>
+              
+              {stages.length > 0 && currentStep === 2 && (
+                <div className="space-y-1">
+                  <div className="grid grid-cols-2 gap-1">
                     <Input 
                       type="number" 
                       value={stages[0]?.width || 200}
@@ -629,11 +603,9 @@ export function VenueLayoutDesigner({
                       }}
                       min={50}
                       max={500}
-                      className="h-8"
+                      className="h-7 text-xs"
+                      placeholder="Width"
                     />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Height</Label>
                     <Input 
                       type="number" 
                       value={stages[0]?.height || 100}
@@ -647,58 +619,205 @@ export function VenueLayoutDesigner({
                       }}
                       min={50}
                       max={300}
-                      className="h-8"
+                      className="h-7 text-xs"
+                      placeholder="Height"
                     />
                   </div>
+                  <Button 
+                    onClick={() => setStages([])}
+                    variant="outline" 
+                    size="sm"
+                    className="w-full h-7 text-xs"
+                  >
+                    <Trash2 className="w-3 h-3 mr-1" />
+                    Remove
+                  </Button>
                 </div>
-                <Button 
-                  onClick={() => setStages([])}
-                  variant="outline" 
-                  size="sm"
-                  className="w-full"
-                >
-                  <Trash2 className="w-3 h-3 mr-1" />
-                  Remove Stage
-                </Button>
-              </div>
-            )}
-            
-            <Button 
-              onClick={() => setCurrentStep(3)}
-              disabled={currentStep !== 2}
-              variant="outline"
-              className="w-full"
-            >
-              {stages.length > 0 ? 'Continue to Tables' : 'Skip (No Stage)'}
-            </Button>
-          </CardContent>
-        </Card>
+              )}
+            </div>
+          </div>
 
-        {/* Step 3: Add Tables */}
-        <Card className={cn(
-          "border-2",
-          stepIsActive(3) && "border-blue-500 bg-blue-50",
-          stepIsCompleted(3) && "border-green-500 bg-green-50"
-        )}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2">
+          {/* Step 3: Add Tables */}
+          <div className={cn(
+            "flex-1 border-2 rounded-lg p-3",
+            stepIsActive(3) && "border-blue-500 bg-blue-50",
+            stepIsCompleted(3) && "border-green-500 bg-green-50"
+          )}>
+            <div className="flex items-center gap-2 mb-2">
               <div className={cn(
                 "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white",
                 stepIsCompleted(3) ? "bg-green-500" : "bg-blue-500"
               )}>
                 3
               </div>
-              Design Table Layout
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+              <span className="font-medium text-sm">Table Layout</span>
+            </div>
+              <div className="grid grid-cols-3 gap-1 text-xs">
+                <Select value={tableSize.toString()} onValueChange={(v) => setTableSize(Number(v))}>
+                  <SelectTrigger className="h-7">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1,2,3,4,5,6,7,8,9].map(size => (
+                      <SelectItem key={size} value={size.toString()}>
+                        Size {size}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select value={tableType} onValueChange={(v: 'full' | 'half') => setTableType(v)}>
+                  <SelectTrigger className="h-7">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="full">Full</SelectItem>
+                    <SelectItem value="half">Half</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Input 
+                  type="number" 
+                  value={seatCount} 
+                  onChange={(e) => setSeatCount(Number(e.target.value))}
+                  min={1}
+                  max={12}
+                  className="h-7"
+                  placeholder="Seats"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-1">
+                <Button 
+                  onClick={addTable}
+                  disabled={readonly || currentStep !== 3 || !venueObject}
+                  size="sm"
+                  className="h-7 text-xs"
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add Table
+                </Button>
+                
+                <Button 
+                  onClick={updateSelectedTables}
+                  disabled={readonly || selectedObjects.filter(id => tables.some(t => t.id === id)).length === 0}
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                >
+                  Update Selected
+                </Button>
+              </div>
+              
+              {selectedObjects.length > 0 && selectedObjects.some(id => tables.some(t => t.id === id)) && (
+                <div className="grid grid-cols-4 gap-1">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      setTables(prev => prev.map(table => 
+                        selectedObjects.includes(table.id) 
+                          ? { 
+                              ...table, 
+                              rotation: (table.rotation - 15) % 360,
+                              data: { ...table.data, rotation: (table.data.rotation - 15) % 360 }
+                            }
+                          : table
+                      ));
+                    }}
+                    className="h-7 text-xs"
+                  >
+                    ↺ -15°
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      setTables(prev => prev.map(table => 
+                        selectedObjects.includes(table.id) 
+                          ? { 
+                              ...table, 
+                              rotation: (table.rotation + 15) % 360,
+                              data: { ...table.data, rotation: (table.data.rotation + 15) % 360 }
+                            }
+                          : table
+                      ));
+                    }}
+                    className="h-7 text-xs"
+                  >
+                    ↻ +15°
+                  </Button>
+                  <Button 
+                    onClick={selectAll}
+                    disabled={readonly || tables.length === 0}
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs"
+                  >
+                    Select All
+                  </Button>
+                  <Button 
+                    onClick={() => setTables(prev => prev.filter(table => !selectedObjects.includes(table.id)))}
+                    disabled={readonly || selectedObjects.filter(id => tables.some(t => t.id === id)).length === 0}
+                    variant="destructive"
+                    size="sm"
+                    className="h-7 text-xs"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation & Actions */}
+        <div className="flex justify-between items-center">
+          <div className="flex gap-2">
             <Button 
-              onClick={() => setCurrentStep(2)}
-              variant="secondary"
-              className="w-full"
+              onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+              disabled={currentStep === 1}
+              variant="outline"
+              size="sm"
             >
-              ← Back: Edit Stage
+              ← Previous Step
             </Button>
+            <Button 
+              onClick={() => setCurrentStep(Math.min(3, currentStep + 1))}
+              disabled={currentStep === 3 || (currentStep === 1 && !venueObject)}
+              variant="outline"
+              size="sm"
+            >
+              Next Step →
+            </Button>
+          </div>
+          
+          <div className="flex gap-2">
+            {!readonly && (
+              <>
+                <Button 
+                  onClick={handleSave}
+                  disabled={!venueObject}
+                  size="sm"
+                >
+                  Save Layout
+                </Button>
+                <Button 
+                  onClick={resetAll}
+                  variant="destructive"
+                  size="sm"
+                >
+                  <RotateCcw className="w-3 h-3 mr-1" />
+                  Reset All
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Canvas Area */}
+      <div className="w-full">
             
             <Separator />
             
