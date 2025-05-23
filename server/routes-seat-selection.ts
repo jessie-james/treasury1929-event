@@ -29,7 +29,7 @@ export function registerSeatSelectionRoutes(app: Express): void {
 
       // Get tables and stages for this venue
       const tables = await storage.getTables();
-      const venueTables = tables.filter((t: any) => t.venueId === venueId);
+      const venueTables = tables.filter((t: any) => t.venue_id === venueId);
       const stages = await storage.getStage(venueId);
       const venueStages = stages ? [stages] : [];
 
