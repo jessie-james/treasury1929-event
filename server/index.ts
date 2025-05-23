@@ -5,6 +5,7 @@ import { registerStandalonePaymentRoutes } from "./routes-standalone";
 import { registerOtpRoutes } from "./routes-otp";
 import { registerDirectPaymentRoutes } from "./routes-direct";
 import { registerVenueRoutes } from "./routes-venue";
+import { registerSeatSelectionRoutes } from "./routes-seat-selection";
 import { setupVite, log, serveStatic } from "./vite";
 import { storage } from "./storage";
 import cors from 'cors';
@@ -147,6 +148,10 @@ app.use((req, res, next) => {
     // Set up direct payment routes (completely self-contained)
     log("Setting up direct payment routes...");
     registerDirectPaymentRoutes(app);
+    
+    // Set up seat selection routes
+    log("Setting up seat selection routes...");
+    registerSeatSelectionRoutes(app);
 
     // Error logging middleware
     app.use(async (err: any, req: Request, res: Response, next: NextFunction) => {
