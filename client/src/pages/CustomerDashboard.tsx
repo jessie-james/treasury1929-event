@@ -43,8 +43,8 @@ export default function CustomerDashboard() {
       const booking = bookings?.find(b => b.id === bookingId);
       if (!booking) return;
       
-      // Simple booking ID format that the scanner expects
-      const qrData = `BOOKING:${booking.id}`;
+      // Just the booking ID number - exactly what the scanner expects
+      const qrData = booking.id.toString();
       
       const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
         width: 200,
