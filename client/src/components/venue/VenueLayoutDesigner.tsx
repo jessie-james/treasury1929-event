@@ -53,34 +53,29 @@ export function VenueLayoutDesigner({
   const [seatCount, setSeatCount] = useState(4);
   const [showStageLines, setShowStageLines] = useState(false);
   
-  // Status
-  const [status, setStatus] = useState('Welcome! Start by creating your venue boundaries.');
-  
-  // Mouse interaction state
+  // Drag and drop
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStartPos, setDragStartPos] = useState({ x: 0, y: 0 });
   const [draggedObjectId, setDraggedObjectId] = useState<string | null>(null);
-  
-  const canvas = canvasRef.current;
-  const ctx = canvas?.getContext('2d');
+  const [lastMousePos, setLastMousePos] = useState<{ x: number; y: number } | null>(null);
 
-  // Get mouse position relative to canvas
-  const getMousePos = useCallback((e: React.MouseEvent) => {
+  const getMousePos = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
+    
     const rect = canvas.getBoundingClientRect();
     return {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top
     };
-  }, [canvas]);
+  }, []);
 
-  // Check if mouse is over an object
-  const getObjectAtPosition = useCallback((x: number, y: number) => {
-    // Check venue first (only if on step 1)
-    if (venueObject && currentStep === 1 &&
-        x >= venueObject.x && x <= venueObject.x + venueObject.width &&
-        y >= venueObject.y && y <= venueObject.y + venueObject.height) {
-      return venueObject;
+  const getObjectAtPosition = useCallback((x: number, y: number): CanvasObject | null => {
+    // Check venue boundary (only if on step 1)
+    if (currentStep === 1 && venueObject) {
+      if (x >= venueObject.x && x <= venueObject.x + venueObject.width &&
+          y >= venueObject.y && y <= venueObject.y + venueObject.height) {
+        return venueObject;
+      }
     }
     
     // Check stages (only if on step 2)
@@ -122,206 +117,184 @@ export function VenueLayoutDesigner({
         width: venue.bounds.width,
         height: venue.bounds.height,
         rotation: 0,
-        data: venue
+        data: venue.bounds
       });
     }
-  }, [venue]);
+  }, [venue.bounds]);
 
-  // Initialize stages and tables
+  // Initialize stages and tables from props
   useEffect(() => {
-    const stageObjects = initialStages.map(stage => ({
-      id: `stage-${stage.id}`,
-      type: 'stage' as const,
-      x: stage.x,
-      y: stage.y,
-      width: stage.width,
-      height: stage.height,
-      rotation: stage.rotation || 0,
-      data: stage
-    }));
-    setStages(stageObjects);
+    if (initialStages.length > 0) {
+      const stageObjects = initialStages.map(stage => ({
+        id: stage.id.toString(),
+        type: 'stage' as const,
+        x: stage.x,
+        y: stage.y,
+        width: stage.width,
+        height: stage.height,
+        rotation: stage.rotation || 0,
+        data: stage
+      }));
+      setStages(stageObjects);
+    }
 
-    const tableObjects = initialTables.map(table => ({
-      id: `table-${table.id}`,
-      type: 'table' as const,
-      x: table.x,
-      y: table.y,
-      width: table.width,
-      height: table.height,
-      rotation: table.rotation || 0,
-      data: { ...table, tableSize: table.tableSize || 8, shape: table.shape || 'full' }
-    }));
-    setTables(tableObjects);
+    if (initialTables.length > 0) {
+      const tableObjects = initialTables.map(table => ({
+        id: table.id.toString(),
+        type: 'table' as const,
+        x: table.x,
+        y: table.y,
+        width: table.width,
+        height: table.height,
+        rotation: table.rotation || 0,
+        data: table
+      }));
+      setTables(tableObjects);
+    }
   }, [initialStages, initialTables]);
 
-  // Get next table number
-  const getNextTableNumber = useCallback(() => {
-    if (tables.length === 0) return 1;
-    const existingNumbers = tables.map(t => t.data.tableNumber).sort((a, b) => a - b);
-    for (let i = 1; i <= Math.max(...existingNumbers) + 1; i++) {
-      if (!existingNumbers.includes(i)) return i;
-    }
-    return Math.max(...existingNumbers) + 1;
-  }, [tables]);
-
-  // Canvas drawing functions
   const drawVenue = useCallback((obj: CanvasObject) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    ctx.strokeStyle = selectedObjects.includes(obj.id) ? '#dc2626' : '#374151';
+    ctx.lineWidth = selectedObjects.includes(obj.id) ? 3 : 2;
+    ctx.setLineDash([]);
+    ctx.strokeRect(obj.x, obj.y, obj.width, obj.height);
     
-    ctx.save();
-    ctx.translate(obj.x + obj.width / 2, obj.y + obj.height / 2);
-    ctx.rotate((obj.rotation * Math.PI) / 180);
-    
-    // Venue boundary
-    ctx.fillStyle = 'rgba(240, 248, 255, 0.3)';
-    ctx.strokeStyle = '#4a90e2';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([10, 5]);
-    
-    ctx.fillRect(-obj.width / 2, -obj.height / 2, obj.width, obj.height);
-    ctx.strokeRect(-obj.width / 2, -obj.height / 2, obj.width, obj.height);
-    
-    ctx.restore();
-  }, [ctx]);
+    // Add venue label
+    ctx.fillStyle = '#374151';
+    ctx.font = '14px Arial';
+    ctx.fillText('Venue Boundary', obj.x + 5, obj.y + 20);
+  }, [selectedObjects]);
 
   const drawStage = useCallback((obj: CanvasObject) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    ctx.fillStyle = selectedObjects.includes(obj.id) ? '#dc2626' : '#6366f1';
+    ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
     
-    ctx.save();
-    ctx.translate(obj.x + obj.width / 2, obj.y + obj.height / 2);
-    ctx.rotate((obj.rotation * Math.PI) / 180);
-    
-    // Stage
-    ctx.fillStyle = '#333';
-    ctx.fillRect(-obj.width / 2, -obj.height / 2, obj.width, obj.height);
-    
-    // Stage label
     ctx.fillStyle = 'white';
-    ctx.font = '14px Arial';
+    ctx.font = '12px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('STAGE', 0, 5);
-    
-    // Selection highlight
-    if (selectedObjects.includes(obj.id)) {
-      ctx.strokeStyle = '#ff6b6b';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(-obj.width / 2, -obj.height / 2, obj.width, obj.height);
-    }
-    
-    ctx.restore();
-  }, [ctx, selectedObjects]);
+    ctx.fillText('STAGE', obj.x + obj.width / 2, obj.y + obj.height / 2 + 4);
+    ctx.textAlign = 'left';
+  }, [selectedObjects]);
 
   const drawTable = useCallback((obj: CanvasObject) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
-    const { tableSize, shape, tableNumber, capacity } = obj.data;
-    const size = Math.max(40, Math.min(120, tableSize * 10)); // Scale size 1-9 to 40-120px
-    const isHalf = shape === 'half';
-    
-    ctx.save();
-    ctx.translate(obj.x + size / 2, obj.y + size / 2);
-    ctx.rotate((obj.rotation * Math.PI) / 180);
-    
-    // Table surface
-    ctx.fillStyle = '#8b4513';
-    ctx.strokeStyle = '#654321';
-    ctx.lineWidth = 2;
-    
-    if (isHalf) {
-      // Half circle
-      ctx.beginPath();
-      ctx.arc(0, 0, size / 2, 0, Math.PI);
-      ctx.closePath();
-    } else {
-      // Full circle
-      ctx.beginPath();
-      ctx.arc(0, 0, size / 2, 0, 2 * Math.PI);
-    }
-    
-    ctx.fill();
-    ctx.stroke();
-    
-    // Table number
-    ctx.fillStyle = 'white';
-    ctx.font = 'bold 16px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(tableNumber.toString(), 0, 5);
-    
-    // Seat positions
-    if (capacity && capacity > 0) {
-      const seatRadius = 8;
-      const tableRadius = size / 2 + 15;
-      const angleStep = (isHalf ? Math.PI : 2 * Math.PI) / capacity;
-      const startAngle = isHalf ? 0 : 0;
-      
-      ctx.fillStyle = '#4a90e2';
-      for (let i = 0; i < capacity; i++) {
-        const angle = startAngle + i * angleStep;
-        const seatX = Math.cos(angle) * tableRadius;
-        const seatY = Math.sin(angle) * tableRadius;
-        
-        ctx.beginPath();
-        ctx.arc(seatX, seatY, seatRadius, 0, 2 * Math.PI);
-        ctx.fill();
-      }
-    }
-    
-    // Stage sight lines
-    if (showStageLines && stages.length > 0) {
-      const stage = stages[0];
-      ctx.strokeStyle = 'rgba(255, 200, 0, 0.5)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([5, 5]);
-      
-      const stageX = stage.x + stage.width / 2 - (obj.x + size / 2);
-      const stageY = stage.y + stage.height / 2 - (obj.y + size / 2);
-      
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(stageX, stageY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
-    
-    // Selection highlight
-    if (selectedObjects.includes(obj.id)) {
-      ctx.strokeStyle = '#ff6b6b';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.arc(0, 0, size / 2 + 10, 0, 2 * Math.PI);
-      ctx.stroke();
-    }
-    
-    ctx.restore();
-  }, [ctx, selectedObjects, showStageLines, stages]);
 
-  // Main draw function
-  const draw = useCallback(() => {
-    if (!canvas || !ctx) return;
+    const tableSize = Math.max(40, Math.min(120, obj.data.tableSize * 10));
+    const centerX = obj.x + tableSize / 2;
+    const centerY = obj.y + tableSize / 2;
+    const radius = tableSize / 2;
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate((obj.rotation * Math.PI) / 180);
+
+    // Draw table circle
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = obj.data.status === 'available' ? '#10b981' : 
+                   obj.data.status === 'occupied' ? '#ef4444' : '#6b7280';
+    ctx.fill();
     
+    if (selectedObjects.includes(obj.id)) {
+      ctx.strokeStyle = '#dc2626';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    // Draw table number
+    ctx.fillStyle = 'white';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(obj.data.tableNumber?.toString() || 'T', 0, 4);
+    ctx.textAlign = 'left';
+
+    ctx.restore();
+  }, [selectedObjects]);
+
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Draw venue
+
+    // Draw grid
+    ctx.strokeStyle = '#f3f4f6';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    for (let x = 0; x <= canvas.width; x += 50) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= canvas.height; y += 50) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+
+    // Draw venue boundary
     if (venueObject) {
       drawVenue(venueObject);
     }
-    
-    // Draw stages
-    stages.forEach(drawStage);
-    
-    // Draw tables
-    tables.forEach(drawTable);
-  }, [canvas, ctx, venueObject, stages, tables, drawVenue, drawStage, drawTable]);
 
-  // Redraw when objects change
+    // Draw stages
+    stages.forEach(stage => drawStage(stage));
+
+    // Draw tables
+    tables.forEach(table => drawTable(table));
+
+    // Draw stage sight lines if enabled
+    if (showStageLines && stages.length > 0 && tables.length > 0) {
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      
+      stages.forEach(stage => {
+        const stageCenterX = stage.x + stage.width / 2;
+        const stageCenterY = stage.y + stage.height / 2;
+        
+        tables.forEach(table => {
+          const tableCenterX = table.x + table.width / 2;
+          const tableCenterY = table.y + table.height / 2;
+          
+          ctx.beginPath();
+          ctx.moveTo(stageCenterX, stageCenterY);
+          ctx.lineTo(tableCenterX, tableCenterY);
+          ctx.stroke();
+        });
+      });
+    }
+  }, [venueObject, stages, tables, selectedObjects, showStageLines, drawVenue, drawStage, drawTable]);
+
   useEffect(() => {
     draw();
   }, [draw]);
 
-  // Action handlers
-  const createVenue = useCallback(() => {
+  const createVenue = () => {
+    if (venueObject) return;
+    
     const newVenue: CanvasObject = {
       id: 'venue',
       type: 'venue',
@@ -330,126 +303,109 @@ export function VenueLayoutDesigner({
       width: 800,
       height: 500,
       rotation: 0,
-      data: venue
+      data: { x: 100, y: 100, width: 800, height: 500 }
     };
+    
     setVenueObject(newVenue);
-    setStatus('Venue created! Resize and position it as needed, then click "Next: Add Stage".');
-  }, [venue]);
+  };
 
-  const addStage = useCallback(() => {
-    if (!venueObject) return;
+  const addStage = () => {
+    if (!venueObject || stages.length > 0) return;
     
     const newStage: CanvasObject = {
       id: `stage-${Date.now()}`,
       type: 'stage',
-      x: venueObject.x + venueObject.width / 2 - 100,
+      x: venueObject.x + 50,
       y: venueObject.y + 50,
       width: 200,
       height: 100,
       rotation: 0,
       data: {
-        venueId: venue.id,
         name: 'Main Stage',
-        x: venueObject.x + venueObject.width / 2 - 100,
-        y: venueObject.y + 50,
         width: 200,
         height: 100,
-        rotation: 0,
-        isActive: true
+        x: venueObject.x + 50,
+        y: venueObject.y + 50
       }
     };
     
-    setStages(prev => [...prev, newStage]);
-    setStatus('Stage added! You can resize and reposition it, then continue to tables.');
-  }, [venueObject, venue.id]);
+    setStages([newStage]);
+  };
 
-  const addTable = useCallback(() => {
+  const addTable = () => {
     if (!venueObject) return;
-    
-    const tableNumber = getNextTableNumber();
-    const size = Math.max(40, Math.min(120, tableSize * 10));
     
     const newTable: CanvasObject = {
       id: `table-${Date.now()}`,
       type: 'table',
-      x: venueObject.x + venueObject.width / 2 - size / 2,
-      y: venueObject.y + venueObject.height / 2 - size / 2,
-      width: size,
-      height: size,
+      x: venueObject.x + Math.random() * (venueObject.width - 80),
+      y: venueObject.y + Math.random() * (venueObject.height - 80),
+      width: 80,
+      height: 80,
       rotation: 0,
       data: {
-        venueId: venue.id,
-        tableNumber,
+        tableNumber: tables.length + 1,
         capacity: seatCount,
-        floor: 'main',
-        x: venueObject.x + venueObject.width / 2 - size / 2,
-        y: venueObject.y + venueObject.height / 2 - size / 2,
-        width: size,
-        height: size,
-        shape: tableType,
         tableSize,
+        shape: 'round',
         status: 'available',
-        zone: null,
-        priceCategory: 'standard',
-        isLocked: false,
+        x: 0,
+        y: 0,
         rotation: 0
       }
     };
     
-    setTables(prev => [...prev, newTable]);
-    setStatus(`Table ${tableNumber} added! Double-click tables to duplicate them.`);
-  }, [venueObject, venue.id, getNextTableNumber, tableSize, seatCount, tableType]);
-
-  const deleteSelected = useCallback(() => {
-    setStages(prev => prev.filter(s => !selectedObjects.includes(s.id)));
-    setTables(prev => prev.filter(t => !selectedObjects.includes(t.id)));
-    setSelectedObjects([]);
-    setStatus('Selected objects deleted.');
-  }, [selectedObjects]);
-
-  const selectAll = useCallback(() => {
-    const allIds = [...stages.map(s => s.id), ...tables.map(t => t.id)];
-    setSelectedObjects(allIds);
-  }, [stages, tables]);
-
-  // Update selected tables with current settings
-  const updateSelectedTables = useCallback(() => {
-    if (selectedObjects.length === 0) return;
+    newTable.data.x = newTable.x;
+    newTable.data.y = newTable.y;
     
+    setTables(prev => [...prev, newTable]);
+  };
+
+  const updateSelectedTables = () => {
+    const selectedTableIds = selectedObjects.filter(id => tables.some(t => t.id === id));
+    if (selectedTableIds.length === 0) return;
+
     setTables(prev => prev.map(table => {
-      if (selectedObjects.includes(table.id)) {
-        const size = tableSize * 10;
+      if (selectedTableIds.includes(table.id)) {
         return {
           ...table,
-          width: size,
-          height: size,
           data: {
             ...table.data,
             capacity: seatCount,
-            shape: tableType,
             tableSize,
-            width: size,
-            height: size
+            shape: tableType === 'full' ? 'round' : 'half-round'
           }
         };
       }
       return table;
     }));
-    setStatus(`Updated ${selectedObjects.filter(id => tables.some(t => t.id === id)).length} tables.`);
-  }, [selectedObjects, tables, tableSize, seatCount, tableType]);
+  };
 
-  const resetAll = useCallback(() => {
+  const selectAll = () => {
+    if (currentStep === 3) {
+      setSelectedObjects(tables.map(t => t.id));
+    } else if (currentStep === 2) {
+      setSelectedObjects(stages.map(s => s.id));
+    }
+  };
+
+  const deleteSelected = () => {
+    const selectedTableIds = selectedObjects.filter(id => tables.some(t => t.id === id));
+    setTables(prev => prev.filter(table => !selectedTableIds.includes(table.id)));
+    setSelectedObjects([]);
+  };
+
+  const resetAll = () => {
     setVenueObject(null);
     setStages([]);
     setTables([]);
     setSelectedObjects([]);
     setCurrentStep(1);
-    setStatus('Everything reset. Start by creating your venue boundaries.');
-  }, []);
+  };
 
-  const handleSave = useCallback(() => {
+  const handleSave = () => {
     if (!venueObject) return;
-    
+
     const venueData = {
       ...venue,
       bounds: {
@@ -459,137 +415,172 @@ export function VenueLayoutDesigner({
         height: venueObject.height
       }
     };
-    
-    const stagesData = stages.map(s => s.data);
-    const tablesData = tables.map(t => ({
-      ...t.data,
-      x: t.x,
-      y: t.y,
-      width: t.width,
-      height: t.height,
-      rotation: t.rotation
-    }));
-    
-    onSave({ venue: venueData, stages: stagesData, tables: tablesData });
-  }, [venue, venueObject, stages, tables, onSave]);
 
-  // Update status based on current step
-  useEffect(() => {
-    switch (currentStep) {
-      case 1:
-        setStatus('Welcome! Start by creating your venue boundaries.');
-        break;
-      case 2:
-        setStatus('Decide if you want to add a stage to your venue.');
-        break;
-      case 3:
-        setStatus('Now you can add tables to your venue. Double-click tables to duplicate them.');
-        break;
-    }
-  }, [currentStep]);
+    const stageData = stages.map(stage => ({
+      id: parseInt(stage.id.replace('stage-', '')) || 0,
+      venueId: venue.id,
+      name: stage.data.name || 'Stage',
+      x: stage.x,
+      y: stage.y,
+      width: stage.width,
+      height: stage.height,
+      rotation: stage.rotation || 0
+    }));
+
+    const tableData = tables.map(table => ({
+      id: parseInt(table.id.replace('table-', '')) || 0,
+      venueId: venue.id,
+      tableNumber: table.data.tableNumber || 1,
+      capacity: table.data.capacity || 4,
+      floor: 'main',
+      x: table.x,
+      y: table.y,
+      width: table.width,
+      height: table.height,
+      shape: table.data.shape || 'round',
+      tableSize: table.data.tableSize || 8,
+      status: table.data.status || 'available',
+      zone: null,
+      priceCategory: 'standard',
+      isLocked: false,
+      rotation: table.rotation || 0
+    }));
+
+    onSave({
+      venue: venueData,
+      stages: stageData,
+      tables: tableData
+    });
+  };
 
   const stepIsActive = (step: WorkflowStep) => step === currentStep;
   const stepIsCompleted = (step: WorkflowStep) => step < currentStep || (step === 2 && currentStep === 3 && stages.length === 0);
 
   return (
-    <div className="space-y-4">
-      {/* Top Controls Bar */}
-      <div className="bg-white border rounded-lg shadow-sm p-4 space-y-4">
-        {/* Workflow Steps - Horizontal Layout */}
-        <div className="flex gap-4">
-          {/* Step 1: Create Venue */}
-          <div className={cn(
-            "flex-1 border-2 rounded-lg p-3",
-            stepIsActive(1) && "border-blue-500 bg-blue-50",
-            stepIsCompleted(1) && "border-green-500 bg-green-50"
-          )}>
-            <div className="flex items-center gap-2 mb-2">
+    <div className="flex gap-6 h-full">
+      {/* Left Sidebar */}
+      <div className="w-80 space-y-4">
+        {/* Step 1: Create Venue */}
+        <Card className={cn(
+          "border-2",
+          stepIsActive(1) && "border-blue-500 bg-blue-50",
+          stepIsCompleted(1) && "border-green-500 bg-green-50"
+        )}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
               <div className={cn(
                 "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white",
                 stepIsCompleted(1) ? "bg-green-500" : "bg-blue-500"
               )}>
                 1
               </div>
-              <span className="font-medium text-sm">Create Venue</span>
-            </div>
-            <div className="space-y-2">
-              <Button 
-                onClick={createVenue} 
-                disabled={readonly || currentStep !== 1}
-                size="sm"
-                className="w-full"
-              >
-                {venueObject ? 'Created' : 'Create Venue'}
-              </Button>
-              
-              {venueObject && currentStep === 1 && (
-                <div className="grid grid-cols-2 gap-1">
-                  <Input 
-                    type="number" 
-                    value={venueObject.width}
-                    onChange={(e) => {
-                      const newWidth = Number(e.target.value);
-                      setVenueObject(prev => prev ? { 
-                        ...prev, 
-                        width: newWidth,
-                        data: { ...prev.data, width: newWidth }
-                      } : null);
-                    }}
-                    min={200}
-                    max={1000}
-                    className="h-7 text-xs"
-                    placeholder="Width"
-                  />
-                  <Input 
-                    type="number" 
-                    value={venueObject.height}
-                    onChange={(e) => {
-                      const newHeight = Number(e.target.value);
-                      setVenueObject(prev => prev ? { 
-                        ...prev, 
-                        height: newHeight,
-                        data: { ...prev.data, height: newHeight }
-                      } : null);
-                    }}
-                    min={200}
-                    max={700}
-                    className="h-7 text-xs"
-                    placeholder="Height"
-                  />
+              Create Your Venue Space
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button 
+              onClick={createVenue} 
+              disabled={readonly || currentStep !== 1}
+              className="w-full"
+            >
+              {venueObject ? 'Venue Created' : 'Create Venue Rectangle'}
+            </Button>
+            
+            {venueObject && currentStep === 1 && (
+              <div className="space-y-2 p-3 bg-gray-50 rounded">
+                <p className="text-sm font-medium">Venue Controls:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Width</Label>
+                    <Input 
+                      type="number" 
+                      value={venueObject.width}
+                      onChange={(e) => {
+                        const newWidth = Number(e.target.value);
+                        setVenueObject(prev => prev ? { 
+                          ...prev, 
+                          width: newWidth,
+                          data: { ...prev.data, width: newWidth }
+                        } : null);
+                      }}
+                      min={200}
+                      max={1000}
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Height</Label>
+                    <Input 
+                      type="number" 
+                      value={venueObject.height}
+                      onChange={(e) => {
+                        const newHeight = Number(e.target.value);
+                        setVenueObject(prev => prev ? { 
+                          ...prev, 
+                          height: newHeight,
+                          data: { ...prev.data, height: newHeight }
+                        } : null);
+                      }}
+                      min={200}
+                      max={700}
+                      className="h-8"
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            )}
+            
+            <Button 
+              onClick={() => setCurrentStep(2)} 
+              disabled={!venueObject}
+              variant="outline"
+              className="w-full"
+            >
+              Continue to Stages
+            </Button>
+          </CardContent>
+        </Card>
 
-          {/* Step 2: Add Stage */}
-          <div className={cn(
-            "flex-1 border-2 rounded-lg p-3",
-            stepIsActive(2) && "border-blue-500 bg-blue-50",
-            stepIsCompleted(2) && "border-green-500 bg-green-50"
-          )}>
-            <div className="flex items-center gap-2 mb-2">
+        {/* Step 2: Add Stage */}
+        <Card className={cn(
+          "border-2",
+          stepIsActive(2) && "border-blue-500 bg-blue-50",
+          stepIsCompleted(2) && "border-green-500 bg-green-50"
+        )}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
               <div className={cn(
                 "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white",
                 stepIsCompleted(2) ? "bg-green-500" : "bg-blue-500"
               )}>
                 2
               </div>
-              <span className="font-medium text-sm">Add Stage</span>
-            </div>
-            <div className="space-y-2">
-              <Button 
-                onClick={addStage}
-                disabled={readonly || currentStep !== 2 || !venueObject || stages.length > 0}
-                size="sm"
-                className="w-full"
-              >
-                <Plus className="w-3 h-3 mr-1" />
-                {stages.length > 0 ? 'Added' : 'Add Stage'}
-              </Button>
-              
-              {stages.length > 0 && currentStep === 2 && (
-                <div className="space-y-1">
-                  <div className="grid grid-cols-2 gap-1">
+              Add Stage (Optional)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button 
+              onClick={() => setCurrentStep(1)}
+              variant="secondary"
+              className="w-full"
+            >
+              ← Back: Edit Venue
+            </Button>
+            <Button 
+              onClick={addStage}
+              disabled={readonly || currentStep !== 2 || !venueObject || stages.length > 0}
+              className="w-full"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {stages.length > 0 ? 'Stage Added' : 'Add Stage'}
+            </Button>
+            
+            {stages.length > 0 && currentStep === 2 && (
+              <div className="space-y-2 p-3 bg-gray-50 rounded">
+                <p className="text-sm font-medium">Stage Controls:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Width</Label>
                     <Input 
                       type="number" 
                       value={stages[0]?.width || 200}
@@ -603,9 +594,11 @@ export function VenueLayoutDesigner({
                       }}
                       min={50}
                       max={500}
-                      className="h-7 text-xs"
-                      placeholder="Width"
+                      className="h-8"
                     />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Height</Label>
                     <Input 
                       type="number" 
                       value={stages[0]?.height || 100}
@@ -619,205 +612,58 @@ export function VenueLayoutDesigner({
                       }}
                       min={50}
                       max={300}
-                      className="h-7 text-xs"
-                      placeholder="Height"
+                      className="h-8"
                     />
                   </div>
-                  <Button 
-                    onClick={() => setStages([])}
-                    variant="outline" 
-                    size="sm"
-                    className="w-full h-7 text-xs"
-                  >
-                    <Trash2 className="w-3 h-3 mr-1" />
-                    Remove
-                  </Button>
                 </div>
-              )}
-            </div>
-          </div>
+                <Button 
+                  onClick={() => setStages([])}
+                  variant="outline" 
+                  size="sm"
+                  className="w-full"
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Remove Stage
+                </Button>
+              </div>
+            )}
+            
+            <Button 
+              onClick={() => setCurrentStep(3)}
+              disabled={currentStep !== 2}
+              variant="outline"
+              className="w-full"
+            >
+              {stages.length > 0 ? 'Continue to Tables' : 'Skip (No Stage)'}
+            </Button>
+          </CardContent>
+        </Card>
 
-          {/* Step 3: Add Tables */}
-          <div className={cn(
-            "flex-1 border-2 rounded-lg p-3",
-            stepIsActive(3) && "border-blue-500 bg-blue-50",
-            stepIsCompleted(3) && "border-green-500 bg-green-50"
-          )}>
-            <div className="flex items-center gap-2 mb-2">
+        {/* Step 3: Add Tables */}
+        <Card className={cn(
+          "border-2",
+          stepIsActive(3) && "border-blue-500 bg-blue-50",
+          stepIsCompleted(3) && "border-green-500 bg-green-50"
+        )}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
               <div className={cn(
                 "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white",
                 stepIsCompleted(3) ? "bg-green-500" : "bg-blue-500"
               )}>
                 3
               </div>
-              <span className="font-medium text-sm">Table Layout</span>
-            </div>
-              <div className="grid grid-cols-3 gap-1 text-xs">
-                <Select value={tableSize.toString()} onValueChange={(v) => setTableSize(Number(v))}>
-                  <SelectTrigger className="h-7">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1,2,3,4,5,6,7,8,9].map(size => (
-                      <SelectItem key={size} value={size.toString()}>
-                        Size {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                <Select value={tableType} onValueChange={(v: 'full' | 'half') => setTableType(v)}>
-                  <SelectTrigger className="h-7">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full">Full</SelectItem>
-                    <SelectItem value="half">Half</SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <Input 
-                  type="number" 
-                  value={seatCount} 
-                  onChange={(e) => setSeatCount(Number(e.target.value))}
-                  min={1}
-                  max={12}
-                  className="h-7"
-                  placeholder="Seats"
-                />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-1">
-                <Button 
-                  onClick={addTable}
-                  disabled={readonly || currentStep !== 3 || !venueObject}
-                  size="sm"
-                  className="h-7 text-xs"
-                >
-                  <Plus className="w-3 h-3 mr-1" />
-                  Add Table
-                </Button>
-                
-                <Button 
-                  onClick={updateSelectedTables}
-                  disabled={readonly || selectedObjects.filter(id => tables.some(t => t.id === id)).length === 0}
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs"
-                >
-                  Update Selected
-                </Button>
-              </div>
-              
-              {selectedObjects.length > 0 && selectedObjects.some(id => tables.some(t => t.id === id)) && (
-                <div className="grid grid-cols-4 gap-1">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      setTables(prev => prev.map(table => 
-                        selectedObjects.includes(table.id) 
-                          ? { 
-                              ...table, 
-                              rotation: (table.rotation - 15) % 360,
-                              data: { ...table.data, rotation: (table.data.rotation - 15) % 360 }
-                            }
-                          : table
-                      ));
-                    }}
-                    className="h-7 text-xs"
-                  >
-                    ↺ -15°
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => {
-                      setTables(prev => prev.map(table => 
-                        selectedObjects.includes(table.id) 
-                          ? { 
-                              ...table, 
-                              rotation: (table.rotation + 15) % 360,
-                              data: { ...table.data, rotation: (table.data.rotation + 15) % 360 }
-                            }
-                          : table
-                      ));
-                    }}
-                    className="h-7 text-xs"
-                  >
-                    ↻ +15°
-                  </Button>
-                  <Button 
-                    onClick={selectAll}
-                    disabled={readonly || tables.length === 0}
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                  >
-                    Select All
-                  </Button>
-                  <Button 
-                    onClick={() => setTables(prev => prev.filter(table => !selectedObjects.includes(table.id)))}
-                    disabled={readonly || selectedObjects.filter(id => tables.some(t => t.id === id)).length === 0}
-                    variant="destructive"
-                    size="sm"
-                    className="h-7 text-xs"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation & Actions */}
-        <div className="flex justify-between items-center">
-          <div className="flex gap-2">
+              Design Table Layout
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <Button 
-              onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-              disabled={currentStep === 1}
-              variant="outline"
-              size="sm"
+              onClick={() => setCurrentStep(2)}
+              variant="secondary"
+              className="w-full"
             >
-              ← Previous Step
+              ← Back: Edit Stage
             </Button>
-            <Button 
-              onClick={() => setCurrentStep(Math.min(3, currentStep + 1))}
-              disabled={currentStep === 3 || (currentStep === 1 && !venueObject)}
-              variant="outline"
-              size="sm"
-            >
-              Next Step →
-            </Button>
-          </div>
-          
-          <div className="flex gap-2">
-            {!readonly && (
-              <>
-                <Button 
-                  onClick={handleSave}
-                  disabled={!venueObject}
-                  size="sm"
-                >
-                  Save Layout
-                </Button>
-                <Button 
-                  onClick={resetAll}
-                  variant="destructive"
-                  size="sm"
-                >
-                  <RotateCcw className="w-3 h-3 mr-1" />
-                  Reset All
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Canvas Area */}
-      <div className="w-full">
             
             <Separator />
             
@@ -935,37 +781,42 @@ export function VenueLayoutDesigner({
                 Update Selected Tables
               </Button>
               
-              <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  onClick={deleteSelected}
-                  disabled={readonly || selectedObjects.length === 0}
-                  variant="destructive"
-                  size="sm"
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Delete
-                </Button>
-                <Button 
-                  onClick={selectAll}
-                  disabled={readonly || (stages.length === 0 && tables.length === 0)}
-                  variant="outline"
-                  size="sm"
-                >
-                  <MousePointer2 className="w-4 h-4 mr-1" />
-                  Select All
-                </Button>
-              </div>
+              <Button 
+                onClick={selectAll}
+                disabled={readonly || tables.length === 0}
+                variant="outline"
+                className="w-full"
+              >
+                <MousePointer2 className="w-4 h-4 mr-2" />
+                Select All Tables
+              </Button>
+              
+              <Button 
+                onClick={() => setSelectedObjects([])}
+                disabled={readonly || selectedObjects.length === 0}
+                variant="outline"
+                className="w-full"
+              >
+                Clear Selection
+              </Button>
+              
+              <Button 
+                onClick={deleteSelected}
+                disabled={readonly || selectedObjects.filter(id => tables.some(t => t.id === id)).length === 0}
+                variant="destructive"
+                className="w-full"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Selected
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Final Actions */}
+        {/* Actions */}
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white bg-gray-500">
-                🔄
-              </div>
               Actions
             </CardTitle>
           </CardHeader>
@@ -1007,36 +858,31 @@ export function VenueLayoutDesigner({
               
               if (obj) {
                 setIsDragging(true);
-                setDragStartPos(pos);
                 setDraggedObjectId(obj.id);
+                setLastMousePos(pos);
                 
-                // Select the clicked object
                 if (e.shiftKey) {
-                  // Shift+click: toggle selection
+                  // Multi-select with Shift
                   setSelectedObjects(prev => 
                     prev.includes(obj.id) 
                       ? prev.filter(id => id !== obj.id)
                       : [...prev, obj.id]
                   );
                 } else {
-                  // Regular click: select only this object (unless it's already selected with others)
-                  if (selectedObjects.includes(obj.id) && selectedObjects.length > 1) {
-                    // Keep multiple selection if clicking on an already selected object
-                  } else {
-                    setSelectedObjects([obj.id]);
-                  }
+                  setSelectedObjects([obj.id]);
                 }
               } else {
-                // Click on empty space: clear selection
                 setSelectedObjects([]);
+                setIsDragging(false);
+                setDraggedObjectId(null);
               }
             }}
             onMouseMove={(e) => {
-              if (!isDragging || !draggedObjectId) return;
+              if (!isDragging || !draggedObjectId || !lastMousePos) return;
               
               const pos = getMousePos(e);
-              const deltaX = pos.x - dragStartPos.x;
-              const deltaY = pos.y - dragStartPos.y;
+              const deltaX = pos.x - lastMousePos.x;
+              const deltaY = pos.y - lastMousePos.y;
               
               if (draggedObjectId === 'venue' && venueObject && currentStep === 1) {
                 setVenueObject(prev => prev ? {
@@ -1044,14 +890,14 @@ export function VenueLayoutDesigner({
                   x: Math.max(0, prev.x + deltaX),
                   y: Math.max(0, prev.y + deltaY)
                 } : null);
-              } else {
+              } else if (currentStep === 2) {
                 // Update stages
                 setStages(prev => prev.map(stage => 
                   stage.id === draggedObjectId 
                     ? { ...stage, x: stage.x + deltaX, y: stage.y + deltaY }
                     : stage
                 ));
-                
+              } else if (currentStep === 3) {
                 // Update tables
                 setTables(prev => prev.map(table => 
                   table.id === draggedObjectId 
@@ -1069,30 +915,15 @@ export function VenueLayoutDesigner({
                 ));
               }
               
-              setDragStartPos(pos);
+              setLastMousePos(pos);
             }}
             onMouseUp={() => {
               setIsDragging(false);
               setDraggedObjectId(null);
+              setLastMousePos(null);
             }}
           />
         </div>
-        
-        {/* Status Bar */}
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-center text-blue-800 font-medium">{status}</p>
-        </div>
-        
-        {/* Info */}
-        {selectedObjects.length > 0 && (
-          <div className="mt-2 p-3 bg-gray-50 border rounded-lg">
-            <p className="text-sm text-gray-600">
-              Selected: {selectedObjects.length} object(s)
-              {tables.length > 0 && ` • Tables: ${tables.length}`}
-              {stages.length > 0 && ` • Stages: ${stages.length}`}
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
