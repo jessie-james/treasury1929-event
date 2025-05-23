@@ -125,8 +125,7 @@ function StripeCheckoutForm({
             }
           };
 
-          const baseUrl = getBaseUrl();
-          const bookingUrl = `${baseUrl}/api/bookings`;
+          const bookingUrl = '/api/create-booking';
           console.log(`Using booking URL: ${bookingUrl}`);
 
           const response = await apiRequest("POST", bookingUrl, booking);

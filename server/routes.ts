@@ -1783,16 +1783,20 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // NEW CLEAN BOOKING ENDPOINT - bypasses all validation middleware
+  // PRODUCTION BOOKING ENDPOINT - with enhanced debugging
   app.post("/api/create-booking", async (req, res) => {
-    console.log("🚀 CLEAN BOOKING ENDPOINT: Request received");
+    console.log('🟢 PRODUCTION API ENDPOINT HIT!');
+    console.log('🟢 Method:', req.method);
+    console.log('🟢 Path:', req.path);
+    console.log('🟢 Body:', JSON.stringify(req.body, null, 2));
     
     try {
       if (!req.isAuthenticated()) {
+        console.log('🔴 Authentication failed');
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      console.log("✅ Creating booking with clean endpoint - data:", JSON.stringify(req.body, null, 2));
+      console.log("🟢 Authentication successful - proceeding with booking creation");
 
       // Debug: Check if there's any validation happening
       console.log("=== BOOKING DEBUG START ===");
@@ -1815,24 +1819,18 @@ export async function registerRoutes(app: Express) {
       console.log("✅ Final booking data (NO VALIDATION):", JSON.stringify(bookingData, null, 2));
       console.log("=== BOOKING DEBUG END ===");
 
-      // Create the booking directly - absolutely no validation
-      console.log("About to call storage.createBooking with:", JSON.stringify(bookingData, null, 2));
-      const newBooking = await storage.createBooking(bookingData);
-      console.log("Insert successful:", newBooking);
-      console.log("🎉 Booking created successfully:", newBooking);
-
-      // Ensure proper JSON response
+      console.log('🟢 ATTEMPTING DB INSERT:', bookingData);
+      const result = await storage.createBooking(bookingData);
+      console.log('🟢 DB INSERT SUCCESS:', result);
+      
+      // Force JSON response
       res.setHeader('Content-Type', 'application/json');
-      return res.status(201).json({
-        message: "Booking created successfully",
-        booking: newBooking
-      });
+      res.status(200).json({ success: true, booking: result });
+      console.log('🟢 JSON RESPONSE SENT');
 
     } catch (error) {
-      console.error("❌ Unexpected error creating booking:", error);
-      res.status(500).json({ 
-        message: "Failed to create booking",
-        error: error instanceof Error ? error.message : String(error)
+      console.log('🔴 ERROR:', error);
+      res.status(500).json({ success: false, error: error instanceof Error ? error.message : String(error) });error)
       });
     }
   });

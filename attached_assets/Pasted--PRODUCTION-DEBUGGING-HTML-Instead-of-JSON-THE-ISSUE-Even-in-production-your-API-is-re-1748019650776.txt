@@ -1,0 +1,202 @@
+# 🚨 PRODUCTION DEBUGGING: HTML Instead of JSON
+
+## 🎯 THE ISSUE
+
+Even in production, your API is returning HTML (`<!DOCTYPE`) instead of JSON. This means there's a deeper routing issue beyond Vite's development server.
+
+## 🔍 IMMEDIATE DEBUGGING STEPS
+
+### Step 1: Verify Your Route is Being Hit
+
+Add this logging to your API endpoint:
+
+```javascript
+app.post('/api/create-booking', async (req, res) => {
+  console.log('🟢 PRODUCTION API ENDPOINT HIT!');
+  console.log('🟢 Method:', req.method);
+  console.log('🟢 Path:', req.path);
+  console.log('🟢 Body:', JSON.stringify(req.body, null, 2));
+  
+  try {
+    const bookingData = {
+      eventId: req.body.eventId,
+      userId: req.body.userId,
+      tableId: req.body.tableId,
+      partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
+      customerEmail: req.body.customerEmail,
+      stripePaymentId: req.body.stripePaymentId,
+      guestNames: req.body.guestNames || [],
+      foodSelections: req.body.foodSelections || [],
+      status: 'confirmed'
+    };
+
+    console.log('🟢 ATTEMPTING DB INSERT:', bookingData);
+    const result = await storage.createBooking(bookingData);
+    console.log('🟢 DB INSERT SUCCESS:', result);
+    
+    // Force JSON response
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json({ success: true, booking: result });
+    console.log('🟢 JSON RESPONSE SENT');
+    
+  } catch (error) {
+    console.log('🔴 ERROR:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+```
+
+### Step 2: Check Route Registration Order
+
+In your main server file, ensure this order:
+
+```javascript
+// 1. Body parsing FIRST
+app.use(express.json());
+
+// 2. API routes BEFORE static files
+app.post('/api/create-booking', yourBookingHandler);
+app.use('/api', routes);
+
+// 3. Static files AFTER API routes
+app.use(express.static('dist'));
+
+// 4. Catch-all LAST
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+```
+
+### Step 3: Test API Directly
+
+Test your API endpoint directly with curl:
+
+```bash
+curl -X POST http://your-replit-url.repl.co/api/create-booking \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eventId": 13,
+    "tableId": 51,
+    "partySize": 2,
+    "seatNumbers": [1,2],
+    "customerEmail": "test@test.com",
+    "stripePaymentId": "test_payment_123"
+  }'
+```
+
+### Step 4: Check Frontend Request
+
+Add logging to your frontend:
+
+```javascript
+console.log('🟡 Making request to:', '/api/create-booking');
+console.log('🟡 Request data:', bookingData);
+
+const response = await fetch('/api/create-booking', {
+  method: 'POST',
+  headers: { 
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  },
+  body: JSON.stringify(bookingData)
+});
+
+console.log('🟡 Response status:', response.status);
+console.log('🟡 Response headers:', [...response.headers.entries()]);
+
+const responseText = await response.text();
+console.log('🟡 Raw response:', responseText.substring(0, 200));
+
+try {
+  const jsonResponse = JSON.parse(responseText);
+  console.log('🟢 Parsed JSON:', jsonResponse);
+} catch (err) {
+  console.log('🔴 JSON parse failed - received HTML instead');
+}
+```
+
+## 🔍 POSSIBLE CAUSES
+
+### 1. Catch-All Route Override
+Your Express app might have a catch-all route that's intercepting API calls:
+
+```javascript
+// This could be intercepting your API calls:
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+```
+
+**Fix:** Make sure this comes AFTER your API routes.
+
+### 2. Missing Route Registration
+Your `/api/create-booking` route might not be registered properly:
+
+```javascript
+// Make sure this exists in your server file:
+app.post('/api/create-booking', yourHandler);
+```
+
+### 3. Static File Middleware Override
+Static file serving might be intercepting:
+
+```javascript
+// If this comes before API routes, it could serve index.html:
+app.use(express.static('dist'));
+```
+
+### 4. Wrong Base URL
+Your frontend might be calling the wrong URL:
+
+```javascript
+// Check if this resolves to the right URL:
+const response = await fetch('/api/create-booking', ...);
+```
+
+## 🎯 MOST LIKELY FIXES
+
+### Fix 1: Reorder Middleware
+```javascript
+// Correct order in your main server file:
+app.use(express.json());
+app.post('/api/create-booking', bookingHandler);
+app.use('/api', routes);
+app.use(express.static('dist'));
+app.get('*', serveIndexHtml); // LAST
+```
+
+### Fix 2: Explicit Route Check
+Add this before your catch-all:
+
+```javascript
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    console.log('🔴 API route not found:', req.path);
+    return res.status(404).json({ error: 'API endpoint not found' });
+  }
+  next();
+});
+```
+
+### Fix 3: Force JSON Headers
+```javascript
+app.use('/api/*', (req, res, next) => {
+  res.setHeader('Content-Type', 'application/json');
+  next();
+});
+```
+
+## 🚀 NEXT STEPS
+
+1. Add the logging code above
+2. Check your server logs to see if the route is being hit
+3. Test with curl to isolate frontend vs backend issues
+4. Check middleware order in your main server file
+5. Report back what the logs show
+
+**The fact that you're getting HTML means either:**
+- Your route isn't registered
+- It's being overridden by static file serving
+- The catch-all route is intercepting it
+
+Let's find out which one it is!
