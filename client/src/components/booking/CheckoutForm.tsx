@@ -20,39 +20,18 @@ import { OtpPaymentForm } from "./OtpPaymentForm";
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render
 // This is your test publishable API key.
-// Check for both possible variable names
-const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || import.meta.env.VITE_STRIPE_PUBLIC_KEY;
+// Get the Stripe publishable key
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
 if (!stripeKey) {
-  console.error("Stripe publishable key is not defined. Please check your environment variables (VITE_STRIPE_PUBLIC_KEY or VITE_STRIPE_PUBLISHABLE_KEY).");
+  console.error("Stripe publishable key is not defined. Expected VITE_STRIPE_PUBLISHABLE_KEY in environment.");
 }
 
-// Create a stable Stripe promise - with comprehensive error handling
-let stripePromise;
-try {
-  if (!stripeKey) {
-    throw new Error("Missing Stripe publishable key");
-  }
+// Create a stable Stripe promise
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
-  stripePromise = loadStripe(stripeKey).catch(error => {
-    console.error("Error initializing Stripe:", error);
-    // Re-throw to be caught by the outer try-catch
-    throw error;
-  });
-
+if (stripeKey) {
   console.log("Stripe initialized with key prefix:", stripeKey.substring(0, 7));
-} catch (error) {
-  console.error("Failed to initialize Stripe:", error);
-  // Set stripePromise to a rejected promise to handle the error gracefully
-  stripePromise = Promise.reject(error);
-
-  // Add global rejection handler
-  window.addEventListener('unhandledrejection', event => {
-    if (event.reason === error) {
-      event.preventDefault();
-      console.warn('Handled Stripe initialization error:', error);
-    }
-  });
 }
 
 interface Props {
@@ -118,7 +97,7 @@ function StripeCheckoutForm({
         const booking = {
           eventId,
           tableId,
-          partySize: selectedSeats.length, // Add missing partySize field
+          partySize: selectedSeats.length,
           seatNumbers: selectedSeats,
           foodSelections,
           guestNames,
