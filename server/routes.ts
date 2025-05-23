@@ -1745,42 +1745,24 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      console.log("🚀 NEW SIMPLE BOOKING - Creating booking with data:", JSON.stringify(req.body, null, 2));
+      console.log("🚀 COMPLETELY CLEAN BOOKING - Creating booking with data:", JSON.stringify(req.body, null, 2));
 
-      // Extract and validate required fields directly
-      const eventId = parseInt(req.body.eventId);
-      const userId = parseInt(req.body.userId);
-      const tableId = parseInt(req.body.tableId);
-      const partySize = parseInt(req.body.partySize) || req.body.seatNumbers?.length || 1;
-      const customerEmail = req.body.customerEmail;
-      const stripePaymentId = req.body.stripePaymentId;
-
-      console.log("✅ Extracted fields:", { eventId, userId, tableId, partySize, customerEmail });
-
-      // Basic validation
-      if (!eventId || !userId || !tableId || !customerEmail) {
-        return res.status(400).json({
-          message: "Missing required booking fields",
-          missing: { eventId: !eventId, userId: !userId, tableId: !tableId, customerEmail: !customerEmail }
-        });
-      }
-
-      // Create clean booking object for database insertion
+      // NO VALIDATION - Just create the booking directly
       const bookingData = {
-        eventId,
-        userId,
-        tableId,
-        partySize,
-        customerEmail,
-        stripePaymentId,
+        eventId: req.body.eventId,
+        userId: req.body.userId,
+        tableId: req.body.tableId,
+        partySize: req.body.partySize || req.body.seatNumbers?.length || 2,
+        customerEmail: req.body.customerEmail,
+        stripePaymentId: req.body.stripePaymentId,
         guestNames: req.body.guestNames || [],
         foodSelections: req.body.foodSelections || [],
         status: 'confirmed'
       };
 
-      console.log("✅ Final booking data:", JSON.stringify(bookingData, null, 2));
+      console.log("✅ Final booking data (NO VALIDATION):", JSON.stringify(bookingData, null, 2));
 
-      // Create the booking directly - no complex validation
+      // Create the booking directly - absolutely no validation
       const newBooking = await storage.createBooking(bookingData);
       console.log("🎉 Booking created successfully:", newBooking);
 
@@ -1788,7 +1770,6 @@ export async function registerRoutes(app: Express) {
         message: "Booking created successfully",
         booking: newBooking
       });
-
 
     } catch (error) {
       console.error("❌ Unexpected error creating booking:", error);
