@@ -57,7 +57,24 @@ export function EventForm({ event, onClose }: Props) {
     }
   });
 
-
+  const form = useForm<EventFormData>({
+    resolver: zodResolver(eventFormSchema),
+    defaultValues: event ? {
+      title: event.title,
+      description: event.description || "",
+      image: event.image || "",
+      date: new Date(event.date).toISOString().split('T')[0],
+      venueId: event.venueId,
+      isActive: event.isActive ?? true,
+    } : {
+      title: "",
+      description: "",
+      image: "",
+      date: new Date().toISOString().split('T')[0],
+      venueId: venues[0]?.id || 1,
+      isActive: true,
+    },
+  });
 
   // Fetch venue layout when venue is selected to calculate total seats
   const selectedVenueId = form.watch('venueId');
