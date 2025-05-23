@@ -251,6 +251,13 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
+    // Add specific dashboard route handler
+    app.get('/dashboard', (req, res, next) => {
+      // Let the static file handler serve index.html for client-side routing
+      req.url = '/';
+      next();
+    });
+
     // Set up serving mode based on environment BEFORE starting server
     if (app.get("env") === "development") {
       log("Setting up Vite development server...");
