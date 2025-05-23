@@ -227,9 +227,67 @@ function StripeCheckoutForm({
     setIsProcessing(false);
   };
 
+  // If Stripe/Elements aren't ready, show a fallback payment form
+  if (!stripe || !elements) {
+    return (
+      <div className="space-y-6">
+        <div className="border border-gray-300 rounded-lg p-4 bg-gray-50">
+          <h3 className="font-semibold mb-4">Payment Information</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Card Number</label>
+              <input 
+                type="text" 
+                placeholder="4242 4242 4242 4242" 
+                className="w-full p-3 border border-gray-300 rounded"
+                disabled
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Expiry Date</label>
+                <input 
+                  type="text" 
+                  placeholder="MM/YY" 
+                  className="w-full p-3 border border-gray-300 rounded"
+                  disabled
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">CVC</label>
+                <input 
+                  type="text" 
+                  placeholder="123" 
+                  className="w-full p-3 border border-gray-300 rounded"
+                  disabled
+                />
+              </div>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 mt-4">Payment system is loading...</p>
+        </div>
+        <Button 
+          type="button" 
+          className="w-full"
+          disabled
+        >
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Loading Payment System...
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
+      <div className="border border-gray-300 rounded-lg p-4">
+        <PaymentElement 
+          options={{
+            layout: 'tabs',
+            business: {name: 'Event Booking'}
+          }}
+        />
+      </div>
       <Button 
         type="submit" 
         className="w-full"
