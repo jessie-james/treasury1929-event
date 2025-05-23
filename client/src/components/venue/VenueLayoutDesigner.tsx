@@ -510,29 +510,104 @@ export function VenueLayoutDesigner({
 
   // Update selected tables with current settings
   const updateSelectedTables = useCallback(() => {
-    if (selectedObjects.length === 0) return;
+    const selectedTables = selectedObjects.filter(id => tables.some(t => t.id === id));
+    
+    if (selectedTables.length === 0) {
+      setStatus('No tables selected for update. Select a table first!');
+      return;
+    }
+    
+    const dimensions = getTableDimensions(tableSize);
+    const canvasSize = dimensions.tableRadius * 2 + dimensions.seatRadius * 2 + dimensions.gap * 2;
     
     setTables(prev => prev.map(table => {
       if (selectedObjects.includes(table.id)) {
-        const size = tableSize * 10;
         return {
           ...table,
-          width: size,
-          height: size,
+          width: canvasSize,
+          height: canvasSize,
           data: {
             ...table.data,
             capacity: seatCount,
             shape: tableType,
             tableSize,
-            width: size,
-            height: size
+            width: canvasSize,
+            height: canvasSize
           }
         };
       }
       return table;
     }));
-    setStatus(`Updated ${selectedObjects.filter(id => tables.some(t => t.id === id)).length} tables.`);
-  }, [selectedObjects, tables, tableSize, seatCount, tableType]);
+    setStatus(`Updated ${selectedTables.length} table(s) - Size: ${tableSize}, Type: ${tableType}, Seats: ${seatCount}`);
+  }, [selectedObjects, tables, tableSize, seatCount, tableType, getTableDimensions]);
+
+  // Table duplication with exact configuration copying
+  const duplicateTable = useCallback((originalTable: CanvasObject) => {
+    if (!venueObject) return;
+    
+    const tableNumber = getNextTableNumber();
+    const dimensions = getTableDimensions(originalTable.data.tableSize);
+    const canvasSize = dimensions.tableRadius * 2 + dimensions.seatRadius * 2 + dimensions.gap * 2;
+    
+    const duplicatedTable: CanvasObject = {
+      id: `table-${Date.now()}`,
+      type: 'table',
+      x: originalTable.x + 100,
+      y: originalTable.y + 100,
+      width: canvasSize,
+      height: canvasSize,
+      rotation: originalTable.rotation, // Copy exact rotation
+      data: {
+        venueId: venue.id,
+        tableNumber,
+        capacity: originalTable.data.capacity,    // Copy exact seat count
+        floor: 'main',
+        x: originalTable.x + 100,
+        y: originalTable.y + 100,
+        width: canvasSize,
+        height: canvasSize,
+        shape: originalTable.data.shape,          // Copy exact type
+        tableSize: originalTable.data.tableSize, // Copy exact size
+        status: 'available',
+        zone: null,
+        priceCategory: 'standard',
+        isLocked: false,
+        rotation: originalTable.rotation
+      }
+    };
+    
+    setTables(prev => [...prev, duplicatedTable]);
+    setStatus(`Table ${tableNumber} duplicated from Table ${originalTable.data.tableNumber} (Size: ${originalTable.data.tableSize}, Type: ${originalTable.data.shape}, Seats: ${originalTable.data.capacity})!`);
+  }, [venueObject, venue.id, getNextTableNumber, getTableDimensions]);
+
+  // Rotate selected tables
+  const rotateSelectedTables = useCallback((direction: 'left' | 'right') => {
+    const selectedTables = selectedObjects.filter(id => tables.some(t => t.id === id));
+    
+    if (selectedTables.length === 0) {
+      setStatus('No tables selected for rotation. Select a table first!');
+      return;
+    }
+    
+    const rotationAmount = direction === 'left' ? -15 : 15;
+    
+    setTables(prev => prev.map(table => {
+      if (selectedObjects.includes(table.id)) {
+        const newRotation = (table.rotation + rotationAmount) % 360;
+        return {
+          ...table,
+          rotation: newRotation,
+          data: {
+            ...table.data,
+            rotation: newRotation
+          }
+        };
+      }
+      return table;
+    }));
+    
+    setStatus(`Rotated ${selectedTables.length} table(s) ${direction === 'left' ? 'counter-clockwise' : 'clockwise'} by 15°`);
+  }, [selectedObjects, tables]);
 
   const resetAll = useCallback(() => {
     setVenueObject(null);

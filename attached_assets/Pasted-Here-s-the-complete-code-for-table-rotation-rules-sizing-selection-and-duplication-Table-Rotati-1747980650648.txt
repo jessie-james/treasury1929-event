@@ -1,0 +1,253 @@
+Here's the complete code for table rotation, rules, sizing, selection, and duplication:
+Table Rotation System
+javascript// Rotation controls setup
+this.group.setControlsVisibility({
+  tl: false, tr: false, br: false, bl: false,  // Disable resize corners
+  ml: false, mt: false, mr: false, mb: false,  // Disable resize edges
+  mtr: true  // Enable ONLY rotation control
+});
+
+// Rotation preservation during redraw
+redraw(cx, cy) {
+  // Store current rotation before clearing
+  const currentRotation = this.group.angle || 0;
+  
+  // ... redraw table elements ...
+  
+  // Restore position and rotation after redraw
+  this.group.set({ 
+    left: cx, 
+    top: cy,
+    angle: currentRotation // Preserve the rotation
+  });
+  this.group.setCoords();
+  canvas.requestRenderAll();
+}
+
+// Separate event handlers for movement vs rotation
+this.group.on('moving', () => {
+  this.redraw(this.group.left, this.group.top);  // Redraw but keep rotation
+  this.updateStageLine();
+});
+
+this.group.on('rotating', () => {
+  this.updateStageLine();  // Only update stage line, no redraw
+});
+Selection Rules & Multi-Selection
+javascript// Individual table selection
+this.group = new fabric.Group([], {
+  left: x, 
+  top: y,
+  originX: 'center', 
+  originY: 'center',
+  hasControls: true,
+  hasBorders: true,
+  selectable: true,
+  padding: 10,
+  transparentCorners: false,
+  cornerColor: '#5286e5',      // Blue selection corners
+  cornerSize: 8,
+  borderColor: '#5286e5',      // Blue selection border
+  borderDashArray: [3, 3]      // Dashed selection border
+});
+
+// Select All functionality
+document.getElementById('selectAllBtn').onclick = () => {
+  const allTables = canvas.getObjects().filter(obj => obj.tableRef);
+  
+  if (allTables.length === 0) {
+    showStatus('No tables to select!');
+    return;
+  }
+  
+  // Create multi-selection with same rotation-only controls
+  const activeSelection = new fabric.ActiveSelection(allTables, { canvas });
+  activeSelection.setControlsVisibility({
+    tl: false, tr: false, br: false, bl: false,
+    ml: false, mt: false, mr: false, mb: false,
+    mtr: true  // Only rotation for multi-selection too
+  });
+  
+  canvas.setActiveObject(activeSelection);
+  canvas.requestRenderAll();
+  showStatus(`Selected ${allTables.length} table(s)`);
+};
+
+// Unselect All
+document.getElementById('unselectAllBtn').onclick = () => {
+  canvas.discardActiveObject();
+  canvas.requestRenderAll();
+  showStatus('Selection cleared');
+};
+Table Property Update Rules
+javascript// Size updates - ONLY affect selected tables
+function updateSelectedTablesSize() {
+  const activeObjects = canvas.getActiveObjects();
+  const tablesToUpdate = activeObjects.filter(obj => obj.tableRef);
+  
+  if (tablesToUpdate.length === 0) {
+    showStatus('No tables selected for size update. Select a table first!', 2000);
+    return;
+  }
+  
+  const newSize = parseInt(document.getElementById('tableSize').value);
+  
+  tablesToUpdate.forEach(obj => {
+    if (obj.tableRef) {
+      obj.tableRef.tableSize = newSize; // Update individual table size
+      obj.tableRef.redraw(obj.left, obj.top);
+    }
+  });
+  
+  showStatus(`Updated size to ${newSize} for ${tablesToUpdate.length} table(s)`);
+}
+
+// Type & seat count updates - ONLY affect selected tables
+function updateSelectedTables() {
+  const activeObjects = canvas.getActiveObjects();
+  const tablesToUpdate = activeObjects.filter(obj => obj.tableRef);
+  
+  if (tablesToUpdate.length === 0) {
+    showStatus('No tables selected for update. Select a table first!', 2000);
+    return;
+  }
+  
+  const newType = document.getElementById('tableType').value;
+  const newSeatCount = parseInt(document.getElementById('seatCount').value);
+  
+  tablesToUpdate.forEach(obj => {
+    if (obj.tableRef) {
+      obj.tableRef.tableType = newType;     // Update individual table type
+      obj.tableRef.seatCount = newSeatCount; // Update individual seat count
+      obj.tableRef.redraw(obj.left, obj.top);
+    }
+  });
+  
+  showStatus(`Updated ${tablesToUpdate.length} table(s)`);
+}
+Table Duplication System
+javascript// Double-click duplication with EXACT configuration copying
+this.group.on('mousedblclick', () => {
+  // Duplicate using THIS table's exact configuration AND rotation
+  const newTable = new Table(
+    this.group.left + 100,   // Offset position
+    this.group.top + 100, 
+    this.tableSize,          // Copy exact size
+    this.tableType,          // Copy exact type (full/half)
+    this.seatCount           // Copy exact seat count
+  );
+  
+  // Copy the rotation from the original table
+  newTable.group.set({ angle: this.group.angle || 0 });
+  newTable.group.setCoords();
+  canvas.requestRenderAll();
+  
+  showStatus(`Table ${newTable.tableNumber} duplicated from Table ${this.tableNumber} (Size: ${this.tableSize}, Type: ${this.tableType}, Seats: ${this.seatCount})!`);
+});
+
+// Individual table memory - each table stores its own config
+class Table {
+  constructor(x, y, tableSize = 8, tableType = 'full', seatCount = 4) {
+    this.tableNumber = getNextTableNumber();
+    this.tableSize = tableSize;   // Individual size memory
+    this.tableType = tableType;   // Individual type memory  
+    this.seatCount = seatCount;   // Individual seat count memory
+    
+    // ... rest of constructor
+  }
+}
+Table Deletion Rules
+javascript// Delete selected tables
+document.getElementById('deleteSelectedBtn').onclick = () => {
+  const activeObjects = canvas.getActiveObjects();
+  const tablesToDelete = activeObjects.filter(obj => obj.tableRef != null);
+  
+  if (tablesToDelete.length === 0) {
+    showStatus('No tables selected!');
+    return;
+  }
+  
+  canvas.discardActiveObject(); // Clear selection first
+  
+  tablesToDelete.forEach(obj => {
+    // Remove associated stage line if it exists
+    if (obj.tableRef && obj.tableRef.stageLine) {
+      canvas.remove(obj.tableRef.stageLine);
+    }
+    canvas.remove(obj);
+  });
+  
+  canvas.requestRenderAll();
+  showStatus(`Deleted ${tablesToDelete.length} table(s)!`);
+};
+
+// Keyboard shortcut for delete
+document.addEventListener('keydown', (e) => {
+  if (currentStep === 3 && e.key === 'Delete') {
+    const activeObjects = canvas.getActiveObjects();
+    const tablesToDelete = activeObjects.filter(obj => obj.tableRef != null);
+    
+    if (tablesToDelete.length > 0) {
+      canvas.discardActiveObject();
+      tablesToDelete.forEach(obj => {
+        if (obj.tableRef && obj.tableRef.stageLine) {
+          canvas.remove(obj.tableRef.stageLine);
+        }
+        canvas.remove(obj);
+      });
+      canvas.requestRenderAll();
+      showStatus(`Deleted ${tablesToDelete.length} table(s) with Delete key`);
+    }
+  }
+});
+Movement & Interaction Rules
+javascript// Canvas interaction settings
+const canvas = new fabric.Canvas('designCanvas', { 
+  selection: true,                    // Allow selection
+  preserveObjectStacking: true        // Maintain layer order
+});
+
+// Disable right-click context menu
+canvas.upperCanvasEl.addEventListener('contextmenu', e => e.preventDefault());
+
+// Table movement constraints (none - tables can move anywhere)
+// Rotation constraints (none - tables can rotate freely 0-360°)
+// Selection constraints (only tables, not venue/stage in table phase)
+Individual Table Configuration System
+javascript// Each table remembers its own settings independently
+redraw(cx, cy) {
+  // Use THIS table's individual configuration (not dropdown values)
+  const type = this.tableType;        // Individual type
+  const count = Math.max(1, Math.min(8, this.seatCount)); // Individual count
+  const dimensions = this.getTableDimensions(); // Individual size
+  
+  // ... rest of redraw using individual settings
+}
+Key Rules Summary
+Rotation Rules:
+
+✅ Tables can rotate 360° freely
+✅ Rotation preserved during movement
+✅ Rotation copied during duplication
+✅ Only rotation control visible (no resize)
+
+Selection Rules:
+
+✅ Individual selection shows blue dashed border
+✅ Multi-selection via Select All button
+✅ Changes only affect selected tables
+✅ Unselected tables remain unchanged
+
+Duplication Rules:
+
+✅ Double-click duplicates exact configuration
+✅ Copies size, type, seat count, AND rotation
+✅ Ignores current dropdown settings
+✅ Places duplicate at offset position (+100px x/y)
+
+Update Rules:
+
+✅ Dropdown changes only affect selected tables
+✅ Each table remembers its individual settings
+✅ No accidental global changes
+✅ Mixed configurations allowed in same venue
