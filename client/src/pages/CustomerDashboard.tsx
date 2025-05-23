@@ -136,6 +136,22 @@ export default function CustomerDashboard() {
                   </div>
                 )}
 
+                {booking.foodSelections && booking.foodSelections.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Food Selections:</h4>
+                    <div className="text-sm space-y-1">
+                      {booking.foodSelections.map((selection, index) => (
+                        <div key={index} className="p-2 bg-gray-50 rounded">
+                          <span className="font-medium">Guest {index + 1}:</span>
+                          {selection.salad && <span className="ml-2">Salad #{selection.salad}</span>}
+                          {selection.entree && <span className="ml-2">Entree #{selection.entree}</span>}
+                          {selection.dessert && <span className="ml-2">Dessert #{selection.dessert}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -152,7 +168,17 @@ export default function CustomerDashboard() {
                   <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                     <div className="text-center">
                       <h4 className="font-medium mb-2">Entry QR Code</h4>
-                      <TicketQRCode booking={booking} />
+                      <div className="flex justify-center">
+                        <div className="p-4 bg-white rounded border">
+                          <div className="text-xs text-center mb-2">Booking #{booking.id}</div>
+                          <div className="w-32 h-32 bg-gray-200 rounded flex items-center justify-center text-xs">
+                            QR Code
+                            <br />
+                            (Show at entrance)
+                          </div>
+                          <div className="text-xs text-center mt-2">{booking.event.title}</div>
+                        </div>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-2">
                         Show this QR code at the venue entrance
                       </p>
