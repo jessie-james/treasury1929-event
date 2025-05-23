@@ -488,6 +488,45 @@ export class PgStorage implements IStorage {
     return true;
   }
 
+  // Food Options methods
+  async getFoodOptionsByDisplayOrder(): Promise<any[]> {
+    return await db.select().from(schema.foodOptions).orderBy(asc(schema.foodOptions.displayOrder));
+  }
+
+  async getRandomizedFoodOptions(eventId: number): Promise<any[]> {
+    // For now, return all food options - randomization can be added later
+    return await db.select().from(schema.foodOptions).orderBy(asc(schema.foodOptions.displayOrder));
+  }
+
+  async getFoodOptionsByIds(ids: number[]): Promise<any[]> {
+    return await db.select().from(schema.foodOptions).where(eq(schema.foodOptions.id, ids[0]));
+  }
+
+  async createFoodOption(foodData: any): Promise<any> {
+    const result = await db.insert(schema.foodOptions).values(foodData).returning();
+    return result[0];
+  }
+
+  async updateFoodOption(id: number, foodData: any): Promise<any> {
+    const result = await db.update(schema.foodOptions).set(foodData).where(eq(schema.foodOptions.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteFoodOption(id: number): Promise<boolean> {
+    const result = await db.delete(schema.foodOptions).where(eq(schema.foodOptions.id, id));
+    return result.rowCount > 0;
+  }
+
+  async updateFoodOptionsOrder(orderedIds: number[]): Promise<boolean> {
+    // Update display order for each food option
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.update(schema.foodOptions)
+        .set({ displayOrder: i })
+        .where(eq(schema.foodOptions.id, orderedIds[i]));
+    }
+    return true;
+  }
+
   // Admin Log methods
   async createAdminLog(logData: InsertAdminLog): Promise<number> {
     const result = await db.insert(schema.adminLogs).values(logData).returning({ id: schema.adminLogs.id });
