@@ -1083,6 +1083,19 @@ export function VenueLayoutDesigner({
                 setSelectedObjects([]);
               }
             }}
+            onDoubleClick={(e) => {
+              if (currentStep !== 3) return;
+              
+              const pos = getMousePos(e);
+              const clickedTable = tables.find(table => {
+                return pos.x >= table.x && pos.x <= table.x + table.width &&
+                       pos.y >= table.y && pos.y <= table.y + table.height;
+              });
+              
+              if (clickedTable) {
+                duplicateTable(clickedTable);
+              }
+            }}
             onMouseMove={(e) => {
               if (!isDragging || !draggedObjectId) return;
               
