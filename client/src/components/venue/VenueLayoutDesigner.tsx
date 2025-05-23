@@ -254,9 +254,9 @@ export function VenueLayoutDesigner({
     ctx.lineWidth = 2;
     
     if (isHalf) {
-      // Half circle table
+      // Half circle table - positioned at bottom
       ctx.beginPath();
-      ctx.arc(0, 0, tableRadius, 0, Math.PI);
+      ctx.arc(0, 0, tableRadius, Math.PI, 2 * Math.PI);
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
@@ -347,16 +347,16 @@ export function VenueLayoutDesigner({
       }
     }
     
-    // Selection indicator
+    // Selection indicator - subtle highlight as per your spec
     if (isSelected) {
-      ctx.strokeStyle = '#ff6b35';
-      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#666';
+      ctx.lineWidth = 3;
       ctx.setLineDash([5, 5]);
       ctx.beginPath();
       if (isHalf) {
-        ctx.arc(0, 0, tableRadius + 10, 0, Math.PI);
+        ctx.arc(0, 0, tableRadius + 8, Math.PI, 2 * Math.PI);
       } else {
-        ctx.arc(0, 0, tableRadius + 10, 0, 2 * Math.PI);
+        ctx.arc(0, 0, tableRadius + 8, 0, 2 * Math.PI);
       }
       ctx.stroke();
       ctx.setLineDash([]);
