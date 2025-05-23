@@ -125,8 +125,12 @@ function StripeCheckoutForm({
             }
           };
 
-          const baseUrl = getBaseUrl();
-          const bookingUrl = `${baseUrl}/create-booking-final`;
+          // Use dedicated API server to bypass Vite
+          const API_BASE = process.env.NODE_ENV === 'development' 
+            ? 'http://localhost:3001' 
+            : getBaseUrl();
+          
+          const bookingUrl = `${API_BASE}/create-booking`;
           console.log(`Using booking URL: ${bookingUrl}`);
 
           const response = await apiRequest("POST", bookingUrl, booking);
