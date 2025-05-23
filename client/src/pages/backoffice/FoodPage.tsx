@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 type SortOption = "display-order" | "name-asc" | "name-desc" | "price-asc" | "price-desc" | "id-asc" | "id-desc";
 
 export default function FoodPage() {
-  const [selectedFood, setSelectedFood] = useState<FoodOption | null>(null);
+  const [editingFoodId, setEditingFoodId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("display-order");
   const [isReorderMode, setIsReorderMode] = useState(false);
@@ -212,11 +212,10 @@ export default function FoodPage() {
           </div>
         </div>
 
-        {(isCreating || selectedFood) && (
+        {isCreating && (
           <FoodForm
-            food={selectedFood}
+            food={null}
             onClose={() => {
-              setSelectedFood(null);
               setIsCreating(false);
             }}
           />
@@ -238,41 +237,50 @@ export default function FoodPage() {
               {!isReorderMode ? (
                 <div className="grid gap-6">
                   {sortedFoodByType[type]?.map((food) => (
-                    <Card key={food.id}>
-                      <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle>{food.name}</CardTitle>
-                            <CardDescription>{food.description}</CardDescription>
+                    <div key={food.id} className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle>{food.name}</CardTitle>
+                              <CardDescription>{food.description}</CardDescription>
+                            </div>
+                            <Button
+                              variant="outline"
+                              onClick={() => setEditingFoodId(editingFoodId === food.id ? null : food.id)}
+                            >
+                              {editingFoodId === food.id ? 'Cancel' : 'Edit'}
+                            </Button>
                           </div>
-                          <Button
-                            variant="outline"
-                            onClick={() => setSelectedFood(food)}
-                          >
-                            Edit
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <div>
-                            <img
-                              src={food.image}
-                              alt={food.name}
-                              className="rounded-lg w-full aspect-video object-cover"
-                            />
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                              <img
+                                src={food.image || ''}
+                                alt={food.name}
+                                className="rounded-lg w-full aspect-video object-cover"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <p className="text-sm text-muted-foreground">
+                                {food.description}
+                              </p>
+                              <p className="text-sm font-medium">
+                                Price: ${food.price}
+                              </p>
+                            </div>
                           </div>
-                          <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">
-                              {food.description}
-                            </p>
-                            <p className="text-sm font-medium">
-                              Price: ${food.price}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                        </CardContent>
+                      </Card>
+                      
+                      {editingFoodId === food.id && (
+                        <FoodForm
+                          food={food}
+                          onClose={() => setEditingFoodId(null)}
+                        />
+                      )}
+                    </div>
                   ))}
                 </div>
               ) : (
