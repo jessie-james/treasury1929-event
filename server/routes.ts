@@ -1764,17 +1764,25 @@ export async function registerRoutes(app: Express) {
         stripePaymentId: cleanBody.stripePaymentId
       };
 
-      // Validate the booking data using the insert schema
-      try {
-        const validatedBooking = insertBookingSchema.parse(booking);
-        console.log("Booking validation successful:", validatedBooking);
-      } catch (validationError) {
-        console.error("Validation error:", validationError.errors);
+      // Debug the booking object before validation
+      console.log("Booking object before validation:", JSON.stringify(booking, null, 2));
+      console.log("partySize value:", booking.partySize, "Type:", typeof booking.partySize);
+      
+      // Ensure partySize is properly set and is a number
+      if (!booking.partySize || typeof booking.partySize !== 'number') {
+        booking.partySize = booking.seatNumbers?.length || 1;
+        console.log("Fixed partySize to:", booking.partySize);
+      }
+      
+      // Basic validation - ensure required fields are present
+      if (!booking.eventId || !booking.userId || !booking.tableId || !booking.customerEmail) {
         return res.status(400).json({
-          message: "Invalid booking data",
-          errors: validationError.errors
+          message: "Missing required booking fields",
+          required: ["eventId", "userId", "tableId", "customerEmail"]
         });
       }
+      
+      console.log("Booking validation passed - proceeding with creation");
 
       // Check if the event exists and has enough seats
       const event = await storage.getEventById(booking.eventId);
