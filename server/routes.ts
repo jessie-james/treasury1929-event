@@ -1752,7 +1752,7 @@ export async function registerRoutes(app: Express) {
         eventId: req.body.eventId,
         userId: req.body.userId,
         tableId: req.body.tableId,
-        partySize: req.body.partySize || req.body.seatNumbers?.length || 2,
+        partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
         customerEmail: req.body.customerEmail,
         stripePaymentId: req.body.stripePaymentId,
         guestNames: req.body.guestNames || [],
