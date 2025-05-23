@@ -17,19 +17,47 @@ import { Link, useLocation } from "wouter";
 import { StandaloneCheckout } from "./StandaloneCheckout";
 import { OtpPaymentForm } from "./OtpPaymentForm";
 
-// Make sure to call loadStripe outside of a component's render to avoid
-// recreating the Stripe object on every render
+// Debug checkout configuration
+console.log("🔍 CHECKOUT DEBUG:", {
+  env: import.meta.env.MODE,
+  hasStripeKey: !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
+  keyLength: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.length,
+  keyPrefix: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.substring(0, 12)
+});
+
 const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
 if (!stripeKey) {
-  console.error("Stripe publishable key is not defined. Expected VITE_STRIPE_PUBLISHABLE_KEY in environment.");
+  console.error("❌ Stripe publishable key is not defined. Expected VITE_STRIPE_PUBLISHABLE_KEY in environment.");
+} else {
+  console.log("✅ Stripe key found:", stripeKey.substring(0, 12) + "...");
 }
 
-// Create a stable Stripe promise - simple and reliable
-const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
+// Create a stable Stripe promise with debug logging
+let stripePromise: Promise<any> | null = null;
 
 if (stripeKey) {
-  console.log("Stripe initialized with key prefix:", stripeKey.substring(0, 7));
+  try {
+    stripePromise = loadStripe(stripeKey);
+    console.log("✅ Stripe loadStripe called successfully");
+    
+    // Test if Stripe loads
+    stripePromise.then((stripe) => {
+      if (stripe) {
+        console.log("✅ Stripe loaded successfully:", stripe);
+      } else {
+        console.error("❌ Stripe loaded but returned null");
+      }
+    }).catch((error) => {
+      console.error("❌ Stripe loading failed:", error);
+    });
+  } catch (error) {
+    console.error("❌ Error calling loadStripe:", error);
+    stripePromise = null;
+  }
+} else {
+  console.error("❌ Cannot initialize Stripe - no publishable key");
+  stripePromise = null;
 }
 
 interface Props {
