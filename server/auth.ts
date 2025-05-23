@@ -54,7 +54,7 @@ const PostgresSessionStore = connectPg(session);
 
 export function setupAuth(app: Express) {
   // Detect environment - if process.env.NODE_ENV is not set, assume development
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === 'true';
   const isDevelopment = !isProduction;
   
   // Use secure random secret instead of hardcoded value
@@ -80,20 +80,18 @@ export function setupAuth(app: Express) {
     );
   };
   
-  // Configure cookie settings with better cross-environment compatibility
+  // Configure cookie settings for production deployment
   const cookieSettings: session.CookieOptions = {
-    // Important: In Replit deployment environment, we must accept both secure and non-secure cookies
-    // The 'secure' flag will be dynamically set based on the protocol (HTTPS vs HTTP)
-    secure: false, // Start with false, proxy detection will handle this
+    // In production (deployed), use secure cookies for HTTPS
+    secure: isProduction,
     
     // Use a longer session lifetime to reduce authentication issues
     maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
     
     httpOnly: true, // Prevent JavaScript access for security
     
-    // Use 'none' for cross-site compatibility needed for the payment flow
-    // This allows cookies to be sent across domains (e.g., when redirected from Stripe)
-    sameSite: 'none',
+    // Use 'lax' for better compatibility in production deployment
+    sameSite: isProduction ? 'lax' : 'none',
     
     path: '/', // Available across entire site
     domain: undefined // Let browser determine domain automatically for compatibility
