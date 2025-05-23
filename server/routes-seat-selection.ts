@@ -33,6 +33,13 @@ export function registerSeatSelectionRoutes(app: Express): void {
       const stages = await storage.getStage(venueId);
       const venueStages = stages ? [stages] : [];
 
+      console.log(`[SEAT-SELECTION] Event ${eventId}, Venue ${venueId}:`);
+      console.log(`[SEAT-SELECTION] Total tables in DB: ${tables.length}`);
+      console.log(`[SEAT-SELECTION] Tables for this venue: ${venueTables.length}`);
+      if (venueTables.length > 0) {
+        console.log(`[SEAT-SELECTION] Sample table:`, venueTables[0]);
+      }
+
       const venueLayout = {
         venue: venue,
         tables: venueTables || [],
