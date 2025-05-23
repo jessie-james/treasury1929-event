@@ -506,6 +506,123 @@ export function EventForm({ event, onClose }: Props) {
               )}
             />
 
+            <Separator className="my-6" />
+            
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <UtensilsCrossed className="h-5 w-5" />
+                <h3 className="text-lg font-medium">Food Options</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Select which food options will be available for this event. If none are selected, all food options will be available.
+              </p>
+              
+              {allFoodOptions.length > 0 ? (
+                <Tabs defaultValue="salad" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="salad">Salads</TabsTrigger>
+                    <TabsTrigger value="entree">Entrees</TabsTrigger>
+                    <TabsTrigger value="dessert">Desserts</TabsTrigger>
+                  </TabsList>
+                  
+                  {["salad", "entree", "dessert"].map((type) => (
+                    <TabsContent key={type} value={type} className="space-y-4">
+                      <div className="grid gap-3">
+                        {allFoodOptions
+                          .filter((option) => option.type === type)
+                          .map((option) => (
+                            <div
+                              key={option.id}
+                              className={`flex items-center space-x-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                                selectedFoodOptions.includes(option.id)
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:bg-muted/50"
+                              }`}
+                              onClick={() => {
+                                if (selectedFoodOptions.includes(option.id)) {
+                                  setSelectedFoodOptions(prev => prev.filter(id => id !== option.id));
+                                } else {
+                                  setSelectedFoodOptions(prev => [...prev, option.id]);
+                                }
+                              }}
+                            >
+                              <div className={`w-5 h-5 border rounded flex items-center justify-center ${
+                                selectedFoodOptions.includes(option.id)
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-muted-foreground"
+                              }`}>
+                                {selectedFoodOptions.includes(option.id) && (
+                                  <Check className="w-3 h-3" />
+                                )}
+                              </div>
+                              
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={option.image || ''}
+                                    alt={option.name}
+                                    className="w-12 h-12 object-cover rounded"
+                                  />
+                                  <div className="flex-1">
+                                    <h4 className="font-medium text-sm">{option.name}</h4>
+                                    <p className="text-xs text-muted-foreground line-clamp-1">
+                                      {option.description}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-sm font-medium">
+                                        ${(option.price / 100).toFixed(2)}
+                                      </span>
+                                      {option.allergens && option.allergens.length > 0 && (
+                                        <div className="flex gap-1">
+                                          {option.allergens.slice(0, 2).map((allergen) => (
+                                            <Badge key={allergen} variant="secondary" className="text-xs">
+                                              {allergen}
+                                            </Badge>
+                                          ))}
+                                          {option.allergens.length > 2 && (
+                                            <Badge variant="secondary" className="text-xs">
+                                              +{option.allergens.length - 2}
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <UtensilsCrossed className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>No food options available</p>
+                  <p className="text-sm">Create food options first in the Food management section</p>
+                </div>
+              )}
+
+              {selectedFoodOptions.length > 0 && (
+                <div className="rounded-lg bg-muted/50 p-3">
+                  <p className="text-sm font-medium mb-2">
+                    Selected: {selectedFoodOptions.length} food options
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {selectedFoodOptions.map((id) => {
+                      const option = allFoodOptions.find(opt => opt.id === id);
+                      return option ? (
+                        <Badge key={id} variant="default" className="text-xs">
+                          {option.name}
+                        </Badge>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-end gap-2">
               {event && (
                 <Button
