@@ -16,6 +16,7 @@ import crypto from 'crypto';
 import { registerAdminRoutes } from "./routes-admin";
 import { registerVenueRoutes } from "./routes-venue";
 import { registerSeatSelectionRoutes } from "./routes-seat-selection";
+import { EmailService } from "./email-service";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -185,6 +186,33 @@ export async function registerRoutes(app: Express) {
       console.log('🟢 CREATING BOOKING (FINAL ATTEMPT):', JSON.stringify(bookingData, null, 2));
       const newBooking = await storage.createBooking(bookingData);
       console.log('🟢 FINAL BOOKING SUCCESS:', newBooking.id);
+      
+      // Send booking confirmation email
+      try {
+        const event = await storage.getEventById(bookingData.eventId);
+        const table = await storage.getTableById(bookingData.tableId);
+        const venue = await storage.getVenueById(event.venueId);
+        
+        if (event && table && venue) {
+          // Send customer confirmation email
+          await EmailService.sendBookingConfirmation({
+            booking: newBooking,
+            event,
+            table,
+            venue
+          });
+          
+          // Send admin notification email
+          await EmailService.sendAdminBookingNotification({
+            booking: newBooking,
+            event,
+            table,
+            venue
+          });
+        }
+      } catch (emailError) {
+        console.error('Email notification failed (booking still successful):', emailError);
+      }
       
       // Force proper JSON response
       res.writeHead(200, {

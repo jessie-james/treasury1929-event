@@ -11,6 +11,7 @@ import { storage } from "./storage";
 import './api-server'; // Start the dedicated API server
 import cors from 'cors';
 import { setupAuth } from "./auth";
+import { setupSecurity, validateInput, securityErrorHandler, validateEnvironment } from "./security";
 
 const app = express();
 
@@ -63,9 +64,18 @@ const corsOptions = {
 // Apply CORS middleware
 app.use(cors(corsOptions));
 
+// Validate environment variables on startup
+validateEnvironment();
+
+// Setup security middleware (rate limiting, headers, etc.)
+setupSecurity(app);
+
 // Standard middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add input validation middleware for all routes
+app.use(validateInput);
 
 // Basic health check endpoint
 app.get("/api/health", (_req, res) => {

@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { type User, type InsertAdminLog } from "@shared/schema";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import { EmailService } from "./email-service";
 
 // Safe admin logging function that won't crash the app if it fails
 async function safeCreateAdminLog(logData: InsertAdminLog): Promise<boolean> {
