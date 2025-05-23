@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Ticket, Check, Clock, X, Calendar, MapPin, Users, QrCode } from "lucide-react";
+import { Ticket, Check, Clock, X, Calendar, MapPin, Users, QrCode, Download } from "lucide-react";
 import type { Booking, Event, FoodOption } from "@/../../shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -65,6 +65,69 @@ export default function CustomerDashboard() {
       setQrCodeUrls(prev => ({ ...prev, [bookingId]: qrCodeDataUrl }));
     } catch (error) {
       console.error('Error generating QR code:', error);
+    }
+  };
+
+  const downloadQRTicket = async (booking: any) => {
+    try {
+      // Create a canvas to compose the ticket
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Set canvas size
+      canvas.width = 400;
+      canvas.height = 600;
+
+      // White background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Title
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Event Ticket', canvas.width / 2, 40);
+
+      // Event details
+      ctx.font = '18px Arial';
+      ctx.fillText(booking.event.title, canvas.width / 2, 80);
+      
+      ctx.font = '14px Arial';
+      ctx.fillText(`Date: ${format(new Date(booking.event.date), 'PPP')}`, canvas.width / 2, 110);
+      ctx.fillText(`Booking #${booking.id}`, canvas.width / 2, 130);
+      ctx.fillText(`Table ${booking.table?.tableNumber || 'TBD'}`, canvas.width / 2, 150);
+      ctx.fillText(`Party Size: ${booking.partySize}`, canvas.width / 2, 170);
+
+      // Guest names
+      if (booking.guestNames) {
+        ctx.fillText('Guests:', canvas.width / 2, 200);
+        Object.entries(booking.guestNames).forEach(([seat, name], index) => {
+          ctx.fillText(`${name}`, canvas.width / 2, 220 + (index * 20));
+        });
+      }
+
+      // QR Code
+      if (qrCodeUrls[booking.id]) {
+        const qrImg = new Image();
+        qrImg.onload = () => {
+          // Draw QR code
+          ctx.drawImage(qrImg, (canvas.width - 150) / 2, 280, 150, 150);
+          
+          // Instructions
+          ctx.font = '12px Arial';
+          ctx.fillText('Show this QR code at venue entrance', canvas.width / 2, 460);
+          
+          // Download the ticket
+          const link = document.createElement('a');
+          link.download = `ticket-${booking.id}-${booking.event.title.replace(/[^a-zA-Z0-9]/g, '-')}.png`;
+          link.href = canvas.toDataURL();
+          link.click();
+        };
+        qrImg.src = qrCodeUrls[booking.id];
+      }
+    } catch (error) {
+      console.error('Error downloading ticket:', error);
     }
   };
 
@@ -207,6 +270,17 @@ export default function CustomerDashboard() {
                     <QrCode className="w-4 h-4" />
                     {expandedQRCode === booking.id ? "Hide QR Code" : "Show QR Code"}
                   </Button>
+                  {qrCodeUrls[booking.id] && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadQRTicket(booking)}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download Ticket
+                    </Button>
+                  )}
                 </div>
 
                 {expandedQRCode === booking.id && (
