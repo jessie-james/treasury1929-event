@@ -33,8 +33,8 @@ export interface BookingEmailData {
 }
 
 export class EmailService {
-  private static FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@yourvenue.com';
-  private static ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@yourvenue.com';
+  private static FROM_EMAIL = process.env.FROM_EMAIL || 'jose@sahuaroworks.com';
+  private static ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'jose@sahuaroworks.com';
 
   static async sendBookingConfirmation(data: BookingEmailData): Promise<boolean> {
     if (!emailInitialized) {
