@@ -1746,6 +1746,7 @@ export async function registerRoutes(app: Express) {
       }
 
       console.log("Creating booking with data:", JSON.stringify(req.body, null, 2));
+      console.log("Raw partySize from request:", req.body.partySize, "Type:", typeof req.body.partySize);
 
       try {
         // Get the actual database fields to avoid trying to insert non-existent fields
@@ -1762,6 +1763,7 @@ export async function registerRoutes(app: Express) {
         };
 
         console.log("Final booking data being validated:", JSON.stringify(bookingData, null, 2));
+        console.log("Final partySize value:", bookingData.partySize, "Type:", typeof bookingData.partySize);
         var booking = insertBookingSchema.parse(bookingData);
       } catch (zodError) {
         if (zodError instanceof z.ZodError) {
