@@ -93,8 +93,8 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     ctx.setLineDash([]);
 
     // Draw stage if exists
-    if (venueLayout.stage) {
-      const stage = venueLayout.stage;
+    if (venueLayout.stages && venueLayout.stages.length > 0) {
+      const stage = venueLayout.stages[0];
       ctx.fillStyle = '#374151';
       ctx.fillRect(
         offsetX + stage.x * scale,
