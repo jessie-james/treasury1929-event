@@ -162,6 +162,21 @@ export const menuItems = pgTable("menu_items", {
   dietaryInfo: json("dietary_info").$type<DietaryRestriction[]>().default([]),
 });
 
+// Food Options Table
+export const foodOptions = pgTable("food_options", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  type: varchar("type", { length: 50 }).notNull(), // 'salad', 'entree', 'dessert'
+  price: integer("price").notNull(), // Price in cents
+  allergens: json("allergens").$type<string[]>().default([]),
+  dietaryRestrictions: json("dietary_restrictions").$type<string[]>().default([]),
+  displayOrder: integer("display_order").default(0),
+  image: varchar("image", { length: 500 }),
+  isAvailable: boolean("is_available").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Venue Staff Table
 export const venueStaff = pgTable("venue_staff", {
   id: serial("id").primaryKey(),
@@ -269,6 +284,7 @@ export const insertTableSchema = createInsertSchema(tables).omit({ id: true });
 export const insertSeatSchema = createInsertSchema(seats).omit({ id: true });
 export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true });
 export const insertMenuItemSchema = createInsertSchema(menuItems).omit({ id: true });
+export const insertFoodOptionSchema = createInsertSchema(foodOptions).omit({ id: true, createdAt: true });
 export const insertVenueStaffSchema = createInsertSchema(venueStaff).omit({ id: true, hireDate: true });
 // Old schema imports removed
 
@@ -299,6 +315,9 @@ export type Booking = typeof bookings.$inferSelect;
 
 export type NewMenuItem = z.infer<typeof insertMenuItemSchema>;
 export type MenuItem = typeof menuItems.$inferSelect;
+
+export type NewFoodOption = z.infer<typeof insertFoodOptionSchema>;
+export type FoodOption = typeof foodOptions.$inferSelect;
 
 export type NewVenueStaff = z.infer<typeof insertVenueStaffSchema>;
 export type VenueStaff = typeof venueStaff.$inferSelect;
