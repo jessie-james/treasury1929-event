@@ -119,7 +119,7 @@ export const bookings = pgTable("bookings", {
   eventId: integer("event_id").notNull(),
   userId: integer("user_id").notNull(),
   tableId: integer("table_id").notNull(),
-  partySize: integer("party_size").notNull(), // Number of people at the table
+  partySize: integer("party_size").default(1), // Number of people at the table
   guestNames: json("guest_names").$type<string[]>().default([]), // Array of guest names
   foodSelections: json("food_selections").$type<any[]>().default([]),
   customerEmail: varchar("customer_email", { length: 255 }).notNull(),
