@@ -119,7 +119,7 @@ export const bookings = pgTable("bookings", {
   eventId: integer("event_id").notNull(),
   userId: integer("user_id").notNull(),
   tableId: integer("table_id").notNull(),
-  partySize: integer("party_size").default(1), // Number of people at the table
+  partySize: integer("party_size").default(1).notNull(), // Number of people at the table
   guestNames: json("guest_names").$type<string[]>().default([]), // Array of guest names
   foodSelections: json("food_selections").$type<any[]>().default([]),
   customerEmail: varchar("customer_email", { length: 255 }).notNull(),
@@ -309,9 +309,7 @@ export const insertEventSchema = createInsertSchema(events).omit({ id: true });
 export const insertTicketSchema = createInsertSchema(tickets).omit({ id: true, createdAt: true });
 export const insertTableSchema = createInsertSchema(tables).omit({ id: true });
 export const insertSeatSchema = createInsertSchema(seats).omit({ id: true });
-export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true }).extend({
-  partySize: z.number().optional().default(1)
-});
+export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true });
 export const insertMenuItemSchema = createInsertSchema(menuItems).omit({ id: true });
 export const insertFoodOptionSchema = createInsertSchema(foodOptions).omit({ id: true, createdAt: true });
 export const insertEventFoodOptionSchema = createInsertSchema(eventFoodOptions).omit({ id: true });
