@@ -8,6 +8,7 @@ import { registerVenueRoutes } from "./routes-venue";
 import { registerSeatSelectionRoutes } from "./routes-seat-selection";
 import { setupVite, log, serveStatic } from "./vite";
 import { storage } from "./storage";
+import './api-server'; // Start the dedicated API server
 import cors from 'cors';
 import { setupAuth } from "./auth";
 

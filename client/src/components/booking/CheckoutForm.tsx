@@ -125,8 +125,12 @@ function StripeCheckoutForm({
             }
           };
 
-          const baseUrl = getBaseUrl();
-          const bookingUrl = `${baseUrl}/booking-direct`;
+          // Use dedicated API server on different port
+          const API_BASE_URL = process.env.NODE_ENV === 'development' 
+            ? 'http://localhost:3001'  // Dedicated API server
+            : getBaseUrl();   // Same origin in production
+          
+          const bookingUrl = `${API_BASE_URL}/create-booking`;
           console.log(`Using booking URL: ${bookingUrl}`);
 
           const response = await apiRequest("POST", bookingUrl, booking);
