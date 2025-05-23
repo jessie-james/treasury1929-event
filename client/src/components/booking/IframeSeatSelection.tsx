@@ -79,15 +79,26 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     return () => window.removeEventListener('message', handleMessage);
   }, []);
   
-  // Send event ID updates to the iframe
+  // Send venue layout data to the iframe when available
   useEffect(() => {
-    if (iframeRef.current && iframeRef.current.contentWindow) {
+    if (iframeRef.current && iframeRef.current.contentWindow && venueLayout && existingBookings) {
+      // Filter available tables (not already booked)
+      const availableTables = venueLayout.tables?.filter((table: VenueTable) => {
+        const isBooked = existingBookings.some((booking: any) => booking.tableId === table.id);
+        return !isBooked;
+      }) || [];
+
       iframeRef.current.contentWindow.postMessage({
-        type: 'SET_EVENT_ID',
-        eventId: eventId
+        type: 'SET_VENUE_DATA',
+        eventId: eventId,
+        venueLayout: {
+          ...venueLayout,
+          tables: availableTables
+        },
+        existingBookings: existingBookings
       }, '*');
     }
-  }, [eventId]);
+  }, [eventId, venueLayout, existingBookings]);
   
   // Format selected table for display
   const formatSelectedTable = () => {
