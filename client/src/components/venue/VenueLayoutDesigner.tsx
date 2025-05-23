@@ -392,7 +392,7 @@ export function VenueLayoutDesigner({
     ctx.restore();
   }, [ctx, selectedObjects, showStageLines, stages]);
 
-  // Main draw function
+  // Main draw function - redraws everything including stage lines when tables move
   const draw = useCallback(() => {
     if (!canvas || !ctx) return;
     
@@ -407,9 +407,35 @@ export function VenueLayoutDesigner({
     // Draw stages
     stages.forEach(drawStage);
     
-    // Draw tables
+    // Draw tables (stage lines are drawn within each table)
     tables.forEach(drawTable);
-  }, [canvas, ctx, venueObject, stages, tables, drawVenue, drawStage, drawTable]);
+    
+    // Draw global stage lines that update with table positions
+    if (showStageLines && stages.length > 0 && tables.length > 0) {
+      stages.forEach(stage => {
+        tables.forEach(table => {
+          ctx.strokeStyle = '#8B5CF6';
+          ctx.lineWidth = 1;
+          ctx.setLineDash([5, 5]);
+          ctx.globalAlpha = 0.6;
+          
+          // Dynamic stage-to-table lines that update when tables move
+          const stageCenterX = stage.x + stage.width / 2;
+          const stageCenterY = stage.y + stage.height / 2;
+          const tableCenterX = table.x + table.width / 2;
+          const tableCenterY = table.y + table.height / 2;
+          
+          ctx.beginPath();
+          ctx.moveTo(stageCenterX, stageCenterY);
+          ctx.lineTo(tableCenterX, tableCenterY);
+          ctx.stroke();
+          
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+        });
+      });
+    }
+  }, [canvas, ctx, venueObject, stages, tables, drawVenue, drawStage, drawTable, showStageLines]);
 
   // Redraw when objects change
   useEffect(() => {
