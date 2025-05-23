@@ -5,9 +5,9 @@ import type { Booking, Event, FoodOption } from "@/../../shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { TicketQRCode } from "@/components/booking/TicketQRCode";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import QRCode from "qrcode";
 
 type EnrichedBooking = Booking & {
   event: Event;
@@ -20,13 +20,51 @@ export default function CustomerDashboard() {
     queryKey: ["/api/user/bookings"],
   });
 
+  const { data: foodOptions } = useQuery<FoodOption[]>({
+    queryKey: ["/api/food-options"],
+  });
+
   const [expandedQRCode, setExpandedQRCode] = useState<number | null>(null);
+  const [qrCodeUrls, setQrCodeUrls] = useState<{ [key: number]: string }>({});
   
   const toggleQRCode = (bookingId: number) => {
     if (expandedQRCode === bookingId) {
       setExpandedQRCode(null);
     } else {
       setExpandedQRCode(bookingId);
+      generateQRCode(bookingId);
+    }
+  };
+
+  const generateQRCode = async (bookingId: number) => {
+    if (qrCodeUrls[bookingId]) return; // Already generated
+    
+    try {
+      const booking = bookings?.find(b => b.id === bookingId);
+      if (!booking) return;
+      
+      const qrData = JSON.stringify({
+        bookingId: booking.id,
+        eventId: booking.eventId,
+        eventTitle: booking.event.title,
+        date: booking.event.date,
+        tableNumber: booking.table?.tableNumber,
+        partySize: booking.partySize,
+        customerEmail: booking.customerEmail
+      });
+      
+      const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      
+      setQrCodeUrls(prev => ({ ...prev, [bookingId]: qrCodeDataUrl }));
+    } catch (error) {
+      console.error('Error generating QR code:', error);
     }
   };
 
@@ -140,14 +178,21 @@ export default function CustomerDashboard() {
                   <div>
                     <h4 className="font-medium mb-2">Food Selections:</h4>
                     <div className="text-sm space-y-1">
-                      {booking.foodSelections.map((selection, index) => (
-                        <div key={index} className="p-2 bg-gray-50 rounded">
-                          <span className="font-medium">Guest {index + 1}:</span>
-                          {selection.salad && <span className="ml-2">Salad #{selection.salad}</span>}
-                          {selection.entree && <span className="ml-2">Entree #{selection.entree}</span>}
-                          {selection.dessert && <span className="ml-2">Dessert #{selection.dessert}</span>}
-                        </div>
-                      ))}
+                      {booking.foodSelections.map((selection, index) => {
+                        const guestName = booking.guestNames ? booking.guestNames[index + 1] : `Guest ${index + 1}`;
+                        const saladItem = foodOptions?.find(item => item.id === selection.salad);
+                        const entreeItem = foodOptions?.find(item => item.id === selection.entree);
+                        const dessertItem = foodOptions?.find(item => item.id === selection.dessert);
+                        
+                        return (
+                          <div key={index} className="p-2 bg-gray-50 rounded">
+                            <span className="font-medium">{guestName}:</span>
+                            {saladItem && <span className="ml-2 block">Salad: {saladItem.name}</span>}
+                            {entreeItem && <span className="ml-2 block">Entree: {entreeItem.name}</span>}
+                            {dessertItem && <span className="ml-2 block">Dessert: {dessertItem.name}</span>}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -171,10 +216,18 @@ export default function CustomerDashboard() {
                       <div className="flex justify-center">
                         <div className="p-4 bg-white rounded border">
                           <div className="text-xs text-center mb-2">Booking #{booking.id}</div>
-                          <div className="w-32 h-32 bg-gray-200 rounded flex items-center justify-center text-xs">
-                            QR Code
-                            <br />
-                            (Show at entrance)
+                          <div className="flex justify-center">
+                            {qrCodeUrls[booking.id] ? (
+                              <img 
+                                src={qrCodeUrls[booking.id]} 
+                                alt="Entry QR Code" 
+                                className="w-32 h-32"
+                              />
+                            ) : (
+                              <div className="w-32 h-32 bg-gray-100 rounded flex items-center justify-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                              </div>
+                            )}
                           </div>
                           <div className="text-xs text-center mt-2">{booking.event.title}</div>
                         </div>
