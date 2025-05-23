@@ -363,18 +363,7 @@ export default function OnboardingPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <h3 className="font-medium text-amber-800">Important Notice</h3>
-                      <p className="text-sm text-amber-700">
-                        While we'll highlight dishes that may contain allergens, 
-                        please always inform venue staff about your allergies when attending events.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+
                 
                 <div className="text-center mt-4">
                   <p className="text-sm text-muted-foreground mb-2">

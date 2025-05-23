@@ -187,136 +187,21 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
 
   // Handle food option selection
   const handleFoodOptionSelect = (option: FoodOption) => {
-    // Check for allergen conflicts
-    const allergenConflicts = checkAllergenConflicts(option);
-    const dietaryConflictArray = checkDietaryRestrictionConflicts(option);
-    
-    if (allergenConflicts.length > 0) {
-      // Store conflicts and selected option temporarily
-      setAllergyConflicts(allergenConflicts);
-      setSelectedOption(option);
-      setShowingDietaryWarning(false);
-      setShowAllergyWarning(true);
-    } else if (dietaryConflictArray.length > 0) {
-      // Display dietary warning
-      setDietaryConflicts(dietaryConflictArray);
-      setSelectedOption(option);
-      setShowingDietaryWarning(true);
-      setShowAllergyWarning(true);
-    } else {
-      // No conflicts, select the option directly
-      setSelections({
-        ...selections,
-        [currentSeat]: {
-          ...selections[currentSeat],
-          [currentStep]: option.id
-        }
-      });
-    }
+    // Select the option directly without warnings
+    setSelections({
+      ...selections,
+      [currentSeat]: {
+        ...selections[currentSeat],
+        [currentStep]: option.id
+      }
+    });
   };
 
-  // Confirm selection despite allergen or dietary warnings
-  const confirmAllergenSelection = () => {
-    if (selectedOption) {
-      setSelections({
-        ...selections,
-        [currentSeat]: {
-          ...selections[currentSeat],
-          [currentStep]: selectedOption.id
-        }
-      });
-      setShowAllergyWarning(false);
-      setSelectedOption(null);
-      setAllergyConflicts([]);
-      setDietaryConflicts([]);
-      setShowingDietaryWarning(false);
-    }
-  };
+
 
   return (
     <div className="space-y-4">
-      {/* Dietary Warning Dialog */}
-      <Dialog open={showAllergyWarning} onOpenChange={setShowAllergyWarning}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              {showingDietaryWarning ? "Dietary Restriction Warning" : "Allergen Warning"}
-            </DialogTitle>
-            <DialogDescription>
-              {showingDietaryWarning 
-                ? "This food doesn't align with your dietary preferences." 
-                : "This food contains allergens that match your dietary restrictions."}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="py-4">
-            {showingDietaryWarning ? (
-              // Dietary restriction warning content
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Dietary preference conflict</AlertTitle>
-                <AlertDescription>
-                  <p className="mb-2">
-                    {selectedOption?.name} doesn't align with the following dietary preferences in your profile:
-                  </p>
-                  <ul className="list-disc list-inside space-y-1">
-                    {dietaryConflicts.map(restriction => (
-                      <li key={restriction} className="flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center rounded-full bg-destructive/20 text-destructive p-1 w-6 h-6">
-                          <div className="w-4 h-4">{dietaryIcons[restriction]}</div>
-                        </span>
-                        <span>{dietaryLabels[restriction]}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            ) : (
-              // Allergen warning content
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Potential allergens detected</AlertTitle>
-                <AlertDescription>
-                  <p className="mb-2">
-                    {selectedOption?.name} contains the following allergens you've listed in your profile:
-                  </p>
-                  <ul className="list-disc list-inside space-y-1">
-                    {allergyConflicts.map(allergen => (
-                      <li key={allergen} className="flex items-center gap-2">
-                        <span className="inline-flex items-center justify-center rounded-full bg-destructive/20 text-destructive p-1 w-6 h-6">
-                          <div className="w-4 h-4">{allergenIcons[allergen]}</div>
-                        </span>
-                        <span>{allergenLabels[allergen]}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </AlertDescription>
-              </Alert>
-            )}
-            <p className="text-sm text-muted-foreground">
-              Please consider selecting a different option or proceed with caution if you still want to select this item.
-            </p>
-          </div>
-          
-          <DialogFooter className="flex sm:flex-row sm:justify-between">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setShowAllergyWarning(false)}
-            >
-              Choose Something Else
-            </Button>
-            <Button 
-              type="button" 
-              variant="destructive" 
-              onClick={confirmAllergenSelection}
-            >
-              Select Anyway
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
 
       {/* Progress indicator */}
       <div className="space-y-2">
