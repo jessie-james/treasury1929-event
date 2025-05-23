@@ -263,17 +263,12 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
                 <div className="flex flex-col gap-4 p-4">
                   {byType[currentStep]?.map((option: FoodOption) => {
                     const isSelected = selections[currentSeat]?.[currentStep] === option.id;
-                    const allergenConflicts = checkAllergenConflicts(option);
-                    const dietaryConflictArray = checkDietaryRestrictionConflicts(option);
-                    const hasConflicts = allergenConflicts.length > 0 || dietaryConflictArray.length > 0;
-                    
                     return (
                       <Card
                         key={option.id}
                         className={cn(
                           "overflow-hidden cursor-pointer transition-colors relative w-full",
-                          isSelected ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-muted/50',
-                          hasConflicts && 'border-destructive'
+                          isSelected ? 'ring-2 ring-primary bg-primary/5' : 'hover:bg-muted/50'
                         )}
                         onClick={() => handleFoodOptionSelect(option)}
                       >
