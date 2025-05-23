@@ -281,17 +281,6 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
                                 alt={option.name}
                                 className="object-cover w-full h-full"
                               />
-                              {hasConflicts && (
-                                <div 
-                                  className="absolute top-2 right-2 bg-destructive text-white rounded-full p-1" 
-                                  title={allergenConflicts.length > 0 
-                                    ? "Contains allergens you've listed in your profile" 
-                                    : "Doesn't align with your dietary preferences"
-                                  }
-                                >
-                                  <AlertTriangle className="h-5 w-5" />
-                                </div>
-                              )}
                             </div>
                           </div>
                           
