@@ -61,6 +61,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    console.log('Drawing venue layout:', venueLayout);
+    console.log('Available tables:', availableTables);
+    console.log('Tables count:', availableTables?.length);
+
     // Set canvas size
     const container = canvas.parentElement;
     if (container) {
