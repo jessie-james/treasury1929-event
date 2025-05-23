@@ -1747,6 +1747,11 @@ export async function registerRoutes(app: Express) {
 
       console.log("🚀 COMPLETELY CLEAN BOOKING - Creating booking with data:", JSON.stringify(req.body, null, 2));
 
+      // Debug: Check if there's any validation happening
+      console.log("=== BOOKING DEBUG START ===");
+      console.log("Raw req.body:", JSON.stringify(req.body, null, 2));
+      console.log("Calculated partySize:", req.body.seatNumbers?.length || req.body.partySize || 2);
+
       // NO VALIDATION - Just create the booking directly
       const bookingData = {
         eventId: req.body.eventId,
@@ -1761,9 +1766,12 @@ export async function registerRoutes(app: Express) {
       };
 
       console.log("✅ Final booking data (NO VALIDATION):", JSON.stringify(bookingData, null, 2));
+      console.log("=== BOOKING DEBUG END ===");
 
       // Create the booking directly - absolutely no validation
+      console.log("About to call storage.createBooking with:", JSON.stringify(bookingData, null, 2));
       const newBooking = await storage.createBooking(bookingData);
+      console.log("Insert successful:", newBooking);
       console.log("🎉 Booking created successfully:", newBooking);
 
       res.status(201).json({
