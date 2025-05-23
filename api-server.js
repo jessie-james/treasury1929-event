@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { storage } from './server/storage.js';
+import { storage } from './server/storage.ts';
 
 const app = express();
 const PORT = 3001;
