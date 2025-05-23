@@ -211,69 +211,136 @@ export function VenueLayoutDesigner({
     ctx.restore();
   }, [ctx, selectedObjects]);
 
+  // Get table dimensions based on your exact size configuration
+  const getTableDimensions = useCallback((tableSize: number) => {
+    const sizeConfig = {
+      1: { tableRadius: 25, seatRadius: 8,  gap: 8  }, // Tiny
+      2: { tableRadius: 30, seatRadius: 10, gap: 10 }, // Small  
+      3: { tableRadius: 35, seatRadius: 12, gap: 12 }, // Compact
+      4: { tableRadius: 40, seatRadius: 14, gap: 14 }, // Medium-Small
+      5: { tableRadius: 45, seatRadius: 16, gap: 16 }, // Medium
+      6: { tableRadius: 50, seatRadius: 18, gap: 18 }, // Medium-Large
+      7: { tableRadius: 55, seatRadius: 19, gap: 19 }, // Large
+      8: { tableRadius: 60, seatRadius: 20, gap: 20 }, // Extra Large (default)
+      9: { tableRadius: 70, seatRadius: 22, gap: 22 }  // Jumbo
+    };
+    
+    return sizeConfig[tableSize] || sizeConfig[8];
+  }, []);
+
   const drawTable = useCallback((obj: CanvasObject) => {
     if (!ctx) return;
     
     const { tableSize, shape, tableNumber, capacity } = obj.data;
-    const size = Math.max(40, Math.min(120, tableSize * 10)); // Scale size 1-9 to 40-120px
+    const dimensions = getTableDimensions(tableSize);
+    const { tableRadius, seatRadius } = dimensions;
     const isHalf = shape === 'half';
     const isSelected = selectedObjects.includes(obj.id);
+    const count = Math.max(1, Math.min(8, capacity)); // 1-8 seats allowed
     
     ctx.save();
-    ctx.translate(obj.x + size / 2, obj.y + size / 2);
+    ctx.translate(obj.x + tableRadius, obj.y + tableRadius);
     ctx.rotate((obj.rotation * Math.PI) / 180);
     
-    // Table surface - Brown wood color
-    ctx.fillStyle = isSelected ? '#cd853f' : '#8B4513';
-    ctx.strokeStyle = isSelected ? '#ff6b35' : '#654321';
-    ctx.lineWidth = isSelected ? 3 : 2;
+    // Add shadow
+    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+    ctx.shadowBlur = 5;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 2;
+    
+    // Table surface - Light gray as per your spec
+    ctx.fillStyle = isSelected ? '#d0d0d0' : '#e0e0e0';
+    ctx.strokeStyle = isSelected ? '#333' : '#555';
+    ctx.lineWidth = 2;
     
     if (isHalf) {
       // Half circle table
       ctx.beginPath();
-      ctx.arc(0, 0, size / 2, 0, Math.PI);
+      ctx.arc(0, 0, tableRadius, 0, Math.PI);
       ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
     } else {
       // Full circle table
       ctx.beginPath();
-      ctx.arc(0, 0, size / 2, 0, 2 * Math.PI);
+      ctx.arc(0, 0, tableRadius, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke();
     }
     
-    ctx.fill();
-    ctx.stroke();
+    // Reset shadow for text and seats
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
     
-    // Table number in center - White text
-    ctx.fillStyle = 'white';
-    ctx.font = `bold ${Math.max(12, size / 6)}px Arial`;
+    // Table number (scale with table size)
+    const fontSize = Math.max(12, Math.min(24, 10 + tableSize * 1.5));
+    ctx.fillStyle = '#333'; // Dark gray text
+    ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(tableNumber.toString(), 0, 0);
+    const textY = isHalf ? -tableRadius * 0.5 : 0; // Higher for half tables
+    ctx.fillText(tableNumber.toString(), 0, textY);
     
     // Draw seats around the table
-    if (capacity && capacity > 0) {
-      const seatRadius = Math.max(8, size / 12);
-      const tableRadius = size / 2 + seatRadius + 8; // Distance from table center to seat center
-      const angleStep = (isHalf ? Math.PI : 2 * Math.PI) / capacity;
-      const startAngle = isHalf ? 0 : -Math.PI / 2; // Start from top for full circle
+    if (count > 0) {
+      const seatOffset = tableRadius + seatRadius; // Seats touch table edge
       
-      for (let i = 0; i < capacity; i++) {
-        const angle = startAngle + i * angleStep;
-        const seatX = Math.cos(angle) * tableRadius;
-        const seatY = Math.sin(angle) * tableRadius;
+      for (let i = 0; i < count; i++) {
+        let angle;
         
-        // Seat circle - Green color matching your code
-        ctx.fillStyle = '#22c55e'; // Green-500
-        ctx.strokeStyle = '#16a34a'; // Green-600
-        ctx.lineWidth = 2;
+        if (isHalf) {
+          // Half Circle Tables - Smart positioning
+          if (count === 1) {
+            angle = 270; // Single seat at the back center
+          } else if (count === 2) {
+            const angles = [225, 315]; // 90° total spread
+            angle = angles[i];
+          } else if (count === 3) {
+            const angles = [220, 270, 320]; // 100° total spread
+            angle = angles[i];
+          } else {
+            // 4+ seats: use 40° spacing method
+            const totalSpan = (count - 1) * 40;
+            const startAngle = 270 - (totalSpan / 2);
+            angle = startAngle + (i * 40);
+          }
+        } else {
+          // Full Circle Tables - Even distribution
+          angle = i * (360 / count); // Evenly spaced around 360°
+        }
+        
+        const rad = angle * Math.PI / 180;
+        const seatX = seatOffset * Math.cos(rad);
+        const seatY = seatOffset * Math.sin(rad);
+        
+        // Add shadow for seats
+        ctx.shadowColor = 'rgba(0,0,0,0.2)';
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 1;
+        
+        // Seat circle - Green color as per your spec
+        ctx.fillStyle = '#4CAF50'; // Green seat color
+        ctx.strokeStyle = '#2E7D32'; // Darker green border
+        ctx.lineWidth = 1;
         
         ctx.beginPath();
         ctx.arc(seatX, seatY, seatRadius, 0, 2 * Math.PI);
         ctx.fill();
         ctx.stroke();
         
-        // Seat number - White text
-        ctx.fillStyle = 'white';
-        ctx.font = `bold ${Math.max(8, seatRadius)}px Arial`;
+        // Reset shadow for seat text
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        
+        // Seat number (scale with seat size)
+        const seatFontSize = Math.max(8, Math.min(16, seatRadius - 4));
+        ctx.fillStyle = 'white'; // White text on green seats
+        ctx.font = `bold ${seatFontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText((i + 1).toString(), seatX, seatY);
@@ -287,9 +354,9 @@ export function VenueLayoutDesigner({
       ctx.setLineDash([5, 5]);
       ctx.beginPath();
       if (isHalf) {
-        ctx.arc(0, 0, size / 2 + 10, 0, Math.PI);
+        ctx.arc(0, 0, tableRadius + 10, 0, Math.PI);
       } else {
-        ctx.arc(0, 0, size / 2 + 10, 0, 2 * Math.PI);
+        ctx.arc(0, 0, tableRadius + 10, 0, 2 * Math.PI);
       }
       ctx.stroke();
       ctx.setLineDash([]);
