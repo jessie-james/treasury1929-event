@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -18,17 +18,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Event } from "@shared/schema";
 import { useState, useRef, useEffect } from "react";
-import { ImagePlus, Loader2, RefreshCw, X } from "lucide-react";
+import { ImagePlus, Loader2, RefreshCw, X, Building } from "lucide-react";
 
 const eventFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   image: z.string().min(1, "Image is required"),
   date: z.string().min(1, "Date is required"),
-  totalSeats: z.number().min(1, "Must have at least 1 seat"),
-  venueId: z.number().default(1), // For now, hardcode to venue 1
+  venueId: z.number().min(1, "Please select a venue"),
   isActive: z.boolean().default(true),
 });
 
@@ -44,7 +44,31 @@ export function EventForm({ event, onClose }: Props) {
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(event?.image || null);
+  const [totalSeats, setTotalSeats] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch venues for selection
+  const { data: venues = [], isLoading: isLoadingVenues } = useQuery({
+    queryKey: ['venues'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/admin/venues');
+      if (!response.ok) throw new Error('Failed to fetch venues');
+      return response.json();
+    }
+  });
+
+  // Fetch venue layout when venue is selected to calculate total seats
+  const selectedVenueId = form.watch('venueId');
+  const { data: venueLayout } = useQuery({
+    queryKey: ['venue-layout', selectedVenueId],
+    queryFn: async () => {
+      if (!selectedVenueId) return null;
+      const response = await apiRequest('GET', `/api/admin/venues/${selectedVenueId}/layout`);
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!selectedVenueId
+  });
   
   // Set existing event image as uploaded image on component mount
   useEffect(() => {
