@@ -1761,6 +1761,7 @@ export async function registerRoutes(app: Express) {
           stripePaymentId: req.body.stripePaymentId
         };
 
+        console.log("Final booking data being validated:", JSON.stringify(bookingData, null, 2));
         var booking = insertBookingSchema.parse(bookingData);
       } catch (zodError) {
         if (zodError instanceof z.ZodError) {
