@@ -766,20 +766,14 @@ export function VenueLayoutDesigner({
               </div>
               
               <div>
-                <Label className="text-sm font-medium">Seat Capacity</Label>
-                <Select value={seatCount.toString()} onValueChange={(v) => setSeatCount(Number(v))}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2">👥 2 people</SelectItem>
-                    <SelectItem value="4">👥👥 4 people</SelectItem>
-                    <SelectItem value="6">👥👥👥 6 people</SelectItem>
-                    <SelectItem value="8">👥👥👥👥 8 people</SelectItem>
-                    <SelectItem value="10">👥👥👥👥👥 10 people</SelectItem>
-                    <SelectItem value="12">👥👥👥👥👥👥 12 people</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Seat Count</Label>
+                <Input 
+                  type="number" 
+                  value={seatCount} 
+                  onChange={(e) => setSeatCount(Number(e.target.value))}
+                  min={1}
+                  max={12}
+                />
               </div>
               
               {selectedObjects.length > 0 && selectedObjects.some(id => tables.some(t => t.id === id)) && (
