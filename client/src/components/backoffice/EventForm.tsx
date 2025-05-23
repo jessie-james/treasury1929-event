@@ -57,6 +57,8 @@ export function EventForm({ event, onClose }: Props) {
     }
   });
 
+
+
   // Fetch venue layout when venue is selected to calculate total seats
   const selectedVenueId = form.watch('venueId');
   const { data: venueLayout } = useQuery({
@@ -69,6 +71,16 @@ export function EventForm({ event, onClose }: Props) {
     },
     enabled: !!selectedVenueId
   });
+
+  // Calculate total seats when venue layout changes
+  useEffect(() => {
+    if (venueLayout?.tables) {
+      const calculatedSeats = venueLayout.tables.reduce((total: number, table: any) => {
+        return total + (table.capacity || 0);
+      }, 0);
+      setTotalSeats(calculatedSeats);
+    }
+  }, [venueLayout]);
   
   // Set existing event image as uploaded image on component mount
   useEffect(() => {
@@ -164,22 +176,7 @@ export function EventForm({ event, onClose }: Props) {
     }
   };
 
-  const form = useForm<EventFormData>({
-    resolver: zodResolver(eventFormSchema),
-    defaultValues: event ? {
-      ...event,
-      date: new Date(event.date).toISOString().split('T')[0],
-      isActive: event.isActive !== undefined ? event.isActive : true,
-    } : {
-      title: "",
-      description: "",
-      image: "",
-      date: new Date().toISOString().split('T')[0],
-      totalSeats: 80,
-      venueId: 1,
-      isActive: true,
-    },
-  });
+
 
   const { mutate: saveEvent, isPending } = useMutation({
     mutationFn: async (data: EventFormData) => {
