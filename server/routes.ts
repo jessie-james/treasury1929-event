@@ -462,6 +462,26 @@ export async function registerRoutes(app: Express) {
         }
       }
 
+      // If venue is being changed, calculate seats from venue layout
+      if (updateData.venueId) {
+        try {
+          const venueLayout = await storage.getVenueLayout(updateData.venueId);
+          if (venueLayout?.tables) {
+            const totalSeats = venueLayout.tables.reduce((sum: number, table: any) => sum + (table.capacity || 0), 0);
+            const totalTables = venueLayout.tables.length;
+            
+            updateData.totalSeats = totalSeats;
+            updateData.totalTables = totalTables;
+            updateData.availableSeats = totalSeats;
+            updateData.availableTables = totalTables;
+            
+            console.log(`Event ${id} venue changed to ${updateData.venueId}: ${totalSeats} seats from ${totalTables} tables`);
+          }
+        } catch (venueError) {
+          console.log(`Could not fetch venue layout for venue ${updateData.venueId}:`, venueError);
+        }
+      }
+
       console.log("Updating event with data:", updateData);
 
       // Get original event data for comparison
