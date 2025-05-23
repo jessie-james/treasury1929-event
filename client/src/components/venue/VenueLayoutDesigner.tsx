@@ -872,46 +872,283 @@ export function VenueLayoutDesigner({
             )}
           </CardContent>
         </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2">
+              <MousePointer2 className="w-5 h-5" />
+              Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {!readonly && (
+              <>
+                <Button 
+                  onClick={handleSave}
+                  disabled={!venueObject}
+                  className="w-full"
+                >
+                  Save Layout
+                </Button>
+                <Button 
+                  onClick={resetAll}
+                  variant="destructive"
+                  className="w-full"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset Everything
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
-      
-      {/* Main Layout */}
-      <div className="flex gap-6 h-full">
-        {/* Controls Sidebar */}
-        <div className="w-80 space-y-4">
-          {/* Quick Actions */}
-          <Card>
+
+      {/* Canvas Area */}
+      <div className="flex-1 space-y-4">
+        {/* Workflow Steps */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Step 1 Card */}
+          <Card className={cn(
+            "border-2",
+            stepIsActive(1) && "border-blue-500 bg-blue-50",
+            stepIsCompleted(1) && "border-green-500 bg-green-50"
+          )}>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2">
-                <MousePointer2 className="w-5 h-5" />
-                Actions
+                <div className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white",
+                  stepIsCompleted(1) ? "bg-green-500" : "bg-blue-500"
+                )}>
+                  1
+                </div>
+                Create Your Venue Space
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              {!readonly && (
-                <>
+            <CardContent className="space-y-3">
+              <Button 
+                onClick={createVenue} 
+                disabled={readonly || currentStep !== 1}
+                className="w-full"
+              >
+                <Square className="w-4 h-4 mr-2" />
+                Create Venue Boundary
+              </Button>
+              {venueObject && currentStep === 1 && (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Label htmlFor="venue-width">Width</Label>
+                      <Input
+                        id="venue-width"
+                        type="number"
+                        value={venueObject.width}
+                        onChange={(e) => setVenueObject(prev => prev ? {...prev, width: Number(e.target.value)} : null)}
+                        min="100"
+                        max="2000"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label htmlFor="venue-height">Height</Label>
+                      <Input
+                        id="venue-height"
+                        type="number"
+                        value={venueObject.height}
+                        onChange={(e) => setVenueObject(prev => prev ? {...prev, height: Number(e.target.value)} : null)}
+                        min="100"
+                        max="2000"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Step 2 Card */}
+          <Card className={cn(
+            "border-2",
+            stepIsActive(2) && "border-blue-500 bg-blue-50",
+            stepIsCompleted(2) && "border-green-500 bg-green-50",
+            currentStep < 2 && "opacity-50"
+          )}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <div className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white",
+                  stepIsCompleted(2) ? "bg-green-500" : currentStep >= 2 ? "bg-blue-500" : "bg-gray-400"
+                )}>
+                  2
+                </div>
+                Add Performance Stage
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                onClick={addStage} 
+                disabled={readonly || currentStep !== 2 || stages.length > 0}
+                className="w-full"
+              >
+                <Square className="w-4 h-4 mr-2" />
+                {stages.length > 0 ? "Stage Added" : "Add Stage"}
+              </Button>
+              {selectedObjects.length > 0 && selectedObjects.every(id => stages.some(s => s.id === id)) && currentStep === 2 && (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Label>Stage Width</Label>
+                      <Input
+                        type="number"
+                        value={stages.find(s => selectedObjects.includes(s.id))?.width || 0}
+                        onChange={(e) => {
+                          const newWidth = Number(e.target.value);
+                          setStages(prev => prev.map(stage => 
+                            selectedObjects.includes(stage.id) 
+                              ? { ...stage, width: newWidth }
+                              : stage
+                          ));
+                        }}
+                        min="50"
+                        max="500"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label>Stage Height</Label>
+                      <Input
+                        type="number"
+                        value={stages.find(s => selectedObjects.includes(s.id))?.height || 0}
+                        onChange={(e) => {
+                          const newHeight = Number(e.target.value);
+                          setStages(prev => prev.map(stage => 
+                            selectedObjects.includes(stage.id) 
+                              ? { ...stage, height: newHeight }
+                              : stage
+                          ));
+                        }}
+                        min="30"
+                        max="300"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Step 3 Card */}
+          <Card className={cn(
+            "border-2",
+            stepIsActive(3) && "border-blue-500 bg-blue-50",
+            stepIsCompleted(3) && "border-green-500 bg-green-50",
+            currentStep < 3 && "opacity-50"
+          )}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <div className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white",
+                  stepIsCompleted(3) ? "bg-green-500" : currentStep >= 3 ? "bg-blue-500" : "bg-gray-400"
+                )}>
+                  3
+                </div>
+                Arrange Tables
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                onClick={addTable} 
+                disabled={readonly || currentStep !== 3}
+                className="w-full"
+              >
+                <Circle className="w-4 h-4 mr-2" />
+                Add Table
+              </Button>
+              {selectedObjects.length > 0 && selectedObjects.every(id => tables.some(t => t.id === id)) && currentStep === 3 && (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => rotateSelectedTables(-15)}
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1" />
+                      -15°
+                    </Button>
+                    <Button
+                      onClick={() => rotateSelectedTables(15)}
+                      size="sm" 
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      <RotateCw className="w-3 h-3 mr-1" />
+                      +15°
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Table Number</Label>
+                    <Input
+                      type="number"
+                      value={tables.find(t => selectedObjects.includes(t.id))?.data.tableNumber || ''}
+                      onChange={(e) => updateSelectedTableProperty('tableNumber', Number(e.target.value))}
+                      placeholder="Table number"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Capacity</Label>
+                    <Input
+                      type="number"
+                      value={tables.find(t => selectedObjects.includes(t.id))?.data.capacity || ''}
+                      onChange={(e) => updateSelectedTableProperty('capacity', Number(e.target.value))}
+                      min="1"
+                      max="12"
+                      placeholder="Capacity"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Floor</Label>
+                    <select
+                      value={tables.find(t => selectedObjects.includes(t.id))?.data.floor || 'main'}
+                      onChange={(e) => updateSelectedTableProperty('floor', e.target.value)}
+                      className="w-full p-2 border rounded"
+                    >
+                      <option value="main">Main Floor</option>
+                      <option value="mezzanine">Mezzanine</option>
+                      <option value="balcony">Balcony</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <select
+                      value={tables.find(t => selectedObjects.includes(t.id))?.data.status || 'available'}
+                      onChange={(e) => updateSelectedTableProperty('status', e.target.value)}
+                      className="w-full p-2 border rounded"
+                    >
+                      <option value="available">Available</option>
+                      <option value="unavailable">Unavailable</option>
+                      <option value="reserved">Reserved</option>
+                    </select>
+                  </div>
+                  
                   <Button 
-                    onClick={handleSave}
-                    disabled={!venueObject}
-                    className="w-full"
-                  >
-                    Save Layout
-                  </Button>
-                  <Button 
-                    onClick={resetAll}
+                    onClick={() => removeSelectedTables()}
                     variant="destructive"
                     className="w-full"
                   >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Reset Everything
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove Selected
                   </Button>
-                </>
+                </div>
               )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Canvas Area */}
-        <div className="flex-1">
+        {/* Canvas */}
         <div className="border rounded-lg shadow-sm bg-white">
           <canvas
             ref={canvasRef}
@@ -919,6 +1156,92 @@ export function VenueLayoutDesigner({
             height={700}
             className="block border rounded-lg cursor-crosshair"
             onMouseDown={(e) => {
+              const pos = getMousePos(e);
+              const obj = getObjectAtPosition(pos.x, pos.y);
+              
+              if (obj) {
+                setIsDragging(true);
+                setDragStartPos(pos);
+                setDraggedObjectId(obj.id);
+                
+                // Select the clicked object
+                if (e.shiftKey) {
+                  // Shift+click: toggle selection
+                  setSelectedObjects(prev => 
+                    prev.includes(obj.id) 
+                      ? prev.filter(id => id !== obj.id)
+                      : [...prev, obj.id]
+                  );
+                } else {
+                  // Normal click: single selection
+                  setSelectedObjects([obj.id]);
+                }
+              } else {
+                // Clicked on empty space
+                if (!e.shiftKey) {
+                  setSelectedObjects([]);
+                }
+              }
+            }}
+            onMouseMove={(e) => {
+              if (isDragging && dragStartPos && draggedObjectId) {
+                const currentPos = getMousePos(e);
+                const deltaX = currentPos.x - dragStartPos.x;
+                const deltaY = currentPos.y - dragStartPos.y;
+
+                if (draggedObjectId === 'venue' && venueObject && currentStep === 1) {
+                  setVenueObject(prev => prev ? {
+                    ...prev,
+                    x: Math.max(0, prev.x + deltaX),
+                    y: Math.max(0, prev.y + deltaY)
+                  } : null);
+                } else if (currentStep === 2) {
+                  // Update stages
+                  setStages(prev => prev.map(stage => 
+                    stage.id === draggedObjectId 
+                      ? { ...stage, x: stage.x + deltaX, y: stage.y + deltaY }
+                      : stage
+                  ));
+                } else if (currentStep === 3) {
+                  // Update tables
+                  setTables(prev => prev.map(table => 
+                    table.id === draggedObjectId 
+                      ? { 
+                          ...table, 
+                          x: Math.max(0, table.x + deltaX), 
+                          y: Math.max(0, table.y + deltaY),
+                          data: { 
+                            ...table.data, 
+                            x: Math.max(0, table.data.x + deltaX), 
+                            y: Math.max(0, table.data.y + deltaY) 
+                          }
+                        }
+                      : table
+                  ));
+                }
+
+                setDragStartPos(currentPos);
+              }
+            }}
+            onMouseUp={() => {
+              setIsDragging(false);
+              setDraggedObjectId(null);
+            }}
+          />
+
+          {/* Status bar */}
+          {(selectedObjects.length > 0 || tables.length > 0 || stages.length > 0) && (
+            <div className="p-2 bg-gray-50 border-t text-sm text-gray-600">
+              Selected: {selectedObjects.length} object(s)
+              {tables.length > 0 && ` • Tables: ${tables.length}`}
+              {stages.length > 0 && ` • Stages: ${stages.length}`}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
               const pos = getMousePos(e);
               const obj = getObjectAtPosition(pos.x, pos.y);
               
