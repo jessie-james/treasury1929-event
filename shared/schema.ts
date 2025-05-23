@@ -177,6 +177,17 @@ export const foodOptions = pgTable("food_options", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Event Food Options Junction Table
+export const eventFoodOptions = pgTable("event_food_options", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull(),
+  foodOptionId: integer("food_option_id").notNull(),
+  isAvailable: boolean("is_available").default(true),
+  customPrice: integer("custom_price"), // Optional custom price for this event
+}, (table) => ({
+  unique: unique().on(table.eventId, table.foodOptionId),
+}));
+
 // Venue Staff Table
 export const venueStaff = pgTable("venue_staff", {
   id: serial("id").primaryKey(),
@@ -212,9 +223,25 @@ export const stagesRelations = relations(stages, ({ one }) => ({
 export const eventsRelations = relations(events, ({ many, one }) => ({
   bookings: many(bookings),
   tickets: many(tickets),
+  eventFoodOptions: many(eventFoodOptions),
   venue: one(venues, {
     fields: [events.venueId],
     references: [venues.id],
+  }),
+}));
+
+export const foodOptionsRelations = relations(foodOptions, ({ many }) => ({
+  eventFoodOptions: many(eventFoodOptions),
+}));
+
+export const eventFoodOptionsRelations = relations(eventFoodOptions, ({ one }) => ({
+  event: one(events, {
+    fields: [eventFoodOptions.eventId],
+    references: [events.id],
+  }),
+  foodOption: one(foodOptions, {
+    fields: [eventFoodOptions.foodOptionId],
+    references: [foodOptions.id],
   }),
 }));
 
@@ -285,6 +312,7 @@ export const insertSeatSchema = createInsertSchema(seats).omit({ id: true });
 export const insertBookingSchema = createInsertSchema(bookings).omit({ id: true, createdAt: true });
 export const insertMenuItemSchema = createInsertSchema(menuItems).omit({ id: true });
 export const insertFoodOptionSchema = createInsertSchema(foodOptions).omit({ id: true, createdAt: true });
+export const insertEventFoodOptionSchema = createInsertSchema(eventFoodOptions).omit({ id: true });
 export const insertVenueStaffSchema = createInsertSchema(venueStaff).omit({ id: true, hireDate: true });
 // Old schema imports removed
 
@@ -318,6 +346,9 @@ export type MenuItem = typeof menuItems.$inferSelect;
 
 export type NewFoodOption = z.infer<typeof insertFoodOptionSchema>;
 export type FoodOption = typeof foodOptions.$inferSelect;
+
+export type NewEventFoodOption = z.infer<typeof insertEventFoodOptionSchema>;
+export type EventFoodOption = typeof eventFoodOptions.$inferSelect;
 
 export type NewVenueStaff = z.infer<typeof insertVenueStaffSchema>;
 export type VenueStaff = typeof venueStaff.$inferSelect;
