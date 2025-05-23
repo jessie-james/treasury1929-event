@@ -130,14 +130,14 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
               </div>
             </div>
             <div className="overflow-hidden">
-              {/* Use an iframe to load the table selection HTML with eventId */}
-              <iframe
-                ref={iframeRef}
-                src={`/venue-layout.html?eventId=${eventId}`}
-                className="w-full border-none"
-                title="Venue Layout Seating"
-                style={{ height: '500px', overflow: 'hidden' }}
-              />
+              {/* Dynamic venue layout - will be replaced with actual venue canvas */}
+              <div className="w-full h-96 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-600 mb-2">Interactive Venue Layout</h3>
+                  <p className="text-gray-500 mb-4">Click on tables to select seats for your booking</p>
+                  <div className="text-sm text-blue-600">Event ID: {eventId} • Dynamic layout loading...</div>
+                </div>
+              </div>
             </div>
           </div>
           
