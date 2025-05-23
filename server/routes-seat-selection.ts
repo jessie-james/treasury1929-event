@@ -25,10 +25,10 @@ export function registerSeatSelectionRoutes(app: Express): void {
       }
 
       // Get tables for this venue
-      const tables = await storage.getTablesByVenueId(venueId);
+      const tables = await storage.getTablesByVenue(venueId);
       
       // Get stages for this venue (if any)
-      const stages = await storage.getStagesByVenueId(venueId);
+      const stages = await storage.getStagesByVenue(venueId);
 
       const layout = {
         venue: {
