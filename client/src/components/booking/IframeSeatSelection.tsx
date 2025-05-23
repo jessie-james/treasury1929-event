@@ -32,8 +32,8 @@ interface TableData {
 }
 
 export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }: Props) {
-  const [selectedTable, setSelectedTable] = useState<TableData | null>(null);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [selectedTable, setSelectedTable] = useState<VenueTable | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Fetch event details to get venue ID
   const { data: eventData } = useQuery({
@@ -79,47 +79,125 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     return () => window.removeEventListener('message', handleMessage);
   }, []);
   
-  // Send venue layout data to the iframe when available
-  useEffect(() => {
-    if (iframeRef.current && iframeRef.current.contentWindow && venueLayout && existingBookings) {
-      // Filter available tables (not already booked)
-      const availableTables = venueLayout.tables?.filter((table: VenueTable) => {
-        const isBooked = existingBookings.some((booking: any) => booking.tableId === table.id);
-        return !isBooked;
-      }) || [];
+  // Filter available tables (not already booked)
+  const availableTables = venueLayout?.tables?.filter((table: VenueTable) => {
+    const isBooked = existingBookings?.some((booking: any) => booking.tableId === table.id);
+    return !isBooked;
+  }) || [];
 
-      iframeRef.current.contentWindow.postMessage({
-        type: 'SET_VENUE_DATA',
-        eventId: eventId,
-        venueLayout: {
-          ...venueLayout,
-          tables: availableTables
-        },
-        existingBookings: existingBookings
-      }, '*');
+  // Draw the venue layout on canvas
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !venueLayout) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size to match venue
+    canvas.width = venueLayout.venue.width;
+    canvas.height = venueLayout.venue.height;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw venue boundaries if they exist
+    if (venueLayout.venue.bounds) {
+      const bounds = venueLayout.venue.bounds;
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
+      ctx.setLineDash([]);
     }
-  }, [eventId, venueLayout, existingBookings]);
+
+    // Draw stage
+    if (venueLayout.stages?.[0]) {
+      const stage = venueLayout.stages[0];
+      ctx.fillStyle = '#6B7280';
+      ctx.fillRect(stage.x, stage.y, stage.width, stage.height);
+      
+      // Stage label
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('STAGE', stage.x + stage.width / 2, stage.y + stage.height / 2 + 5);
+    }
+
+    // Draw tables
+    availableTables.forEach((table: VenueTable) => {
+      const isSelected = selectedTable?.id === table.id;
+      
+      // Table fill
+      ctx.fillStyle = isSelected ? '#60A5FA' : '#10B981'; // Blue if selected, green if available
+      
+      if (table.shape === 'full') {
+        // Full circle table
+        ctx.beginPath();
+        ctx.arc(table.x + table.width / 2, table.y + table.height / 2, table.width / 2, 0, 2 * Math.PI);
+        ctx.fill();
+      } else {
+        // Half circle table
+        ctx.beginPath();
+        ctx.arc(table.x + table.width / 2, table.y + table.height / 2, table.width / 2, 0, Math.PI);
+        ctx.fill();
+      }
+
+      // Table number
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        table.tableNumber.toString(),
+        table.x + table.width / 2,
+        table.y + table.height / 2 + 5
+      );
+    });
+  }, [venueLayout, availableTables, selectedTable]);
+
+  // Handle canvas clicks to select tables
+  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas || !availableTables.length) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    // Check if click is within any table
+    for (const table of availableTables) {
+      const centerX = table.x + table.width / 2;
+      const centerY = table.y + table.height / 2;
+      const radius = table.width / 2;
+      
+      const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+      
+      if (distance <= radius) {
+        setSelectedTable(table);
+        break;
+      }
+    }
+  };
   
   // Format selected table for display
   const formatSelectedTable = () => {
     if (!selectedTable) return "";
     
-    const seatText = selectedTable.seatCount === 1 ? 'seat' : 'seats';
-    return `Table ${selectedTable.tableId} (${selectedTable.seatCount} ${seatText})`;
+    const seatText = selectedTable.capacity === 1 ? 'seat' : 'seats';
+    return `Table ${selectedTable.tableNumber} (${selectedTable.capacity} ${seatText})`;
   };
   
   // Prepare data for submission
   const getSeatsForSubmission = () => {
     if (!selectedTable) return null;
     
-    // Generate all seat numbers for the table (1 to seatCount)
+    // Generate all seat numbers for the table (1 to capacity)
     const seatNumbers = Array.from(
-      { length: selectedTable.seatCount }, 
+      { length: selectedTable.capacity }, 
       (_, index) => index + 1
     );
     
     return { 
-      tableId: selectedTable.tableId, 
+      tableId: selectedTable.id, 
       seatNumbers 
     };
   };
@@ -168,26 +246,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
             <div className="flex justify-between items-center p-2 mb-2 border-b">
               <h3 className="text-lg font-medium">Venue Layout</h3>
               <div className="flex gap-2">
-                <button 
-                  className="flex items-center justify-center w-8 h-8 bg-white border rounded-full hover:bg-gray-50"
-                  onClick={() => {
-                    iframeRef.current?.contentWindow?.postMessage({ type: 'ZOOM_IN' }, '*');
-                  }}
-                >
-                  <span className="text-xl font-bold">+</span>
-                </button>
-                <button 
-                  className="flex items-center justify-center w-8 h-8 bg-white border rounded-full hover:bg-gray-50"
-                  onClick={() => {
-                    iframeRef.current?.contentWindow?.postMessage({ type: 'RESET_ZOOM' }, '*');
-                  }}
-                >
-                  <span className="text-xs">Reset</span>
-                </button>
+                <Badge variant="outline">
+                  {availableTables.length} available tables
+                </Badge>
               </div>
             </div>
             <div className="overflow-hidden">
-              {/* Dynamic venue layout */}
+              {/* Canvas-based venue layout */}
               {isLoadingLayout ? (
                 <div className="w-full h-96 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
                   <div className="text-center">
@@ -198,39 +263,12 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
                 </div>
               ) : venueLayout?.tables?.length > 0 ? (
                 <div className="relative w-full h-96 bg-white border border-gray-200 rounded-lg overflow-hidden">
-                  {/* Venue bounds background */}
-                  <div className="absolute inset-4 bg-gray-50 border-2 border-dashed border-gray-300 rounded">
-                    <div className="text-center p-2 text-xs text-gray-500">
-                      {venueLayout.venue.name} • {venueLayout.tables.length} tables
-                    </div>
-                  </div>
-                  
-                  {/* Render tables */}
-                  {venueLayout.tables.map((table: any) => (
-                    <button
-                      key={table.id}
-                      className={`absolute rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all hover:scale-110 ${
-                        selectedTable?.tableId === table.tableNumber
-                          ? 'bg-blue-500 border-blue-600 text-white'
-                          : 'bg-green-500 border-green-600 text-white hover:bg-green-600'
-                      }`}
-                      style={{
-                        left: `${Math.max(0, Math.min(90, (table.x / venueLayout.venue.width) * 100))}%`,
-                        top: `${Math.max(0, Math.min(85, (table.y / venueLayout.venue.height) * 100))}%`,
-                        width: `${Math.max(40, table.width)}px`,
-                        height: `${Math.max(40, table.height)}px`,
-                        transform: 'translate(-50%, -50%)',
-                      }}
-                      onClick={() => setSelectedTable({
-                        tableId: table.tableNumber,
-                        seatCount: table.capacity,
-                        isSelected: true
-                      })}
-                      title={`Table ${table.tableNumber} (${table.capacity} seats)`}
-                    >
-                      {table.tableNumber}
-                    </button>
-                  ))}
+                  <canvas
+                    ref={canvasRef}
+                    onClick={handleCanvasClick}
+                    className="cursor-pointer w-full h-full"
+                    style={{ display: 'block' }}
+                  />
                 </div>
               ) : (
                 <div className="w-full h-96 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
