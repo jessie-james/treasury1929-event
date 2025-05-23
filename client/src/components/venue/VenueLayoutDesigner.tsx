@@ -225,7 +225,7 @@ export function VenueLayoutDesigner({
       9: { tableRadius: 70, seatRadius: 22, gap: 22 }  // Jumbo
     };
     
-    return sizeConfig[tableSize] || sizeConfig[8];
+    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[8];
   }, []);
 
   const drawTable = useCallback((obj: CanvasObject) => {
@@ -369,8 +369,8 @@ export function VenueLayoutDesigner({
       ctx.lineWidth = 1;
       ctx.setLineDash([5, 5]);
       
-      const stageX = stage.x + stage.width / 2 - (obj.x + size / 2);
-      const stageY = stage.y + stage.height / 2 - (obj.y + size / 2);
+      const stageX = stage.x + stage.width / 2 - (obj.x + tableRadius);
+      const stageY = stage.y + stage.height / 2 - (obj.y + tableRadius);
       
       ctx.beginPath();
       ctx.moveTo(0, 0);
@@ -385,7 +385,7 @@ export function VenueLayoutDesigner({
       ctx.lineWidth = 3;
       ctx.setLineDash([]);
       ctx.beginPath();
-      ctx.arc(0, 0, size / 2 + 10, 0, 2 * Math.PI);
+      ctx.arc(0, 0, tableRadius + 10, 0, 2 * Math.PI);
       ctx.stroke();
     }
     
