@@ -164,6 +164,50 @@ const updateFoodOptionsOrderSchema = z.object({
 });
 
 export async function registerRoutes(app: Express) {
+  
+  // PRIORITY BOOKING ENDPOINT - Added first to avoid middleware interference
+  app.post('/create-booking-final', async (req, res) => {
+    console.log('🟢 FINAL BOOKING ENDPOINT - DIRECT PROCESSING');
+    
+    try {
+      const bookingData = {
+        eventId: req.body.eventId,
+        userId: req.body.userId,
+        tableId: req.body.tableId,
+        partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
+        customerEmail: req.body.customerEmail,
+        stripePaymentId: req.body.stripePaymentId,
+        guestNames: req.body.guestNames || [],
+        foodSelections: req.body.foodSelections || [],
+        status: 'confirmed'
+      };
+
+      console.log('🟢 CREATING BOOKING (FINAL ATTEMPT):', JSON.stringify(bookingData, null, 2));
+      const newBooking = await storage.createBooking(bookingData);
+      console.log('🟢 FINAL BOOKING SUCCESS:', newBooking.id);
+      
+      // Force proper JSON response
+      res.writeHead(200, {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(JSON.stringify({
+        success: true,
+        message: 'Booking created successfully',
+        booking: newBooking
+      }));
+      
+    } catch (error) {
+      console.log('🔴 FINAL BOOKING ERROR:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: false,
+        message: 'Booking creation failed',
+        error: error instanceof Error ? error.message : String(error)
+      }));
+    }
+  });
   // Set up authentication
   setupAuth(app);
   
