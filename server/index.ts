@@ -82,6 +82,34 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "healthy" });
 });
 
+// Email test endpoint for production verification
+app.post("/api/test-email", async (req, res) => {
+  try {
+    const { EmailService } = await import("./email-service");
+    const testEmail = req.body.email || "admin@example.com";
+    
+    const success = await EmailService.sendTestEmail(testEmail);
+    
+    if (success) {
+      res.json({ 
+        success: true, 
+        message: "Test email sent successfully! Check your inbox." 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: "Email service not configured. Please check SENDGRID_API_KEY." 
+      });
+    }
+  } catch (error) {
+    console.error("Email test failed:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Email test failed. Please check your configuration." 
+    });
+  }
+});
+
 // EXPERT SOLUTION B: Non-standard path that Vite CANNOT intercept
 console.log("🎯 Registering booking endpoint with completely non-standard path...");
 app.post('/booking-direct', async (req, res) => {
