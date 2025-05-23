@@ -4,6 +4,11 @@ import { PgStorage } from "./storage";
 export function registerSeatSelectionRoutes(app: Express): void {
   const storage = new PgStorage();
 
+  // Debug endpoint to test route registration
+  app.get("/api/venue-layout-test", (req, res) => {
+    res.json({ message: "Venue layout routes are working!", timestamp: new Date().toISOString() });
+  });
+
   // Get venue layout by event ID for seat selection
   app.get("/api/venue-layout", async (req, res) => {
     try {
