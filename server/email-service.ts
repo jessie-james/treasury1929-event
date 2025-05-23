@@ -277,6 +277,201 @@ export class EmailService {
     }
   }
 
+  // Digital ticket/QR code email for event entry
+  static async sendDigitalTicket(data: BookingEmailData): Promise<boolean> {
+    if (!emailInitialized) {
+      console.log('📧 Email service not initialized - skipping ticket email');
+      return false;
+    }
+
+    try {
+      const { booking, event, table, venue } = data;
+      const eventDate = new Date(event.date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      // Generate QR code data (booking ID + verification)
+      const qrData = `BOOKING:${booking.id}:${event.id}:${booking.customerEmail}`;
+      
+      const emailContent = {
+        to: booking.customerEmail,
+        from: this.FROM_EMAIL,
+        subject: `🎫 Your Digital Ticket - ${event.title}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #2c3e50; text-align: center;">🎫 Your Digital Ticket</h1>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #6c757d;">
+              <h2 style="color: #34495e; margin-top: 0; text-align: center;">EVENT TICKET</h2>
+              <p style="text-align: center; font-size: 18px; font-weight: bold; color: #2c3e50;">${event.title}</p>
+              <p style="text-align: center;"><strong>Date:</strong> ${eventDate}</p>
+              <p style="text-align: center;"><strong>Venue:</strong> ${venue.name}</p>
+              <p style="text-align: center;"><strong>Table:</strong> ${table.tableNumber} (${table.floor} floor)</p>
+              <p style="text-align: center;"><strong>Party Size:</strong> ${booking.partySize} people</p>
+            </div>
+
+            <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+              <h3 style="color: #27ae60; margin-top: 0;">Digital Check-in Code</h3>
+              <div style="background-color: white; padding: 15px; border-radius: 8px; display: inline-block;">
+                <p style="font-family: monospace; font-size: 16px; margin: 0; color: #2c3e50;">${qrData}</p>
+              </div>
+              <p style="color: #27ae60; margin-top: 15px; font-size: 14px;">Show this code at the venue for quick check-in</p>
+            </div>
+
+            <div style="background-color: #d1ecf1; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #0c5460; margin-top: 0;">Important Information</h3>
+              <ul style="color: #0c5460;">
+                <li>Please arrive 15 minutes before the event start time</li>
+                <li>Bring a photo ID for verification</li>
+                <li>This ticket is valid for ${booking.partySize} people</li>
+                <li>Contact us if you need to make changes</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+              <p style="color: #666;">Booking Reference: #${booking.id}</p>
+              <p style="color: #666;">Questions? Contact ${this.ADMIN_EMAIL}</p>
+            </div>
+          </div>
+        `
+      };
+
+      await sgMail.send(emailContent);
+      console.log(`✓ Digital ticket sent to ${booking.customerEmail}`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ Failed to send digital ticket:', error);
+      return false;
+    }
+  }
+
+  // Booking cancellation email
+  static async sendCancellationEmail(data: BookingEmailData, refundAmount?: number): Promise<boolean> {
+    if (!emailInitialized) {
+      console.log('📧 Email service not initialized - skipping cancellation email');
+      return false;
+    }
+
+    try {
+      const { booking, event } = data;
+      const eventDate = new Date(event.date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      const emailContent = {
+        to: booking.customerEmail,
+        from: this.FROM_EMAIL,
+        subject: `Booking Cancelled - ${event.title}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #e74c3c; text-align: center;">Booking Cancelled</h1>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h2 style="color: #34495e; margin-top: 0;">Cancelled Booking Details</h2>
+              <p><strong>Event:</strong> ${event.title}</p>
+              <p><strong>Date:</strong> ${eventDate}</p>
+              <p><strong>Booking ID:</strong> #${booking.id}</p>
+              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
+            </div>
+
+            ${refundAmount ? `
+            <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #155724; margin-top: 0;">Refund Information</h3>
+              <p style="color: #155724;"><strong>Refund Amount:</strong> $${(refundAmount / 100).toFixed(2)}</p>
+              <p style="color: #155724;">Your refund will be processed within 5-7 business days to your original payment method.</p>
+            </div>
+            ` : ''}
+
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+              <p style="color: #666;">We're sorry to see you go. We hope to welcome you at a future event!</p>
+              <p style="color: #666;">Questions? Contact ${this.ADMIN_EMAIL}</p>
+            </div>
+          </div>
+        `
+      };
+
+      await sgMail.send(emailContent);
+      console.log(`✓ Cancellation email sent to ${booking.customerEmail}`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ Failed to send cancellation email:', error);
+      return false;
+    }
+  }
+
+  // Event reminder email (24 hours before)
+  static async sendEventReminder(data: BookingEmailData): Promise<boolean> {
+    if (!emailInitialized) {
+      console.log('📧 Email service not initialized - skipping reminder email');
+      return false;
+    }
+
+    try {
+      const { booking, event, table, venue } = data;
+      const eventDate = new Date(event.date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      const emailContent = {
+        to: booking.customerEmail,
+        from: this.FROM_EMAIL,
+        subject: `🎭 Tomorrow: ${event.title} - Event Reminder`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #2c3e50; text-align: center;">🎭 Your Event is Tomorrow!</h1>
+            
+            <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h2 style="color: #856404; margin-top: 0;">Event Reminder</h2>
+              <p style="color: #856404;"><strong>Event:</strong> ${event.title}</p>
+              <p style="color: #856404;"><strong>Date:</strong> ${eventDate}</p>
+              <p style="color: #856404;"><strong>Venue:</strong> ${venue.name}</p>
+              <p style="color: #856404;"><strong>Your Table:</strong> ${table.tableNumber} (${table.floor} floor)</p>
+            </div>
+
+            <div style="background-color: #d1ecf1; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #0c5460; margin-top: 0;">What to Bring</h3>
+              <ul style="color: #0c5460;">
+                <li>Photo ID for check-in verification</li>
+                <li>Your booking confirmation (reference #${booking.id})</li>
+                <li>Arrive 15 minutes early for the best experience</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+              <p style="color: #666;">We can't wait to see you tomorrow!</p>
+              <p style="color: #666;">Questions? Contact ${this.ADMIN_EMAIL}</p>
+            </div>
+          </div>
+        `
+      };
+
+      await sgMail.send(emailContent);
+      console.log(`✓ Event reminder sent to ${booking.customerEmail}`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ Failed to send event reminder:', error);
+      return false;
+    }
+  }
+
   // Test email function for setup verification
   static async sendTestEmail(toEmail: string): Promise<boolean> {
     if (!emailInitialized) {
