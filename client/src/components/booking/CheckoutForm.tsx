@@ -220,12 +220,27 @@ function StripeCheckoutForm({
   if (!stripe || !elements) {
     return (
       <div className="space-y-6">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        {/* Payment Summary */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 className="text-lg font-semibold mb-4">Payment Summary</h3>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span>Event Tickets ({selectedSeats.length} seats)</span>
+              <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>
+            </div>
+            <div className="border-t pt-2 flex justify-between font-semibold text-lg">
+              <span>Total</span>
+              <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-center">
-            <div className="text-blue-600 mr-2">ℹ️</div>
+            <div className="text-green-600 mr-2">💳</div>
             <div>
-              <h4 className="font-semibold text-blue-800">Test Payment Mode</h4>
-              <p className="text-sm text-blue-700">Use test card: 4242 4242 4242 4242, any future date, any CVC</p>
+              <h4 className="font-semibold text-green-800">Secure Payment Processing</h4>
+              <p className="text-sm text-green-700">Test environment - Use card: 4242 4242 4242 4242</p>
             </div>
           </div>
         </div>
