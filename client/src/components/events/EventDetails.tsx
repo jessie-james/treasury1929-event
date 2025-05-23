@@ -98,16 +98,27 @@ export function EventDetails({
         )}
 
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-          <div>
-            <p className="text-sm text-muted-foreground">Available Seats</p>
-            <p className="text-2xl font-bold">{event.availableSeats}</p>
+          <div className="flex gap-6">
+            <div>
+              <p className="text-sm text-muted-foreground">Available Tables</p>
+              <p className="text-2xl font-bold">{event.availableTables || 0}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Seats</p>
+              <p className="text-2xl font-bold">
+                {event.venueLayout ? 
+                  event.venueLayout.tables.reduce((total: number, table: any) => total + table.capacity, 0) : 
+                  event.totalSeats || 0
+                }
+              </p>
+            </div>
           </div>
           <Button 
             size="lg"
             onClick={onBookNow}
-            disabled={event.availableSeats === 0}
+            disabled={event.availableTables === 0}
           >
-            {event.availableSeats === 0 ? "Sold Out" : hasBooking ? "Book More Tickets" : "Book Now"}
+            {event.availableTables === 0 ? "Sold Out" : hasBooking ? "Book More Tickets" : "Book Now"}
           </Button>
         </div>
       </div>
