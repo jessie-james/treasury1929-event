@@ -71,6 +71,52 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "healthy" });
 });
 
+// EXPERT SOLUTION #3: Different API path to bypass Vite catch-all
+console.log("🎯 Registering booking endpoint with different path to bypass Vite...");
+app.post('/booking-api/create', async (req, res) => {
+  console.log('🟢 BYPASS PATH - AVOIDING VITE COMPLETELY');
+  
+  try {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const bookingData = {
+      eventId: req.body.eventId,
+      userId: req.body.userId,
+      tableId: req.body.tableId,
+      partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
+      customerEmail: req.body.customerEmail,
+      stripePaymentId: req.body.stripePaymentId,
+      guestNames: req.body.guestNames || [],
+      foodSelections: req.body.foodSelections || [],
+      status: 'confirmed'
+    };
+
+    console.log('Creating booking with bypass path:', JSON.stringify(bookingData, null, 2));
+    const newBooking = await storage.createBooking(bookingData);
+    console.log('🟢 BYPASS BOOKING CREATED SUCCESSFULLY');
+    
+    // Force JSON response with explicit headers
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.status(201).json({
+      success: true,
+      message: 'Booking created successfully',
+      booking: newBooking
+    });
+    
+  } catch (error) {
+    console.log('🔴 BYPASS BOOKING ERROR:', error);
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(500).json({
+      success: false,
+      message: 'Booking creation failed',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
 // Performance tracking and request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
