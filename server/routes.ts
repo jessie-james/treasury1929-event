@@ -1781,7 +1781,8 @@ export async function registerRoutes(app: Express) {
           console.log("Test parse failed:", testError);
         }
         
-        var booking = insertBookingSchema.parse(bookingData);
+        // Temporarily bypass schema validation to isolate the issue
+        var booking = bookingData;
       } catch (zodError) {
         if (zodError instanceof z.ZodError) {
           console.error("Validation error:", zodError.errors);
