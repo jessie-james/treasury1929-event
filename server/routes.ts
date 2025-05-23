@@ -1740,11 +1740,16 @@ export async function registerRoutes(app: Express) {
   });
 
   app.post("/api/bookings", async (req, res) => {
+    console.log("🔍 ROUTE START: Request received at /api/bookings");
+    console.log("🔍 ROUTE AUTH CHECK: About to check authentication");
+    
     try {
       if (!req.isAuthenticated()) {
+        console.log("❌ ROUTE AUTH: User not authenticated");
         return res.status(401).json({ message: "Unauthorized" });
       }
 
+      console.log("✅ ROUTE AUTH: User authenticated successfully");
       console.log("🚀 COMPLETELY CLEAN BOOKING - Creating booking with data:", JSON.stringify(req.body, null, 2));
 
       // Debug: Check if there's any validation happening
