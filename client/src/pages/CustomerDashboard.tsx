@@ -111,7 +111,7 @@ export default function CustomerDashboard() {
   };
   
   // Sort bookings by newest first (based on createdAt timestamp)
-  const sortedBookings = bookings ? 
+  const sortedBookings = bookings && Array.isArray(bookings) ? 
     [...bookings].sort((a, b) => {
       // Safe comparison that handles null/undefined created dates (fallback to current time)
       const dateA = a.createdAt ? new Date(a.createdAt) : new Date();
@@ -243,7 +243,7 @@ export default function CustomerDashboard() {
             </Card>
           ))}
 
-          {!sortedBookings.length && (
+          {(!sortedBookings || sortedBookings.length === 0) && (
             <Alert>
               <Ticket className="h-4 w-4" />
               <AlertTitle>No tickets yet</AlertTitle>

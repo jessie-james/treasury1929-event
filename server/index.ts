@@ -251,11 +251,17 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
-    // Add specific dashboard route handler
-    app.get('/dashboard', (req, res, next) => {
-      // Let the static file handler serve index.html for client-side routing
-      req.url = '/';
-      next();
+    // Add specific routes for client-side routing in production
+    const clientRoutes = ['/dashboard', '/auth', '/events', '/onboarding', '/backoffice'];
+    clientRoutes.forEach(route => {
+      app.get(route, (req, res, next) => {
+        req.url = '/';
+        next();
+      });
+      app.get(`${route}/*`, (req, res, next) => {
+        req.url = '/';
+        next();
+      });
     });
 
     // Set up serving mode based on environment BEFORE starting server
