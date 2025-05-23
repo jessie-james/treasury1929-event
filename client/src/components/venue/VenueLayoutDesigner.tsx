@@ -103,19 +103,25 @@ export function VenueLayoutDesigner({
         const isHalf = table.data.shape === 'half';
         
         if (isHalf) {
-          // For half circle tables, check if click is in the half circle area
+          // For half circle tables, include the entire table + seats area
+          const seatRadius = dimensions.seatRadius;
+          const gap = dimensions.gap;
+          const totalRadius = tableRadius + seatRadius + gap;
           const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
           const angle = Math.atan2(y - centerY, x - centerX);
           const normalizedAngle = ((angle + Math.PI) % (2 * Math.PI));
           
-          // Half circle covers bottom half (π to 2π radians)
-          if (distance <= tableRadius + 10 && normalizedAngle >= Math.PI && normalizedAngle <= 2 * Math.PI) {
+          // Half circle covers bottom half (π to 2π radians) including seats
+          if (distance <= totalRadius + 15 && normalizedAngle >= Math.PI && normalizedAngle <= 2 * Math.PI) {
             return table;
           }
         } else {
-          // For full circle tables, use standard circular detection
+          // For full circle tables, include seats in selection area
+          const seatRadius = dimensions.seatRadius;
+          const gap = dimensions.gap;
+          const totalRadius = tableRadius + seatRadius + gap;
           const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-          if (distance <= tableRadius + 10) {
+          if (distance <= totalRadius + 15) {
             return table;
           }
         }
