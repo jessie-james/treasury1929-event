@@ -362,22 +362,7 @@ export function VenueLayoutDesigner({
       ctx.setLineDash([]);
     }
     
-    // Stage sight lines
-    if (showStageLines && stages.length > 0) {
-      const stage = stages[0];
-      ctx.strokeStyle = 'rgba(255, 200, 0, 0.5)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([5, 5]);
-      
-      const stageX = stage.x + stage.width / 2 - (obj.x + tableRadius);
-      const stageY = stage.y + stage.height / 2 - (obj.y + tableRadius);
-      
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(stageX, stageY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
+
     
     // Selection highlight
     if (selectedObjects.includes(obj.id)) {
