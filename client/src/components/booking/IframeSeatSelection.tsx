@@ -24,13 +24,12 @@ interface VenueTable {
 }
 
 export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }: Props) {
-  const [selectedTable, setSelectedTable] = useState<VenueTable | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [selectedTable, setSelectedTable] = useState<number | null>(null);
 
-  // Fetch venue layout
-  const { data: venueLayout, isLoading: isLoadingLayout } = useQuery({
-    queryKey: ['/api/venue-layout', eventId],
-    queryFn: () => fetch(`/api/venue-layout?eventId=${eventId}`).then(res => res.json()),
+  // Fetch event data (this API works correctly and has table count)
+  const { data: eventData, isLoading: isLoadingEvent } = useQuery({
+    queryKey: ['/api/events', eventId],
+    queryFn: () => fetch(`/api/events/${eventId}`).then(res => res.json()),
     enabled: !!eventId
   });
 
@@ -41,11 +40,19 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     enabled: !!eventId
   });
 
-  // Filter available tables (exclude booked ones)
-  const availableTables = venueLayout?.tables?.filter((table: VenueTable) => {
-    const bookedTableIds = existingBookings?.map(booking => booking.tableId) || [];
-    return !bookedTableIds.includes(table.id);
-  }) || [];
+  // Generate table list from event data (using authentic total tables count)
+  const totalTables = eventData?.totalTables || 0;
+  const bookedTableIds = existingBookings?.map((booking: any) => booking.tableId) || [];
+  
+  const availableTables = Array.from({ length: totalTables }, (_, index) => {
+    const tableNumber = index + 1;
+    return {
+      id: tableNumber,
+      tableNumber,
+      isBooked: bookedTableIds.includes(tableNumber),
+      capacity: 4 // Standard table capacity
+    };
+  }).filter(table => !table.isBooked);
 
   // Draw venue on canvas when data loads
   useEffect(() => {
@@ -239,61 +246,83 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     };
   };
 
+  const handleTableSelect = (tableNumber: number) => {
+    setSelectedTable(tableNumber);
+  };
+
+  const handleConfirmSelection = () => {
+    if (selectedTable) {
+      // Generate seat numbers based on table capacity (4 seats per table)
+      const seatNumbers = Array.from({ length: 4 }, (_, i) => i + 1);
+      onComplete({
+        tableId: selectedTable,
+        seatNumbers
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">Select Your Table</h2>
         <p className="text-muted-foreground">
-          Choose a table from the venue layout below. {hasExistingBooking ? 'Update your current selection.' : 'Available tables are shown in gray.'}
+          Choose a table from the available options below. Each table seats 4 people.
         </p>
       </div>
 
       <Card>
-        <CardContent className="p-4 relative">
-          <div className="mb-4">
-            <div className="flex justify-between items-center p-2 mb-2 border-b">
-              <h3 className="text-lg font-medium">Venue Layout</h3>
-              <div className="flex gap-2">
-                <Badge variant="outline">
-                  {availableTables.length} available tables
-                </Badge>
-              </div>
-            </div>
-            <div className="overflow-hidden">
-              {/* Canvas-based venue layout */}
-              {isLoadingLayout ? (
-                <div className="w-full h-96 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="animate-spin h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">Loading Venue Layout</h3>
-                    <p className="text-gray-500">Event ID: {eventId}</p>
-                  </div>
-                </div>
-              ) : venueLayout?.tables?.length > 0 ? (
-                <div className="relative w-full h-96 bg-white border border-gray-200 rounded-lg overflow-hidden">
-                  <canvas
-                    ref={canvasRef}
-                    onClick={handleCanvasClick}
-                    className="cursor-pointer w-full h-full"
-                    style={{ display: 'block' }}
-                  />
-                </div>
-              ) : (
-                <div className="w-full h-96 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold text-gray-600 mb-2">No Tables Available</h3>
-                    <p className="text-gray-500">This venue hasn't been set up with tables yet</p>
-                  </div>
-                </div>
-              )}
-            </div>
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-medium">Available Tables</h3>
+            <Badge variant="outline">
+              {availableTables.length} of {totalTables} tables available
+            </Badge>
           </div>
+          
+          {isLoadingEvent ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Loading event details...</span>
+            </div>
+          ) : availableTables.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {availableTables.map((table) => (
+                <Card 
+                  key={table.id}
+                  className={`cursor-pointer transition-all hover:shadow-md ${
+                    selectedTable === table.tableNumber 
+                      ? 'ring-2 ring-blue-500 bg-blue-50' 
+                      : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => handleTableSelect(table.tableNumber)}
+                >
+                  <CardContent className="p-4 text-center">
+                    <div className="w-12 h-12 mx-auto mb-2 bg-gray-200 rounded-full flex items-center justify-center">
+                      <span className="font-semibold text-gray-700">{table.tableNumber}</span>
+                    </div>
+                    <h4 className="font-medium">Table {table.tableNumber}</h4>
+                    <p className="text-sm text-gray-600">
+                      {table.capacity} seats
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center p-8">
+              <p className="text-gray-600">
+                {totalTables === 0 
+                  ? "No tables configured for this event." 
+                  : "All tables are currently booked for this event."}
+              </p>
+            </div>
+          )}
           
           {/* Selection Summary */}
           {selectedTable && (
-            <div className="mt-4 p-3 bg-slate-50 rounded-md">
+            <div className="mt-6 p-4 bg-slate-50 rounded-md">
               <h3 className="font-medium mb-1">Selected Table:</h3>
-              <p className="text-sm">{formatSelectedTable()}</p>
+              <p className="text-sm">Table {selectedTable} (4 seats)</p>
               <p className="text-xs text-muted-foreground mt-1">
                 You will need to provide guest details for each seat at this table.
               </p>
@@ -302,16 +331,11 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
         </CardContent>
       </Card>
       
-      {/* Continue button moved to bottom */}
-      <div className="flex justify-center mt-6">
+      {/* Continue button */}
+      <div className="flex justify-center">
         <Button
           size="lg"
-          onClick={() => {
-            const submission = getSeatsForSubmission();
-            if (submission) {
-              onComplete(submission);
-            }
-          }}
+          onClick={handleConfirmSelection}
           disabled={!selectedTable}
         >
           Continue to Guest Details
