@@ -19,19 +19,56 @@ import { OtpPaymentForm } from "./OtpPaymentForm";
 
 // Make sure to call loadStripe outside of a component's render to avoid
 // recreating the Stripe object on every render
-// This is your test publishable API key.
-// Get the Stripe publishable key
-const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+// Get the Stripe publishable key with fallback for deployment
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 
+                  (window as any).__STRIPE_PUBLISHABLE_KEY__ ||
+                  "pk_test_51QtEaqFLCzPHjMo2FZhpLhZWmb3lJRUkPm3EiNhhPH1LMaZNGBCY2rHbxJTfXOGaUB4UBgrwzurmc2lJ24kp0eZq004vJK0fIk";
 
-if (!stripeKey) {
-  console.error("Stripe publishable key is not defined. Expected VITE_STRIPE_PUBLISHABLE_KEY in environment.");
-}
+console.log("Stripe key detection:", {
+  envKey: !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
+  windowKey: !!(window as any).__STRIPE_PUBLISHABLE_KEY__,
+  finalKey: !!stripeKey,
+  keyPrefix: stripeKey ? stripeKey.substring(0, 7) : 'none'
+});
 
-// Create a stable Stripe promise
-const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
+// Create a stable Stripe promise with deployment-ready error handling
+let stripePromise: Promise<any> | null = null;
 
+// Initialize Stripe with retry logic for deployment environments
+const initializeStripe = async () => {
+  if (!stripeKey) {
+    console.error("✗ No Stripe publishable key available");
+    return null;
+  }
+
+  try {
+    // Load Stripe with deployment-friendly options
+    const stripe = await loadStripe(stripeKey, {
+      stripeAccount: undefined,
+      betas: [],
+      apiVersion: undefined
+    });
+    
+    if (stripe) {
+      console.log("✓ Stripe loaded successfully for deployment");
+      return stripe;
+    } else {
+      console.error("✗ Stripe returned null - check key validity");
+      return null;
+    }
+  } catch (error) {
+    console.error("✗ Stripe loading failed:", error);
+    return null;
+  }
+};
+
+// Set up the promise for the Elements provider
 if (stripeKey) {
-  console.log("Stripe initialized with key prefix:", stripeKey.substring(0, 7));
+  stripePromise = initializeStripe();
+  console.log("✓ Stripe initialization started");
+} else {
+  console.error("✗ Cannot initialize Stripe - missing publishable key");
+  stripePromise = null;
 }
 
 interface Props {
