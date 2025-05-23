@@ -55,12 +55,9 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     enabled: !!eventId
   });
 
-  // Fetch venue layout using the new endpoint that works with authentic data
-  const { data: venueLayout, isLoading: isLoadingLayout } = useQuery<VenueLayout>({
-    queryKey: ['/api/venue-layout', eventData?.venueId],
-    queryFn: () => fetch(`/api/venue-layout/${eventData.venueId}`).then(res => res.json()),
-    enabled: !!eventData?.venueId
-  });
+  // Get venue layout from the embedded data in the event response
+  const venueLayout = eventData?.venueLayout;
+  const isLoadingLayout = isLoadingEvent;
 
   // Fetch existing bookings to filter out unavailable tables
   const { data: existingBookings } = useQuery({

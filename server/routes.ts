@@ -592,7 +592,59 @@ export async function registerRoutes(app: Express) {
         res.status(404).json({ message: "Event not found" });
         return;
       }
-      res.json(event);
+
+      // Include authentic venue layout data directly in the event response
+      let venueLayout = null;
+      if (event.venueId) {
+        try {
+          // Get venue details
+          const venue = await storage.getVenueById(event.venueId);
+          if (venue) {
+            // Get authentic tables for this venue
+            const tables = await storage.getTablesByVenue(event.venueId);
+            
+            // Get stages for this venue (if any)
+            const stages = await storage.getStagesByVenue(event.venueId);
+
+            venueLayout = {
+              venue: {
+                id: venue.id,
+                name: venue.name,
+                width: venue.width || 1000,
+                height: venue.height || 700
+              },
+              tables: tables.map((table: any) => ({
+                id: table.id,
+                tableNumber: table.tableNumber,
+                x: table.x,
+                y: table.y,
+                width: table.width,
+                height: table.height,
+                capacity: table.capacity,
+                shape: table.shape,
+                rotation: table.rotation || 0,
+                status: 'available'
+              })),
+              stages: stages.map((stage: any) => ({
+                id: stage.id,
+                x: stage.x,
+                y: stage.y,
+                width: stage.width,
+                height: stage.height,
+                rotation: stage.rotation || 0
+              }))
+            };
+          }
+        } catch (venueError) {
+          console.error("Error fetching venue layout:", venueError);
+        }
+      }
+
+      // Return event with embedded venue layout
+      res.json({
+        ...event,
+        venueLayout
+      });
     } catch (error) {
       console.error("Error fetching event:", error);
       res.status(500).json({ message: "Failed to fetch event" });
