@@ -1749,17 +1749,20 @@ export async function registerRoutes(app: Express) {
       console.log("Raw partySize from request:", req.body.partySize, "Type:", typeof req.body.partySize);
 
       try {
+        // Remove non-booking fields from request
+        const { paymentToken, ...cleanBody } = req.body;
+        
         // Get the actual database fields to avoid trying to insert non-existent fields
         const bookingData = {
-          eventId: req.body.eventId,
-          userId: req.body.userId,
-          tableId: req.body.tableId,
-          partySize: req.body.partySize || req.body.seatNumbers?.length || 1, // Use partySize from request
-          seatNumbers: req.body.seatNumbers,
-          foodSelections: req.body.foodSelections,
-          guestNames: req.body.guestNames,
-          customerEmail: req.body.customerEmail,
-          stripePaymentId: req.body.stripePaymentId
+          eventId: cleanBody.eventId,
+          userId: cleanBody.userId,
+          tableId: cleanBody.tableId,
+          partySize: cleanBody.partySize || cleanBody.seatNumbers?.length || 1, // Use partySize from request
+          seatNumbers: cleanBody.seatNumbers,
+          foodSelections: cleanBody.foodSelections,
+          guestNames: cleanBody.guestNames,
+          customerEmail: cleanBody.customerEmail,
+          stripePaymentId: cleanBody.stripePaymentId
         };
 
         console.log("Final booking data being validated:", JSON.stringify(bookingData, null, 2));
