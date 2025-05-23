@@ -96,14 +96,28 @@ export function VenueLayoutDesigner({
     // Check tables (only if on step 3)
     if (currentStep === 3) {
       for (const table of tables) {
-        // Use table size for better click detection
-        const tableSize = Math.max(40, Math.min(120, table.data.tableSize * 10));
-        const centerX = table.x + tableSize / 2;
-        const centerY = table.y + tableSize / 2;
-        const radius = tableSize / 2 + 5; // Add 5px buffer for easier clicking
-        const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-        if (distance <= radius) {
-          return table;
+        const dimensions = getTableDimensions(table.data.tableSize);
+        const tableRadius = dimensions.tableRadius;
+        const centerX = table.x + tableRadius;
+        const centerY = table.y + tableRadius;
+        const isHalf = table.data.shape === 'half';
+        
+        if (isHalf) {
+          // For half circle tables, check if click is in the half circle area
+          const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+          const angle = Math.atan2(y - centerY, x - centerX);
+          const normalizedAngle = ((angle + Math.PI) % (2 * Math.PI));
+          
+          // Half circle covers bottom half (π to 2π radians)
+          if (distance <= tableRadius + 10 && normalizedAngle >= Math.PI && normalizedAngle <= 2 * Math.PI) {
+            return table;
+          }
+        } else {
+          // For full circle tables, use standard circular detection
+          const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+          if (distance <= tableRadius + 10) {
+            return table;
+          }
         }
       }
     }
