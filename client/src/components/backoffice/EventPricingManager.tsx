@@ -325,16 +325,26 @@ export function EventPricingManager({ eventId }: EventPricingManagerProps) {
                       </div>
                       <div className="flex gap-1">
                         <Button
+                          type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() => handleEdit(tier)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleEdit(tier);
+                          }}
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
                         <Button
+                          type="button"
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDelete(tier.id)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDelete(tier.id);
+                          }}
                           disabled={deleteTierMutation.isPending}
                         >
                           <Trash2 className="h-3 w-3" />
