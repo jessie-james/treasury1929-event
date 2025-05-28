@@ -55,20 +55,9 @@ export default function PaymentsPage() {
     if (!bookings || bookings.length === 0) return 0;
     
     return bookings.reduce((total, booking) => {
-      // Calculate total from food selections
+      // For now, return 0 until real pricing data is available
+      // This removes mock financial calculations
       let bookingTotal = 0;
-      
-      const foodSelections = booking.foodSelections as Record<string, Record<string, number>>;
-      if (foodSelections) {
-        Object.keys(foodSelections).forEach(category => {
-          Object.values(foodSelections[category] || {}).forEach(quantity => {
-            bookingTotal += quantity * 19.99; // Assuming a fixed price for food items
-          });
-        });
-      }
-      
-      // Add seat price (assuming $19.99 per seat)
-      bookingTotal += (booking.seatNumbers?.length || 0) * 19.99;
       
       // Subtract refund if any
       if (booking.refundAmount) {
@@ -128,7 +117,7 @@ export default function PaymentsPage() {
     };
   }).sort((a, b) => b.revenue - a.revenue);
 
-  // Get monthly revenue
+  // Get monthly revenue - removed mock calculations
   const months: Record<string, number> = {};
   filteredBookings?.forEach(booking => {
     // Skip bookings with no createdAt date
@@ -138,7 +127,8 @@ export default function PaymentsPage() {
     if (!isValid(date)) return;
     
     const monthYear = format(date, "MMM yyyy");
-    const amount = (booking.seatNumbers?.length || 0) * 19.99;
+    // Removed mock amount calculation - will be $0 until real pricing is implemented
+    const amount = 0;
     
     if (!months[monthYear]) {
       months[monthYear] = 0;
