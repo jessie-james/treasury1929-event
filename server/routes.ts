@@ -1374,7 +1374,7 @@ export async function registerRoutes(app: Express) {
   // Event Pricing Tiers Routes
   
   // Get pricing tiers for an event
-  app.get("/api/events/:eventId/pricing-tiers", async (req: Request, res: Response) => {
+  app.get("/api/events/:eventId/pricing-tiers", async (req: any, res: any) => {
     try {
       const eventId = parseInt(req.params.eventId);
       if (isNaN(eventId)) {
@@ -1394,7 +1394,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Create pricing tier for an event
-  app.post("/api/events/:eventId/pricing-tiers", async (req: Request, res: Response) => {
+  app.post("/api/events/:eventId/pricing-tiers", async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated() || req.user?.role === "customer") {
         return res.status(401).json({ message: "Unauthorized" });
@@ -1405,33 +1405,21 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid event ID" });
       }
 
-      const validationResult = insertEventPricingTierSchema.safeParse({
-        ...req.body,
-        eventId
-      });
-
-      if (!validationResult.success) {
-        return res.status(400).json({
-          message: "Invalid pricing tier data",
-          errors: validationResult.error.format()
-        });
+      const { name, price, description, displayOrder } = req.body;
+      
+      if (!name || typeof price !== "number") {
+        return res.status(400).json({ message: "Name and price are required" });
       }
 
       const [newTier] = await db.insert(eventPricingTiers)
-        .values(validationResult.data)
-        .returning();
-
-      await storage.createAdminLog({
-        userId: req.user.id,
-        action: "create_pricing_tier",
-        entityType: "event_pricing_tier",
-        entityId: newTier.id,
-        details: {
+        .values({
           eventId,
-          tierName: newTier.name,
-          price: newTier.price
-        }
-      });
+          name,
+          price,
+          description: description || null,
+          displayOrder: displayOrder || 0
+        })
+        .returning();
 
       res.status(201).json(newTier);
     } catch (error) {
@@ -1441,7 +1429,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Update pricing tier
-  app.put("/api/events/:eventId/pricing-tiers/:tierId", async (req: Request, res: Response) => {
+  app.put("/api/events/:eventId/pricing-tiers/:tierId", async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated() || req.user?.role === "customer") {
         return res.status(401).json({ message: "Unauthorized" });
@@ -1493,7 +1481,7 @@ export async function registerRoutes(app: Express) {
   });
 
   // Delete pricing tier
-  app.delete("/api/events/:eventId/pricing-tiers/:tierId", async (req: Request, res: Response) => {
+  app.delete("/api/events/:eventId/pricing-tiers/:tierId", async (req: any, res: any) => {
     try {
       if (!req.isAuthenticated() || req.user?.role === "customer") {
         return res.status(401).json({ message: "Unauthorized" });

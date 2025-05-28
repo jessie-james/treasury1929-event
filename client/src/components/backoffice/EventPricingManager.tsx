@@ -58,9 +58,8 @@ export function EventPricingManager({ eventId }: EventPricingManagerProps) {
   });
 
   // Fetch pricing tiers for this event
-  const { data: pricingTiers, isLoading } = useQuery<PricingTier[]>({
+  const { data: pricingTiers = [], isLoading } = useQuery<PricingTier[]>({
     queryKey: ["/api/events", eventId, "pricing-tiers"],
-    queryFn: () => apiRequest(`/api/events/${eventId}/pricing-tiers`),
   });
 
   // Create pricing tier mutation
