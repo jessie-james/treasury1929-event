@@ -16,6 +16,7 @@ import { apiRequest } from '@/lib/queryClient';
 export function VenueLayoutEditor() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   
   const [selectedVenueId, setSelectedVenueId] = useState<number | null>(null);
   const [showNewVenueForm, setShowNewVenueForm] = useState(false);
@@ -126,6 +127,11 @@ export function VenueLayoutEditor() {
     saveLayoutMutation.mutate(layoutData);
   };
 
+  // Back navigation handler
+  const handleBackToVenueDesigner = () => {
+    setLocation('/backoffice/venue-designer');
+  };
+
   if (isLoadingVenues) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -140,7 +146,13 @@ export function VenueLayoutEditor() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">🏟️ Venue Layout Designer</h1>
+        <div className="flex items-center gap-2 mb-2">
+          <Button variant="ghost" size="sm" onClick={handleBackToVenueDesigner}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <h1 className="text-3xl font-bold">🏟️ Venue Layout Designer</h1>
+        </div>
         <p className="text-gray-600">Create and manage your venue layouts with interactive table positioning.</p>
       </div>
 

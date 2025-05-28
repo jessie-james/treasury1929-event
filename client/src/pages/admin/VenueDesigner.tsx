@@ -8,13 +8,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { VenueLayoutDesigner } from '@/components/venue/VenueLayoutDesigner';
-import { Plus, Building, Settings } from 'lucide-react';
+import { Plus, Building, Settings, ArrowLeft } from 'lucide-react';
+import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import type { Venue, Stage, Table } from '@shared/schema';
 
 export default function VenueDesigner() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   
   const [selectedVenueId, setSelectedVenueId] = useState<number | null>(null);
   const [showNewVenueForm, setShowNewVenueForm] = useState(false);
@@ -125,6 +127,11 @@ export default function VenueDesigner() {
     });
   };
 
+  // Back navigation handler
+  const handleBackToBackoffice = () => {
+    setLocation('/backoffice');
+  };
+
   if (isLoadingVenues) {
     return (
       <div className="flex items-center justify-center min-h-96">
@@ -139,7 +146,13 @@ export default function VenueDesigner() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">🏟️ Venue Layout Designer</h1>
+        <div className="flex items-center gap-2 mb-2">
+          <Button variant="ghost" size="sm" onClick={handleBackToBackoffice}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
+          <h1 className="text-3xl font-bold">🏟️ Venue Layout Designer</h1>
+        </div>
         <p className="text-gray-600">Create and manage your venue layouts with interactive table positioning.</p>
       </div>
 
