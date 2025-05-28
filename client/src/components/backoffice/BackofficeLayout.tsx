@@ -50,12 +50,7 @@ export function BackofficeLayout({ children }: Props) {
       icon: CreditCard,
       roles: ['admin', 'venue_owner'],
     },
-    {
-      name: "Payment Links",
-      href: "/backoffice/payment-links",
-      icon: LinkIcon,
-      roles: ['admin', 'venue_owner', 'venue_manager'],
-    },
+
     {
       name: "Entrance",
       href: "/backoffice/entrance",

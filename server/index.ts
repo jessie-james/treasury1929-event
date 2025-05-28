@@ -1,9 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { registerPaymentRoutes } from "./routes-payment";
-import { registerStandalonePaymentRoutes } from "./routes-standalone";
-import { registerOtpRoutes } from "./routes-otp";
-import { registerDirectPaymentRoutes } from "./routes-direct";
+
 import { registerVenueRoutes } from "./routes-venue";
 import { registerSeatSelectionRoutes } from "./routes-seat-selection";
 import { setupVite, log, serveStatic } from "./vite";
@@ -229,17 +227,7 @@ app.use((req, res, next) => {
     log("Setting up payment routes...");
     registerPaymentRoutes(app);
     
-    // Set up standalone payment routes (without authentication dependency)
-    log("Setting up standalone payment routes...");
-    registerStandalonePaymentRoutes(app);
-    
-    // Set up one-time-token payment routes
-    log("Setting up OTP payment routes...");
-    registerOtpRoutes(app);
-    
-    // Set up direct payment routes (completely self-contained)
-    log("Setting up direct payment routes...");
-    registerDirectPaymentRoutes(app);
+
 
     // Error logging middleware
     app.use(async (err: any, req: Request, res: Response, next: NextFunction) => {
