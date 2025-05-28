@@ -38,13 +38,20 @@ export function apiPlugin() {
       return {
         server: {
           proxy: {
-            '/api': {} // Tell Vite to let API requests through
+            '/api': {
+              target: 'http://localhost:5000',
+              changeOrigin: true,
+              secure: false
+            }
           }
         }
       };
     },
     configureServer(server) {
-      server.middlewares.use('/api', app);
+      // Let all API requests pass through to the main server
+      server.middlewares.use('/api', (req, res, next) => {
+        next();
+      });
     }
   };
 }
