@@ -1,9 +1,10 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, CalendarDays, SortAsc, GripVertical } from "lucide-react";
+import { PlusCircle, CalendarDays, SortAsc, GripVertical, ArrowLeft } from "lucide-react";
 import { useState, useMemo } from "react";
 import { EventForm } from "@/components/backoffice/EventForm";
+import { useLocation } from "wouter";
 import {
   Card,
   CardContent,
@@ -21,11 +22,16 @@ import { useToast } from "@/hooks/use-toast";
 type SortOption = "display-order" | "date-asc" | "date-desc" | "title-asc" | "title-desc" | "seats-asc" | "seats-desc" | "id-asc" | "id-desc";
 
 export default function EventsPage() {
+  const [, setLocation] = useLocation();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("display-order");
   const [isReorderMode, setIsReorderMode] = useState(false);
   const { toast } = useToast();
+
+  const handleBackToDashboard = () => {
+    setLocation('/backoffice');
+  };
 
   const { data: events, refetch } = useQuery<Event[]>({
     queryKey: ["/api/events"],

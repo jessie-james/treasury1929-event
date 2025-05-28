@@ -1,9 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
+import { ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 import { type Event, type Booking } from "@shared/schema";
 
 export default function DashboardPage() {
+  const [, setLocation] = useLocation();
+  
   const { data: events } = useQuery<Event[]>({
     queryKey: ["/api/events"],
   });
@@ -11,6 +16,10 @@ export default function DashboardPage() {
   const { data: bookings } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
   });
+
+  const handleBackToHome = () => {
+    setLocation('/');
+  };
 
   const stats = [
     {
@@ -34,7 +43,13 @@ export default function DashboardPage() {
   return (
     <BackofficeLayout>
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={handleBackToHome}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Home
+          </Button>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat) => (

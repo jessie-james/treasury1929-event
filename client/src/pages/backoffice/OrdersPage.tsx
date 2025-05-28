@@ -1,15 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
 import { EventFoodTotals } from "@/components/backoffice/EventFoodTotals";
 import { type Event } from "@shared/schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 
 export default function OrdersPage() {
+  const [, setLocation] = useLocation();
+  
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
   });
+
+  const handleBackToDashboard = () => {
+    setLocation('/backoffice');
+  };
 
   if (eventsLoading) {
     return (
