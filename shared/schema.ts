@@ -189,6 +189,31 @@ export const eventFoodOptions = pgTable("event_food_options", {
   unique: unique().on(table.eventId, table.foodOptionId),
 }));
 
+// Event Pricing Tiers Table
+export const eventPricingTiers = pgTable("event_pricing_tiers", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull(),
+  name: varchar("name", { length: 100 }).notNull(), // e.g., "Front Row", "VIP Lounge", "General Seating"
+  price: integer("price").notNull(), // Price in cents
+  description: text("description"), // Optional description of what's included
+  displayOrder: integer("display_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  unique: unique().on(table.eventId, table.name), // Prevent duplicate tier names per event
+}));
+
+// Event Table Assignments - Links tables to pricing tiers for specific events
+export const eventTableAssignments = pgTable("event_table_assignments", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull(),
+  tableId: integer("table_id").notNull(),
+  pricingTierId: integer("pricing_tier_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  unique: unique().on(table.eventId, table.tableId), // One pricing tier per table per event
+}));
+
 // Venue Staff Table
 export const venueStaff = pgTable("venue_staff", {
   id: serial("id").primaryKey(),
@@ -225,6 +250,8 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
   bookings: many(bookings),
   tickets: many(tickets),
   eventFoodOptions: many(eventFoodOptions),
+  pricingTiers: many(eventPricingTiers),
+  tableAssignments: many(eventTableAssignments),
   venue: one(venues, {
     fields: [events.venueId],
     references: [venues.id],
@@ -243,6 +270,29 @@ export const eventFoodOptionsRelations = relations(eventFoodOptions, ({ one }) =
   foodOption: one(foodOptions, {
     fields: [eventFoodOptions.foodOptionId],
     references: [foodOptions.id],
+  }),
+}));
+
+export const eventPricingTiersRelations = relations(eventPricingTiers, ({ one, many }) => ({
+  event: one(events, {
+    fields: [eventPricingTiers.eventId],
+    references: [events.id],
+  }),
+  tableAssignments: many(eventTableAssignments),
+}));
+
+export const eventTableAssignmentsRelations = relations(eventTableAssignments, ({ one }) => ({
+  event: one(events, {
+    fields: [eventTableAssignments.eventId],
+    references: [events.id],
+  }),
+  table: one(tables, {
+    fields: [eventTableAssignments.tableId],
+    references: [tables.id],
+  }),
+  pricingTier: one(eventPricingTiers, {
+    fields: [eventTableAssignments.pricingTierId],
+    references: [eventPricingTiers.id],
   }),
 }));
 
@@ -314,6 +364,8 @@ export const insertSeatSchema = createInsertSchema(seats).omit({ id: true });
 export const insertMenuItemSchema = createInsertSchema(menuItems).omit({ id: true });
 export const insertFoodOptionSchema = createInsertSchema(foodOptions).omit({ id: true, createdAt: true });
 export const insertEventFoodOptionSchema = createInsertSchema(eventFoodOptions).omit({ id: true });
+export const insertEventPricingTierSchema = createInsertSchema(eventPricingTiers).omit({ id: true, createdAt: true });
+export const insertEventTableAssignmentSchema = createInsertSchema(eventTableAssignments).omit({ id: true, createdAt: true });
 export const insertVenueStaffSchema = createInsertSchema(venueStaff).omit({ id: true, hireDate: true });
 // Old schema imports removed
 
@@ -350,6 +402,12 @@ export type FoodOption = typeof foodOptions.$inferSelect;
 
 export type NewEventFoodOption = z.infer<typeof insertEventFoodOptionSchema>;
 export type EventFoodOption = typeof eventFoodOptions.$inferSelect;
+
+export type NewEventPricingTier = z.infer<typeof insertEventPricingTierSchema>;
+export type EventPricingTier = typeof eventPricingTiers.$inferSelect;
+
+export type NewEventTableAssignment = z.infer<typeof insertEventTableAssignmentSchema>;
+export type EventTableAssignment = typeof eventTableAssignments.$inferSelect;
 
 export type NewVenueStaff = z.infer<typeof insertVenueStaffSchema>;
 export type VenueStaff = typeof venueStaff.$inferSelect;
