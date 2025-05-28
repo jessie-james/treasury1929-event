@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import { ZoomContainer } from "@/components/ui/ZoomContainer";
+import { ZoomControls, FloatingZoomControls } from "@/components/ui/ZoomControls";
 
 interface Props {
   eventId: number;
@@ -46,7 +48,19 @@ interface VenueLayout {
 
 export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }: Props) {
   const [selectedTable, setSelectedTable] = useState<VenueTable | null>(null);
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const zoomContainerRef = useRef<HTMLDivElement>(null);
+
+  // Handle zoom change from ZoomContainer
+  const handleZoomChange = (newZoom: number) => {
+    setZoomLevel(newZoom);
+  };
+
+  // Zoom control functions
+  const zoomIn = () => setZoomLevel(prev => Math.min(prev + 0.2, 3));
+  const zoomOut = () => setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
+  const resetZoom = () => setZoomLevel(1);
 
   // Fetch event data to get venue ID
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
@@ -336,17 +350,29 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">Select Your Table</h2>
         <p className="text-muted-foreground">
-          Click on an available table in the venue layout below.
+          Click on an available table in the venue layout below. Use mouse wheel or controls to zoom and drag to pan around.
         </p>
+        
+        <div className="flex gap-2 items-center justify-between mb-4">
+          <ZoomControls
+            zoom={zoomLevel}
+            onZoomIn={zoomIn}
+            onZoomOut={zoomOut}
+            onReset={resetZoom}
+            minZoom={0.5}
+            maxZoom={3}
+          />
+          
+          <Badge variant="outline">
+            {availableTables.length} of {venueLayout?.tables?.length || 0} tables available
+          </Badge>
+        </div>
       </div>
 
       <Card>
         <CardContent className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-medium">Venue Layout</h3>
-            <Badge variant="outline">
-              {availableTables.length} of {venueLayout?.tables?.length || 0} tables available
-            </Badge>
           </div>
           
           {isLoading ? (
@@ -356,11 +382,30 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
             </div>
           ) : venueLayout ? (
             <div className="relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: '400px' }}>
-              <canvas
-                ref={canvasRef}
-                className="w-full h-full cursor-pointer"
-                onClick={handleCanvasClick}
-                style={{ display: 'block' }}
+              <ZoomContainer
+                ref={zoomContainerRef}
+                initialZoom={zoomLevel}
+                minZoom={0.5}
+                maxZoom={3}
+                onZoomChange={handleZoomChange}
+                className="w-full h-full"
+              >
+                <canvas
+                  ref={canvasRef}
+                  className="w-full h-full cursor-pointer"
+                  onClick={handleCanvasClick}
+                  style={{ display: 'block' }}
+                />
+              </ZoomContainer>
+              
+              {/* Floating zoom controls for mobile */}
+              <FloatingZoomControls
+                zoom={zoomLevel}
+                onZoomIn={zoomIn}
+                onZoomOut={zoomOut}
+                onReset={resetZoom}
+                minZoom={0.5}
+                maxZoom={3}
               />
             </div>
           ) : (
