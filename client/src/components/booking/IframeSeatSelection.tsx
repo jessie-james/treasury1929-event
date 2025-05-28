@@ -393,7 +393,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
               <span className="ml-2">Loading venue layout...</span>
             </div>
           ) : venueLayout ? (
-            <div className="relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: '500px' }}>
+            <div className="relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: '700px' }}>
               <ZoomContainer
                 ref={zoomContainerRef}
                 initialZoom={zoomLevel}
