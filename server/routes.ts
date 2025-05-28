@@ -1384,7 +1384,7 @@ export async function registerRoutes(app: Express) {
       const pricingTiers = await db.select()
         .from(eventPricingTiers)
         .where(eq(eventPricingTiers.eventId, eventId))
-        .orderBy(eventPricingTiers.displayOrder, eventPricingTiers.name);
+        .orderBy(eventPricingTiers.displayOrder);
 
       res.json(pricingTiers);
     } catch (error) {
