@@ -128,14 +128,18 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     ctx.fillStyle = '#f8f9fa';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Use a fixed larger scale to make venue more visible
+    // Force venue to be much larger by setting minimum scale
     const venue = venueLayout.venue;
-    const targetVenueWidth = canvas.width * 0.8; // Use 80% of canvas width
-    const targetVenueHeight = canvas.height * 0.8; // Use 80% of canvas height
+    const targetVenueWidth = canvas.width * 0.9; // Use 90% of canvas width
+    const targetVenueHeight = canvas.height * 0.9; // Use 90% of canvas height
     
     const scaleX = targetVenueWidth / venue.width;
     const scaleY = targetVenueHeight / venue.height;
-    const baseScale = Math.min(scaleX, scaleY);
+    const calculatedScale = Math.min(scaleX, scaleY);
+    
+    // Force a minimum scale to ensure venue is always large enough
+    const minScale = 1.5; // Force at least 150% scale
+    const baseScale = Math.max(calculatedScale, minScale);
     
     // Apply zoom by scaling the base scale
     const scale = baseScale * zoomLevel;
@@ -335,12 +339,16 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
 
     // Calculate scaling (same as in drawVenueLayout)
     const venue = venueLayout.venue;
-    const targetVenueWidth = canvas.width * 0.8;
-    const targetVenueHeight = canvas.height * 0.8;
+    const targetVenueWidth = canvas.width * 0.9;
+    const targetVenueHeight = canvas.height * 0.9;
     
     const scaleX = targetVenueWidth / venue.width;
     const scaleY = targetVenueHeight / venue.height;
-    const baseScale = Math.min(scaleX, scaleY);
+    const calculatedScale = Math.min(scaleX, scaleY);
+    
+    // Force a minimum scale to ensure venue is always large enough
+    const minScale = 1.5;
+    const baseScale = Math.max(calculatedScale, minScale);
     const scale = baseScale * zoomLevel;
 
     const offsetX = (canvas.width - venue.width * scale) / 2;
