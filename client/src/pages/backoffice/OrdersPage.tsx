@@ -38,7 +38,13 @@ export default function OrdersPage() {
     <BackofficeLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Food Selections by Event</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={handleBackToDashboard}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <h1 className="text-3xl font-bold">Food Selections by Event</h1>
+          </div>
         </div>
 
         <Tabs defaultValue="all" className="space-y-4">

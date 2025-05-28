@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/tabs";
 import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
 import { type Event, type Booking } from "@shared/schema";
-import { Calendar, CalendarIcon, CreditCard, DollarSign, RefreshCw } from "lucide-react";
+import { Calendar, CalendarIcon, CreditCard, DollarSign, RefreshCw, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
