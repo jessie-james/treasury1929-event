@@ -213,9 +213,11 @@ export default function EventsPage() {
                       <p className="text-sm text-muted-foreground">
                         {event.description}
                       </p>
-                      <div className="flex justify-between text-sm">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
                         <span>Available Seats: {event.availableSeats}</span>
                         <span>Total Seats: {event.totalSeats}</span>
+                        <span>Available Tables: {event.availableTables}</span>
+                        <span>Total Tables: {event.totalTables}</span>
                       </div>
                     </div>
                   </div>
