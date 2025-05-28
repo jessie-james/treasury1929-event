@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, ZoomIn, ZoomOut, Info } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ZoomContainer } from "@/components/ui/ZoomContainer";
+import { ZoomControls, FloatingZoomControls } from "@/components/ui/ZoomControls";
 
 interface Props {
   eventId: number;
@@ -60,6 +62,7 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
   const [imageError, setImageError] = useState<boolean>(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const imageRef = useRef<HTMLImageElement>(null);
+  const zoomContainerRef = useRef<HTMLDivElement>(null);
   
   // Update image dimensions when it loads
   useEffect(() => {
@@ -125,9 +128,15 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
     }).join('; ');
   };
   
-  // Handle zoom in/out
-  const zoomIn = () => setZoomLevel(prev => Math.min(prev + 0.2, 2));
-  const zoomOut = () => setZoomLevel(prev => Math.max(prev - 0.2, 0.6));
+  // Handle zoom change from ZoomContainer
+  const handleZoomChange = (newZoom: number) => {
+    setZoomLevel(newZoom);
+  };
+
+  // Zoom control functions
+  const zoomIn = () => setZoomLevel(prev => Math.min(prev + 0.2, 3));
+  const zoomOut = () => setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
+  const resetZoom = () => setZoomLevel(1);
   
   // Group selected seats by table for submission
   const getGroupedSeatsForSubmission = () => {
@@ -171,44 +180,24 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
         </div>
         
         <p className="text-muted-foreground">
-          Click on green circles to select up to 4 seats (max 4 per booking)
+          Click on green circles to select up to 4 seats (max 4 per booking). Use mouse wheel or controls to zoom and drag to pan around.
         </p>
         
-        <div className="flex gap-2 items-center mb-4">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={zoomOut}
-            className="rounded-full w-8 h-8"
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={zoomIn}
-            className="rounded-full w-8 h-8"
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setShowTooltips(!showTooltips)}
-            className={`rounded-full w-8 h-8 ${showTooltips ? 'bg-blue-50' : ''}`}
-          >
-            <Info className={`h-4 w-4 ${showTooltips ? 'text-blue-500' : ''}`} />
-          </Button>
+        <div className="flex gap-2 items-center justify-between mb-4">
+          <ZoomControls
+            zoom={zoomLevel}
+            onZoomIn={zoomIn}
+            onZoomOut={zoomOut}
+            onReset={resetZoom}
+            onToggleTooltips={() => setShowTooltips(!showTooltips)}
+            showTooltips={showTooltips}
+            minZoom={0.5}
+            maxZoom={3}
+          />
           
-          <div className="ml-2 text-sm text-muted-foreground">
-            <Badge variant="outline">{Math.round(zoomLevel * 100)}%</Badge>
-          </div>
-          
-          <div className="ml-auto">
-            <Badge variant="secondary" className="text-xs">
-              {selectedSeats.length} {selectedSeats.length === 1 ? 'seat' : 'seats'} selected
-            </Badge>
-          </div>
+          <Badge variant="secondary" className="text-xs">
+            {selectedSeats.length} {selectedSeats.length === 1 ? 'seat' : 'seats'} selected
+          </Badge>
         </div>
       </div>
 
