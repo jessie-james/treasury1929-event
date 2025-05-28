@@ -211,12 +211,12 @@ export default function UsersPage() {
 
         {/* Compact Filters Bar */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap items-center gap-4">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
               <div className="flex items-center gap-2">
-                <Label className="text-sm font-medium">Sort:</Label>
+                <Label className="text-sm font-medium shrink-0">Sort:</Label>
                 <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-full sm:w-40">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -228,12 +228,12 @@ export default function UsersPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Label className="text-sm font-medium">Search:</Label>
+                <Label className="text-sm font-medium shrink-0">Search:</Label>
                 <Input
                   placeholder="Search users..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-48"
+                  className="flex-1 sm:w-48"
                 />
               </div>
 
@@ -242,7 +242,7 @@ export default function UsersPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setSearchTerm("")}
-                  className="ml-auto"
+                  className="w-full sm:w-auto sm:ml-auto"
                 >
                   Clear Search
                 </Button>
@@ -255,21 +255,21 @@ export default function UsersPage() {
         <div className="space-y-4">
           {filteredUsers.map((user: UserWithBookings) => (
             <Card key={user.id} className="overflow-hidden">
-              <CardHeader className="bg-secondary/50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      {user.email}
-                      <Badge variant={user.role === 'admin' ? 'destructive' : 'default'}>
+              <CardHeader className="bg-secondary/50 p-3 sm:p-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+                      <span className="text-sm sm:text-base break-all">{user.email}</span>
+                      <Badge variant={user.role === 'admin' ? 'destructive' : 'default'} className="self-start text-xs">
                         {user.role}
                       </Badge>
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-xs sm:text-sm mt-1">
                       Joined {user.createdAt ? new Date(String(user.createdAt)).toLocaleDateString() : 'N/A'}
                     </CardDescription>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">
+                  <div className="flex flex-row justify-between sm:flex-col sm:text-right shrink-0">
+                    <p className="text-xs sm:text-sm font-medium">
                       {user.bookings.length} {user.bookings.length === 1 ? 'booking' : 'bookings'}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -283,48 +283,48 @@ export default function UsersPage() {
                   <Accordion type="multiple" className="w-full">
                     {user.bookings.map(booking => (
                       <AccordionItem key={booking.id} value={booking.id.toString()}>
-                        <AccordionTrigger className="px-6 py-4 hover:no-underline">
-                          <div className="flex justify-between items-center w-full text-left">
-                            <div>
-                              <h3 className="font-medium">{booking.event.title}</h3>
+                        <AccordionTrigger className="px-3 py-3 sm:px-6 sm:py-4 hover:no-underline">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center w-full text-left">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-medium text-sm sm:text-base leading-tight">{booking.event.title}</h3>
                               <p className="text-xs text-muted-foreground">
                                 {new Date(booking.event.date).toLocaleDateString()}
                               </p>
                             </div>
-                            <div className="flex gap-4">
-                              <p className="text-sm">
+                            <div className="flex justify-between sm:flex-col sm:gap-1 sm:text-right shrink-0">
+                              <p className="text-xs sm:text-sm">
                                 {booking.partySize || 0} {(booking.partySize || 0) === 1 ? 'seat' : 'seats'}
                               </p>
-                              <p className="text-sm">
+                              <p className="text-xs sm:text-sm text-muted-foreground">
                                 Table {booking.table.tableNumber}
                               </p>
                             </div>
                           </div>
                         </AccordionTrigger>
-                        <AccordionContent className="px-6 py-3 bg-secondary/10">
-                          <div className="space-y-4">
+                        <AccordionContent className="px-3 py-3 sm:px-6 sm:py-3 bg-secondary/10">
+                          <div className="space-y-3 sm:space-y-4">
                             <div>
-                              <h4 className="font-medium mb-2">Guests</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                              <h4 className="font-medium mb-2 text-sm sm:text-base">Guests</h4>
+                              <div className="grid grid-cols-1 gap-2">
                                 {booking.guestNames ? Object.entries(booking.guestNames as Record<string, string>).map(([seatNumber, name]) => (
-                                  <div key={seatNumber} className="flex items-center gap-2">
-                                    <Badge variant="outline" className="h-6 w-6 flex items-center justify-center p-0 rounded-full">
+                                  <div key={seatNumber} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                                    <Badge variant="outline" className="h-5 w-5 flex items-center justify-center p-0 rounded-full text-xs shrink-0">
                                       {seatNumber}
                                     </Badge>
-                                    <span className="text-sm">{String(name)}</span>
+                                    <span className="text-xs sm:text-sm break-words">{String(name)}</span>
                                   </div>
                                 )) : (
-                                  <p className="text-sm text-muted-foreground">No guest names provided</p>
+                                  <p className="text-xs sm:text-sm text-muted-foreground">No guest names provided</p>
                                 )}
                               </div>
                             </div>
 
                             {booking.foodSelections && booking.foodSelections.length > 0 && (
                               <div>
-                                <h4 className="font-medium mb-2">Food Selections</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                <h4 className="font-medium mb-2 text-sm sm:text-base">Food Selections</h4>
+                                <div className="grid grid-cols-1 gap-2">
                                   {booking.foodSelections.map((item: any, index: number) => (
-                                    <div key={index} className="text-sm p-2 bg-muted rounded">
+                                    <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
                                       <span>Selection {index + 1}</span>
                                     </div>
                                   ))}
@@ -334,15 +334,15 @@ export default function UsersPage() {
 
                             {booking.notes && (
                               <div>
-                                <h4 className="font-medium mb-1">Special Requests</h4>
-                                <p className="text-sm italic">{booking.notes}</p>
+                                <h4 className="font-medium mb-1 text-sm sm:text-base">Special Requests</h4>
+                                <p className="text-xs sm:text-sm italic break-words">{booking.notes}</p>
                               </div>
                             )}
 
                             {user.allergens && user.allergens.length > 0 && (
                               <div>
-                                <h4 className="font-medium mb-1">Allergens</h4>
-                                <p className="text-sm italic">{user.allergens?.join(', ')}</p>
+                                <h4 className="font-medium mb-1 text-sm sm:text-base">Allergens</h4>
+                                <p className="text-xs sm:text-sm italic break-words">{user.allergens?.join(', ')}</p>
                               </div>
                             )}
                           </div>
