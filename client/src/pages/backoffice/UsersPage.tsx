@@ -601,19 +601,18 @@ export default function UsersPage() {
                                 </div>
                               </div>
 
-                              <div>
-                                <h4 className="font-medium mb-2">Food Selections</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                                  {booking.foodItems.map(item => (
-                                    <div key={item.id} className="text-sm flex gap-2 items-center">
-                                      <Badge variant="outline" className="capitalize">
-                                        {item.type}
-                                      </Badge>
-                                      <span>{item.name}</span>
-                                    </div>
-                                  ))}
+                              {booking.foodSelections && booking.foodSelections.length > 0 && (
+                                <div>
+                                  <h4 className="font-medium mb-2">Food Selections</h4>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                    {booking.foodSelections.map((item: any, index: number) => (
+                                      <div key={index} className="text-sm">
+                                        <span>Selection {index + 1}: {JSON.stringify(item)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
 
                               {booking.notes && (
                                 <div>
