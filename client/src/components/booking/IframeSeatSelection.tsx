@@ -132,7 +132,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     const venue = venueLayout.venue;
     const scaleX = canvas.width / venue.width;
     const scaleY = canvas.height / venue.height;
-    const baseScale = Math.min(scaleX, scaleY) * 0.95;
+    const baseScale = Math.min(scaleX, scaleY) * 1.0;
     
     // Apply zoom by scaling the base scale, not the canvas context
     const scale = baseScale * zoomLevel;
@@ -334,7 +334,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     const venue = venueLayout.venue;
     const scaleX = canvas.width / venue.width;
     const scaleY = canvas.height / venue.height;
-    const baseScale = Math.min(scaleX, scaleY) * 0.95;
+    const baseScale = Math.min(scaleX, scaleY) * 1.0;
     const scale = baseScale * zoomLevel;
 
     const offsetX = (canvas.width - venue.width * scale) / 2;
