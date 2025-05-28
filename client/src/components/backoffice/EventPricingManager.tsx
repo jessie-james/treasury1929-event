@@ -65,10 +65,7 @@ export function EventPricingManager({ eventId }: EventPricingManagerProps) {
   // Create pricing tier mutation
   const createTierMutation = useMutation({
     mutationFn: (data: PricingTierForm) => 
-      apiRequest("POST", `/api/events/${eventId}/pricing-tiers`, { 
-        ...data, 
-        price: Math.round(data.price * 100) // Convert to cents
-      }),
+      apiRequest("POST", `/api/events/${eventId}/pricing-tiers`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events", eventId, "pricing-tiers"] });
       setIsDialogOpen(false);
@@ -90,13 +87,7 @@ export function EventPricingManager({ eventId }: EventPricingManagerProps) {
   // Update pricing tier mutation
   const updateTierMutation = useMutation({
     mutationFn: ({ tierId, data }: { tierId: number; data: Partial<PricingTierForm> }) =>
-      apiRequest(`/api/events/${eventId}/pricing-tiers/${tierId}`, {
-        method: "PUT",
-        body: JSON.stringify({ 
-          ...data, 
-          price: data.price ? Math.round(data.price * 100) : undefined 
-        }),
-      }),
+      apiRequest("PUT", `/api/events/${eventId}/pricing-tiers/${tierId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events", eventId, "pricing-tiers"] });
       setIsDialogOpen(false);
