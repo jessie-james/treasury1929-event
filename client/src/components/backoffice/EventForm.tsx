@@ -624,6 +624,14 @@ export function EventForm({ event, onClose }: Props) {
               )}
             </div>
 
+            {/* Event Pricing Management - Only show for existing events */}
+            {event && (
+              <>
+                <Separator className="my-6" />
+                <EventPricingManager eventId={event.id} />
+              </>
+            )}
+
             <div className="flex justify-end gap-2">
               {event && (
                 <Button
