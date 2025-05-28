@@ -23,8 +23,10 @@ import {
   Clock,
   User as UserIcon,
   Key,
-  Utensils
+  Utensils,
+  ArrowLeft
 } from "lucide-react";
+import { useLocation } from "wouter";
 
 // Define scan log entry type
 interface ScanLogEntry {
@@ -36,6 +38,7 @@ interface ScanLogEntry {
 }
 
 export default function EntrancePage() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [manualBookingId, setManualBookingId] = useState("");
@@ -272,7 +275,13 @@ export default function EntrancePage() {
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Entrance Check-in</h1>
+            <div className="flex items-center gap-2 mb-2">
+              <Button variant="ghost" size="sm" onClick={() => setLocation('/backoffice')}>
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back
+              </Button>
+              <h1 className="text-3xl font-bold">Entrance Check-in</h1>
+            </div>
             <p className="text-muted-foreground">Scan tickets at the entrance and track attendance in real-time</p>
           </div>
           

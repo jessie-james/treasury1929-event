@@ -160,7 +160,13 @@ export default function FoodPage() {
     <BackofficeLayout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h1 className="text-3xl font-bold">Food Management</h1>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setLocation('/backoffice')}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <h1 className="text-3xl font-bold">Food Management</h1>
+          </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             {!isReorderMode ? (
               <>
