@@ -128,22 +128,17 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     ctx.fillStyle = '#f8f9fa';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Apply zoom transformation at the beginning
-    ctx.save();
-    ctx.scale(zoomLevel, zoomLevel);
-    
-    // Adjust canvas drawing coordinates for zoom
-    const scaledWidth = canvas.width / zoomLevel;
-    const scaledHeight = canvas.height / zoomLevel;
-
-    // Calculate scaling using adjusted dimensions for zoom
+    // Calculate base scaling (without zoom distortion)
     const venue = venueLayout.venue;
-    const scaleX = scaledWidth / venue.width;
-    const scaleY = scaledHeight / venue.height;
-    const scale = Math.min(scaleX, scaleY) * 0.9;
+    const scaleX = canvas.width / venue.width;
+    const scaleY = canvas.height / venue.height;
+    const baseScale = Math.min(scaleX, scaleY) * 0.9;
+    
+    // Apply zoom by scaling the base scale, not the canvas context
+    const scale = baseScale * zoomLevel;
 
-    const offsetX = (scaledWidth - venue.width * scale) / 2;
-    const offsetY = (scaledHeight - venue.height * scale) / 2;
+    const offsetX = (canvas.width - venue.width * scale) / 2;
+    const offsetY = (canvas.height - venue.height * scale) / 2;
 
     // Draw venue outline
     ctx.strokeStyle = '#d1d5db';
@@ -322,9 +317,6 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       
       ctx.restore();
     });
-    
-    // Restore the main canvas context after all drawing
-    ctx.restore();
   };
 
   // Handle canvas click for table selection
@@ -335,19 +327,15 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     const rect = canvas.getBoundingClientRect();
     
     // Get click position relative to canvas
-    let x = event.clientX - rect.left;
-    let y = event.clientY - rect.top;
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
 
-    // Adjust for current zoom level - simpler approach
-    // The canvas is scaled by zoomLevel, so we need to account for that
-    x = x / zoomLevel;
-    y = y / zoomLevel;
-
-    // Convert to venue coordinates
+    // Calculate scaling (same as in drawVenueLayout)
     const venue = venueLayout.venue;
     const scaleX = canvas.width / venue.width;
     const scaleY = canvas.height / venue.height;
-    const scale = Math.min(scaleX, scaleY) * 0.9;
+    const baseScale = Math.min(scaleX, scaleY) * 0.9;
+    const scale = baseScale * zoomLevel;
 
     const offsetX = (canvas.width - venue.width * scale) / 2;
     const offsetY = (canvas.height - venue.height * scale) / 2;
