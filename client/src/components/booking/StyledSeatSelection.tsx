@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, ZoomIn, ZoomOut } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ZoomContainer } from "@/components/ui/ZoomContainer";
+import { ZoomControls, FloatingZoomControls } from "@/components/ui/ZoomControls";
 
 interface Props {
   eventId: number;

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, forwardRef } from 'react';
 
 interface ZoomContainerProps {
   children: React.ReactNode;
@@ -9,19 +9,29 @@ interface ZoomContainerProps {
   className?: string;
 }
 
-export function ZoomContainer({
+export const ZoomContainer = forwardRef<HTMLDivElement, ZoomContainerProps>(({
   children,
   minZoom = 0.5,
   maxZoom = 3,
   initialZoom = 1,
   onZoomChange,
   className = ''
-}: ZoomContainerProps) {
+}, ref) => {
   const [zoom, setZoom] = useState(initialZoom);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Combine external ref with internal ref
+  const combinedRef = useCallback((node: HTMLDivElement) => {
+    containerRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      ref.current = node;
+    }
+  }, [ref]);
 
   const updateZoom = useCallback((newZoom: number, centerX?: number, centerY?: number) => {
     const clampedZoom = Math.max(minZoom, Math.min(maxZoom, newZoom));
@@ -140,7 +150,7 @@ export function ZoomContainer({
 
   return (
     <div
-      ref={containerRef}
+      ref={combinedRef}
       className={`relative overflow-hidden ${className}`}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
@@ -166,7 +176,7 @@ export function ZoomContainer({
       </div>
     </div>
   );
-}
+});
 
 // Hook to access zoom controls from parent components
 export function useZoomControls(containerRef: React.RefObject<HTMLDivElement>) {

@@ -203,84 +203,74 @@ export function SeatSelection({ eventId, onComplete, hasExistingBooking }: Props
 
       <Card>
         <CardContent className="p-4 relative">
-          <div className="relative w-full">
-            <div className="absolute right-4 top-4 flex flex-col gap-2 z-10">
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={zoomIn}
-                className="rounded-full w-10 h-10 bg-white shadow-md"
-                aria-label="Zoom in"
-              >
-                <ZoomIn className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="secondary"
-                size="icon"
-                onClick={zoomOut}
-                className="rounded-full w-10 h-10 bg-white shadow-md"
-                aria-label="Zoom out"
-              >
-                <ZoomOut className="h-5 w-5" />
-              </Button>
+          <ZoomContainer
+            ref={zoomContainerRef}
+            initialZoom={1}
+            minZoom={0.5}
+            maxZoom={3}
+            onZoomChange={handleZoomChange}
+            className="relative w-full h-[600px] border rounded-lg bg-gray-50"
+          >
+            {/* Floor Plan Background Image */}
+            <div className="relative">
+              <img 
+                ref={imageRef}
+                src={imageError ? "https://raw.githubusercontent.com/users/10/attached_assets/Mezzanine%20(numbered)%20PNG.png" : "/images/mezzanine-floor.png"}
+                alt="Mezzanine Floor Plan" 
+                className="w-full h-auto object-contain"
+                onError={() => setImageError(true)}
+                onLoad={() => {
+                  if (imageRef.current) {
+                    setImageDimensions({
+                      width: imageRef.current.naturalWidth,
+                      height: imageRef.current.naturalHeight
+                    });
+                  }
+                }}
+              />
+              
+              {/* Transparent buttons at each seat location */}
+              <TooltipProvider>
+                {MEZZANINE_SEATS.map((seat) => (
+                  <Tooltip key={seat.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        className={`absolute translate-x-[-50%] translate-y-[-50%] rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold transition-all duration-200 ${
+                          isSeatSelected(seat.id)
+                            ? 'bg-blue-500 text-white ring-2 ring-blue-200 scale-110'
+                            : 'text-transparent hover:scale-110 hover:bg-green-500/30'
+                        }`}
+                        style={{
+                          left: `${seat.x}px`,
+                          top: `${seat.y}px`
+                        }}
+                        onClick={() => toggleSeat(seat)}
+                      >
+                        {isSeatSelected(seat.id) ? seat.seatNumber : ''}
+                      </button>
+                    </TooltipTrigger>
+                    {showTooltips && (
+                      <TooltipContent side="top">
+                        <p>Table {seat.tableId}, Seat {seat.seatNumber}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                ))}
+              </TooltipProvider>
             </div>
-            <div 
-              className="relative w-full"
-              style={{ 
-                transform: `scale(${zoomLevel})`, 
-                transformOrigin: 'center top',
-                transition: 'transform 0.2s ease-in-out'
-              }}
-            >
-              {/* Floor Plan Background Image */}
-              <div className="relative">
-                <img 
-                  ref={imageRef}
-                  src={imageError ? "https://raw.githubusercontent.com/users/10/attached_assets/Mezzanine%20(numbered)%20PNG.png" : "/images/mezzanine-floor.png"}
-                  alt="Mezzanine Floor Plan" 
-                  className="w-full h-auto object-contain"
-                  onError={() => setImageError(true)}
-                  onLoad={() => {
-                    if (imageRef.current) {
-                      setImageDimensions({
-                        width: imageRef.current.naturalWidth,
-                        height: imageRef.current.naturalHeight
-                      });
-                    }
-                  }}
-                />
-                
-                {/* Transparent buttons at each seat location */}
-                <TooltipProvider>
-                  {MEZZANINE_SEATS.map((seat) => (
-                    <Tooltip key={seat.id}>
-                      <TooltipTrigger asChild>
-                        <button
-                          className={`absolute translate-x-[-50%] translate-y-[-50%] rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold transition-all duration-200 ${
-                            isSeatSelected(seat.id)
-                              ? 'bg-blue-500 text-white ring-2 ring-blue-200 scale-110'
-                              : 'text-transparent hover:scale-110 hover:bg-green-500/30'
-                          }`}
-                          style={{
-                            left: `${seat.x}px`,
-                            top: `${seat.y}px`
-                          }}
-                          onClick={() => toggleSeat(seat)}
-                        >
-                          {isSeatSelected(seat.id) ? seat.seatNumber : ''}
-                        </button>
-                      </TooltipTrigger>
-                      {showTooltips && (
-                        <TooltipContent side="top">
-                          <p>Table {seat.tableId}, Seat {seat.seatNumber}</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  ))}
-                </TooltipProvider>
-              </div>
-            </div>
-          </div>
+          </ZoomContainer>
+          
+          {/* Floating zoom controls */}
+          <FloatingZoomControls
+            zoom={zoomLevel}
+            onZoomIn={zoomIn}
+            onZoomOut={zoomOut}
+            onReset={resetZoom}
+            onToggleTooltips={() => setShowTooltips(!showTooltips)}
+            showTooltips={showTooltips}
+            minZoom={0.5}
+            maxZoom={3}
+          />
           
           {/* Selection Summary */}
           {selectedSeats.length > 0 && (
