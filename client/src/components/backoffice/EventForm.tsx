@@ -25,6 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { type Event, type FoodOption } from "@shared/schema";
 import { useState, useRef, useEffect } from "react";
 import { ImagePlus, Loader2, RefreshCw, X, Building, UtensilsCrossed, Check } from "lucide-react";
+import { EventPricingManager } from "./EventPricingManager";
 
 const eventFormSchema = z.object({
   title: z.string().min(1, "Title is required"),

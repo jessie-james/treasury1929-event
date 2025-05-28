@@ -2,7 +2,20 @@ import express, { type Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-import { insertAdminLogSchema, bookings, events, adminLogs, NewUser, User, BookingWithDetails } from "@shared/schema";
+import { 
+  insertAdminLogSchema, 
+  bookings, 
+  events, 
+  adminLogs, 
+  eventPricingTiers,
+  eventTableAssignments,
+  insertEventPricingTierSchema,
+  insertEventTableAssignmentSchema,
+  tables,
+  NewUser, 
+  User, 
+  BookingWithDetails 
+} from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, hashPassword } from "./auth";
 import Stripe from "stripe";
@@ -10,7 +23,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
-import { eq } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { db } from "./db";
 import crypto from 'crypto';
 import { registerAdminRoutes } from "./routes-admin";
@@ -1355,6 +1368,265 @@ export async function registerRoutes(app: Express) {
         message: "Failed to update food options order",
         error: error instanceof Error ? error.message : String(error)
       });
+    }
+  });
+
+  // Event Pricing Tiers Routes
+  
+  // Get pricing tiers for an event
+  app.get("/api/events/:eventId/pricing-tiers", async (req: Request, res: Response) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const pricingTiers = await db.select()
+        .from(eventPricingTiers)
+        .where(eq(eventPricingTiers.eventId, eventId))
+        .orderBy(eventPricingTiers.displayOrder, eventPricingTiers.name);
+
+      res.json(pricingTiers);
+    } catch (error) {
+      console.error("Error fetching pricing tiers:", error);
+      res.status(500).json({ message: "Failed to fetch pricing tiers" });
+    }
+  });
+
+  // Create pricing tier for an event
+  app.post("/api/events/:eventId/pricing-tiers", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const validationResult = insertEventPricingTierSchema.safeParse({
+        ...req.body,
+        eventId
+      });
+
+      if (!validationResult.success) {
+        return res.status(400).json({
+          message: "Invalid pricing tier data",
+          errors: validationResult.error.format()
+        });
+      }
+
+      const [newTier] = await db.insert(eventPricingTiers)
+        .values(validationResult.data)
+        .returning();
+
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "create_pricing_tier",
+        entityType: "event_pricing_tier",
+        entityId: newTier.id,
+        details: {
+          eventId,
+          tierName: newTier.name,
+          price: newTier.price
+        }
+      });
+
+      res.status(201).json(newTier);
+    } catch (error) {
+      console.error("Error creating pricing tier:", error);
+      res.status(500).json({ message: "Failed to create pricing tier" });
+    }
+  });
+
+  // Update pricing tier
+  app.put("/api/events/:eventId/pricing-tiers/:tierId", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      const tierId = parseInt(req.params.tierId);
+      
+      if (isNaN(eventId) || isNaN(tierId)) {
+        return res.status(400).json({ message: "Invalid event ID or tier ID" });
+      }
+
+      const validationResult = insertEventPricingTierSchema.partial().safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          message: "Invalid pricing tier data",
+          errors: validationResult.error.format()
+        });
+      }
+
+      const [updatedTier] = await db.update(eventPricingTiers)
+        .set(validationResult.data)
+        .where(and(
+          eq(eventPricingTiers.id, tierId),
+          eq(eventPricingTiers.eventId, eventId)
+        ))
+        .returning();
+
+      if (!updatedTier) {
+        return res.status(404).json({ message: "Pricing tier not found" });
+      }
+
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "update_pricing_tier",
+        entityType: "event_pricing_tier",
+        entityId: tierId,
+        details: {
+          eventId,
+          changes: validationResult.data
+        }
+      });
+
+      res.json(updatedTier);
+    } catch (error) {
+      console.error("Error updating pricing tier:", error);
+      res.status(500).json({ message: "Failed to update pricing tier" });
+    }
+  });
+
+  // Delete pricing tier
+  app.delete("/api/events/:eventId/pricing-tiers/:tierId", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      const tierId = parseInt(req.params.tierId);
+      
+      if (isNaN(eventId) || isNaN(tierId)) {
+        return res.status(400).json({ message: "Invalid event ID or tier ID" });
+      }
+
+      // Check if pricing tier has assigned tables
+      const assignedTables = await db.select()
+        .from(eventTableAssignments)
+        .where(eq(eventTableAssignments.pricingTierId, tierId));
+
+      if (assignedTables.length > 0) {
+        return res.status(400).json({ 
+          message: "Cannot delete pricing tier with assigned tables. Please reassign tables first." 
+        });
+      }
+
+      const [deletedTier] = await db.delete(eventPricingTiers)
+        .where(and(
+          eq(eventPricingTiers.id, tierId),
+          eq(eventPricingTiers.eventId, eventId)
+        ))
+        .returning();
+
+      if (!deletedTier) {
+        return res.status(404).json({ message: "Pricing tier not found" });
+      }
+
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "delete_pricing_tier",
+        entityType: "event_pricing_tier",
+        entityId: tierId,
+        details: {
+          eventId,
+          tierName: deletedTier.name
+        }
+      });
+
+      res.json({ message: "Pricing tier deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting pricing tier:", error);
+      res.status(500).json({ message: "Failed to delete pricing tier" });
+    }
+  });
+
+  // Get table assignments for an event
+  app.get("/api/events/:eventId/table-assignments", async (req: Request, res: Response) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const assignments = await db.select({
+        id: eventTableAssignments.id,
+        eventId: eventTableAssignments.eventId,
+        tableId: eventTableAssignments.tableId,
+        pricingTierId: eventTableAssignments.pricingTierId,
+        tableNumber: tables.tableNumber,
+        tierName: eventPricingTiers.name,
+        tierPrice: eventPricingTiers.price
+      })
+      .from(eventTableAssignments)
+      .leftJoin(tables, eq(eventTableAssignments.tableId, tables.id))
+      .leftJoin(eventPricingTiers, eq(eventTableAssignments.pricingTierId, eventPricingTiers.id))
+      .where(eq(eventTableAssignments.eventId, eventId));
+
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching table assignments:", error);
+      res.status(500).json({ message: "Failed to fetch table assignments" });
+    }
+  });
+
+  // Assign tables to pricing tiers
+  app.post("/api/events/:eventId/table-assignments", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const { tableIds, pricingTierId } = req.body;
+
+      if (!Array.isArray(tableIds) || !pricingTierId) {
+        return res.status(400).json({ message: "Invalid request data" });
+      }
+
+      // Remove existing assignments for these tables for this event
+      await db.delete(eventTableAssignments)
+        .where(and(
+          eq(eventTableAssignments.eventId, eventId),
+          inArray(eventTableAssignments.tableId, tableIds)
+        ));
+
+      // Create new assignments
+      const assignments = tableIds.map(tableId => ({
+        eventId,
+        tableId,
+        pricingTierId
+      }));
+
+      const newAssignments = await db.insert(eventTableAssignments)
+        .values(assignments)
+        .returning();
+
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "assign_tables_to_tier",
+        entityType: "event_table_assignment",
+        entityId: eventId,
+        details: {
+          eventId,
+          pricingTierId,
+          tableIds
+        }
+      });
+
+      res.status(201).json(newAssignments);
+    } catch (error) {
+      console.error("Error assigning tables:", error);
+      res.status(500).json({ message: "Failed to assign tables" });
     }
   });
 
