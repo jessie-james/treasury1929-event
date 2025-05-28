@@ -89,7 +89,7 @@ export function EventPricingManager({ eventId }: EventPricingManagerProps) {
     mutationFn: ({ tierId, data }: { tierId: number; data: Partial<PricingTierForm> }) =>
       apiRequest("PUT", `/api/events/${eventId}/pricing-tiers/${tierId}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/events", eventId, "pricing-tiers"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}/pricing-tiers`] });
       setIsDialogOpen(false);
       setEditingTier(null);
       form.reset();
@@ -110,11 +110,9 @@ export function EventPricingManager({ eventId }: EventPricingManagerProps) {
   // Delete pricing tier mutation
   const deleteTierMutation = useMutation({
     mutationFn: (tierId: number) =>
-      apiRequest(`/api/events/${eventId}/pricing-tiers/${tierId}`, {
-        method: "DELETE",
-      }),
+      apiRequest("DELETE", `/api/events/${eventId}/pricing-tiers/${tierId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/events", eventId, "pricing-tiers"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}/pricing-tiers`] });
       toast({
         title: "Success",
         description: "Pricing tier deleted successfully",
@@ -130,10 +128,16 @@ export function EventPricingManager({ eventId }: EventPricingManagerProps) {
   });
 
   const handleSubmit = (data: PricingTierForm) => {
+    // Convert price to cents for backend
+    const dataWithCents = {
+      ...data,
+      price: Math.round(data.price * 100)
+    };
+
     if (editingTier) {
-      updateTierMutation.mutate({ tierId: editingTier.id, data });
+      updateTierMutation.mutate({ tierId: editingTier.id, data: dataWithCents });
     } else {
-      createTierMutation.mutate(data);
+      createTierMutation.mutate(dataWithCents);
     }
   };
 
