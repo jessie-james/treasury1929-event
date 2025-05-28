@@ -51,28 +51,65 @@ interface ExtendedBooking {
   eventId: number;
   userId: number;
   tableId: number;
-  seatNumbers: number[];
-  foodSelections: unknown; // We don't directly access this field
+  partySize: number | null;
+  guestNames: Record<string, string> | null;
+  foodSelections: any[] | null;
   customerEmail: string;
-  stripePaymentId: string;
+  stripePaymentId: string | null;
   createdAt: string | Date | null;
+  status: string;
+  notes: string | null;
+  refundAmount: number | null;
+  refundId: string | null;
+  lastModified: Date | null;
+  modifiedBy: number | null;
+  checkedIn: boolean;
+  checkedInAt: Date | null;
+  checkedInBy: number | null;
   
   // Extended fields added by the API
   event: {
     id: number;
     title: string;
     date: string;
+    description?: string;
+    image?: string;
+    availableTables?: number;
+    totalTables?: number;
+    availableSeats?: number;
+    totalSeats?: number;
+    venueId?: number;
+    displayOrder?: number;
+    isActive?: boolean;
   };
-  foodItems: Array<{
+  user: {
     id: number;
-    name: string;
-    type: string;
-    allergens?: string[];
-    dietaryRestrictions?: string[];
-  }>;
-  specialRequests?: string;
-  allergens?: string;
-  guestNames: Record<string, string>;
+    email: string;
+    role: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    phone?: string | null;
+    allergens?: string[] | null;
+    dietaryRestrictions?: string[] | null;
+  };
+  table: {
+    id: number;
+    venueId: number;
+    tableNumber: number;
+    capacity: number;
+    floor: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    shape: string;
+    tableSize: number;
+    status: string;
+    zone: string | null;
+    priceCategory: string;
+    isLocked: boolean;
+    rotation: number;
+  };
 }
 
 interface UserWithBookings extends User {
