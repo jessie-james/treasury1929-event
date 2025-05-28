@@ -17,6 +17,29 @@ const db = drizzle(pool, { schema });
 export class PgStorage implements IStorage {
   
   // User methods
+  async getAllUsers(): Promise<User[]> {
+    const result = await db.select({
+      id: schema.users.id,
+      email: schema.users.email,
+      password: schema.users.password,
+      role: schema.users.role,
+      firstName: schema.users.firstName,
+      lastName: schema.users.lastName,
+      phone: schema.users.phone,
+      allergens: schema.users.allergens,
+      dietaryRestrictions: schema.users.dietaryRestrictions,
+      createdAt: schema.users.createdAt,
+      stripeCustomerId: schema.users.stripeCustomerId,
+      stripeSubscriptionId: schema.users.stripeSubscriptionId
+    }).from(schema.users).orderBy(desc(schema.users.createdAt));
+    
+    // Remove password field for security before returning
+    return result.map(user => {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword as User;
+    });
+  }
+
   async getUserById(id: number): Promise<User | null> {
     const result = await db.select().from(schema.users).where(eq(schema.users.id, id));
     return result[0] || null;
@@ -242,6 +265,27 @@ export class PgStorage implements IStorage {
       user: booking.user!,
       table: booking.table!,
     };
+  }
+
+  async getAllBookingsWithDetails(): Promise<BookingWithDetails[]> {
+    const bookings = await db.select({
+      booking: schema.bookings,
+      event: schema.events,
+      user: schema.users,
+      table: schema.tables,
+    })
+    .from(schema.bookings)
+    .leftJoin(schema.events, eq(schema.bookings.eventId, schema.events.id))
+    .leftJoin(schema.users, eq(schema.bookings.userId, schema.users.id))
+    .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
+    .orderBy(desc(schema.bookings.createdAt));
+
+    return bookings.map(({ booking, event, user, table }) => ({
+      ...booking,
+      event: event!,
+      user: user!,
+      table: table!,
+    }));
   }
 
   async getBookingByPaymentId(paymentId: string): Promise<Booking | null> {

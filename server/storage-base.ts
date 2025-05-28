@@ -9,6 +9,7 @@ import {
  */
 export interface IStorage {
   // User methods
+  getAllUsers(): Promise<User[]>;
   getUserById(id: number): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | null>;
   createUser(userData: any): Promise<number>;
@@ -47,6 +48,7 @@ export interface IStorage {
   getBookingsByEventId(eventId: number): Promise<BookingWithDetails[]>;
   getBooking(id: number): Promise<Booking | null>;
   getBookingWithDetails(id: number): Promise<BookingWithDetails | null>;
+  getAllBookingsWithDetails(): Promise<BookingWithDetails[]>;
   getBookingByPaymentId(paymentId: string): Promise<Booking | null>;
   createBooking(bookingData: any): Promise<number>;
   updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | null>;
@@ -127,6 +129,10 @@ export class MemStorage implements IStorage {
   // This is a minimal implementation for compatibility
   
   // User Methods
+  async getAllUsers(): Promise<User[]> {
+    return this.users;
+  }
+  
   async getUserById(id: number): Promise<User | null> {
     return this.users.find(u => u.id === id) || null;
   }

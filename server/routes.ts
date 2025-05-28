@@ -1571,10 +1571,8 @@ export async function registerRoutes(app: Express) {
       });
 
       // Get users and their bookings
-      // There's no getUsers method in storage, so we'll implement a simple solution later
-      // For now, just return an empty array
-      const users = [];
-      const allBookings = await storage.getBookingWithDetails();
+      const users = await storage.getAllUsers();
+      const allBookings = await storage.getAllBookingsWithDetails();
 
       // Attach bookings to each user
       const usersWithBookings = users.map(user => ({
