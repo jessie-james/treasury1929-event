@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { registerPaymentRoutes } from "./routes-payment";
-
+import { registerPricingRoutes } from "./routes-pricing";
 import { registerVenueRoutes } from "./routes-venue";
 import { registerSeatSelectionRoutes } from "./routes-seat-selection";
 import { setupVite, log, serveStatic } from "./vite";
@@ -226,6 +226,10 @@ app.use((req, res, next) => {
     // Set up dedicated payment routes
     log("Setting up payment routes...");
     registerPaymentRoutes(app);
+    
+    // Set up pricing routes
+    log("Setting up pricing routes...");
+    registerPricingRoutes(app);
     
 
 
