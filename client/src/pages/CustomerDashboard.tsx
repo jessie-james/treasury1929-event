@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Ticket, Check, Clock, X, Calendar, MapPin, Users, QrCode, Download } from "lucide-react";
+import { Ticket, Check, Clock, X, Calendar, MapPin, Users, QrCode, Download, ArrowLeft } from "lucide-react";
+import { useLocation } from "wouter";
 import type { Booking, Event, FoodOption } from "@/../../shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -16,6 +17,7 @@ type EnrichedBooking = Booking & {
 };
 
 export default function CustomerDashboard() {
+  const [, setLocation] = useLocation();
   const { data: bookings, isLoading, error } = useQuery<EnrichedBooking[]>({
     queryKey: ["/api/user/bookings"],
   });
@@ -183,7 +185,13 @@ export default function CustomerDashboard() {
   return (
     <div>
       <div className="container py-8 space-y-6">
-        <h1 className="text-3xl font-bold">My Tickets</h1>
+        <div className="flex items-center gap-2 mb-4">
+          <Button variant="ghost" size="sm" onClick={() => setLocation('/')}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Home
+          </Button>
+          <h1 className="text-3xl font-bold">My Tickets</h1>
+        </div>
 
         <div className="space-y-4">
           {sortedBookings.map((booking) => (

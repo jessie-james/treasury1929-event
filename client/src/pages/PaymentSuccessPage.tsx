@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { CheckCircle, Download, ArrowRight } from 'lucide-react';
+import { CheckCircle, Download, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function PaymentSuccessPage() {
   const [, navigate] = useLocation();
@@ -28,6 +28,12 @@ export default function PaymentSuccessPage() {
 
   return (
     <div className="container max-w-lg mx-auto my-12 px-4">
+      <div className="mb-4">
+        <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+          <ArrowLeft className="h-4 w-4 mr-1" />
+          Back to Home
+        </Button>
+      </div>
       <Card className="border-green-100 shadow-lg">
         <CardHeader className="text-center">
           <div className="mx-auto w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-4">

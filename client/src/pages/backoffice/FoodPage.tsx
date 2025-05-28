@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 type SortOption = "display-order" | "name-asc" | "name-desc" | "price-asc" | "price-desc" | "id-asc" | "id-desc";
 
 export default function FoodPage() {
+  const [, setLocation] = useLocation();
   const [editingFoodId, setEditingFoodId] = useState<number | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("display-order");
