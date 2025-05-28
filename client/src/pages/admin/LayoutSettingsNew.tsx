@@ -19,10 +19,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { 
   Undo, Redo, Save, Trash2, Plus, Pencil, Upload, Table as TableIcon, 
   Check, ArrowDown, ArrowUp, RotateCcw, Lock, Unlock, Move, RotateCw,
-  ZoomIn, ZoomOut, MousePointer, Grid, Copy, Maximize2
+  ZoomIn, ZoomOut, MousePointer, Grid, Copy, Maximize2, ArrowLeft
 } from "lucide-react";
 // We don't need to import TableType from external file as we define our own Table interface
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 
 // Type definitions (same as original file)
 interface CanvasPosition {
@@ -127,6 +128,7 @@ export default function LayoutSettings() {
   // Toast for notifications
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   
   // State variables
   const [currentFloor, setCurrentFloor] = useState<string>("mezzanine");
@@ -951,11 +953,20 @@ export default function LayoutSettings() {
     setSelectedTables([]);
   };
 
+  // Back navigation handler
+  const handleBackToBackoffice = () => {
+    setLocation('/backoffice');
+  };
+
   // Main render
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={handleBackToBackoffice}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back
+          </Button>
           <h1 className="text-2xl font-bold">Venue Layout Manager</h1>
           
           {/* Status indicator - collaboration removed */}

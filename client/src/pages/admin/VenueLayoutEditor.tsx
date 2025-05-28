@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { VenueLayoutDesigner } from '@/components/venue/VenueLayoutDesigner';
-import { Plus, Building, Settings } from 'lucide-react';
+import { Plus, Building, Settings, ArrowLeft } from 'lucide-react';
+import { useLocation } from 'wouter';
 import type { Venue, Stage, Table } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 
