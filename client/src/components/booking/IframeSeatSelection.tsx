@@ -340,15 +340,14 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     const offsetX = (canvas.width - venue.width * scale) / 2;
     const offsetY = (canvas.height - venue.height * scale) / 2;
 
+    // Convert click coordinates to venue coordinates
+    const venueX = (x - offsetX) / scale;
+    const venueY = (y - offsetY) / scale;
+
     // Check if click is on any available table
     for (const table of availableTables) {
-      const tableX = offsetX + table.x * scale;
-      const tableY = offsetY + table.y * scale;
-      const tableWidth = table.width * scale;
-      const tableHeight = table.height * scale;
-
-      if (x >= tableX && x <= tableX + tableWidth && 
-          y >= tableY && y <= tableY + tableHeight) {
+      if (venueX >= table.x && venueX <= table.x + table.width && 
+          venueY >= table.y && venueY <= table.y + table.height) {
         setSelectedTable(table);
         break;
       }
