@@ -243,7 +243,7 @@ export default function UsersPage() {
     if (appliedFilters.minSeats) {
       result = result.filter(user =>
         user.bookings.some(booking =>
-          booking.seatNumbers.length >= (appliedFilters.minSeats || 0)
+  (booking.partySize || 0) >= (appliedFilters.minSeats || 0)
         )
       );
     }
@@ -266,8 +266,8 @@ export default function UsersPage() {
         return bEvents - aEvents; // Most events first
       } else if (sortBy === 'seats') {
         // Sort by total seats booked
-        const aSeats = a.bookings.reduce((sum, b) => sum + b.seatNumbers.length, 0);
-        const bSeats = b.bookings.reduce((sum, b) => sum + b.seatNumbers.length, 0);
+        const aSeats = a.bookings.reduce((sum, b) => sum + (b.partySize || 0), 0);
+        const bSeats = b.bookings.reduce((sum, b) => sum + (b.partySize || 0), 0);
         return bSeats - aSeats; // Most seats first
       }
       return 0;
@@ -555,7 +555,7 @@ export default function UsersPage() {
                     <div className="text-right">
                       <p className="text-sm font-medium">{user.bookings.length} Bookings</p>
                       <p className="text-xs text-muted-foreground">
-                        {user.bookings.reduce((total, booking) => total + booking.seatNumbers.length, 0)} Total Seats
+                        {user.bookings.reduce((total, booking) => total + (booking.partySize || 0), 0)} Total Seats
                       </p>
                     </div>
                   </div>
@@ -575,10 +575,10 @@ export default function UsersPage() {
                               </div>
                               <div className="flex gap-4">
                                 <p className="text-sm">
-                                  {booking.seatNumbers.length} {booking.seatNumbers.length === 1 ? 'seat' : 'seats'}
+                                  {booking.partySize || 0} {(booking.partySize || 0) === 1 ? 'seat' : 'seats'}
                                 </p>
                                 <p className="text-sm">
-                                  {booking.foodItems.length} {booking.foodItems.length === 1 ? 'item' : 'items'}
+                                  {booking.foodSelections?.length || 0} {(booking.foodSelections?.length || 0) === 1 ? 'item' : 'items'}
                                 </p>
                               </div>
                             </div>
@@ -615,17 +615,17 @@ export default function UsersPage() {
                                 </div>
                               </div>
 
-                              {booking.specialRequests && (
+                              {booking.notes && (
                                 <div>
                                   <h4 className="font-medium mb-1">Special Requests</h4>
-                                  <p className="text-sm italic">{booking.specialRequests}</p>
+                                  <p className="text-sm italic">{booking.notes}</p>
                                 </div>
                               )}
 
-                              {booking.allergens && (
+                              {user.allergens && user.allergens.length > 0 && (
                                 <div>
                                   <h4 className="font-medium mb-1">Allergens</h4>
-                                  <p className="text-sm italic">{booking.allergens}</p>
+                                  <p className="text-sm italic">{user.allergens?.join(', ')}</p>
                                 </div>
                               )}
                             </div>
