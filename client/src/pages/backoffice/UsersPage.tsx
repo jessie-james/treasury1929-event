@@ -361,74 +361,175 @@ export default function UsersPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6">
-          {/* Filters sidebar */}
-          <Card className="h-fit sticky top-4">
-            <CardHeader>
-              <CardTitle>Filters & Sorting</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="sort-by">Sort by</Label>
-                <Select 
-                  value={sortBy} 
-                  onValueChange={(value) => setSortBy(value as SortOption)}
-                >
-                  <SelectTrigger id="sort-by">
-                    <SelectValue placeholder="Sort by" />
+        {/* Compact Filters Bar */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium">Sort:</Label>
+                <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="date">Most Recent</SelectItem>
+                    <SelectItem value="date">Registration Date</SelectItem>
                     <SelectItem value="events">Number of Events</SelectItem>
-                    <SelectItem value="seats">Total Seats</SelectItem>
+                    <SelectItem value="seats">Total Seats Booked</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <Separator />
-
-              <div className="space-y-2">
-                <Label htmlFor="search">Search</Label>
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    placeholder="Search email or guest name"
-                    className="pl-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-medium">Search:</Label>
+                <Input
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-48"
+                />
               </div>
 
-              {events && events.length > 0 && (
-                <>
-                  <Separator />
-                  
-                  <div className="space-y-2">
-                    <Label>Filter by Event</Label>
-                    <div className="pl-1 space-y-2">
-                      {events.map((event) => (
-                        <div key={event.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`event-${event.id}`}
-                            checked={appliedFilters.events.includes(event.id)}
-                            onCheckedChange={() => handleEventToggle(event.id)}
-                          />
-                          <label
-                            htmlFor={`event-${event.id}`}
-                            className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            {event.title}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
+              {Object.values(appliedFilters).some(v => Array.isArray(v) ? v.length > 0 : Boolean(v)) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setFilters({})}
+                  className="ml-auto"
+                >
+                  Clear Filters
+                </Button>
               )}
+            </div>
+          </CardContent>
+        </Card>
 
-              {foodOptionsByType && Object.keys(foodOptionsByType).length > 0 && (
+        {/* User List */}
+        <div className="space-y-4">
+          {filteredUsers.map(user => (
+            <Card key={user.id} className="overflow-hidden">
+              <CardHeader className="bg-secondary/50">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      {user.email}
+                      <Badge variant={user.role === 'admin' ? 'destructive' : 'default'}>
+                        {user.role}
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      Joined {user.createdAt ? new Date(String(user.createdAt)).toLocaleDateString() : 'N/A'}
+                    </CardDescription>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">
+                      {user.bookings.length} {user.bookings.length === 1 ? 'booking' : 'bookings'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {user.bookings.reduce((sum, b) => sum + (b.partySize || 0), 0)} total seats
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {user.bookings.length > 0 ? (
+                  <Accordion type="multiple" className="w-full">
+                    {user.bookings.map(booking => (
+                      <AccordionItem key={booking.id} value={booking.id.toString()}>
+                        <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                          <div className="flex justify-between items-center w-full text-left">
+                            <div>
+                              <h3 className="font-medium">{booking.event.title}</h3>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(booking.event.date).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <div className="flex gap-4">
+                              <p className="text-sm">
+                                {booking.partySize || 0} {(booking.partySize || 0) === 1 ? 'seat' : 'seats'}
+                              </p>
+                              <p className="text-sm">
+                                {booking.foodSelections?.length || 0} {(booking.foodSelections?.length || 0) === 1 ? 'item' : 'items'}
+                              </p>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-6 py-3 bg-secondary/10">
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="font-medium mb-2">Guests</h4>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                {booking.guestNames ? Object.entries(booking.guestNames as Record<string, string>).map(([seatNumber, name]) => (
+                                  <div key={seatNumber} className="flex items-center gap-2">
+                                    <Badge variant="outline" className="h-6 w-6 flex items-center justify-center p-0 rounded-full">
+                                      {seatNumber}
+                                    </Badge>
+                                    <span className="text-sm">{String(name)}</span>
+                                  </div>
+                                )) : (
+                                  <p className="text-sm text-muted-foreground">No guest names provided</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {booking.foodSelections && booking.foodSelections.length > 0 && (
+                              <div>
+                                <h4 className="font-medium mb-2">Food Selections</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                  {booking.foodSelections.map((item: any, index: number) => (
+                                    <div key={index} className="text-sm">
+                                      <span>Selection {index + 1}: {JSON.stringify(item)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {booking.notes && (
+                              <div>
+                                <h4 className="font-medium mb-1">Special Requests</h4>
+                                <p className="text-sm italic">{booking.notes}</p>
+                              </div>
+                            )}
+
+                            {user.allergens && user.allergens.length > 0 && (
+                              <div>
+                                <h4 className="font-medium mb-1">Allergens</h4>
+                                <p className="text-sm italic">{user.allergens?.join(', ')}</p>
+                              </div>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                ) : (
+                  <div className="p-6 text-center text-muted-foreground">
+                    No bookings found for this user.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+
+          {filteredUsers.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No users match the selected filters</p>
+              <Button
+                variant="link"
+                onClick={() => {
+                  setFilters({});
+                  setSearchTerm("");
+                }}
+              >
+                Reset filters
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </BackofficeLayout>
+  );
+}
                 <>
                   <Separator />
                   
