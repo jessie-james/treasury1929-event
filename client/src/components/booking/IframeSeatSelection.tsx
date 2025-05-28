@@ -128,11 +128,12 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     ctx.fillStyle = '#f8f9fa';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Calculate base scaling to fit venue optimally
+    // Calculate base scaling to fill more of the available space
     const venue = venueLayout.venue;
     const scaleX = canvas.width / venue.width;
     const scaleY = canvas.height / venue.height;
-    const baseScale = Math.min(scaleX, scaleY) * 1.0;
+    // Use a larger multiplier to better fill the container
+    const baseScale = Math.min(scaleX, scaleY) * 1.3;
     
     // Apply zoom by scaling the base scale, not the canvas context
     const scale = baseScale * zoomLevel;
@@ -334,7 +335,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     const venue = venueLayout.venue;
     const scaleX = canvas.width / venue.width;
     const scaleY = canvas.height / venue.height;
-    const baseScale = Math.min(scaleX, scaleY) * 1.0;
+    const baseScale = Math.min(scaleX, scaleY) * 1.3;
     const scale = baseScale * zoomLevel;
 
     const offsetX = (canvas.width - venue.width * scale) / 2;
