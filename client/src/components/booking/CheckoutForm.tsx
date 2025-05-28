@@ -14,8 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, AlertTriangle, ExternalLink } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { StandaloneCheckout } from "./StandaloneCheckout";
-import { OtpPaymentForm } from "./OtpPaymentForm";
+
 
 // Debug checkout configuration
 console.log("🔍 CHECKOUT DEBUG:", {
@@ -245,18 +244,9 @@ function StripeCheckoutForm({
           </div>
         </div>
         
-        <StandaloneCheckout 
-          amount={19.99 * selectedSeats.length}
-          onSuccess={onSuccess}
-          onCancel={() => {}}
-          metadata={{
-            eventId,
-            tableId,
-            selectedSeats,
-            foodSelections,
-            guestNames
-          }}
-        />
+        <div className="flex justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
         
         <div className="text-center">
           <p className="text-sm text-gray-600">
@@ -668,31 +658,25 @@ export function CheckoutForm({
     );
   }
 
-  // If we have multiple failed payment attempts, use the OTP payment form
+  // If we have multiple failed payment attempts, show error message
   if (retryCount >= 2) {
     return (
       <div className="space-y-4">
-        {/* Notice about fallback payment method */}
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
-          <p className="font-medium">Using alternative payment method</p>
-          <p className="mt-1 text-amber-700">
-            We've switched to an alternative payment method for better reliability.
+        {/* Notice about payment issues */}
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
+          <p className="font-medium">Payment Processing Issue</p>
+          <p className="mt-1 text-red-700">
+            We're experiencing difficulties processing your payment. Please try again or contact support.
           </p>
         </div>
 
-        {/* OTP Payment Form */}
-        <OtpPaymentForm
-          amount={selectedSeats.length * 19.99}
-          metadata={{
-            eventId,
-            tableId,
-            selectedSeats: selectedSeats.join(','),
-            userEmail: user?.email,
-            userId: user?.id
-          }}
-          onSuccess={onSuccess}
-          onCancel={() => setRetryCount(0)} // Reset retry count if cancelled
-        />
+        <Button 
+          onClick={() => setRetryCount(0)} 
+          className="w-full"
+          variant="outline"
+        >
+          Try Payment Again
+        </Button>
       </div>
     );
   }

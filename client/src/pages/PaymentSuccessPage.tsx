@@ -23,36 +23,7 @@ export default function PaymentSuccessPage() {
       setBookingReference(paymentIntent);
     }
     
-    // Attempt to verify the payment status
-    async function verifyPayment() {
-      if (!paymentIntent) return;
-      
-      try {
-        // Call payment verification endpoint
-        const response = await fetch('/api/payment/verify', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            paymentIntentId: paymentIntent,
-            reference: paymentReference 
-          }),
-        });
-        
-        // Process response
-        if (response.ok) {
-          const data = await response.json();
-          if (data.reference && !bookingReference) {
-            setBookingReference(data.reference);
-          }
-        }
-      } catch (err) {
-        console.error('Error verifying payment:', err);
-      }
-    }
-    
-    verifyPayment();
+    // Note: Payment verification now happens through the standard booking flow
   }, []);
 
   return (

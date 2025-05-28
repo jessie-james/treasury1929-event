@@ -16,7 +16,7 @@ import {
   CreditCard,
   DoorOpen,
   QrCode,
-  Link as LinkIcon,
+
   TableProperties,
 } from "lucide-react";
 import { useState, useEffect } from "react";
