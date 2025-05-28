@@ -128,20 +128,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     ctx.fillStyle = '#f8f9fa';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Force venue to be much larger by setting minimum scale
+    // Calculate base scaling (without zoom distortion)
     const venue = venueLayout.venue;
-    const targetVenueWidth = canvas.width * 0.9; // Use 90% of canvas width
-    const targetVenueHeight = canvas.height * 0.9; // Use 90% of canvas height
+    const scaleX = canvas.width / venue.width;
+    const scaleY = canvas.height / venue.height;
+    const baseScale = Math.min(scaleX, scaleY) * 0.9;
     
-    const scaleX = targetVenueWidth / venue.width;
-    const scaleY = targetVenueHeight / venue.height;
-    const calculatedScale = Math.min(scaleX, scaleY);
-    
-    // Force a minimum scale to ensure venue is always large enough
-    const minScale = 1.5; // Force at least 150% scale
-    const baseScale = Math.max(calculatedScale, minScale);
-    
-    // Apply zoom by scaling the base scale
+    // Apply zoom by scaling the base scale, not the canvas context
     const scale = baseScale * zoomLevel;
 
     const offsetX = (canvas.width - venue.width * scale) / 2;
@@ -339,16 +332,9 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
 
     // Calculate scaling (same as in drawVenueLayout)
     const venue = venueLayout.venue;
-    const targetVenueWidth = canvas.width * 0.9;
-    const targetVenueHeight = canvas.height * 0.9;
-    
-    const scaleX = targetVenueWidth / venue.width;
-    const scaleY = targetVenueHeight / venue.height;
-    const calculatedScale = Math.min(scaleX, scaleY);
-    
-    // Force a minimum scale to ensure venue is always large enough
-    const minScale = 1.5;
-    const baseScale = Math.max(calculatedScale, minScale);
+    const scaleX = canvas.width / venue.width;
+    const scaleY = canvas.height / venue.height;
+    const baseScale = Math.min(scaleX, scaleY) * 0.9;
     const scale = baseScale * zoomLevel;
 
     const offsetX = (canvas.width - venue.width * scale) / 2;
@@ -406,7 +392,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
               <span className="ml-2">Loading venue layout...</span>
             </div>
           ) : venueLayout ? (
-            <div className="relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: '500px' }}>
+            <div className="relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: '400px' }}>
               <ZoomContainer
                 ref={zoomContainerRef}
                 initialZoom={zoomLevel}
