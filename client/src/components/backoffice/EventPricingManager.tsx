@@ -65,9 +65,9 @@ export function EventPricingManager({ eventId }: EventPricingManagerProps) {
   // Create pricing tier mutation
   const createTierMutation = useMutation({
     mutationFn: (data: PricingTierForm) => 
-      apiRequest(`/api/events/${eventId}/pricing-tiers`, {
-        method: "POST",
-        body: JSON.stringify({ ...data, price: Math.round(data.price * 100) }), // Convert to cents
+      apiRequest("POST", `/api/events/${eventId}/pricing-tiers`, { 
+        ...data, 
+        price: Math.round(data.price * 100) // Convert to cents
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events", eventId, "pricing-tiers"] });

@@ -1411,7 +1411,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Name and price are required" });
       }
 
-      const [newTier] = await db.insert(eventPricingTiers)
+      const newTiers = await db.insert(eventPricingTiers)
         .values({
           eventId,
           name,
@@ -1420,6 +1420,8 @@ export async function registerRoutes(app: Express) {
           displayOrder: displayOrder || 0
         })
         .returning();
+        
+      const newTier = newTiers[0];
 
       res.status(201).json(newTier);
     } catch (error) {
