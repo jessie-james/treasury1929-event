@@ -305,8 +305,15 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     if (!canvas || !venueLayout) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    
+    // Get click position relative to canvas
+    let x = event.clientX - rect.left;
+    let y = event.clientY - rect.top;
+
+    // Adjust for current zoom level - simpler approach
+    // The canvas is scaled by zoomLevel, so we need to account for that
+    x = x / zoomLevel;
+    y = y / zoomLevel;
 
     // Convert to venue coordinates
     const venue = venueLayout.venue;
@@ -352,27 +359,15 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
         <p className="text-muted-foreground">
           Click on an available table in the venue layout below. Use mouse wheel or controls to zoom and drag to pan around.
         </p>
-        
-        <div className="flex gap-2 items-center justify-between mb-4">
-          <ZoomControls
-            zoom={zoomLevel}
-            onZoomIn={zoomIn}
-            onZoomOut={zoomOut}
-            onReset={resetZoom}
-            minZoom={0.5}
-            maxZoom={3}
-          />
-          
-          <Badge variant="outline">
-            {availableTables.length} of {venueLayout?.tables?.length || 0} tables available
-          </Badge>
-        </div>
       </div>
 
       <Card>
         <CardContent className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-medium">Venue Layout</h3>
+            <Badge variant="outline">
+              {availableTables.length} of {venueLayout?.tables?.length || 0} tables available
+            </Badge>
           </div>
           
           {isLoading ? (
