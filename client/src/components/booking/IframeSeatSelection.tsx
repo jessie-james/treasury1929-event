@@ -55,12 +55,29 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   // Handle zoom change from ZoomContainer
   const handleZoomChange = (newZoom: number) => {
     setZoomLevel(newZoom);
+    // Redraw canvas when zoom changes
+    if (canvasRef.current && venueLayout) {
+      drawVenueLayout();
+    }
   };
 
   // Zoom control functions
-  const zoomIn = () => setZoomLevel(prev => Math.min(prev + 0.2, 3));
-  const zoomOut = () => setZoomLevel(prev => Math.max(prev - 0.2, 0.5));
-  const resetZoom = () => setZoomLevel(1);
+  const zoomIn = () => {
+    const newZoom = Math.min(zoomLevel + 0.2, 3);
+    setZoomLevel(newZoom);
+    handleZoomChange(newZoom);
+  };
+  
+  const zoomOut = () => {
+    const newZoom = Math.max(zoomLevel - 0.2, 0.5);
+    setZoomLevel(newZoom);
+    handleZoomChange(newZoom);
+  };
+  
+  const resetZoom = () => {
+    setZoomLevel(1);
+    handleZoomChange(1);
+  };
 
   // Fetch event data to get venue ID
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
@@ -91,7 +108,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     if (canvasRef.current && venueLayout) {
       drawVenueLayout();
     }
-  }, [venueLayout, selectedTable, existingBookings]);
+  }, [venueLayout, selectedTable, existingBookings, zoomLevel]);
 
   const drawVenueLayout = () => {
     const canvas = canvasRef.current;
@@ -111,14 +128,22 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     ctx.fillStyle = '#f8f9fa';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Calculate scaling
+    // Apply zoom transformation at the beginning
+    ctx.save();
+    ctx.scale(zoomLevel, zoomLevel);
+    
+    // Adjust canvas drawing coordinates for zoom
+    const scaledWidth = canvas.width / zoomLevel;
+    const scaledHeight = canvas.height / zoomLevel;
+
+    // Calculate scaling using adjusted dimensions for zoom
     const venue = venueLayout.venue;
-    const scaleX = canvas.width / venue.width;
-    const scaleY = canvas.height / venue.height;
+    const scaleX = scaledWidth / venue.width;
+    const scaleY = scaledHeight / venue.height;
     const scale = Math.min(scaleX, scaleY) * 0.9;
 
-    const offsetX = (canvas.width - venue.width * scale) / 2;
-    const offsetY = (canvas.height - venue.height * scale) / 2;
+    const offsetX = (scaledWidth - venue.width * scale) / 2;
+    const offsetY = (scaledHeight - venue.height * scale) / 2;
 
     // Draw venue outline
     ctx.strokeStyle = '#d1d5db';
@@ -297,6 +322,9 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       
       ctx.restore();
     });
+    
+    // Restore the main canvas context after all drawing
+    ctx.restore();
   };
 
   // Handle canvas click for table selection
