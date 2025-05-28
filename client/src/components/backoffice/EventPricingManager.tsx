@@ -59,7 +59,7 @@ export function EventPricingManager({ eventId }: EventPricingManagerProps) {
 
   // Fetch pricing tiers for this event
   const { data: pricingTiers = [], isLoading } = useQuery<PricingTier[]>({
-    queryKey: ["/api/events", eventId, "pricing-tiers"],
+    queryKey: [`/api/events/${eventId}/pricing-tiers`],
   });
 
   // Create pricing tier mutation
@@ -67,7 +67,7 @@ export function EventPricingManager({ eventId }: EventPricingManagerProps) {
     mutationFn: (data: PricingTierForm) => 
       apiRequest("POST", `/api/events/${eventId}/pricing-tiers`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/events", eventId, "pricing-tiers"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}/pricing-tiers`] });
       setIsDialogOpen(false);
       form.reset();
       toast({
