@@ -496,7 +496,7 @@ export function BookingManagement() {
             <DialogTitle>Change Seats for Booking #{selectedBooking?.id}</DialogTitle>
             <DialogDescription>
               Modify seat assignments for this booking. Current table: {selectedBooking?.tableId}, 
-              Table: {selectedBooking?.table?.name || selectedBooking?.tableId}, Party Size: {selectedBooking?.partySize}
+              Table: {selectedBooking?.table?.tableNumber || selectedBooking?.tableId}, Party Size: {selectedBooking?.partySize}
             </DialogDescription>
           </DialogHeader>
           
@@ -667,12 +667,12 @@ export function BookingManagement() {
                   <div>
                     <h4 className="text-sm mb-1">Dessert</h4>
                     <Select 
-                      value={(foodSelections[`seat-${seatNumber}`]?.dessert || "0").toString()} 
+                      value={(foodSelections[`guest-${index}`]?.dessert || "0").toString()} 
                       onValueChange={(value) => {
                         setFoodSelections(prev => ({
                           ...prev,
-                          [`seat-${seatNumber}`]: {
-                            ...prev[`seat-${seatNumber}`] || {},
+                          [`guest-${index}`]: {
+                            ...prev[`guest-${index}`] || {},
                             dessert: parseInt(value)
                           }
                         }))
@@ -695,7 +695,7 @@ export function BookingManagement() {
             
             <div className="text-sm text-muted-foreground mt-4">
               <p>Event: {selectedBooking?.event.title}</p>
-              <p>Seats: {selectedBooking?.seatNumbers.join(", ")}</p>
+              <p>Table: {selectedBooking?.tableId}, Party Size: {selectedBooking?.partySize}</p>
               <p>Status: {selectedBooking?.status}</p>
             </div>
           </div>
