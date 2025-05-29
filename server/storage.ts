@@ -190,8 +190,25 @@ export class PgStorage implements IStorage {
   }
 
   // Booking methods - Updated for table-based booking
-  async getBookings(): Promise<Booking[]> {
-    return await db.select().from(schema.bookings).orderBy(desc(schema.bookings.createdAt));
+  async getBookings(): Promise<BookingWithDetails[]> {
+    const bookings = await db.select({
+      booking: schema.bookings,
+      event: schema.events,
+      user: schema.users,
+      table: schema.tables,
+    })
+    .from(schema.bookings)
+    .leftJoin(schema.events, eq(schema.bookings.eventId, schema.events.id))
+    .leftJoin(schema.users, eq(schema.bookings.userId, schema.users.id))
+    .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
+    .orderBy(desc(schema.bookings.createdAt));
+
+    return bookings.map(({ booking, event, user, table }) => ({
+      ...booking,
+      event: event!,
+      user: user!,
+      table: table!,
+    }));
   }
 
   async getBookingsByUserId(userId: number): Promise<BookingWithDetails[]> {

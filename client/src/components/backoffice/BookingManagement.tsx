@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { type Booking, type Event, type FoodOption, type User, type Table as DbTable, type Seat } from "@shared/schema";
+import { type Booking, type Event, type FoodOption, type User, type Table as DbTable, type Seat, type BookingWithDetails } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,10 +36,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 
-type EnrichedBooking = Booking & { 
-  event: Event; 
-  foodItems: FoodOption[];
-  user: User;
+type EnrichedBooking = BookingWithDetails & { 
+  foodItems?: FoodOption[];
 };
 
 export function BookingManagement() {
@@ -65,20 +63,6 @@ export function BookingManagement() {
   
   const { data: bookings, isLoading } = useQuery<EnrichedBooking[]>({
     queryKey: ["/api/bookings"],
-    queryFn: async () => {
-      const res = await apiRequest("GET", "/api/bookings");
-      const bookingsData = await res.json();
-      
-      // Fetch detailed info for each booking
-      const enrichedBookings = await Promise.all(
-        bookingsData.map(async (booking: Booking) => {
-          const detailRes = await apiRequest("GET", `/api/bookings/${booking.id}`);
-          return await detailRes.json();
-        })
-      );
-      
-      return enrichedBookings;
-    }
   });
   
   const cancelBookingMutation = useMutation({
