@@ -291,6 +291,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   const { data: eventVenueLayouts, isLoading: isLoadingVenues, error: venueError } = useQuery({
     queryKey: [`/api/events/${eventId}/venue-layouts`],
     enabled: !!eventId,
+    retry: 1
+  });
+
+  // Fallback: Fetch event data if venue layouts aren't available
+  const { data: eventData, isLoading: isLoadingEvent } = useQuery({
+    queryKey: [`/api/events/${eventId}`],
+    enabled: !!eventId && (!eventVenueLayouts || !!venueError),
     retry: 2
   });
 
@@ -305,19 +312,27 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     retry: 2
   });
 
-  // Get the current venue layout based on selected venue
+  // Get the current venue layout based on selected venue or fallback to event data
   const currentVenueLayout: VenueLayout | undefined = useMemo(() => {
-    if (!eventVenueLayouts || !Array.isArray(eventVenueLayouts) || eventVenueLayouts.length === 0) return undefined;
+    // First try new venue layouts system
+    if (eventVenueLayouts && Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 0) {
+      const selected = eventVenueLayouts[selectedVenueIndex];
+      if (selected) {
+        return {
+          venue: selected.venue,
+          tables: selected.tables,
+          stages: selected.stages
+        };
+      }
+    }
     
-    const selected = eventVenueLayouts[selectedVenueIndex];
-    if (!selected) return undefined;
+    // Fallback to event data structure
+    if (eventData && (eventData as any).venueLayout) {
+      return (eventData as any).venueLayout;
+    }
     
-    return {
-      venue: selected.venue,
-      tables: selected.tables,
-      stages: selected.stages
-    };
-  }, [eventVenueLayouts, selectedVenueIndex]);
+    return undefined;
+  }, [eventVenueLayouts, selectedVenueIndex, eventData]);
   
   // Memoize available tables calculation
   const { availableTables, bookedTableIds } = useMemo(() => {
@@ -480,8 +495,8 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     }
   }, [selectedTable, onComplete]);
 
-  const isLoading = isLoadingVenues;
-  const hasError = venueError || bookingsError;
+  const isLoading = isLoadingVenues || isLoadingEvent;
+  const hasError = venueError && !eventData || bookingsError;
 
   if (hasError) {
     return (
