@@ -155,10 +155,11 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
       return;
     }
 
+    const venueCount = Array.isArray(eventVenues) ? eventVenues.length : 0;
     addVenueMutation.mutate({
       venueId: selectedVenueId,
       displayName: displayName.trim(),
-      displayOrder: eventVenues.length,
+      displayOrder: venueCount,
     });
   };
 
@@ -173,7 +174,8 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
   };
 
   const handleRemoveVenue = (venueId: number) => {
-    if (eventVenues.length <= 1) {
+    const venueCount = Array.isArray(eventVenues) ? eventVenues.length : 0;
+    if (venueCount <= 1) {
       toast({
         title: "Error",
         description: "Cannot remove the last venue from an event",
@@ -184,11 +186,11 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
     removeVenueMutation.mutate(venueId);
   };
 
-  const availableVenues = allVenues.filter(venue => 
-    !eventVenues.some(ev => ev.venueId === venue.id)
-  );
+  const availableVenues = Array.isArray(allVenues) ? allVenues.filter((venue: any) => 
+    !Array.isArray(eventVenues) || !eventVenues.some((ev: any) => ev.venueId === venue.id)
+  ) : [];
 
-  const canAddVenue = eventVenues.length < 2 && availableVenues.length > 0;
+  const canAddVenue = Array.isArray(eventVenues) && eventVenues.length < 2 && availableVenues.length > 0;
 
   if (isNewEvent) {
     return (
@@ -244,7 +246,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
                         <SelectValue placeholder="Choose a venue layout" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableVenues.map((venue) => (
+                        {availableVenues.map((venue: any) => (
                           <SelectItem key={venue.id} value={venue.id.toString()}>
                             {venue.name}
                           </SelectItem>
@@ -280,7 +282,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
       <CardContent>
         {loadingEventVenues ? (
           <div className="text-center py-6">Loading venue layouts...</div>
-        ) : eventVenues.length === 0 ? (
+        ) : !Array.isArray(eventVenues) || eventVenues.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Building className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No venue layouts configured</p>
@@ -288,7 +290,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
           </div>
         ) : (
           <div className="space-y-4">
-            {eventVenues.map((eventVenue, index) => (
+            {eventVenues.map((eventVenue: any, index: number) => (
               <div key={eventVenue.id} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
