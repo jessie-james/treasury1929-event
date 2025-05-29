@@ -287,7 +287,15 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
                     <Label>Select Venue</Label>
                     <Select 
                       value={selectedVenueId?.toString() || ""} 
-                      onValueChange={(value) => setSelectedVenueId(Number(value))}
+                      onValueChange={(value) => {
+                        const venueId = Number(value);
+                        setSelectedVenueId(venueId);
+                        // Auto-set display name based on venue selection
+                        const selectedVenue = availableVenues.find(v => v.id === venueId);
+                        if (selectedVenue) {
+                          setDisplayName(selectedVenue.name);
+                        }
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Choose a venue layout" />
@@ -351,7 +359,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
                     <div>
                       <p className="font-medium">{eventVenue.displayName}</p>
                       <p className="text-sm text-muted-foreground">
-                        {eventVenue.venue?.name || `Venue ID: ${eventVenue.venueId}`}
+                        {eventVenue.venue && eventVenue.venue.name ? eventVenue.venue.name : `Venue ID: ${eventVenue.venueId}`}
                       </p>
                     </div>
                   </div>
@@ -376,7 +384,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
                         <div className="space-y-4">
                           <div>
                             <Label>Venue</Label>
-                            <Input value={eventVenue.venue?.name || `Venue ID: ${eventVenue.venueId}`} disabled />
+                            <Input value={eventVenue.venue && eventVenue.venue.name ? eventVenue.venue.name : `Venue ID: ${eventVenue.venueId}`} disabled />
                           </div>
                           <div>
                             <Label>Display Name</Label>
