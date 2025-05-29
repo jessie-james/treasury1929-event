@@ -424,25 +424,15 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
 
   // Zoom controls
   const zoomIn = useCallback(() => {
-    setViewport(prev => ({
-      ...prev,
-      zoom: Math.min(5, prev.zoom + 0.2)
-    }));
+    setViewport(prev => ({ ...prev, zoom: Math.min(5, prev.zoom + 0.2) }));
   }, []);
 
   const zoomOut = useCallback(() => {
-    setViewport(prev => ({
-      ...prev,
-      zoom: Math.max(0.2, prev.zoom - 0.2)
-    }));
+    setViewport(prev => ({ ...prev, zoom: Math.max(0.2, prev.zoom - 0.2) }));
   }, []);
 
   const resetView = useCallback(() => {
-    setViewport({
-      zoom: 1,
-      panX: 0,
-      panY: 0
-    });
+    setViewport({ zoom: 1, panX: 0, panY: 0 });
   }, []);
 
   const handleConfirmSelection = useCallback(() => {
@@ -460,16 +450,18 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
 
   if (hasError) {
     return (
-      <div className="space-y-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center text-red-600">
-              <p>Error loading venue layout. Please try again.</p>
-              <p className="text-sm mt-2">{eventError?.message || bookingsError?.message}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center p-8">
+            <p className="text-red-600 mb-4">
+              Failed to load venue data. Please try again.
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -478,7 +470,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">Select Your Table</h2>
         <p className="text-muted-foreground">
-          Click on an available table in the venue layout below. Use mouse wheel to zoom and drag to pan around.
+          Click on an available table. Use mouse wheel to zoom and drag to pan around the venue.
         </p>
       </div>
 
@@ -491,27 +483,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
                 {availableTables.length} of {venueLayout?.tables?.length || 0} tables available
               </Badge>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={zoomOut}
-                  disabled={viewport.zoom <= 0.2}
-                >
+                <Button size="sm" variant="outline" onClick={zoomOut}>
                   -
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetView}
-                >
+                <Button size="sm" variant="outline" onClick={resetView}>
                   Reset
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={zoomIn}
-                  disabled={viewport.zoom >= 5}
-                >
+                <Button size="sm" variant="outline" onClick={zoomIn}>
                   +
                 </Button>
               </div>
@@ -527,40 +505,55 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
             <div className="relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: '500px' }}>
               <canvas
                 ref={canvasRef}
-                className="w-full h-full cursor-pointer"
+                className="w-full h-full cursor-grab active:cursor-grabbing"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
                 onWheel={handleWheel}
-                style={{ 
-                  display: 'block',
-                  cursor: isDragging ? 'grabbing' : 'grab'
-                }}
+                style={{ display: 'block' }}
               />
+              
+              {/* Legend */}
+              <div className="absolute top-4 left-4 bg-white p-3 rounded-lg shadow-md">
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-gray-200 border-2 border-gray-400 rounded-full"></div>
+                    <span>Available</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-500 border-2 border-blue-700 rounded-full"></div>
+                    <span>Selected</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-500 border-2 border-red-700 rounded-full"></div>
+                    <span>Booked</span>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="text-center p-8">
               <p className="text-gray-600">
-                Unable to load venue layout. Please try again.
+                No venue layout available for this event.
               </p>
             </div>
           )}
           
-          {/* Selection Summary */}
           {selectedTable && (
-            <div className="mt-6 p-4 bg-blue-50 rounded-md border border-blue-200">
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
               <h3 className="font-medium mb-1 text-blue-900">Selected Table:</h3>
-              <p className="text-sm text-blue-800">Table {selectedTable.tableNumber} ({selectedTable.capacity} seats)</p>
+              <p className="text-sm text-blue-800">
+                Table {selectedTable.tableNumber} ({selectedTable.capacity} seats)
+              </p>
               <p className="text-xs text-blue-600 mt-1">
-                You will need to provide guest details for each seat at this table.
+                You will provide guest details for each seat at this table.
               </p>
             </div>
           )}
         </CardContent>
       </Card>
       
-      {/* Continue button */}
       <div className="flex justify-center">
         <Button
           size="lg"
