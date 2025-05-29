@@ -50,12 +50,12 @@ export class PgStorage implements IStorage {
     return result[0] || null;
   }
 
-  async createUser(userData: any): Promise<number> {
+  async createUser(userData: any): Promise<User> {
     if (userData.password) {
       userData.password = await hashPassword(userData.password);
     }
-    const result = await db.insert(schema.users).values(userData).returning({ id: schema.users.id });
-    return result[0].id;
+    const result = await db.insert(schema.users).values(userData).returning();
+    return result[0];
   }
 
   async updateUserProfile(userId: number, profile: Partial<User>): Promise<User | null> {

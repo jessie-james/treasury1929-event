@@ -12,7 +12,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   getUserById(id: number): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | null>;
-  createUser(userData: any): Promise<number>;
+  createUser(userData: any): Promise<User>;
   updateUserProfile(userId: number, profile: Partial<User>): Promise<User | null>;
   updateUserPassword(userId: number, newPassword: string): Promise<boolean>;
   updateUserDietaryPreferences(userId: number, allergens: string[], dietaryRestrictions: string[]): Promise<boolean>;
@@ -141,11 +141,11 @@ export class MemStorage implements IStorage {
     return this.users.find(u => u.email === email) || null;
   }
   
-  async createUser(userData: any): Promise<number> {
+  async createUser(userData: any): Promise<User> {
     const id = this.users.length + 1;
     const user = { ...userData, id };
     this.users.push(user as User);
-    return id;
+    return user as User;
   }
   
   async updateUserProfile(userId: number, profile: Partial<User>): Promise<User | null> {
