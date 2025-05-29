@@ -11,6 +11,9 @@ import {
   eventTableAssignments,
   insertEventPricingTierSchema,
   insertEventTableAssignmentSchema,
+  eventVenues,
+  insertEventVenueSchema,
+  venues,
   tables,
   NewUser, 
   User, 
@@ -761,6 +764,246 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching event bookings:", error);
       res.status(500).json({ message: "Failed to fetch event bookings" });
+    }
+  });
+
+  // Event Venues Management API endpoints
+  // Get all venues for a specific event
+  app.get("/api/events/:eventId/venues", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const eventVenuesList = await db
+        .select({
+          id: eventVenues.id,
+          eventId: eventVenues.eventId,
+          venueId: eventVenues.venueId,
+          displayName: eventVenues.displayName,
+          displayOrder: eventVenues.displayOrder,
+          isActive: eventVenues.isActive,
+          venue: {
+            id: venues.id,
+            name: venues.name,
+            description: venues.description,
+            width: venues.width,
+            height: venues.height,
+          }
+        })
+        .from(eventVenues)
+        .leftJoin(venues, eq(eventVenues.venueId, venues.id))
+        .where(eq(eventVenues.eventId, eventId))
+        .orderBy(eventVenues.displayOrder);
+
+      res.json(eventVenuesList);
+    } catch (error) {
+      console.error("Error fetching event venues:", error);
+      res.status(500).json({ message: "Failed to fetch event venues" });
+    }
+  });
+
+  // Add venue to event (max 2 venues per event)
+  app.post("/api/events/:eventId/venues", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      // Validate input
+      const venueData = insertEventVenueSchema.parse({
+        ...req.body,
+        eventId
+      });
+
+      // Check if event exists
+      const event = await storage.getEventById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      // Check venue limit (max 2)
+      const existingVenues = await db
+        .select()
+        .from(eventVenues)
+        .where(eq(eventVenues.eventId, eventId));
+
+      if (existingVenues.length >= 2) {
+        return res.status(400).json({ message: "Maximum 2 venues allowed per event" });
+      }
+
+      // Check if venue already exists for this event
+      const venueExists = existingVenues.some(ev => ev.venueId === venueData.venueId);
+      if (venueExists) {
+        return res.status(400).json({ message: "Venue already added to this event" });
+      }
+
+      // Validate display name uniqueness within the event
+      const nameExists = existingVenues.some(ev => ev.displayName === venueData.displayName);
+      if (nameExists) {
+        return res.status(400).json({ message: "Display name already used for this event" });
+      }
+
+      // Insert the new event venue
+      const [newEventVenue] = await db
+        .insert(eventVenues)
+        .values(venueData)
+        .returning();
+
+      // Create admin log
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "add_event_venue",
+        entityType: "event",
+        entityId: eventId,
+        details: {
+          venueId: venueData.venueId,
+          displayName: venueData.displayName
+        }
+      });
+
+      res.status(201).json(newEventVenue);
+    } catch (error) {
+      console.error("Error adding venue to event:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid input", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to add venue to event" });
+      }
+    }
+  });
+
+  // Update event venue (display name, order)
+  app.put("/api/events/:eventId/venues/:venueId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      const venueId = parseInt(req.params.venueId);
+      
+      if (isNaN(eventId) || isNaN(venueId)) {
+        return res.status(400).json({ message: "Invalid event or venue ID" });
+      }
+
+      const { displayName, displayOrder } = req.body;
+
+      // Check if the event venue exists
+      const [existingEventVenue] = await db
+        .select()
+        .from(eventVenues)
+        .where(and(
+          eq(eventVenues.eventId, eventId),
+          eq(eventVenues.venueId, venueId)
+        ));
+
+      if (!existingEventVenue) {
+        return res.status(404).json({ message: "Event venue not found" });
+      }
+
+      // Check display name uniqueness (if changing)
+      if (displayName && displayName !== existingEventVenue.displayName) {
+        const nameExists = await db
+          .select()
+          .from(eventVenues)
+          .where(and(
+            eq(eventVenues.eventId, eventId),
+            eq(eventVenues.displayName, displayName),
+            eq(eventVenues.venueId, venueId).not()
+          ));
+
+        if (nameExists.length > 0) {
+          return res.status(400).json({ message: "Display name already used for this event" });
+        }
+      }
+
+      // Update the event venue
+      const updateData: any = {};
+      if (displayName !== undefined) updateData.displayName = displayName;
+      if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
+
+      const [updatedEventVenue] = await db
+        .update(eventVenues)
+        .set(updateData)
+        .where(and(
+          eq(eventVenues.eventId, eventId),
+          eq(eventVenues.venueId, venueId)
+        ))
+        .returning();
+
+      // Create admin log
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "update_event_venue",
+        entityType: "event",
+        entityId: eventId,
+        details: {
+          venueId: venueId,
+          changes: updateData
+        }
+      });
+
+      res.json(updatedEventVenue);
+    } catch (error) {
+      console.error("Error updating event venue:", error);
+      res.status(500).json({ message: "Failed to update event venue" });
+    }
+  });
+
+  // Remove venue from event
+  app.delete("/api/events/:eventId/venues/:venueId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role === "customer") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      const venueId = parseInt(req.params.venueId);
+      
+      if (isNaN(eventId) || isNaN(venueId)) {
+        return res.status(400).json({ message: "Invalid event or venue ID" });
+      }
+
+      // Check if there's at least one venue remaining
+      const allEventVenues = await db
+        .select()
+        .from(eventVenues)
+        .where(eq(eventVenues.eventId, eventId));
+
+      if (allEventVenues.length <= 1) {
+        return res.status(400).json({ message: "Cannot remove last venue from event" });
+      }
+
+      // Delete the event venue
+      const deletedRows = await db
+        .delete(eventVenues)
+        .where(and(
+          eq(eventVenues.eventId, eventId),
+          eq(eventVenues.venueId, venueId)
+        ));
+
+      // Create admin log
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "remove_event_venue",
+        entityType: "event",
+        entityId: eventId,
+        details: {
+          venueId: venueId
+        }
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing venue from event:", error);
+      res.status(500).json({ message: "Failed to remove venue from event" });
     }
   });
 
