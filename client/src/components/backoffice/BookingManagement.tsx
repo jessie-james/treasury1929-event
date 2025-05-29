@@ -527,29 +527,28 @@ export function BookingManagement() {
               </div>
               
               <div>
-                <h3 className="font-medium mb-2">Select Seats</h3>
-                <div className="flex flex-wrap gap-2">
-                  {[1, 2, 3, 4].map((seatNumber) => (
-                    <div key={seatNumber} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`seat-${seatNumber}`}
-                        checked={selectedSeatNumbers.includes(seatNumber)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedSeatNumbers(prev => [...prev, seatNumber]);
-                          } else {
-                            setSelectedSeatNumbers(prev => prev.filter(num => num !== seatNumber));
-                          }
-                        }}
-                      />
-                      <label
-                        htmlFor={`seat-${seatNumber}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Seat {seatNumber}
-                      </label>
-                    </div>
-                  ))}
+                <h3 className="font-medium mb-2">Table Assignment</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Table ID</label>
+                    <Input
+                      type="number"
+                      value={selectedTableId || ""}
+                      onChange={(e) => setSelectedTableId(parseInt(e.target.value) || 0)}
+                      placeholder="Enter table ID"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Party Size</label>
+                    <Input
+                      type="number"
+                      value={selectedPartySize}
+                      onChange={(e) => setSelectedPartySize(parseInt(e.target.value) || 1)}
+                      placeholder="Enter party size"
+                      min="1"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -559,7 +558,7 @@ export function BookingManagement() {
               <div className="text-sm text-muted-foreground">
                 <p>Event: {selectedBooking?.event.title}</p>
                 <p>Original Table: {selectedBooking?.tableId}</p>
-                <p>Current Table: {selectedBooking?.table?.name || selectedBooking?.tableId}, Party Size: {selectedBooking?.partySize}</p>
+                <p>Current Table: {selectedBooking?.tableId}, Party Size: {selectedBooking?.partySize}</p>
                 <p>Status: {selectedBooking?.status}</p>
               </div>
             </div>
@@ -571,15 +570,15 @@ export function BookingManagement() {
             </Button>
             <Button 
               onClick={() => {
-                if (selectedBooking && selectedTableId && selectedSeatNumbers.length > 0) {
+                if (selectedBooking && selectedTableId && selectedPartySize > 0) {
                   changeSeatsBookingMutation.mutate({
                     bookingId: selectedBooking.id,
                     tableId: selectedTableId,
-                    seatNumbers: selectedSeatNumbers
+                    partySize: selectedPartySize
                   });
                 }
               }}
-              disabled={!selectedTableId || selectedSeatNumbers.length === 0 || changeSeatsBookingMutation.isPending}
+              disabled={!selectedTableId || selectedPartySize <= 0 || changeSeatsBookingMutation.isPending}
             >
               {changeSeatsBookingMutation.isPending ? (
                 <>
@@ -608,20 +607,20 @@ export function BookingManagement() {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {selectedBooking?.seatNumbers.map((seatNumber, index) => (
-              <div key={seatNumber} className="space-y-3 p-3 border rounded-md">
-                <h3 className="font-medium">Seat {seatNumber}</h3>
+            {Array.from({ length: selectedBooking?.partySize || 1 }, (_, index) => (
+              <div key={index} className="space-y-3 p-3 border rounded-md">
+                <h3 className="font-medium">Guest {index + 1}</h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <h4 className="text-sm mb-1">Salad</h4>
                     <Select 
-                      value={(foodSelections[`seat-${seatNumber}`]?.salad || "0").toString()} 
+                      value={(foodSelections[`guest-${index}`]?.salad || "0").toString()} 
                       onValueChange={(value) => {
                         setFoodSelections(prev => ({
                           ...prev,
-                          [`seat-${seatNumber}`]: {
-                            ...prev[`seat-${seatNumber}`] || {},
+                          [`guest-${index}`]: {
+                            ...prev[`guest-${index}`] || {},
                             salad: parseInt(value)
                           }
                         }))
@@ -642,12 +641,12 @@ export function BookingManagement() {
                   <div>
                     <h4 className="text-sm mb-1">Entrée</h4>
                     <Select 
-                      value={(foodSelections[`seat-${seatNumber}`]?.entree || "0").toString()} 
+                      value={(foodSelections[`guest-${index}`]?.entree || "0").toString()} 
                       onValueChange={(value) => {
                         setFoodSelections(prev => ({
                           ...prev,
-                          [`seat-${seatNumber}`]: {
-                            ...prev[`seat-${seatNumber}`] || {},
+                          [`guest-${index}`]: {
+                            ...prev[`guest-${index}`] || {},
                             entree: parseInt(value)
                           }
                         }))
