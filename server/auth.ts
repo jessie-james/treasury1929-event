@@ -399,43 +399,7 @@ export function setupAuth(app: Express) {
     });
   });
   
-  // User preferences endpoint - to update allergens and dietary restrictions
-  app.patch("/api/user/preferences", async (req, res) => {
-    if (!req.isAuthenticated()) {
-      console.log("Preferences update rejected: User not authenticated");
-      return res.status(401).json({ error: "Not authenticated" });
-    }
-    
-    try {
-      console.log(`Updating preferences for user ${req.user!.id}:`, req.body);
-      const { allergens, dietaryRestrictions } = req.body;
-      
-      // Validate the data
-      if (!Array.isArray(allergens) || !Array.isArray(dietaryRestrictions)) {
-        console.log("Invalid preference data format:", req.body);
-        return res.status(400).json({ error: "Invalid data format", details: "Both allergens and dietaryRestrictions must be arrays" });
-      }
-      
-      // Update the user preferences
-      const updatedUser = await storage.updateUser(req.user!.id, {
-        allergens,
-        dietaryRestrictions
-      });
-      
-      console.log(`Successfully updated preferences for user ${req.user!.id}`);
-      
-      // Don't send the password hash to the client
-      const { password, ...userWithoutPassword } = updatedUser;
-      res.json(userWithoutPassword);
-    } catch (error: any) {
-      console.error("Error updating user preferences:", error);
-      const errorMessage = error.message || "Failed to update preferences";
-      res.status(500).json({ 
-        error: "Failed to update preferences", 
-        details: errorMessage
-      });
-    }
-  });
+
   
   // User profile endpoint - to update personal information
   app.patch("/api/user/profile", async (req, res) => {
@@ -460,7 +424,7 @@ export function setupAuth(app: Express) {
       }
       
       // Update the user profile information
-      const updatedUser = await storage.updateUser(req.user!.id, {
+      const updatedUser = await storage.updateUserProfile(req.user!.id, {
         firstName,
         lastName,
         phone
