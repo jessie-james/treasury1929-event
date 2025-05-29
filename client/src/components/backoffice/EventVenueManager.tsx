@@ -60,13 +60,45 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
     queryKey: ['/api/admin/venues'],
   });
 
-  // Add error handling
+  // Add error handling and render error states
   if (eventVenuesError) {
     console.error("Error loading event venues:", eventVenuesError);
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building className="w-5 h-5" />
+            Venue Layouts
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6 text-destructive">
+            <p>Failed to load event venues</p>
+            <p className="text-sm text-muted-foreground">Please try refreshing the page</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
   
   if (venuesError) {
     console.error("Error loading venues:", venuesError);
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building className="w-5 h-5" />
+            Venue Layouts
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-6 text-destructive">
+            <p>Failed to load venues</p>
+            <p className="text-sm text-muted-foreground">Please try refreshing the page</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   // Add venue to event mutation
@@ -193,9 +225,13 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
     removeVenueMutation.mutate(venueId);
   };
 
-  // Safely handle the data with proper type guards
-  const safeEventVenues = Array.isArray(eventVenues) ? eventVenues as EventVenue[] : [];
-  const safeAllVenues = Array.isArray(allVenues) ? allVenues as Venue[] : [];
+  // Safely handle the data with proper type guards and validation
+  const safeEventVenues = Array.isArray(eventVenues) 
+    ? (eventVenues as EventVenue[]).filter(ev => ev && typeof ev === 'object' && ev.id)
+    : [];
+  const safeAllVenues = Array.isArray(allVenues) 
+    ? (allVenues as Venue[]).filter(v => v && typeof v === 'object' && v.id && v.name)
+    : [];
 
   const availableVenues = safeAllVenues.filter((venue: Venue) => 
     !safeEventVenues.some((ev: EventVenue) => ev.venueId === venue.id)
@@ -291,7 +327,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {loadingEventVenues ? (
+        {loadingEventVenues || loadingVenues ? (
           <div className="text-center py-6">Loading venue layouts...</div>
         ) : safeEventVenues.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
@@ -301,7 +337,11 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
           </div>
         ) : (
           <div className="space-y-4">
-            {safeEventVenues.map((eventVenue: EventVenue, index: number) => (
+            {safeEventVenues.map((eventVenue: EventVenue, index: number) => {
+              // Ensure we have a valid event venue object before rendering
+              if (!eventVenue || !eventVenue.id) return null;
+              
+              return (
               <div key={eventVenue.id} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -311,7 +351,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
                     <div>
                       <p className="font-medium">{eventVenue.displayName}</p>
                       <p className="text-sm text-muted-foreground">
-                        {eventVenue.venue.name}
+                        {eventVenue.venue?.name || `Venue ID: ${eventVenue.venueId}`}
                       </p>
                     </div>
                   </div>
@@ -336,7 +376,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
                         <div className="space-y-4">
                           <div>
                             <Label>Venue</Label>
-                            <Input value={eventVenue.venue.name} disabled />
+                            <Input value={eventVenue.venue?.name || `Venue ID: ${eventVenue.venueId}`} disabled />
                           </div>
                           <div>
                             <Label>Display Name</Label>
@@ -372,7 +412,8 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            }).filter(Boolean)}
           </div>
         )}
       </CardContent>
