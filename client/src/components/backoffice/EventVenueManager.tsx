@@ -247,6 +247,11 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
     ? (allVenues as Venue[]).filter(v => v && typeof v === 'object' && v.id && v.name)
     : [];
 
+  // Debug logging to understand the issue
+  console.log("EventVenues raw data:", eventVenues);
+  console.log("SafeEventVenues after filtering:", safeEventVenues);
+  console.log("SafeEventVenues length:", safeEventVenues.length);
+
   const availableVenues = safeAllVenues.filter((venue: Venue) => 
     !safeEventVenues.some((ev: EventVenue) => ev.venueId === venue.id)
   );
