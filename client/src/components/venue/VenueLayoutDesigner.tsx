@@ -234,18 +234,13 @@ export function VenueLayoutDesigner({
   // Get table dimensions based on your exact size configuration
   const getTableDimensions = useCallback((tableSize: number) => {
     const sizeConfig = {
-      1: { tableRadius: 25, seatRadius: 8,  gap: 8  }, // Tiny
-      2: { tableRadius: 30, seatRadius: 10, gap: 10 }, // Small  
-      3: { tableRadius: 35, seatRadius: 12, gap: 12 }, // Compact
-      4: { tableRadius: 40, seatRadius: 14, gap: 14 }, // Medium-Small
-      5: { tableRadius: 45, seatRadius: 16, gap: 16 }, // Medium
-      6: { tableRadius: 50, seatRadius: 18, gap: 18 }, // Medium-Large
-      7: { tableRadius: 55, seatRadius: 19, gap: 19 }, // Large
-      8: { tableRadius: 60, seatRadius: 20, gap: 20 }, // Extra Large (default)
-      9: { tableRadius: 70, seatRadius: 22, gap: 22 }  // Jumbo
+      1: { tableRadius: 18, seatRadius: 6,  gap: 6  }, // Small
+      2: { tableRadius: 22, seatRadius: 7,  gap: 7  }, // Medium  
+      3: { tableRadius: 26, seatRadius: 9,  gap: 9  }, // Large
+      4: { tableRadius: 30, seatRadius: 10, gap: 10 }  // Extra Large
     };
     
-    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[8];
+    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[4];
   }, []);
 
   const drawTable = useCallback((obj: CanvasObject) => {
@@ -940,9 +935,9 @@ export function VenueLayoutDesigner({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[1,2,3,4,5,6,7,8,9].map(size => (
+                    {[1,2,3,4].map(size => (
                       <SelectItem key={size} value={size.toString()}>
-                        Size {size} {size <= 3 ? '(Small)' : size <= 6 ? '(Medium)' : '(Large)'}
+                        Size {size} {size === 1 ? '(Small)' : size === 2 ? '(Medium)' : size === 3 ? '(Large)' : '(Extra Large)'}
                       </SelectItem>
                     ))}
                   </SelectContent>
