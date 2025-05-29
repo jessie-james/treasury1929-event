@@ -11,15 +11,7 @@ export default function AuthPage() {
 
   // Redirect if already logged in
   if (user) {
-    // Check if this is a new user who needs onboarding (missing firstName or dietary preferences)
-    const needsOnboarding = user.role === 'customer' && 
-      (!user.firstName || (!user.allergens?.length && !user.dietaryRestrictions?.length));
-      
-    if (needsOnboarding) {
-      setLocation('/onboarding');
-    } else {
-      setLocation(user.role === 'customer' ? '/' : '/backoffice');
-    }
+    setLocation(user.role === 'customer' ? '/' : '/backoffice');
     return null;
   }
 
