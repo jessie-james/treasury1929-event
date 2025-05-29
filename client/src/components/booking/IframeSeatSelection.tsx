@@ -307,7 +307,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
 
   // Get the current venue layout based on selected venue
   const currentVenueLayout: VenueLayout | undefined = useMemo(() => {
-    if (!eventVenueLayouts || eventVenueLayouts.length === 0) return undefined;
+    if (!eventVenueLayouts || !Array.isArray(eventVenueLayouts) || eventVenueLayouts.length === 0) return undefined;
     
     const selected = eventVenueLayouts[selectedVenueIndex];
     if (!selected) return undefined;
@@ -358,7 +358,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
 
   // Improved hit detection for circular tables
   const getTableAtPosition = useCallback((x: number, y: number): VenueTable | null => {
-    if (!venueLayout) return null;
+    if (!currentVenueLayout) return null;
 
     const canvas = canvasRef.current;
     if (!canvas) return null;
@@ -367,7 +367,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     const canvasX = x - rect.left;
     const canvasY = y - rect.top;
 
-    const venue = venueLayout.venue;
+    const venue = currentVenueLayout.venue;
     const canvasWidth = rect.width;
     const canvasHeight = rect.height;
     
@@ -401,7 +401,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     }
     
     return null;
-  }, [venueLayout, availableTables, viewport]);
+  }, [currentVenueLayout, availableTables, viewport]);
 
   // Mouse event handlers
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -508,7 +508,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       </div>
 
       {/* Venue Selection */}
-      {eventVenueLayouts && eventVenueLayouts.length > 1 && (
+      {eventVenueLayouts && Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 1 && (
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
