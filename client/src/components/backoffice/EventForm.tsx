@@ -26,13 +26,13 @@ import { type Event, type FoodOption } from "@shared/schema";
 import { useState, useRef, useEffect } from "react";
 import { ImagePlus, Loader2, RefreshCw, X, Building, UtensilsCrossed, Check } from "lucide-react";
 import { EventPricingManager } from "./EventPricingManager";
+import { EventVenueManager } from "./EventVenueManager";
 
 const eventFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
   image: z.string().min(1, "Image is required"),
   date: z.string().min(1, "Date is required"),
-  venueId: z.number().min(1, "Please select a venue"),
   isActive: z.boolean().default(true),
 });
 
@@ -446,43 +446,7 @@ export function EventForm({ event, onClose }: Props) {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="venueId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Venue</FormLabel>
-                  <FormControl>
-                    <Select
-                      value={field.value?.toString()}
-                      onValueChange={(value) => field.onChange(Number(value))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a venue" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {venues.map((venue: any) => (
-                          <SelectItem key={venue.id} value={venue.id.toString()}>
-                            <div className="flex items-center gap-2">
-                              <Building className="w-4 h-4" />
-                              {venue.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormDescription>
-                    {totalSeats > 0 ? (
-                      `This venue has ${totalSeats} total seats from ${venueLayout?.tables?.length || 0} tables`
-                    ) : (
-                      'Select a venue to see available seats'
-                    )}
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
 
             <FormField
               control={form.control}
@@ -631,6 +595,10 @@ export function EventForm({ event, onClose }: Props) {
                 <EventPricingManager eventId={event.id} />
               </>
             )}
+
+            {/* Event Venue Management */}
+            <Separator className="my-6" />
+            <EventVenueManager eventId={event?.id || null} isNewEvent={!event} />
 
             <div className="flex justify-end gap-2">
               {event && (
