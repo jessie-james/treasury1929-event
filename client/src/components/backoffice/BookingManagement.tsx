@@ -53,7 +53,7 @@ export function BookingManagement() {
   
   // State for seat selection management
   const [selectedTableId, setSelectedTableId] = useState<number>(0);
-  const [selectedSeatNumbers, setSelectedSeatNumbers] = useState<number[]>([]);
+  const [selectedPartySize, setSelectedPartySize] = useState<number>(1);
   
   // State for food selection management
   const [foodSelections, setFoodSelections] = useState<Record<string, Record<string, number>>>({});
@@ -136,30 +136,30 @@ export function BookingManagement() {
     mutationFn: async ({ 
       bookingId, 
       tableId, 
-      seatNumbers 
+      partySize 
     }: { 
       bookingId: number; 
       tableId: number; 
-      seatNumbers: number[] 
+      partySize: number 
     }) => {
       const res = await apiRequest("POST", `/api/bookings/${bookingId}/change-seats`, { 
-        tableId, seatNumbers, eventId: selectedBooking?.eventId 
+        tableId, partySize, eventId: selectedBooking?.eventId 
       });
       return await res.json();
     },
     onSuccess: () => {
       toast({
-        title: "Seats updated",
-        description: "The seat assignments have been successfully updated",
+        title: "Table assignment updated",
+        description: "The table assignment has been successfully updated",
       });
       setSelectedTableId(0);
-      setSelectedSeatNumbers([]);
+      setSelectedPartySize(1);
       setIsSeatsDialogOpen(false);
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to update seats",
+        title: "Failed to update table assignment",
         description: error.message,
         variant: "destructive",
       });
@@ -271,7 +271,7 @@ export function BookingManagement() {
               <TableHead>ID</TableHead>
               <TableHead>Event</TableHead>
               <TableHead>Customer</TableHead>
-              <TableHead>Seats</TableHead>
+              <TableHead>Party Size</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -283,7 +283,7 @@ export function BookingManagement() {
                 <TableCell className="font-medium">#{booking.id}</TableCell>
                 <TableCell>{booking.event.title}</TableCell>
                 <TableCell>{booking.user.email}</TableCell>
-                <TableCell>{booking.seatNumbers.length} seats</TableCell>
+                <TableCell>{booking.partySize} guests</TableCell>
                 <TableCell>{getStatusBadge(booking.status)}</TableCell>
                 <TableCell>{booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "N/A"}</TableCell>
                 <TableCell className="text-right">
@@ -496,7 +496,7 @@ export function BookingManagement() {
             <DialogTitle>Change Seats for Booking #{selectedBooking?.id}</DialogTitle>
             <DialogDescription>
               Modify seat assignments for this booking. Current table: {selectedBooking?.tableId}, 
-              Seats: {selectedBooking?.seatNumbers.join(", ")}
+              Table: {selectedBooking?.table?.name || selectedBooking?.tableId}, Party Size: {selectedBooking?.partySize}
             </DialogDescription>
           </DialogHeader>
           
@@ -559,7 +559,7 @@ export function BookingManagement() {
               <div className="text-sm text-muted-foreground">
                 <p>Event: {selectedBooking?.event.title}</p>
                 <p>Original Table: {selectedBooking?.tableId}</p>
-                <p>Original Seats: {selectedBooking?.seatNumbers.join(", ")}</p>
+                <p>Current Table: {selectedBooking?.table?.name || selectedBooking?.tableId}, Party Size: {selectedBooking?.partySize}</p>
                 <p>Status: {selectedBooking?.status}</p>
               </div>
             </div>
