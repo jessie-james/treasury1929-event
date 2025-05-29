@@ -51,7 +51,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
 
   // Fetch event venues
   const { data: eventVenues = [], isLoading: loadingEventVenues, error: eventVenuesError } = useQuery({
-    queryKey: ['/api/events', eventId, 'venues'],
+    queryKey: [`/api/events/${eventId}/venues`],
     enabled: !!eventId && !isNewEvent,
   });
 
@@ -112,7 +112,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events', eventId, 'venues'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}/venues`] });
       setShowAddDialog(false);
       setSelectedVenueId(null);
       setDisplayName("");
@@ -144,7 +144,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events', eventId, 'venues'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}/venues`] });
       setEditingVenue(null);
       toast({
         title: "Success",
@@ -171,7 +171,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/events', eventId, 'venues'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/events/${eventId}/venues`] });
       toast({
         title: "Success",
         description: "Venue removed from event successfully",
@@ -247,10 +247,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
     ? (allVenues as Venue[]).filter(v => v && typeof v === 'object' && v.id && v.name)
     : [];
 
-  // Debug logging to understand the issue
-  console.log("EventVenues raw data:", eventVenues);
-  console.log("SafeEventVenues after filtering:", safeEventVenues);
-  console.log("SafeEventVenues length:", safeEventVenues.length);
+
 
   const availableVenues = safeAllVenues.filter((venue: Venue) => 
     !safeEventVenues.some((ev: EventVenue) => ev.venueId === venue.id)
