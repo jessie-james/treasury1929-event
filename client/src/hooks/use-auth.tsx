@@ -143,8 +143,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error; // Rethrow for the onError handler
       }
     },
-    onSuccess: (user: User) => {
+    onSuccess: (user: User & { autoLoginFailed?: boolean; message?: string }) => {
       console.log('Registration success, setting user data:', user);
+      
+      if (user.autoLoginFailed) {
+        // Account created but auto-login failed
+        console.log('Account created but auto-login failed');
+        
+        // Clear any auth state since login failed
+        localStorage.removeItem("user_auth_state");
+        localStorage.removeItem("user_email");
+        localStorage.removeItem("auth_timestamp");
+        
+        toast({
+          title: "Account created successfully!",
+          description: user.message || "Your account has been created. Please log in to continue.",
+        });
+        
+        // Don't set user data since they're not logged in
+        return;
+      }
+      
+      // Normal successful registration with auto-login
       queryClient.setQueryData(["/api/user"], user);
       
       // Set auth state
@@ -154,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       toast({
         title: "Registration successful",
-        description: "Your account has been created",
+        description: "Your account has been created and you're now logged in",
       });
     },
     onError: (error: Error) => {

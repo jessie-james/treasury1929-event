@@ -166,7 +166,16 @@ export function setupAuth(app: Express) {
   );
 
   passport.serializeUser((user, done) => {
-    done(null, user.id);
+    try {
+      if (!user || !user.id) {
+        console.error("Cannot serialize user: missing user or user.id", user);
+        return done(new Error("Invalid user object for serialization"));
+      }
+      done(null, user.id);
+    } catch (error) {
+      console.error("Error in serializeUser:", error);
+      done(error);
+    }
   });
 
   passport.deserializeUser(async (id: number, done) => {
@@ -234,8 +243,24 @@ export function setupAuth(app: Express) {
         phone: phone || null,
       });
 
+      // Attempt to log the user in automatically
       req.login(user, (err) => {
-        if (err) throw err;
+        if (err) {
+          console.error("Auto-login failed after registration:", err);
+          // User was created successfully, but auto-login failed
+          // Return success with a flag indicating login issue
+          return res.status(201).json({
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phone: user.phone,
+            autoLoginFailed: true,
+            message: "Account created successfully. Please log in manually."
+          });
+        }
+        // Auto-login successful
         res.status(201).json(user);
       });
     } catch (error) {
