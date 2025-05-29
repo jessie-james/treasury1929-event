@@ -50,15 +50,24 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
   const [editingVenue, setEditingVenue] = useState<EventVenue | null>(null);
 
   // Fetch event venues
-  const { data: eventVenues = [], isLoading: loadingEventVenues } = useQuery({
+  const { data: eventVenues = [], isLoading: loadingEventVenues, error: eventVenuesError } = useQuery({
     queryKey: ['/api/events', eventId, 'venues'],
     enabled: !!eventId && !isNewEvent,
   });
 
   // Fetch all available venues
-  const { data: allVenues = [], isLoading: loadingVenues } = useQuery({
+  const { data: allVenues = [], isLoading: loadingVenues, error: venuesError } = useQuery({
     queryKey: ['/api/admin/venues'],
   });
+
+  // Add error handling
+  if (eventVenuesError) {
+    console.error("Error loading event venues:", eventVenuesError);
+  }
+  
+  if (venuesError) {
+    console.error("Error loading venues:", venuesError);
+  }
 
   // Add venue to event mutation
   const addVenueMutation = useMutation({
@@ -155,11 +164,10 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
       return;
     }
 
-    const venueCount = Array.isArray(eventVenues) ? eventVenues.length : 0;
     addVenueMutation.mutate({
       venueId: selectedVenueId,
       displayName: displayName.trim(),
-      displayOrder: venueCount,
+      displayOrder: safeEventVenues.length,
     });
   };
 
@@ -174,8 +182,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
   };
 
   const handleRemoveVenue = (venueId: number) => {
-    const venueCount = Array.isArray(eventVenues) ? eventVenues.length : 0;
-    if (venueCount <= 1) {
+    if (safeEventVenues.length <= 1) {
       toast({
         title: "Error",
         description: "Cannot remove the last venue from an event",
@@ -186,11 +193,15 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
     removeVenueMutation.mutate(venueId);
   };
 
-  const availableVenues = Array.isArray(allVenues) ? allVenues.filter((venue: any) => 
-    !Array.isArray(eventVenues) || !eventVenues.some((ev: any) => ev.venueId === venue.id)
-  ) : [];
+  // Safely handle the data with proper type guards
+  const safeEventVenues = Array.isArray(eventVenues) ? eventVenues as EventVenue[] : [];
+  const safeAllVenues = Array.isArray(allVenues) ? allVenues as Venue[] : [];
 
-  const canAddVenue = Array.isArray(eventVenues) && eventVenues.length < 2 && availableVenues.length > 0;
+  const availableVenues = safeAllVenues.filter((venue: Venue) => 
+    !safeEventVenues.some((ev: EventVenue) => ev.venueId === venue.id)
+  );
+
+  const canAddVenue = safeEventVenues.length < 2 && availableVenues.length > 0;
 
   if (isNewEvent) {
     return (
@@ -218,7 +229,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
         <CardTitle className="flex items-center gap-2 justify-between">
           <div className="flex items-center gap-2">
             <Building className="w-5 h-5" />
-            Venue Layouts ({eventVenues.length}/2)
+            Venue Layouts ({safeEventVenues.length}/2)
           </div>
           {canAddVenue && (
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -282,7 +293,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
       <CardContent>
         {loadingEventVenues ? (
           <div className="text-center py-6">Loading venue layouts...</div>
-        ) : !Array.isArray(eventVenues) || eventVenues.length === 0 ? (
+        ) : safeEventVenues.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Building className="w-12 h-12 mx-auto mb-4 opacity-50" />
             <p>No venue layouts configured</p>
@@ -290,7 +301,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
           </div>
         ) : (
           <div className="space-y-4">
-            {eventVenues.map((eventVenue: any, index: number) => (
+            {safeEventVenues.map((eventVenue: EventVenue, index: number) => (
               <div key={eventVenue.id} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
