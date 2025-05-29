@@ -3543,11 +3543,15 @@ export async function registerRoutes(app: Express) {
         eventVenuesList.map(async (eventVenue) => {
           const venueId = eventVenue.venueId;
           
+          console.log(`🔍 SERVER: Fetching tables for venue ${venueId} (${eventVenue.displayName})`);
+          
           // Get tables for this venue
           const venueTables = await db
             .select()
             .from(tables)
             .where(eq(tables.venueId, venueId));
+            
+          console.log(`📊 SERVER: Found ${venueTables.length} tables for venue ${venueId}`);
           
           // Get stages for this venue
           const venueStages = await db
