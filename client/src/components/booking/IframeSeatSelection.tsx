@@ -314,9 +314,23 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
 
   // Get the current venue layout based on selected venue or fallback to event data
   const currentVenueLayout: VenueLayout | undefined = useMemo(() => {
+    // Debug logging
+    console.log('🔍 VENUE SELECTION DEBUG:', {
+      eventVenueLayouts: eventVenueLayouts,
+      selectedVenueIndex,
+      layoutsLength: eventVenueLayouts?.length
+    });
+    
     // First try new venue layouts system
     if (eventVenueLayouts && Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 0) {
       const selected = eventVenueLayouts[selectedVenueIndex];
+      console.log('📍 Selected venue layout:', {
+        selectedIndex: selectedVenueIndex,
+        selected: selected,
+        venueName: selected?.venue?.name,
+        tableCount: selected?.tables?.length
+      });
+      
       if (selected) {
         return {
           venue: selected.venue,
@@ -328,9 +342,11 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     
     // Fallback to event data structure
     if (eventData && (eventData as any).venueLayout) {
+      console.log('🔄 Using fallback event data');
       return (eventData as any).venueLayout;
     }
     
+    console.log('❌ No venue layout found');
     return undefined;
   }, [eventVenueLayouts, selectedVenueIndex, eventData]);
   
