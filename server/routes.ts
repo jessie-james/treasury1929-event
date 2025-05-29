@@ -3500,6 +3500,101 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Get venue layouts for a specific event based on event-venue relationships
+  app.get("/api/events/:eventId/venue-layouts", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ error: "Invalid event ID" });
+      }
+
+      // Get event-venue relationships for this event
+      const eventVenuesList = await db
+        .select({
+          id: eventVenues.id,
+          eventId: eventVenues.eventId,
+          venueId: eventVenues.venueId,
+          displayName: eventVenues.displayName,
+          displayOrder: eventVenues.displayOrder,
+          isActive: eventVenues.isActive,
+          venue: {
+            id: venues.id,
+            name: venues.name,
+            description: venues.description,
+            width: venues.width,
+            height: venues.height,
+          }
+        })
+        .from(eventVenues)
+        .leftJoin(venues, eq(eventVenues.venueId, venues.id))
+        .where(and(
+          eq(eventVenues.eventId, eventId),
+          eq(eventVenues.isActive, true)
+        ))
+        .orderBy(eventVenues.displayOrder);
+
+      if (eventVenuesList.length === 0) {
+        return res.status(404).json({ error: "No active venues found for this event" });
+      }
+
+      // Fetch layout data for each venue
+      const venueLayouts = await Promise.all(
+        eventVenuesList.map(async (eventVenue) => {
+          const venueId = eventVenue.venueId;
+          
+          // Get tables for this venue
+          const venueTables = await db
+            .select()
+            .from(tables)
+            .where(eq(tables.venueId, venueId));
+          
+          // Get stages for this venue
+          const venueStages = await db
+            .select()
+            .from(stages)
+            .where(eq(stages.venueId, venueId));
+
+          return {
+            eventVenueId: eventVenue.id,
+            displayName: eventVenue.displayName,
+            displayOrder: eventVenue.displayOrder,
+            venue: {
+              id: eventVenue.venue.id,
+              name: eventVenue.venue.name,
+              width: eventVenue.venue.width || 1000,
+              height: eventVenue.venue.height || 700
+            },
+            tables: venueTables.map(table => ({
+              id: table.id,
+              tableNumber: table.tableNumber,
+              x: table.x,
+              y: table.y,
+              width: table.width,
+              height: table.height,
+              capacity: table.capacity,
+              shape: table.shape,
+              rotation: table.rotation || 0,
+              status: 'available'
+            })),
+            stages: venueStages.map(stage => ({
+              id: stage.id,
+              x: stage.x,
+              y: stage.y,
+              width: stage.width,
+              height: stage.height,
+              rotation: stage.rotation || 0
+            }))
+          };
+        })
+      );
+
+      res.json(venueLayouts);
+    } catch (error) {
+      console.error("Error fetching event venue layouts:", error);
+      res.status(500).json({ error: "Failed to fetch venue layouts" });
+    }
+  });
+
   // Get event bookings to filter available tables
   app.get("/api/event-bookings", async (req, res) => {
     try {

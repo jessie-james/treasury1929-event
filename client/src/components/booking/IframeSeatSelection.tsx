@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -31,6 +33,20 @@ interface VenueStage {
   width: number;
   height: number;
   rotation: number;
+}
+
+interface EventVenueLayout {
+  eventVenueId: number;
+  displayName: string;
+  displayOrder: number;
+  venue: {
+    id: number;
+    name: string;
+    width: number;
+    height: number;
+  };
+  tables: VenueTable[];
+  stages: VenueStage[];
 }
 
 interface VenueLayout {
@@ -260,6 +276,7 @@ const useCanvasRenderer = (
 
 export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }: Props) {
   const [selectedTable, setSelectedTable] = useState<VenueTable | null>(null);
+  const [selectedVenueIndex, setSelectedVenueIndex] = useState<number>(0);
   const [viewport, setViewport] = useState<ViewportState>({
     zoom: 1,
     panX: 0,
@@ -270,13 +287,9 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Fetch event data
-  const { data: eventData, isLoading: isLoadingEvent, error: eventError } = useQuery({
-    queryKey: ['/api/events', eventId],
-    queryFn: () => fetch(`/api/events/${eventId}`).then(res => {
-      if (!res.ok) throw new Error('Failed to fetch event data');
-      return res.json();
-    }),
+  // Fetch event venue layouts using the new API
+  const { data: eventVenueLayouts, isLoading: isLoadingVenues, error: venueError } = useQuery({
+    queryKey: [`/api/events/${eventId}/venue-layouts`],
     enabled: !!eventId,
     retry: 2
   });
@@ -292,12 +305,24 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     retry: 2
   });
 
-  const venueLayout = eventData?.venueLayout;
+  // Get the current venue layout based on selected venue
+  const currentVenueLayout: VenueLayout | undefined = useMemo(() => {
+    if (!eventVenueLayouts || eventVenueLayouts.length === 0) return undefined;
+    
+    const selected = eventVenueLayouts[selectedVenueIndex];
+    if (!selected) return undefined;
+    
+    return {
+      venue: selected.venue,
+      tables: selected.tables,
+      stages: selected.stages
+    };
+  }, [eventVenueLayouts, selectedVenueIndex]);
   
   // Memoize available tables calculation
   const { availableTables, bookedTableIds } = useMemo(() => {
     const bookedIds = existingBookings?.map((booking: any) => booking.tableId) || [];
-    const available = venueLayout?.tables?.filter(table => 
+    const available = currentVenueLayout?.tables?.filter((table: VenueTable) => 
       !bookedIds.includes(table.id)
     ) || [];
     
@@ -305,12 +330,12 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       availableTables: available,
       bookedTableIds: bookedIds
     };
-  }, [venueLayout, existingBookings]);
+  }, [currentVenueLayout, existingBookings]);
 
   // Use custom hook for canvas rendering
   const { drawVenueLayout } = useCanvasRenderer(
     canvasRef,
-    venueLayout,
+    currentVenueLayout,
     selectedTable,
     bookedTableIds,
     viewport
@@ -455,8 +480,8 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     }
   }, [selectedTable, onComplete]);
 
-  const isLoading = isLoadingEvent;
-  const hasError = eventError || bookingsError;
+  const isLoading = isLoadingVenues;
+  const hasError = venueError || bookingsError;
 
   if (hasError) {
     return (
@@ -465,7 +490,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
           <CardContent className="p-6">
             <div className="text-center text-red-600">
               <p>Error loading venue layout. Please try again.</p>
-              <p className="text-sm mt-2">{eventError?.message || bookingsError?.message}</p>
+              <p className="text-sm mt-2">{venueError?.message || bookingsError?.message}</p>
             </div>
           </CardContent>
         </Card>
@@ -482,13 +507,49 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
         </p>
       </div>
 
+      {/* Venue Selection */}
+      {eventVenueLayouts && eventVenueLayouts.length > 1 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-4">
+              <Label htmlFor="venue-select" className="font-medium">Select Venue:</Label>
+              <Select
+                value={selectedVenueIndex.toString()}
+                onValueChange={(value) => {
+                  setSelectedVenueIndex(parseInt(value));
+                  setSelectedTable(null); // Clear table selection when changing venues
+                }}
+              >
+                <SelectTrigger className="w-64">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {eventVenueLayouts.map((layout: EventVenueLayout, index: number) => (
+                    <SelectItem key={layout.eventVenueId} value={index.toString()}>
+                      {layout.displayName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardContent className="p-6">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-medium">Venue Layout</h3>
+            <h3 className="text-lg font-medium">
+              {currentVenueLayout?.venue?.name || "Venue Layout"}
+              {eventVenueLayouts && eventVenueLayouts.length > 1 && (
+                <span className="text-sm text-gray-500 ml-2">
+                  ({eventVenueLayouts[selectedVenueIndex]?.displayName})
+                </span>
+              )}
+            </h3>
             <div className="flex items-center gap-4">
               <Badge variant="outline">
-                {availableTables.length} of {venueLayout?.tables?.length || 0} tables available
+                {availableTables.length} of {currentVenueLayout?.tables?.length || 0} tables available
               </Badge>
               <div className="flex gap-2">
                 <Button
@@ -523,7 +584,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
               <Loader2 className="h-8 w-8 animate-spin" />
               <span className="ml-2">Loading venue layout...</span>
             </div>
-          ) : venueLayout ? (
+          ) : currentVenueLayout ? (
             <div className="relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: '500px' }}>
               <canvas
                 ref={canvasRef}
