@@ -359,7 +359,7 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
                         </div>
                       </DialogContent>
                     </Dialog>
-                    {eventVenues.length > 1 && (
+                    {safeEventVenues.length > 1 && (
                       <Button
                         size="sm"
                         variant="outline"
