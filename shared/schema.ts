@@ -214,6 +214,19 @@ export const eventTableAssignments = pgTable("event_table_assignments", {
   unique: unique().on(table.eventId, table.tableId), // One pricing tier per table per event
 }));
 
+// Event Venues Junction Table - Links events to multiple venues (max 2)
+export const eventVenues = pgTable("event_venues", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull(),
+  venueId: integer("venue_id").notNull(),
+  displayName: varchar("display_name", { length: 100 }).notNull(), // e.g., "Main Floor", "Mezzanine"
+  displayOrder: integer("display_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  unique: unique().on(table.eventId, table.venueId), // Prevent duplicate venue per event
+}));
+
 // Venue Staff Table
 export const venueStaff = pgTable("venue_staff", {
   id: serial("id").primaryKey(),
@@ -237,6 +250,7 @@ export const venuesRelations = relations(venues, ({ many }) => ({
   events: many(events),
   tables: many(tables),
   stages: many(stages),
+  eventVenues: many(eventVenues),
 }));
 
 export const stagesRelations = relations(stages, ({ one }) => ({
@@ -252,6 +266,7 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
   eventFoodOptions: many(eventFoodOptions),
   pricingTiers: many(eventPricingTiers),
   tableAssignments: many(eventTableAssignments),
+  eventVenues: many(eventVenues),
   venue: one(venues, {
     fields: [events.venueId],
     references: [venues.id],
@@ -293,6 +308,17 @@ export const eventTableAssignmentsRelations = relations(eventTableAssignments, (
   pricingTier: one(eventPricingTiers, {
     fields: [eventTableAssignments.pricingTierId],
     references: [eventPricingTiers.id],
+  }),
+}));
+
+export const eventVenuesRelations = relations(eventVenues, ({ one }) => ({
+  event: one(events, {
+    fields: [eventVenues.eventId],
+    references: [events.id],
+  }),
+  venue: one(venues, {
+    fields: [eventVenues.venueId],
+    references: [venues.id],
   }),
 }));
 
@@ -366,6 +392,7 @@ export const insertFoodOptionSchema = createInsertSchema(foodOptions).omit({ id:
 export const insertEventFoodOptionSchema = createInsertSchema(eventFoodOptions).omit({ id: true });
 export const insertEventPricingTierSchema = createInsertSchema(eventPricingTiers).omit({ id: true, createdAt: true });
 export const insertEventTableAssignmentSchema = createInsertSchema(eventTableAssignments).omit({ id: true, createdAt: true });
+export const insertEventVenueSchema = createInsertSchema(eventVenues).omit({ id: true, createdAt: true });
 export const insertVenueStaffSchema = createInsertSchema(venueStaff).omit({ id: true, hireDate: true });
 // Old schema imports removed
 
@@ -408,6 +435,9 @@ export type EventPricingTier = typeof eventPricingTiers.$inferSelect;
 
 export type NewEventTableAssignment = z.infer<typeof insertEventTableAssignmentSchema>;
 export type EventTableAssignment = typeof eventTableAssignments.$inferSelect;
+
+export type NewEventVenue = z.infer<typeof insertEventVenueSchema>;
+export type EventVenue = typeof eventVenues.$inferSelect;
 
 export type NewVenueStaff = z.infer<typeof insertVenueStaffSchema>;
 export type VenueStaff = typeof venueStaff.$inferSelect;
