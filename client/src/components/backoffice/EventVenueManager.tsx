@@ -222,12 +222,26 @@ export function EventVenueManager({ eventId, isNewEvent = false }: Props) {
       });
       return;
     }
+    
+    // Verify this venue actually exists for this event
+    const venueExists = safeEventVenues.some(ev => ev.venueId === venueId);
+    if (!venueExists) {
+      toast({
+        title: "Error",
+        description: "Venue not found for this event",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     removeVenueMutation.mutate(venueId);
   };
 
   // Safely handle the data with proper type guards and validation
   const safeEventVenues = Array.isArray(eventVenues) 
-    ? (eventVenues as EventVenue[]).filter(ev => ev && typeof ev === 'object' && ev.id)
+    ? (eventVenues as EventVenue[])
+        .filter(ev => ev && typeof ev === 'object' && ev.id)
+        .filter((ev, index, arr) => arr.findIndex(item => item.id === ev.id) === index) // Remove duplicates by ID
     : [];
   const safeAllVenues = Array.isArray(allVenues) 
     ? (allVenues as Venue[]).filter(v => v && typeof v === 'object' && v.id && v.name)
