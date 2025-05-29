@@ -15,6 +15,7 @@ import {
   insertEventVenueSchema,
   venues,
   tables,
+  stages,
   NewUser, 
   User, 
   BookingWithDetails 
