@@ -228,21 +228,33 @@ export function registerVenueRoutes(app: Express): void {
         if (tables && Array.isArray(tables)) {
           console.log(`🪑 Processing ${tables.length} tables`);
           
-          // Get existing tables with their booking status
+          // Get existing tables
           const existingTables = await tx
             .select({
               id: schema.tables.id,
-              tableNumber: schema.tables.tableNumber,
-              hasBookings: sql<boolean>`EXISTS(SELECT 1 FROM bookings WHERE table_id = ${schema.tables.id})`
+              tableNumber: schema.tables.tableNumber
             })
             .from(schema.tables)
             .where(eq(schema.tables.venueId, venueId));
           
           console.log(`   Found ${existingTables.length} existing tables`);
           
-          // Separate booked and unbooked tables
-          const bookedTables = existingTables.filter(t => t.hasBookings);
-          const unbookedTables = existingTables.filter(t => !t.hasBookings);
+          // Check for bookings using a separate query for each table
+          const tablesWithBookings = [];
+          for (const table of existingTables) {
+            const bookingCount = await tx
+              .select({ count: sql<number>`COUNT(*)` })
+              .from(schema.bookings)
+              .where(eq(schema.bookings.tableId, table.id));
+            
+            if (bookingCount[0]?.count > 0) {
+              tablesWithBookings.push(table);
+              console.log(`   Table ${table.tableNumber} (ID: ${table.id}) has ${bookingCount[0].count} bookings`);
+            }
+          }
+          
+          const bookedTables = tablesWithBookings;
+          const unbookedTables = existingTables.filter(t => !bookedTables.some(bt => bt.id === t.id));
           
           console.log(`   Booked tables: ${bookedTables.length}, Unbooked: ${unbookedTables.length}`);
           
