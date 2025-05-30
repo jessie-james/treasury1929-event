@@ -183,6 +183,135 @@ const updateFoodOptionsOrderSchema = z.object({
 
 export async function registerRoutes(app: Express) {
   
+  // Emergency diagnostic endpoints for phantom layouts
+  app.get("/api/debug/phantom-layouts/:eventId", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      
+      console.log(`🔍 PHANTOM LAYOUT DIAGNOSTIC for Event ${eventId}`);
+      
+      // Get ALL event-venue relationships (including potential phantom ones)
+      const allEventVenues = await db
+        .select({
+          id: eventVenues.id,
+          eventId: eventVenues.eventId,
+          venueId: eventVenues.venueId,
+          displayName: eventVenues.displayName,
+          displayOrder: eventVenues.displayOrder,
+          isActive: eventVenues.isActive,
+          createdAt: eventVenues.createdAt
+        })
+        .from(eventVenues)
+        .where(eq(eventVenues.eventId, eventId))
+        .orderBy(eventVenues.displayOrder);
+      
+      console.log(`📋 Found ${allEventVenues.length} event-venue records:`, allEventVenues);
+      
+      // Check if venues exist in venues table
+      const venueIds = allEventVenues.map(ev => ev.venueId);
+      let actualVenues = [];
+      if (venueIds.length > 0) {
+        actualVenues = await db
+          .select()
+          .from(venues)
+          .where(inArray(venues.id, venueIds));
+      }
+      
+      console.log(`🏢 Actual venues found: ${actualVenues.length}`, actualVenues.map(v => ({ id: v.id, name: v.name })));
+      
+      // Identify orphaned event-venue records
+      const actualVenueIds = actualVenues.map(v => v.id);
+      const orphanedEventVenues = allEventVenues.filter(ev => !actualVenueIds.includes(ev.venueId));
+      
+      console.log(`👻 PHANTOM LAYOUTS FOUND: ${orphanedEventVenues.length}`, orphanedEventVenues);
+      
+      // Check for suspicious display names
+      const suspiciousEventVenues = allEventVenues.filter(ev => 
+        ev.displayName.length < 3 || 
+        ev.displayName.toLowerCase() === 's' ||
+        ev.displayName.includes('undefined') ||
+        ev.displayName.includes('null')
+      );
+      
+      console.log(`⚠️ SUSPICIOUS LAYOUTS: ${suspiciousEventVenues.length}`, suspiciousEventVenues);
+      
+      res.json({
+        eventId,
+        totalEventVenues: allEventVenues.length,
+        actualVenues: actualVenues.length,
+        phantomLayouts: orphanedEventVenues,
+        suspiciousLayouts: suspiciousEventVenues,
+        allEventVenues: allEventVenues,
+        actualVenueData: actualVenues
+      });
+      
+    } catch (error) {
+      console.error("❌ Phantom diagnostic failed:", error);
+      res.status(500).json({ error: "Diagnostic failed" });
+    }
+  });
+
+  app.post("/api/debug/cleanup-phantoms/:eventId", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      const { dryRun = true } = req.body; // Safety: defaults to dry run
+      
+      console.log(`🧹 PHANTOM CLEANUP for Event ${eventId} (dryRun: ${dryRun})`);
+      
+      // Find orphaned event-venue records
+      const allEventVenues = await db
+        .select()
+        .from(eventVenues)
+        .where(eq(eventVenues.eventId, eventId));
+      
+      const venueIds = allEventVenues.map(ev => ev.venueId);
+      let actualVenues = [];
+      if (venueIds.length > 0) {
+        actualVenues = await db
+          .select({ id: venues.id })
+          .from(venues)
+          .where(inArray(venues.id, venueIds));
+      }
+      
+      const actualVenueIds = actualVenues.map(v => v.id);
+      const phantomRecords = allEventVenues.filter(ev => !actualVenueIds.includes(ev.venueId));
+      
+      // Also find suspicious display names
+      const suspiciousRecords = allEventVenues.filter(ev => 
+        ev.displayName.length < 3 || 
+        ev.displayName.toLowerCase() === 's' ||
+        !actualVenueIds.includes(ev.venueId)
+      );
+      
+      const recordsToDelete = [...new Set([...phantomRecords, ...suspiciousRecords])];
+      
+      console.log(`🎯 Found ${recordsToDelete.length} phantom records to delete:`, 
+        recordsToDelete.map(r => ({ id: r.id, displayName: r.displayName, venueId: r.venueId }))
+      );
+      
+      if (!dryRun && recordsToDelete.length > 0) {
+        const deletedIds = recordsToDelete.map(r => r.id);
+        const deleteResult = await db
+          .delete(eventVenues)
+          .where(inArray(eventVenues.id, deletedIds));
+        
+        console.log(`✅ Deleted ${deleteResult.rowCount} phantom records`);
+      }
+      
+      res.json({
+        eventId,
+        phantomRecordsFound: recordsToDelete.length,
+        phantomRecords: recordsToDelete,
+        deletedCount: dryRun ? 0 : recordsToDelete.length,
+        dryRun
+      });
+      
+    } catch (error) {
+      console.error("❌ Phantom cleanup failed:", error);
+      res.status(500).json({ error: "Cleanup failed" });
+    }
+  });
+
   // PRIORITY BOOKING ENDPOINT - Added first to avoid middleware interference
   app.post('/create-booking-final', async (req, res) => {
     console.log('🟢 FINAL BOOKING ENDPOINT - DIRECT PROCESSING');
