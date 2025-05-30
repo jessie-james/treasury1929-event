@@ -287,11 +287,43 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Add this validation function
+  const validateApiResponse = (eventVenueLayouts: any[]) => {
+    console.log('🔍 VALIDATING API RESPONSE');
+    
+    eventVenueLayouts.forEach((layout, index) => {
+      console.log(`\nVenue ${index + 1}: ${layout.displayName}`);
+      console.log(`  Venue ID: ${layout.venue.id}`);
+      console.log(`  Table count: ${layout.tables.length}`);
+      
+      // Check for table contamination
+      const wrongVenueTables = layout.tables.filter(
+        (table: any) => table.venueId && table.venueId !== layout.venue.id
+      );
+      
+      if (wrongVenueTables.length > 0) {
+        console.error(`  ❌ CONTAMINATION: ${wrongVenueTables.length} tables belong to wrong venue!`);
+        console.error(`  Wrong tables:`, wrongVenueTables.map((t: any) => ({ 
+          id: t.id, 
+          correctVenue: layout.venue.id, 
+          actualVenue: t.venueId 
+        })));
+      } else {
+        console.log(`  ✅ All tables properly isolated`);
+      }
+    });
+  };
+
   // Fetch event venue layouts using the new API
   const { data: eventVenueLayouts, isLoading: isLoadingVenues, error: venueError } = useQuery({
     queryKey: [`/api/events/${eventId}/venue-layouts`],
     enabled: !!eventId,
-    retry: 1
+    retry: 1,
+    onSuccess: (data) => {
+      if (data && Array.isArray(data)) {
+        validateApiResponse(data);
+      }
+    }
   });
 
   // Fallback: Fetch event data if venue layouts aren't available
