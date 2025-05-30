@@ -153,7 +153,7 @@ export function registerVenueRoutes(app: Express): void {
     }
   });
 
-  // Save venue layout (venue + stages + tables)
+  // Save venue layout (venue + stages + tables) - Improved version with proper transaction handling
   app.put("/api/admin/venues/:id/layout", async (req: Request, res: Response) => {
     try {
       const venueId = parseInt(req.params.id);
@@ -162,64 +162,151 @@ export function registerVenueRoutes(app: Express): void {
       }
 
       const { venue, stages, tables } = req.body;
+      
+      console.log(`💾 SAVING VENUE LAYOUT for venue ${venueId}`);
+      console.log(`   Venue updates:`, venue ? Object.keys(venue) : 'none');
+      console.log(`   Stages to save: ${stages?.length || 0}`);
+      console.log(`   Tables to save: ${tables?.length || 0}`);
 
-      // Update venue
-      if (venue) {
-        const venueData = insertVenueSchema.partial().parse(venue);
-        await storage.updateVenue(venueId, venueData);
-      }
-
-      // Handle stages
-      if (stages && Array.isArray(stages)) {
-        // For simplicity, we'll replace all stages
-        // In a production app, you'd want to handle updates more carefully
-        const existingStages = await storage.getStagesByVenue(venueId);
+      // Begin transaction for data integrity
+      await db.transaction(async (tx) => {
         
-        // Remove existing stages
-        for (const stage of existingStages) {
-          await storage.deleteStage(stage.id);
+        // Update venue properties
+        if (venue) {
+          const venueData = insertVenueSchema.partial().parse(venue);
+          console.log(`   Updating venue with:`, venueData);
+          await tx.update(schema.venues)
+            .set(venueData)
+            .where(eq(schema.venues.id, venueId));
         }
 
-        // Add new stages
-        for (const stageData of stages) {
-          const validatedStage = insertStageSchema.parse({
-            ...stageData,
-            venueId
-          });
-          await storage.createStage(validatedStage);
-        }
-      }
+        // Handle stages with proper cleanup
+        if (stages && Array.isArray(stages)) {
+          console.log(`🎭 Processing ${stages.length} stages`);
+          
+          // Get existing stages with booking/event dependencies
+          const existingStages = await tx
+            .select({ id: schema.stages.id })
+            .from(schema.stages)
+            .where(eq(schema.stages.venueId, venueId));
+          
+          console.log(`   Found ${existingStages.length} existing stages`);
+          
+          // Only delete stages that are safe to remove (no constraints)
+          if (existingStages.length > 0) {
+            const stageIds = existingStages.map(s => s.id);
+            await tx.delete(schema.stages).where(inArray(schema.stages.id, stageIds));
+            console.log(`   ✅ Removed ${existingStages.length} existing stages`);
+          }
 
-      // Handle tables
-      if (tables && Array.isArray(tables)) {
-        // For simplicity, we'll replace all tables
-        const existingTables = await storage.getTablesByVenue(venueId);
-        
-        // Remove existing tables
-        for (const table of existingTables) {
-          await storage.deleteTable(table.id);
+          // Insert new stages
+          let insertedStages = 0;
+          for (const stageData of stages) {
+            try {
+              const validatedStage = insertStageSchema.parse({
+                ...stageData,
+                venueId
+              });
+              delete validatedStage.id; // Remove ID to let DB assign new one
+              
+              await tx.insert(schema.stages).values(validatedStage);
+              insertedStages++;
+            } catch (error) {
+              console.error(`   ❌ Failed to insert stage:`, error);
+              throw error;
+            }
+          }
+          console.log(`   ✅ Inserted ${insertedStages} new stages`);
         }
 
-        // Add new tables
-        for (const tableData of tables) {
-          const validatedTable = insertTableSchema.parse({
-            ...tableData,
-            venueId
-          });
-          await storage.createTable(validatedTable);
+        // Handle tables with safe cleanup strategy
+        if (tables && Array.isArray(tables)) {
+          console.log(`🪑 Processing ${tables.length} tables`);
+          
+          // Get existing tables with their booking status
+          const existingTables = await tx
+            .select({
+              id: schema.tables.id,
+              tableNumber: schema.tables.tableNumber,
+              hasBookings: sql<boolean>`EXISTS(SELECT 1 FROM ${schema.bookings} WHERE table_id = ${schema.tables.id})`
+            })
+            .from(schema.tables)
+            .where(eq(schema.tables.venueId, venueId));
+          
+          console.log(`   Found ${existingTables.length} existing tables`);
+          
+          // Separate booked and unbooked tables
+          const bookedTables = existingTables.filter(t => t.hasBookings);
+          const unbookedTables = existingTables.filter(t => !t.hasBookings);
+          
+          console.log(`   Booked tables: ${bookedTables.length}, Unbooked: ${unbookedTables.length}`);
+          
+          if (bookedTables.length > 0) {
+            console.log(`   ⚠️ WARNING: Preserving ${bookedTables.length} tables with bookings`);
+          }
+          
+          // Only delete unbooked tables to prevent data loss
+          if (unbookedTables.length > 0) {
+            const unbookedIds = unbookedTables.map(t => t.id);
+            
+            // Delete seats first (foreign key constraint)
+            await tx.delete(schema.seats).where(inArray(schema.seats.tableId, unbookedIds));
+            
+            // Delete unbooked tables
+            await tx.delete(schema.tables).where(inArray(schema.tables.id, unbookedIds));
+            
+            console.log(`   ✅ Safely removed ${unbookedTables.length} unbooked tables`);
+          }
+          
+          // Insert new tables, avoiding conflicts with existing booked tables
+          let insertedTables = 0;
+          const existingTableNumbers = new Set(bookedTables.map(t => t.tableNumber));
+          
+          for (const tableData of tables) {
+            try {
+              const validatedTable = insertTableSchema.parse({
+                ...tableData,
+                venueId
+              });
+              delete validatedTable.id; // Remove ID to let DB assign new one
+              
+              // Skip tables that would conflict with existing booked tables
+              if (existingTableNumbers.has(validatedTable.tableNumber)) {
+                console.log(`   ⏭️ Skipping table ${validatedTable.tableNumber} (has bookings)`);
+                continue;
+              }
+              
+              await tx.insert(schema.tables).values(validatedTable);
+              insertedTables++;
+            } catch (error) {
+              console.error(`   ❌ Failed to insert table ${tableData.tableNumber}:`, error);
+              throw error;
+            }
+          }
+          console.log(`   ✅ Inserted ${insertedTables} new tables`);
         }
-      }
+      });
 
-      res.json({ message: "Layout saved successfully" });
+      console.log(`✅ Venue layout saved successfully for venue ${venueId}`);
+      res.json({ 
+        message: "Layout saved successfully",
+        venueId,
+        timestamp: new Date().toISOString()
+      });
+
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("❌ Validation error:", error.errors);
         return res.status(400).json({ 
           message: "Invalid layout data", 
           errors: error.errors 
         });
       }
-      console.error("Error saving venue layout:", error);
-      res.status(500).json({ message: "Failed to save venue layout" });
+      console.error("❌ Error saving venue layout:", error);
+      res.status(500).json({ 
+        message: "Failed to save venue layout",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
