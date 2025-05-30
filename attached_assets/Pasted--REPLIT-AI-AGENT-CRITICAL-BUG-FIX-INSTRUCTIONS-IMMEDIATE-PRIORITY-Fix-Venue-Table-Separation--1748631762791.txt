@@ -1,0 +1,332 @@
+# REPLIT AI AGENT: CRITICAL BUG FIX INSTRUCTIONS
+
+## IMMEDIATE PRIORITY: Fix Venue Table Separation Issue
+
+### Problem Statement
+Event 13 ("Candlelight Opera") API returns 83 tables for Mezzanine venue instead of expected 13 tables. Tables from both venues (Mezzanine: 13 tables, Main Floor: 70 tables) are mixing in the response.
+
+### ROOT CAUSE ANALYSIS REQUIRED
+
+**Step 1: Add Debug Logging to API Endpoint**
+In `server/routes.ts` lines 3505-3601, enhance the venue layouts endpoint:
+
+```typescript
+app.get("/api/events/:eventId/venue-layouts", async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.eventId);
+    
+    // Add comprehensive logging
+    console.log(`🔍 DEBUGGING EVENT ${eventId} VENUE LAYOUTS`);
+    
+    const eventVenuesList = await db
+      .select({
+        id: eventVenues.id,
+        eventId: eventVenues.eventId,
+        venueId: eventVenues.venueId,
+        displayName: eventVenues.displayName,
+        displayOrder: eventVenues.displayOrder,
+        venue: {
+          id: venues.id,
+          name: venues.name,
+          width: venues.width,
+          height: venues.height,
+        }
+      })
+      .from(eventVenues)
+      .leftJoin(venues, eq(eventVenues.venueId, venues.id))
+      .where(and(
+        eq(eventVenues.eventId, eventId),
+        eq(eventVenues.isActive, true)
+      ))
+      .orderBy(eventVenues.displayOrder);
+
+    console.log(`📋 Found ${eventVenuesList.length} event-venue relationships:`, 
+      eventVenuesList.map(ev => ({ 
+        venueId: ev.venueId, 
+        displayName: ev.displayName 
+      }))
+    );
+
+    // CRITICAL: Add validation before Promise.all
+    const venueLayouts = await Promise.all(
+      eventVenuesList.map(async (eventVenue, index) => {
+        const venueId = eventVenue.venueId;
+        
+        console.log(`\n🏢 PROCESSING VENUE ${index + 1}/${eventVenuesList.length}:`);
+        console.log(`   Venue ID: ${venueId}`);
+        console.log(`   Display Name: ${eventVenue.displayName}`);
+        
+        // Add explicit query logging
+        console.log(`   Executing query: SELECT * FROM tables WHERE venue_id = ${venueId}`);
+        
+        const venueTables = await db
+          .select()
+          .from(tables)
+          .where(eq(tables.venueId, venueId));
+          
+        console.log(`   ✅ Query returned ${venueTables.length} tables for venue ${venueId}`);
+        console.log(`   Table IDs: ${venueTables.map(t => t.id).join(', ')}`);
+        
+        // Add table validation
+        const invalidTables = venueTables.filter(table => table.venueId !== venueId);
+        if (invalidTables.length > 0) {
+          console.error(`   ❌ CONTAMINATION DETECTED: ${invalidTables.length} tables belong to wrong venue!`);
+          console.error(`   Invalid tables:`, invalidTables.map(t => ({ id: t.id, venueId: t.venueId })));
+        }
+
+        const venueStages = await db
+          .select()
+          .from(stages)
+          .where(eq(stages.venueId, venueId));
+
+        const result = {
+          eventVenueId: eventVenue.id,
+          displayName: eventVenue.displayName,
+          displayOrder: eventVenue.displayOrder,
+          venue: {
+            id: eventVenue.venue.id,
+            name: eventVenue.venue.name,
+            width: eventVenue.venue.width || 1000,
+            height: eventVenue.venue.height || 700
+          },
+          tables: venueTables.map(table => ({
+            id: table.id,
+            tableNumber: table.tableNumber,
+            venueId: table.venueId, // Add this for validation
+            x: table.x,
+            y: table.y,
+            width: table.width,
+            height: table.height,
+            capacity: table.capacity,
+            shape: table.shape,
+            rotation: table.rotation || 0,
+            status: 'available'
+          })),
+          stages: venueStages.map(stage => ({
+            id: stage.id,
+            x: stage.x,
+            y: stage.y,
+            width: stage.width,
+            height: stage.height,
+            rotation: stage.rotation || 0
+          }))
+        };
+        
+        console.log(`   📊 Final result for ${eventVenue.displayName}: ${result.tables.length} tables`);
+        return result;
+      })
+    );
+
+    console.log(`\n🎯 FINAL API RESPONSE SUMMARY:`);
+    venueLayouts.forEach((layout, index) => {
+      console.log(`   Venue ${index + 1}: ${layout.displayName} - ${layout.tables.length} tables`);
+    });
+
+    res.json(venueLayouts);
+  } catch (error) {
+    console.error("❌ Error fetching event venue layouts:", error);
+    res.status(500).json({ error: "Failed to fetch venue layouts" });
+  }
+});
+```
+
+**Step 2: Database Integrity Check**
+Add this diagnostic endpoint to verify data integrity:
+
+```typescript
+// Add this temporary diagnostic endpoint
+app.get("/api/debug/venue-tables/:eventId", async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.eventId);
+    
+    // Get all venues for this event
+    const eventVenuesList = await db
+      .select()
+      .from(eventVenues)
+      .leftJoin(venues, eq(eventVenues.venueId, venues.id))
+      .where(eq(eventVenues.eventId, eventId));
+    
+    // Get ALL tables for these venues with explicit venue information
+    const allTablesQuery = await db
+      .select({
+        tableId: tables.id,
+        tableNumber: tables.tableNumber,
+        venueId: tables.venueId,
+        venueName: venues.name,
+        eventVenueDisplayName: eventVenues.displayName
+      })
+      .from(tables)
+      .leftJoin(venues, eq(tables.venueId, venues.id))
+      .leftJoin(eventVenues, and(
+        eq(eventVenues.venueId, tables.venueId),
+        eq(eventVenues.eventId, eventId)
+      ))
+      .where(
+        inArray(tables.venueId, eventVenuesList.map(ev => ev.venueId))
+      );
+    
+    // Group by venue for analysis
+    const venueTableCounts = allTablesQuery.reduce((acc, table) => {
+      const key = `${table.venueId}-${table.venueName}`;
+      if (!acc[key]) {
+        acc[key] = { count: 0, tables: [] };
+      }
+      acc[key].count++;
+      acc[key].tables.push({
+        id: table.tableId,
+        number: table.tableNumber,
+        displayName: table.eventVenueDisplayName
+      });
+      return acc;
+    }, {} as Record<string, { count: number; tables: any[] }>);
+    
+    res.json({
+      eventId,
+      totalEventVenues: eventVenuesList.length,
+      venueBreakdown: venueTableCounts,
+      allTables: allTablesQuery
+    });
+    
+  } catch (error) {
+    console.error("Debug query failed:", error);
+    res.status(500).json({ error: "Debug query failed" });
+  }
+});
+```
+
+**Step 3: Frontend Validation Enhancement**
+In `client/src/components/booking/IframeSeatSelection.tsx`, add response validation:
+
+```typescript
+// Add this validation function
+const validateApiResponse = (eventVenueLayouts: any[]) => {
+  console.log('🔍 VALIDATING API RESPONSE');
+  
+  eventVenueLayouts.forEach((layout, index) => {
+    console.log(`\nVenue ${index + 1}: ${layout.displayName}`);
+    console.log(`  Venue ID: ${layout.venue.id}`);
+    console.log(`  Table count: ${layout.tables.length}`);
+    
+    // Check for table contamination
+    const wrongVenueTables = layout.tables.filter(
+      (table: any) => table.venueId && table.venueId !== layout.venue.id
+    );
+    
+    if (wrongVenueTables.length > 0) {
+      console.error(`  ❌ CONTAMINATION: ${wrongVenueTables.length} tables belong to wrong venue!`);
+      console.error(`  Wrong tables:`, wrongVenueTables.map((t: any) => ({ 
+        id: t.id, 
+        correctVenue: layout.venue.id, 
+        actualVenue: t.venueId 
+      })));
+    } else {
+      console.log(`  ✅ All tables properly isolated`);
+    }
+  });
+};
+
+// Update the query to include validation
+const { data: eventVenueLayouts, isLoading: isLoadingVenues, error: venueError } = useQuery({
+  queryKey: [`/api/events/${eventId}/venue-layouts`],
+  enabled: !!eventId,
+  retry: 1,
+  onSuccess: (data) => {
+    if (data && Array.isArray(data)) {
+      validateApiResponse(data);
+    }
+  }
+});
+```
+
+**Step 4: Emergency Fallback Query**
+If the issue persists, implement this alternative query approach:
+
+```typescript
+// Alternative venue-specific query method
+const getVenueTablesAlternative = async (venueId: number) => {
+  console.log(`🔄 ALTERNATIVE QUERY for venue ${venueId}`);
+  
+  // Use raw SQL if ORM is causing issues
+  const result = await db.execute(
+    sql`SELECT * FROM tables WHERE venue_id = ${venueId} ORDER BY table_number`
+  );
+  
+  console.log(`   Raw SQL returned ${result.length} rows`);
+  return result;
+};
+```
+
+## TESTING PROTOCOL
+
+1. **Test the diagnostic endpoint**: `GET /api/debug/venue-tables/13`
+2. **Check server logs** when accessing the booking page
+3. **Verify database directly**: 
+   ```sql
+   SELECT venue_id, COUNT(*) FROM tables WHERE venue_id IN (3, 4) GROUP BY venue_id;
+   ```
+4. **Test venue switching** to ensure clean separation
+
+## EXPECTED OUTCOME
+
+After implementing these fixes:
+- Mezzanine venue should return exactly 13 tables
+- Main Floor venue should return exactly 70 tables
+- No table contamination between venues
+- Clean venue switching in the UI
+
+## ADDITIONAL IMPROVEMENTS
+
+**Performance Optimization:**
+```typescript
+// Replace Promise.all with optimized JOIN query
+const venueLayoutsOptimized = await db
+  .select({
+    eventVenueId: eventVenues.id,
+    displayName: eventVenues.displayName,
+    displayOrder: eventVenues.displayOrder,
+    venueId: venues.id,
+    venueName: venues.name,
+    venueWidth: venues.width,
+    venueHeight: venues.height,
+    tableId: tables.id,
+    tableNumber: tables.tableNumber,
+    tableX: tables.x,
+    tableY: tables.y,
+    // ... other table fields
+  })
+  .from(eventVenues)
+  .leftJoin(venues, eq(eventVenues.venueId, venues.id))
+  .leftJoin(tables, eq(tables.venueId, venues.id))
+  .where(and(
+    eq(eventVenues.eventId, eventId),
+    eq(eventVenues.isActive, true)
+  ))
+  .orderBy(eventVenues.displayOrder, tables.tableNumber);
+
+// Then group the results by venue
+const groupedLayouts = venueLayoutsOptimized.reduce((acc, row) => {
+  // Grouping logic here
+}, {});
+```
+
+**Error Boundaries:**
+```typescript
+// Add to React component
+if (venueError) {
+  console.error('Venue loading error:', venueError);
+  return <div>Error loading venue data. Please refresh.</div>;
+}
+
+if (!eventVenueLayouts || eventVenueLayouts.length === 0) {
+  return <div>No venues configured for this event.</div>;
+}
+```
+
+## PRIORITY ORDER
+1. ✅ Add debug logging (Step 1)
+2. ✅ Test diagnostic endpoint (Step 2) 
+3. ✅ Validate frontend response (Step 3)
+4. ✅ Implement alternative query if needed (Step 4)
+5. ✅ Performance optimization (after bug fix)
+
+Execute these changes and report back with the server log output when accessing the booking page for Event 13.
