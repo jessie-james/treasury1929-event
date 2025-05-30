@@ -3628,67 +3628,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Add this temporary diagnostic endpoint
-  app.get("/api/debug/venue-tables/:eventId", async (req, res) => {
-    try {
-      const eventId = parseInt(req.params.eventId);
-      
-      // Get all venues for this event
-      const eventVenuesList = await db
-        .select({
-          eventVenueId: eventVenues.id,
-          venueId: eventVenues.venueId,
-          displayName: eventVenues.displayName,
-          venueName: venues.name
-        })
-        .from(eventVenues)
-        .leftJoin(venues, eq(eventVenues.venueId, venues.id))
-        .where(eq(eventVenues.eventId, eventId));
-      
-      console.log(`🔍 DEBUG: Event ${eventId} has ${eventVenuesList.length} venues`);
-      
-      // Get ALL tables for these venues with explicit venue information
-      const venueIds = eventVenuesList.map(ev => ev.venueId);
-      
-      const allTablesQuery = await db
-        .select({
-          tableId: tables.id,
-          tableNumber: tables.tableNumber,
-          venueId: tables.venueId,
-          venueName: venues.name
-        })
-        .from(tables)
-        .leftJoin(venues, eq(tables.venueId, venues.id))
-        .where(inArray(tables.venueId, venueIds));
-      
-      // Group by venue for analysis
-      const venueTableCounts = allTablesQuery.reduce((acc, table) => {
-        const key = `${table.venueId}-${table.venueName}`;
-        if (!acc[key]) {
-          acc[key] = { count: 0, tables: [] };
-        }
-        acc[key].count++;
-        acc[key].tables.push({
-          id: table.tableId,
-          number: table.tableNumber
-        });
-        return acc;
-      }, {} as Record<string, { count: number; tables: any[] }>);
-      
-      res.json({
-        eventId,
-        totalEventVenues: eventVenuesList.length,
-        eventVenues: eventVenuesList,
-        venueBreakdown: venueTableCounts,
-        totalTablesFound: allTablesQuery.length
-      });
-      
-    } catch (error) {
-      console.error("Debug query failed:", error);
-      res.status(500).json({ error: "Debug query failed", details: error.message });
-    }
-  });
-
   // Get event bookings to filter available tables
   app.get("/api/event-bookings", async (req, res) => {
     try {
