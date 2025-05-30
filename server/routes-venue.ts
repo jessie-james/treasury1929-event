@@ -166,8 +166,12 @@ export function registerVenueRoutes(app: Express): void {
       
       console.log(`💾 SAVING VENUE LAYOUT for venue ${venueId}`);
       console.log(`   Venue updates:`, venue ? Object.keys(venue) : 'none');
+      console.log(`   Venue data:`, venue);
       console.log(`   Stages to save: ${stages?.length || 0}`);
       console.log(`   Tables to save: ${tables?.length || 0}`);
+      if (tables && tables.length > 0) {
+        console.log(`   Sample table data:`, tables[0]);
+      }
 
       // Begin transaction for data integrity
       await db.transaction(async (tx) => {
