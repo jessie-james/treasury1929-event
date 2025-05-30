@@ -312,6 +312,128 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Table deduplication diagnostic and cleanup
+  app.post("/api/debug/deduplicate-tables/:venueId", async (req, res) => {
+    try {
+      const venueId = parseInt(req.params.venueId);
+      const { dryRun = true } = req.body;
+      
+      console.log(`🔧 TABLE DEDUPLICATION for Venue ${venueId} (dryRun: ${dryRun})`);
+      
+      // Get all tables for this venue
+      const allTables = await db
+        .select({
+          id: tables.id,
+          tableNumber: tables.tableNumber,
+          x: tables.x,
+          y: tables.y,
+          capacity: tables.capacity
+        })
+        .from(tables)
+        .where(eq(tables.venueId, venueId))
+        .orderBy(tables.tableNumber, tables.id);
+      
+      // Check for existing bookings
+      const tablesWithBookings = await db
+        .select({
+          tableId: bookings.tableId,
+          bookingCount: db.select().from(bookings).where(eq(bookings.tableId, bookings.tableId))
+        })
+        .from(bookings)
+        .where(inArray(bookings.tableId, allTables.map(t => t.id)));
+      
+      const bookedTableIds = new Set(tablesWithBookings.map(b => b.tableId));
+      
+      console.log(`📊 Found ${allTables.length} total tables, ${bookedTableIds.size} have bookings`);
+      
+      // Group by table number to find duplicates
+      const tableGroups = allTables.reduce((acc, table) => {
+        if (!acc[table.tableNumber]) {
+          acc[table.tableNumber] = [];
+        }
+        acc[table.tableNumber].push(table);
+        return acc;
+      }, {} as Record<number, typeof allTables>);
+      
+      const deduplicationPlan = [];
+      let tablesToDelete = [];
+      
+      for (const [tableNumber, duplicates] of Object.entries(tableGroups)) {
+        if (duplicates.length > 1) {
+          console.log(`🔍 Table ${tableNumber}: ${duplicates.length} duplicates`);
+          
+          // Find the best table to keep (prefer one with bookings, then oldest)
+          const bookedDuplicates = duplicates.filter(t => bookedTableIds.has(t.id));
+          const unbookedDuplicates = duplicates.filter(t => !bookedTableIds.has(t.id));
+          
+          let tableToKeep;
+          let toDelete;
+          
+          if (bookedDuplicates.length > 0) {
+            // Keep the oldest booked table
+            tableToKeep = bookedDuplicates.sort((a, b) => a.id - b.id)[0];
+            toDelete = duplicates.filter(t => t.id !== tableToKeep.id);
+          } else {
+            // Keep the oldest unbooked table  
+            tableToKeep = duplicates.sort((a, b) => a.id - b.id)[0];
+            toDelete = duplicates.slice(1);
+          }
+          
+          deduplicationPlan.push({
+            tableNumber: parseInt(tableNumber),
+            duplicateCount: duplicates.length,
+            keeping: { id: tableToKeep.id, hasBookings: bookedTableIds.has(tableToKeep.id) },
+            deleting: toDelete.map(t => ({ id: t.id, hasBookings: bookedTableIds.has(t.id) }))
+          });
+          
+          tablesToDelete.push(...toDelete.map(t => t.id));
+        }
+      }
+      
+      console.log(`🎯 Deduplication plan: ${deduplicationPlan.length} table numbers affected`);
+      console.log(`🗑️ Tables to delete: ${tablesToDelete.length}`);
+      
+      // Safety check: ensure no booked tables are deleted
+      const bookedTablesToDelete = tablesToDelete.filter(id => bookedTableIds.has(id));
+      if (bookedTablesToDelete.length > 0) {
+        console.error(`❌ SAFETY VIOLATION: ${bookedTablesToDelete.length} booked tables would be deleted!`);
+        return res.status(400).json({ 
+          error: "Cannot delete booked tables", 
+          bookedTablesAtRisk: bookedTablesToDelete 
+        });
+      }
+      
+      let deletedCount = 0;
+      if (!dryRun && tablesToDelete.length > 0) {
+        // Delete tables (seats will be handled by foreign key cascade if configured)
+        const deleteResult = await db
+          .delete(tables)
+          .where(inArray(tables.id, tablesToDelete));
+        
+        deletedCount = deleteResult.rowCount || 0;
+        console.log(`✅ Successfully deleted ${deletedCount} duplicate tables`);
+      }
+      
+      res.json({
+        venueId,
+        totalTables: allTables.length,
+        duplicateTableNumbers: deduplicationPlan.length,
+        tablesToDelete: tablesToDelete.length,
+        deletedCount,
+        deduplicationPlan,
+        dryRun,
+        safety: {
+          tablesWithBookings: bookedTableIds.size,
+          bookedTablesAtRisk: bookedTablesToDelete.length
+        }
+      });
+      
+    } catch (error) {
+      console.error("❌ Table deduplication failed:", error);
+      res.status(500).json({ error: "Deduplication failed" });
+    }
+  });
+
   // PRIORITY BOOKING ENDPOINT - Added first to avoid middleware interference
   app.post('/create-booking-final', async (req, res) => {
     console.log('🟢 FINAL BOOKING ENDPOINT - DIRECT PROCESSING');
