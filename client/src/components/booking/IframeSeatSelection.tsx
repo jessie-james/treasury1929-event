@@ -287,46 +287,12 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Add this validation function
-  const validateApiResponse = (eventVenueLayouts: any[]) => {
-    console.log('🔍 VALIDATING API RESPONSE');
-    
-    eventVenueLayouts.forEach((layout, index) => {
-      console.log(`\nVenue ${index + 1}: ${layout.displayName}`);
-      console.log(`  Venue ID: ${layout.venue.id}`);
-      console.log(`  Table count: ${layout.tables.length}`);
-      
-      // Check for table contamination
-      const wrongVenueTables = layout.tables.filter(
-        (table: any) => table.venueId && table.venueId !== layout.venue.id
-      );
-      
-      if (wrongVenueTables.length > 0) {
-        console.error(`  ❌ CONTAMINATION: ${wrongVenueTables.length} tables belong to wrong venue!`);
-        console.error(`  Wrong tables:`, wrongVenueTables.map((t: any) => ({ 
-          id: t.id, 
-          correctVenue: layout.venue.id, 
-          actualVenue: t.venueId 
-        })));
-      } else {
-        console.log(`  ✅ All tables properly isolated`);
-      }
-    });
-  };
-
   // Fetch event venue layouts using the new API
   const { data: eventVenueLayouts, isLoading: isLoadingVenues, error: venueError } = useQuery({
     queryKey: [`/api/events/${eventId}/venue-layouts`],
     enabled: !!eventId,
     retry: 1
   });
-
-  // Run validation when data is loaded
-  useEffect(() => {
-    if (eventVenueLayouts && Array.isArray(eventVenueLayouts)) {
-      validateApiResponse(eventVenueLayouts);
-    }
-  }, [eventVenueLayouts]);
 
   // Fallback: Fetch event data if venue layouts aren't available
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
@@ -346,7 +312,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     retry: 2
   });
 
-  // Get the current venue layout based on selected venue
+  // Get the current venue layout based on selected venue or fallback to event data
   const currentVenueLayout: VenueLayout | undefined = useMemo(() => {
     // Debug logging
     console.log('🔍 VENUE SELECTION DEBUG:', {
@@ -355,7 +321,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       layoutsLength: eventVenueLayouts?.length
     });
     
-    // Use new venue layouts system - prioritize this over fallback
+    // First try new venue layouts system
     if (eventVenueLayouts && Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 0) {
       const selected = eventVenueLayouts[selectedVenueIndex];
       console.log('📍 Selected venue layout:', {
@@ -365,19 +331,18 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
         tableCount: selected?.tables?.length
       });
       
-      if (selected && selected.venue && selected.tables) {
-        console.log('✅ Using venue-specific layout');
+      if (selected) {
         return {
           venue: selected.venue,
           tables: selected.tables,
-          stages: selected.stages || []
+          stages: selected.stages
         };
       }
     }
     
-    // Only use fallback if venue layouts API is not available
-    if (!eventVenueLayouts && eventData && (eventData as any).venueLayout) {
-      console.log('🔄 Using fallback event data (venue layouts not available)');
+    // Fallback to event data structure
+    if (eventData && (eventData as any).venueLayout) {
+      console.log('🔄 Using fallback event data');
       return (eventData as any).venueLayout;
     }
     

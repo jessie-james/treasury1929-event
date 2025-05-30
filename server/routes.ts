@@ -3509,9 +3509,6 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Invalid event ID" });
       }
 
-      // Add comprehensive logging
-      console.log(`🔍 DEBUGGING EVENT ${eventId} VENUE LAYOUTS`);
-
       // Get event-venue relationships for this event
       const eventVenuesList = await db
         .select({
@@ -3520,9 +3517,11 @@ export async function registerRoutes(app: Express) {
           venueId: eventVenues.venueId,
           displayName: eventVenues.displayName,
           displayOrder: eventVenues.displayOrder,
+          isActive: eventVenues.isActive,
           venue: {
             id: venues.id,
             name: venues.name,
+            description: venues.description,
             width: venues.width,
             height: venues.height,
           }
@@ -3535,50 +3534,32 @@ export async function registerRoutes(app: Express) {
         ))
         .orderBy(eventVenues.displayOrder);
 
-      console.log(`📋 Found ${eventVenuesList.length} event-venue relationships:`, 
-        eventVenuesList.map(ev => ({ 
-          venueId: ev.venueId, 
-          displayName: ev.displayName 
-        }))
-      );
-
       if (eventVenuesList.length === 0) {
         return res.status(404).json({ error: "No active venues found for this event" });
       }
 
-      // CRITICAL: Add validation before Promise.all
+      // Fetch layout data for each venue
       const venueLayouts = await Promise.all(
-        eventVenuesList.map(async (eventVenue, index) => {
+        eventVenuesList.map(async (eventVenue) => {
           const venueId = eventVenue.venueId;
           
-          console.log(`\n🏢 PROCESSING VENUE ${index + 1}/${eventVenuesList.length}:`);
-          console.log(`   Venue ID: ${venueId}`);
-          console.log(`   Display Name: ${eventVenue.displayName}`);
+          console.log(`🔍 SERVER: Fetching tables for venue ${venueId} (${eventVenue.displayName})`);
           
-          // Add explicit query logging
-          console.log(`   Executing query: SELECT * FROM tables WHERE venue_id = ${venueId}`);
-          
+          // Get tables for this venue
           const venueTables = await db
             .select()
             .from(tables)
             .where(eq(tables.venueId, venueId));
             
-          console.log(`   ✅ Query returned ${venueTables.length} tables for venue ${venueId}`);
-          console.log(`   Table IDs: ${venueTables.map(t => t.id).join(', ')}`);
+          console.log(`📊 SERVER: Found ${venueTables.length} tables for venue ${venueId}`);
           
-          // Add table validation
-          const invalidTables = venueTables.filter(table => table.venueId !== venueId);
-          if (invalidTables.length > 0) {
-            console.error(`   ❌ CONTAMINATION DETECTED: ${invalidTables.length} tables belong to wrong venue!`);
-            console.error(`   Invalid tables:`, invalidTables.map(t => ({ id: t.id, venueId: t.venueId })));
-          }
-
+          // Get stages for this venue
           const venueStages = await db
             .select()
             .from(stages)
             .where(eq(stages.venueId, venueId));
 
-          const result = {
+          return {
             eventVenueId: eventVenue.id,
             displayName: eventVenue.displayName,
             displayOrder: eventVenue.displayOrder,
@@ -3591,7 +3572,6 @@ export async function registerRoutes(app: Express) {
             tables: venueTables.map(table => ({
               id: table.id,
               tableNumber: table.tableNumber,
-              venueId: table.venueId, // Add this for validation
               x: table.x,
               y: table.y,
               width: table.width,
@@ -3610,20 +3590,12 @@ export async function registerRoutes(app: Express) {
               rotation: stage.rotation || 0
             }))
           };
-          
-          console.log(`   📊 Final result for ${eventVenue.displayName}: ${result.tables.length} tables`);
-          return result;
         })
       );
 
-      console.log(`\n🎯 FINAL API RESPONSE SUMMARY:`);
-      venueLayouts.forEach((layout, index) => {
-        console.log(`   Venue ${index + 1}: ${layout.displayName} - ${layout.tables.length} tables`);
-      });
-
       res.json(venueLayouts);
     } catch (error) {
-      console.error("❌ Error fetching event venue layouts:", error);
+      console.error("Error fetching event venue layouts:", error);
       res.status(500).json({ error: "Failed to fetch venue layouts" });
     }
   });
