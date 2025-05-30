@@ -318,13 +318,15 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   const { data: eventVenueLayouts, isLoading: isLoadingVenues, error: venueError } = useQuery({
     queryKey: [`/api/events/${eventId}/venue-layouts`],
     enabled: !!eventId,
-    retry: 1,
-    onSuccess: (data) => {
-      if (data && Array.isArray(data)) {
-        validateApiResponse(data);
-      }
-    }
+    retry: 1
   });
+
+  // Run validation when data is loaded
+  useEffect(() => {
+    if (eventVenueLayouts && Array.isArray(eventVenueLayouts)) {
+      validateApiResponse(eventVenueLayouts);
+    }
+  }, [eventVenueLayouts]);
 
   // Fallback: Fetch event data if venue layouts aren't available
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
