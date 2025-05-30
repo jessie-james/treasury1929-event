@@ -248,47 +248,78 @@ export function registerVenueRoutes(app: Express): void {
           
           if (bookedTables.length > 0) {
             console.log(`   ⚠️ WARNING: Preserving ${bookedTables.length} tables with bookings`);
+            console.log(`   Booked table numbers:`, bookedTables.map(t => t.tableNumber));
           }
           
-          // Only delete unbooked tables to prevent data loss
-          if (unbookedTables.length > 0) {
-            const unbookedIds = unbookedTables.map(t => t.id);
+          // For venues with bookings, use UPDATE strategy instead of DELETE/INSERT
+          if (bookedTables.length > 0) {
+            console.log(`   🔄 Using UPDATE strategy for venue with bookings`);
+            
+            // Update each table individually
+            for (const tableData of tables) {
+              const existingTable = existingTables.find(t => t.tableNumber === tableData.tableNumber);
+              
+              if (existingTable) {
+                // Update existing table
+                const updateData = insertTableSchema.partial().parse({
+                  x: tableData.x,
+                  y: tableData.y,
+                  width: tableData.width,
+                  height: tableData.height,
+                  rotation: tableData.rotation,
+                  capacity: tableData.capacity,
+                  shape: tableData.shape,
+                  tableSize: tableData.tableSize
+                });
+                
+                await tx.update(schema.tables)
+                  .set(updateData)
+                  .where(eq(schema.tables.id, existingTable.id));
+                
+                console.log(`   ✅ Updated table ${tableData.tableNumber}`);
+              } else {
+                // Insert new table
+                const validatedTable = insertTableSchema.parse({
+                  ...tableData,
+                  venueId
+                });
+                delete validatedTable.id;
+                
+                await tx.insert(schema.tables).values(validatedTable);
+                console.log(`   ✅ Inserted new table ${tableData.tableNumber}`);
+              }
+            }
+          } else {
+            // Use original DELETE/INSERT strategy for venues without bookings
+            console.log(`   🔄 Using DELETE/INSERT strategy for venue without bookings`);
             
             // Delete seats first (foreign key constraint)
-            await tx.delete(schema.seats).where(inArray(schema.seats.tableId, unbookedIds));
-            
-            // Delete unbooked tables
-            await tx.delete(schema.tables).where(inArray(schema.tables.id, unbookedIds));
-            
-            console.log(`   ✅ Safely removed ${unbookedTables.length} unbooked tables`);
-          }
-          
-          // Insert new tables, avoiding conflicts with existing booked tables
-          let insertedTables = 0;
-          const existingTableNumbers = new Set(bookedTables.map(t => t.tableNumber));
-          
-          for (const tableData of tables) {
-            try {
-              const validatedTable = insertTableSchema.parse({
-                ...tableData,
-                venueId
-              });
-              delete validatedTable.id; // Remove ID to let DB assign new one
-              
-              // Skip tables that would conflict with existing booked tables
-              if (existingTableNumbers.has(validatedTable.tableNumber)) {
-                console.log(`   ⏭️ Skipping table ${validatedTable.tableNumber} (has bookings)`);
-                continue;
-              }
-              
-              await tx.insert(schema.tables).values(validatedTable);
-              insertedTables++;
-            } catch (error) {
-              console.error(`   ❌ Failed to insert table ${tableData.tableNumber}:`, error);
-              throw error;
+            if (unbookedTables.length > 0) {
+              const unbookedIds = unbookedTables.map(t => t.id);
+              await tx.delete(schema.seats).where(inArray(schema.seats.tableId, unbookedIds));
+              await tx.delete(schema.tables).where(inArray(schema.tables.id, unbookedIds));
+              console.log(`   ✅ Safely removed ${unbookedTables.length} unbooked tables`);
             }
+            
+            // Insert new tables
+            let insertedTables = 0;
+            for (const tableData of tables) {
+              try {
+                const validatedTable = insertTableSchema.parse({
+                  ...tableData,
+                  venueId
+                });
+                delete validatedTable.id;
+                
+                await tx.insert(schema.tables).values(validatedTable);
+                insertedTables++;
+              } catch (error) {
+                console.error(`   ❌ Failed to insert table ${tableData.tableNumber}:`, error);
+                throw error;
+              }
+            }
+            console.log(`   ✅ Inserted ${insertedTables} new tables`);
           }
-          console.log(`   ✅ Inserted ${insertedTables} new tables`);
         }
       });
 
