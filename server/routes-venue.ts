@@ -233,7 +233,7 @@ export function registerVenueRoutes(app: Express): void {
             .select({
               id: schema.tables.id,
               tableNumber: schema.tables.tableNumber,
-              hasBookings: sql<boolean>`EXISTS(SELECT 1 FROM ${schema.bookings} WHERE table_id = ${schema.tables.id})`
+              hasBookings: sql<boolean>`EXISTS(SELECT 1 FROM bookings WHERE table_id = ${schema.tables.id})`
             })
             .from(schema.tables)
             .where(eq(schema.tables.venueId, venueId));
