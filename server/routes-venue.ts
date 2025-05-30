@@ -4,6 +4,7 @@ import { db } from "./db.js";
 import * as schema from "@shared/schema";
 import { insertVenueSchema, insertStageSchema, insertTableSchema } from "@shared/schema";
 import { z } from "zod";
+import { eq, inArray, sql } from "drizzle-orm";
 
 /**
  * Register venue management routes
