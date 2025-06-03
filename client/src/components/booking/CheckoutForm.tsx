@@ -12,59 +12,80 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, AlertTriangle, ExternalLink } from "lucide-react";
+import { Loader2, AlertTriangle, ExternalLink, RefreshCw } from "lucide-react";
 import { Link, useLocation } from "wouter";
-
-
-// Debug checkout configuration
-console.log("🔍 CHECKOUT DEBUG:", {
-  env: import.meta.env.MODE,
-  hasStripeKey: !!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY,
-  keyLength: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.length,
-  keyPrefix: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.substring(0, 12)
-});
 
 const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
-if (!stripeKey) {
-  console.error("❌ Stripe publishable key is not defined. Expected VITE_STRIPE_PUBLISHABLE_KEY in environment.");
-} else {
-  console.log("✅ Stripe key found:", stripeKey.substring(0, 12) + "...");
-}
+// Robust Stripe loader with comprehensive error handling
+class StripeLoader {
+  private static instance: StripeLoader;
+  private stripePromise: Promise<any> | null = null;
+  private isLoading = false;
+  private lastError: Error | null = null;
 
-// Create a stable Stripe promise with debug logging
-let stripePromise: Promise<any> | null = null;
-
-if (stripeKey) {
-  try {
-    stripePromise = loadStripe(stripeKey);
-    console.log("✅ Stripe loadStripe called successfully");
-    
-    // Test if Stripe loads
-    stripePromise.then((stripe) => {
-      if (stripe) {
-        console.log("✅ Stripe loaded successfully:", stripe);
-      } else {
-        console.error("❌ Stripe loaded but returned null");
-      }
-    }).catch((error) => {
-      console.error("❌ Stripe loading failed:", error);
-    });
-  } catch (error) {
-    console.error("❌ Error calling loadStripe:", error);
-    stripePromise = null;
+  static getInstance(): StripeLoader {
+    if (!StripeLoader.instance) {
+      StripeLoader.instance = new StripeLoader();
+    }
+    return StripeLoader.instance;
   }
-} else {
-  console.error("❌ Cannot initialize Stripe - no publishable key");
-  stripePromise = null;
+
+  async loadStripe(): Promise<any> {
+    if (this.stripePromise && !this.lastError) {
+      return this.stripePromise;
+    }
+
+    if (!stripeKey) {
+      throw new Error("Stripe publishable key is missing from environment variables");
+    }
+
+    if (this.isLoading) {
+      throw new Error("Stripe is already loading");
+    }
+
+    this.isLoading = true;
+    this.lastError = null;
+
+    try {
+      console.log("Loading Stripe.js library...");
+      
+      this.stripePromise = loadStripe(stripeKey, {
+        locale: 'en',
+        apiVersion: '2023-10-16'
+      });
+
+      const stripe = await this.stripePromise;
+      
+      if (!stripe) {
+        throw new Error("Stripe.js loaded but returned null - this may indicate network issues or an invalid key");
+      }
+
+      console.log("Stripe.js loaded successfully");
+      this.isLoading = false;
+      return stripe;
+    } catch (error) {
+      this.isLoading = false;
+      this.lastError = error as Error;
+      this.stripePromise = null;
+      console.error("Failed to load Stripe.js:", error);
+      throw error instanceof Error ? error : new Error("Unknown error loading Stripe");
+    }
+  }
+
+  reset(): void {
+    this.stripePromise = null;
+    this.lastError = null;
+    this.isLoading = false;
+  }
 }
 
 interface Props {
   eventId: number;
   tableId: number;
   selectedSeats: number[];
-  foodSelections: Record<string, number>[];
-  guestNames: Record<number, string>;
+  foodSelections: any[];
+  guestNames: string[];
   onSuccess: () => void;
 }
 
@@ -83,143 +104,228 @@ function StripeCheckoutForm({
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const createBookingMutation = useMutation({
+    mutationFn: async (paymentIntentId: string) => {
+      const response = await apiRequest("POST", "/api/bookings", {
+        eventId,
+        tableId,
+        selectedSeats,
+        foodSelections,
+        guestNames,
+        paymentIntentId
+      });
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      onSuccess();
+    }
+  });
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!stripe || !elements) {
-      // Stripe.js has not yet loaded.
-      // Make sure to disable form submission until Stripe.js has loaded.
+      toast({
+        title: "Payment System Loading",
+        description: "Please wait for the payment system to load completely.",
+        variant: "default"
+      });
       return;
     }
 
     setIsProcessing(true);
 
-    // Confirm payment with Stripe
-    const { paymentIntent, error } = await stripe.confirmPayment({
-      //`Elements` instance that was used to create the Payment Element
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/success`,
-      },
-      redirect: 'if_required'
-    });
-
-    if (error) {
-      toast({
-        title: "Payment Failed",
-        description: error.message || "An unexpected error occurred.",
-        variant: "destructive",
+    try {
+      const { paymentIntent, error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: `${window.location.origin}/success`,
+        },
+        redirect: 'if_required'
       });
-      setIsProcessing(false);
-      return;
-    }
 
-    if (paymentIntent && paymentIntent.status === 'succeeded') {
-      // Payment succeeded, now create booking in our system
-      try {
-        if (!user) throw new Error("User not authenticated");
+      if (error) {
+        throw new Error(error.message || "Payment confirmation failed");
+      }
 
-        const booking = {
-          eventId,
-          tableId,
-          partySize: selectedSeats.length,
-          seatNumbers: selectedSeats,
-          foodSelections,
-          guestNames,
-          customerEmail: user.email,
-          stripePaymentId: paymentIntent.id,
-          userId: user.id,
-        };
-
-        console.log("Creating booking with:", booking);
-
-        // Using try/catch with more detailed error handling
-        try {
-          // Helper to get the absolute base URL in the current environment
-          const getBaseUrl = () => {
-            // Check if we're in a deployed environment by looking at the hostname
-            const hostname = window.location.hostname;
-            const isDeployed = hostname.includes('.replit.app') || hostname.includes('.repl.co');
-
-            if (isDeployed) {
-              // Use the current location's origin for deployed environments
-              return window.location.origin;
-            } else {
-              // Use relative paths for development/preview
-              return '';
-            }
-          };
-
-          const bookingUrl = '/api/create-booking';
-          console.log(`Using booking URL: ${bookingUrl}`);
-
-          const response = await apiRequest("POST", bookingUrl, booking);
-
-          if (!response.ok) {
-            // Read the error response from the server
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Server error during booking creation");
-          }
-
-          const bookingData = await response.json();
-          console.log("Booking created successfully:", bookingData);
-
-          // Invalidate user bookings query to refresh the My Tickets page
-          try {
-            // Force a refetch instead of just invalidating
-            await queryClient.refetchQueries({ queryKey: ["/api/user/bookings"] });
-
-            toast({
-              title: "Booking Confirmed!",
-              description: "Your payment was successful. Enjoy the event!",
-            });
-
-            // Navigate to dashboard after successful refetch
-            onSuccess();
-          } catch (refetchError) {
-            console.error("Error refetching bookings:", refetchError);
-
-            // Fallback to basic invalidation if refetch fails
-            queryClient.invalidateQueries({ queryKey: ["/api/user/bookings"] });
-
-            toast({
-              title: "Booking Confirmed!",
-              description: "Your payment was successful. Enjoy the event!",
-            });
-
-            onSuccess();
-          }
-        } catch (apiError: any) {
-          console.error("API Error during booking creation:", apiError);
-          toast({
-            title: "Booking Failed",
-            description: `Payment successful but booking failed: ${apiError.message}`,
-            variant: "destructive",
-          });
+      if (paymentIntent && paymentIntent.status === 'succeeded') {
+        if (!user) {
+          throw new Error("User authentication required");
         }
-      } catch (err: any) {
-        console.error("Error in booking process:", err);
+
+        await createBookingMutation.mutateAsync(paymentIntent.id);
+        
         toast({
-          title: "Booking Failed",
-          description: `Payment successful but booking failed: ${err.message}`,
-          variant: "destructive",
+          title: "Payment Successful",
+          description: "Your booking has been confirmed!",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Payment Processing",
+          description: "Your payment is being processed. You'll receive a confirmation email shortly.",
+          variant: "default"
         });
       }
-    } else {
+    } catch (error) {
+      console.error("Payment error:", error);
       toast({
-        title: "Payment Processing",
-        description: "Your payment is being processed. We'll notify you when it's complete.",
+        title: "Payment Failed",
+        description: error instanceof Error ? error.message : "An unexpected error occurred during payment.",
+        variant: "destructive"
       });
+    } finally {
+      setIsProcessing(false);
     }
-
-    setIsProcessing(false);
   };
 
-  // If Stripe/Elements aren't ready, use working payment form
-  if (!stripe || !elements) {
+  return (
+    <div className="space-y-6">
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h3 className="text-lg font-semibold mb-4">Payment Summary</h3>
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span>Event Tickets ({selectedSeats.length} seats)</span>
+            <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>
+          </div>
+          <div className="border-t pt-2 flex justify-between font-semibold text-lg">
+            <span>Total</span>
+            <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>
+          </div>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="border border-gray-300 rounded-lg p-4">
+          <PaymentElement 
+            options={{
+              layout: 'tabs',
+              business: {name: 'Event Booking'}
+            }}
+          />
+        </div>
+        
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={!stripe || !elements || isProcessing}
+        >
+          {isProcessing ? (
+            <span className="flex items-center">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing Payment...
+            </span>
+          ) : (
+            `Complete Payment - $${(19.99 * selectedSeats.length).toFixed(2)}`
+          )}
+        </Button>
+      </form>
+
+      <div className="text-center text-sm text-gray-600">
+        <p>Test card: 4242 4242 4242 4242, any future date, any CVC</p>
+      </div>
+    </div>
+  );
+}
+
+export function CheckoutForm({
+  eventId,
+  tableId,
+  selectedSeats,
+  foodSelections,
+  guestNames,
+  onSuccess
+}: Props) {
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [stripeInstance, setStripeInstance] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryAttempts, setRetryAttempts] = useState(0);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [_, setLocation] = useLocation();
+
+  const maxRetryAttempts = 3;
+  const stripeLoader = StripeLoader.getInstance();
+
+  const loadStripeAndPayment = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      if (!user) {
+        setError("Please log in to continue with payment");
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to complete your booking",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Load Stripe first
+      console.log("Loading Stripe payment system...");
+      const stripe = await stripeLoader.loadStripe();
+      setStripeInstance(stripe);
+
+      // Get payment intent
+      console.log("Creating payment intent...");
+      const response = await apiRequest("POST", "/api/create-payment-intent", {
+        eventId,
+        tableId,
+        selectedSeats,
+        amount: Math.round(19.99 * selectedSeats.length * 100) // Convert to cents
+      });
+
+      const responseData = await response.json() as { clientSecret: string };
+
+      if (!responseData.clientSecret) {
+        throw new Error("Failed to create payment intent");
+      }
+
+      setClientSecret(responseData.clientSecret);
+      console.log("Payment system ready");
+    } catch (error) {
+      console.error("Failed to initialize payment:", error);
+      setError(error instanceof Error ? error.message : "Failed to load payment system");
+      
+      if (retryAttempts < maxRetryAttempts) {
+        toast({
+          title: "Loading Payment System",
+          description: `Retrying... (${retryAttempts + 1}/${maxRetryAttempts})`,
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Payment System Error",
+          description: "Unable to load payment system. Please refresh the page or try again later.",
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRetry = () => {
+    if (retryAttempts < maxRetryAttempts) {
+      setRetryAttempts(prev => prev + 1);
+      stripeLoader.reset(); // Reset Stripe loader state
+      loadStripeAndPayment();
+    } else {
+      window.location.reload(); // Force page reload as last resort
+    }
+  };
+
+  useEffect(() => {
+    loadStripeAndPayment();
+  }, []);
+
+  if (isLoading) {
     return (
       <div className="space-y-6">
-        {/* Payment Summary */}
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-4">Payment Summary</h3>
           <div className="space-y-2">
@@ -244,464 +350,70 @@ function StripeCheckoutForm({
           </div>
         </div>
         
-        <div className="flex justify-center py-8">
+        <div className="flex flex-col items-center justify-center py-8 space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-        
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Secure payment processing • Test environment
-          </p>
+          <p className="text-sm text-gray-600">Loading secure payment system...</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="border border-gray-300 rounded-lg p-4">
-        <PaymentElement 
-          options={{
-            layout: 'tabs',
-            business: {name: 'Event Booking'}
-          }}
-        />
-      </div>
-      <Button 
-        type="submit" 
-        className="w-full"
-        disabled={!stripe || !elements || isProcessing}
-      >
-        {isProcessing ? (
-          <span className="flex items-center">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </span>
-        ) : (
-          `Pay $${(19.99 * selectedSeats.length).toFixed(2)}`
-        )}
-      </Button>
-    </form>
-  );
-}
-
-export function CheckoutForm({
-  eventId,
-  tableId,
-  selectedSeats,
-  foodSelections,
-  guestNames,
-  onSuccess
-}: Props) {
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-  const { user } = useAuth();
-  const [_, setLocation] = useLocation();
-
-  // Function to retrieve the client secret for Stripe payment
-  const getClientSecret = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // More verbose client-side authentication check
-      if (!user) {
-        console.error("Payment attempt failed: No user found in auth context");
-        setError("You must be logged in to make a payment");
-
-        // Check if we can detect a possible cause
-        const userAuthState = localStorage.getItem("user_auth_state");
-        if (!userAuthState || userAuthState === "logged_out") {
-          console.log("Auth state indicates user is not logged in or session expired");
-
-          // Suggest redirection to login
-          toast({
-            title: "Session expired",
-            description: "Your login session may have expired. Please log in again to continue.",
-            variant: "destructive",
-            action: (
-              <Button variant="outline" size="sm" onClick={() => setLocation("/auth")}>
-                Log In
-              </Button>
-            ),
-          });
-        }
-        return;
-      }
-
-      // Store auth state flag for future reference
-      localStorage.setItem("user_auth_state", "logged_in");
-
-      console.log(`Requesting payment intent for ${selectedSeats.length} seats (attempt ${retryCount + 1})`);
-
-      // First check if Stripe is loaded by verifying the public key
-      const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-      if (!stripeKey) {
-        setError("Stripe publishable key is missing. Payment processing is unavailable.");
-        throw new Error("Stripe publishable key is missing. Payment processing is unavailable.");
-      }
-
-      // Helper to get the absolute base URL in the current environment
-      const getBaseUrl = () => {
-        // Check if we're in a deployed environment by looking at the hostname
-        const hostname = window.location.hostname;
-        const isDeployed = hostname.includes('.replit.app') || hostname.includes('.repl.co');
-
-        if (isDeployed) {
-          // Use the current location's origin for deployed environments
-          return window.location.origin;
-        } else {
-          // Use relative paths for development/preview
-          return '';
-        }
-      };
-
-      // Step 1: Get a payment token to use in case the session is lost
-      console.log("Requesting payment token...");
-      let paymentToken = null;
-
-      try {
-        const baseUrl = getBaseUrl();
-        const tokenUrl = `${baseUrl}/api/generate-payment-token`;
-        console.log(`Using token URL: ${tokenUrl}`);
-
-        // Include user email in the request to support additional fallback auth methods
-        // If session is lost, the server can still generate a token using email
-        const tokenRequest = {
-          email: user?.email
-        };
-
-        // First try with credentials included (for session auth)
-        const tokenResponse = await fetch(tokenUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(tokenRequest),
-          credentials: 'include' // Important: send cookies for session auth
-        });
-
-        if (tokenResponse.ok) {
-          const tokenData = await tokenResponse.json();
-          paymentToken = tokenData.paymentToken;
-
-          // Check if this is a limited access token
-          const isLimitedToken = tokenData.limitedAccess === true;
-          console.log(`Payment token received (${isLimitedToken ? 'limited access' : 'full access'})`);
-
-          // Store important information in localStorage as fallbacks
-          localStorage.setItem("payment_token", paymentToken);
-          localStorage.setItem("user_email", user?.email || '');
-
-          // Store auth state for future reference
-          localStorage.setItem("user_auth_state", "logged_in");
-          localStorage.setItem("payment_auth_time", Date.now().toString());
-        } else {
-          console.warn("Could not get payment token with credentials, trying simplified request");
-
-          // Try again without credentials (in case CORS is blocking credentialed request)
-          const simpleResponse = await fetch(tokenUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              email: user?.email,
-              userId: user?.id,
-              noCredentials: true // Signal to server this is a non-credentialed request
-            })
-          });
-
-          if (simpleResponse.ok) {
-            const simpleData = await simpleResponse.json();
-            paymentToken = simpleData.paymentToken;
-            console.log("Got payment token via simplified request");
-
-            localStorage.setItem("payment_token", paymentToken);
-          } else {
-            console.warn("Both token requests failed, proceeding with fallback mechanisms");
-          }
-        }
-      } catch (tokenError) {
-        console.warn("Error getting payment token:", tokenError);
-        // Continue with session auth only
-      }
-
-      // Step 2: Request payment intent with the token as backup auth
-      const baseUrl = getBaseUrl();
-      const paymentIntentUrl = `${baseUrl}/api/create-payment-intent`;
-      console.log(`Using payment intent URL: ${paymentIntentUrl}`);
-
-      // Try direct fetch with credentials first
-      let response;
-      try {
-        console.log("Trying payment intent with credentials and token");
-        // Make a direct fetch call with credentials
-        response = await fetch(paymentIntentUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            seatCount: selectedSeats.length,
-            paymentToken: paymentToken,
-            userEmail: user?.email,
-            userId: user?.id
-          }),
-          credentials: 'include' // Important: include credentials/cookies
-        });
-      } catch (fetchError) {
-        console.error("Error with credentialed payment intent request:", fetchError);
-        // If the direct fetch fails, try the apiRequest helper as fallback
-        console.log("Falling back to apiRequest method for payment intent");
-        response = await apiRequest("POST", paymentIntentUrl, {
-          seatCount: selectedSeats.length,
-          paymentToken: paymentToken,
-          userEmail: user?.email,
-          userId: user?.id
-        });
-      }
-
-      // Handle our custom network error response
-      if ('isNetworkError' in response) {
-        const isTimeout = 'isTimeoutError' in response;
-        const errorMsg = isTimeout 
-          ? "Payment system request timed out. The server might be experiencing high load."
-          : "Payment system is unreachable. Please check your connection and try again.";
-
-        setError(errorMsg);
-
-        // Log detailed error for debugging
-        console.error(`Stripe payment error (attempt ${retryCount + 1}):`, { 
-          isTimeout, 
-          error: response
-        });
-
-        throw new Error(errorMsg);
-      }
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Payment intent creation failed:", errorData);
-        setError(errorData.error || "Failed to initialize payment");
-        throw new Error(errorData.error || "Failed to initialize payment");
-      }
-
-      const data = await response.json();
-
-      if (!data.clientSecret) {
-        console.error("Missing client secret in response:", data);
-        setError("Invalid payment setup response from server");
-        throw new Error("Invalid payment setup response from server");
-      }
-
-      console.log("Payment intent created successfully");
-      setClientSecret(data.clientSecret);
-      setRetryCount(0); // Reset retry count on success
-    } catch (error) {
-      console.error("Payment setup error:", error);
-      toast({
-        title: "Payment Setup Failed",
-        description: error instanceof Error 
-          ? error.message 
-          : "Could not initialize payment system. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Retry handler for payment intent creation
-  const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
-
-    // Check if we need to try authentication recovery first
-    const userAuthState = localStorage.getItem("user_auth_state");
-    if (!userAuthState || userAuthState === "logged_out") {
-      console.log("Detected logged out state during retry, will attempt to restore session");
-
-      toast({
-        title: "Session recovery",
-        description: "Attempting to restore your session before retrying...",
-      });
-
-      // Force reload auth state before retry
-      setTimeout(() => {
-        // Reset auth state to trigger a new authentication check
-        localStorage.setItem("user_auth_state", "checking");
-
-        // After a short delay, try the payment intent creation again
-        setTimeout(getClientSecret, 500);
-      }, 1000);
-    } else {
-      // Standard retry without auth recovery
-      getClientSecret();
-    }
-  };
-
-  // Create Payment Intent as soon as the component loads
-  useEffect(() => {
-    // Only attempt to get client secret if we have a user
-    if (user && user.id) {
-      console.log("Getting client secret with valid user");
-      getClientSecret();
-    } else {
-      console.log("Waiting for user authentication before getting client secret");
-
-      // Additional authentication recovery attempt for edge cases
-      const userAuthState = localStorage.getItem("user_auth_state");
-      const userEmail = localStorage.getItem("user_email");
-
-      if (userAuthState === "logged_in" && userEmail && !user) {
-        console.log("User state mismatch detected. Auth claims logged in but no user object.");
-
-        // Force auth state check in React Query
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-
-        // Set a timeout to retry after a short delay to allow auth refresh
-        setTimeout(() => {
-          if (!user) {
-            setError("Authentication issue detected. Please try logging in again.");
-
-            toast({
-              title: "Authentication Issue",
-              description: "Please log out and back in to continue with your payment.",
-              variant: "destructive",
-              action: (
-                <Button variant="outline" size="sm" onClick={() => setLocation("/auth")}>
-                  Log In
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <span>Payment System Error</span>
+            </CardTitle>
+            <CardDescription>
+              There was a problem loading the payment system.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 mb-4">{error}</p>
+            <div className="space-y-2">
+              {retryAttempts < maxRetryAttempts ? (
+                <Button onClick={handleRetry} className="w-full" variant="outline">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retry Loading Payment System
                 </Button>
-              ),
-            });
-          }
-        }, 2000);
-      }
-    }
-  }, [selectedSeats.length, user]);
-
-  if (!clientSecret) {
-    return (
-      <Card className="p-6">
-        <CardHeader className="pb-2">
-          <CardTitle>
-            {error ? "Payment Setup Issue" : "Preparing Payment"}
-          </CardTitle>
-          <CardDescription>
-            {error 
-              ? "We encountered a problem connecting to our payment provider." 
-              : "Please wait while we connect to our payment provider..."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-4 flex flex-col items-center gap-4">
-          {isLoading ? (
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          ) : error ? (
-            <div className="space-y-4 w-full">
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-md">
-                <div className="flex gap-2 items-start">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-sm text-amber-800">Payment System Error</p>
-                    <p className="text-sm text-amber-700 mt-1">{error}</p>
-
-                    {/* Add troubleshooting help based on common error cases */}
-                    {error?.includes("Unauthorized") || error?.includes("logged in") ? (
-                      <div className="mt-3 p-2 bg-amber-100 rounded text-xs text-amber-900">
-                        <p className="font-semibold">Troubleshooting:</p>
-                        <ul className="list-disc list-inside mt-1 space-y-1">
-                          <li>Your session may have expired - try logging out and back in</li>
-                          <li>Refresh the page and try again</li>
-                        </ul>
-                      </div>
-                    ) : error?.includes("connect") || error?.includes("unavailable") ? (
-                      <div className="mt-3 p-2 bg-amber-100 rounded text-xs text-amber-900">
-                        <p className="font-semibold">Troubleshooting:</p>
-                        <ul className="list-disc list-inside mt-1 space-y-1">
-                          <li>Check your internet connection</li>
-                          <li>Our payment service might be temporarily unavailable</li>
-                          <li>Wait a few moments and try again</li>
-                        </ul>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-
-              <Button onClick={handleRetry} className="w-full" variant="default">
-                Retry Payment Setup
-              </Button>
-
-              {/* Show admin diagnostic link if this might be a system/connectivity issue */}
-              {user?.role === 'admin' && retryCount >= 2 && (
-                <div className="pt-2">
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Admin options:
-                  </p>
-                  <Link href="/backoffice/stripe-diagnostics">
-                    <Button variant="outline" size="sm" className="w-full text-xs flex items-center gap-1">
-                      <span>Payment System Diagnostics</span>
-                      <ExternalLink className="h-3 w-3" />
-                    </Button>
-                  </Link>
-                </div>
+              ) : (
+                <Button onClick={() => window.location.reload()} className="w-full" variant="outline">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Refresh Page
+                </Button>
               )}
+              <Button onClick={() => setLocation("/events")} className="w-full" variant="ghost">
+                Return to Events
+              </Button>
             </div>
-          ) : (
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          )}
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // If we have multiple failed payment attempts, show error message
-  if (retryCount >= 2) {
-    return (
-      <div className="space-y-4">
-        {/* Notice about payment issues */}
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
-          <p className="font-medium">Payment Processing Issue</p>
-          <p className="mt-1 text-red-700">
-            We're experiencing difficulties processing your payment. Please try again or contact support.
-          </p>
-        </div>
-
-        <Button 
-          onClick={() => setRetryCount(0)} 
-          className="w-full"
-          variant="outline"
-        >
-          Try Payment Again
-        </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // Default standard payment form
+  if (!clientSecret || !stripeInstance) {
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <div>      
-      <Card className="p-4">
-        <CardContent>
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <StripeCheckoutForm
-              eventId={eventId}
-              tableId={tableId}
-              selectedSeats={selectedSeats}
-              foodSelections={foodSelections}
-              guestNames={guestNames}
-              onSuccess={onSuccess}
-              clientSecret={clientSecret}
-            />
-          </Elements>
-        </CardContent>
-        <CardFooter className="text-xs text-muted-foreground">
-          <p>Test card details: 4242 4242 4242 4242, any future date, any CVC</p>
-        </CardFooter>
-      </Card>
-    </div>
+    <Elements stripe={stripeInstance} options={{ clientSecret }}>
+      <StripeCheckoutForm
+        eventId={eventId}
+        tableId={tableId}
+        selectedSeats={selectedSeats}
+        foodSelections={foodSelections}
+        guestNames={guestNames}
+        onSuccess={onSuccess}
+        clientSecret={clientSecret}
+      />
+    </Elements>
   );
 }
