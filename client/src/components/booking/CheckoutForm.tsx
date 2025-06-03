@@ -310,16 +310,59 @@ export function CheckoutForm({
               <span>Payment System Error</span>
             </CardTitle>
             <CardDescription>
-              There was a problem loading the payment system.
+              Stripe payment system is not accessible in this environment.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">{error}</p>
+          <CardContent className="space-y-4">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h4 className="font-semibold text-yellow-800 mb-2">Alternative Payment Methods</h4>
+              <p className="text-sm text-yellow-700">
+                Since Stripe is not accessible, you can complete your booking using these options:
+              </p>
+              <ul className="text-sm text-yellow-700 mt-2 space-y-1">
+                <li>• Reserve your seats and pay at the venue</li>
+                <li>• Contact us directly for payment arrangements</li>
+                <li>• Use bank transfer for advance payment</li>
+              </ul>
+            </div>
+            
             <div className="space-y-2">
+              <Button 
+                onClick={async () => {
+                  // Create booking without payment
+                  try {
+                    await apiRequest("POST", "/api/bookings", {
+                      eventId,
+                      tableId,
+                      selectedSeats,
+                      foodSelections,
+                      guestNames,
+                      paymentMethod: "reserve_pay_later",
+                      paymentStatus: "pending"
+                    });
+                    toast({
+                      title: "Booking Reserved",
+                      description: "Your seats have been reserved. Please complete payment at the venue.",
+                      variant: "default"
+                    });
+                    onSuccess();
+                  } catch (error) {
+                    toast({
+                      title: "Reservation Failed",
+                      description: "Unable to reserve seats. Please try again.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+                className="w-full"
+              >
+                Reserve Seats - Pay at Venue
+              </Button>
+              
               {retryAttempts < maxRetryAttempts ? (
                 <Button onClick={handleRetry} className="w-full" variant="outline">
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Retry Loading Payment System
+                  Retry Payment System
                 </Button>
               ) : (
                 <Button onClick={() => window.location.reload()} className="w-full" variant="outline">
@@ -327,9 +370,14 @@ export function CheckoutForm({
                   Refresh Page
                 </Button>
               )}
+              
               <Button onClick={() => setLocation("/events")} className="w-full" variant="ghost">
                 Return to Events
               </Button>
+            </div>
+            
+            <div className="text-xs text-gray-500 mt-4">
+              <p>Technical details: {error}</p>
             </div>
           </CardContent>
         </Card>
