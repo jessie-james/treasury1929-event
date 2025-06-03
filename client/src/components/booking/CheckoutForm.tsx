@@ -15,70 +15,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2, AlertTriangle, ExternalLink, RefreshCw } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
-const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-
-// Robust Stripe loader with comprehensive error handling
-class StripeLoader {
-  private static instance: StripeLoader;
-  private stripePromise: Promise<any> | null = null;
-  private isLoading = false;
-  private lastError: Error | null = null;
-
-  static getInstance(): StripeLoader {
-    if (!StripeLoader.instance) {
-      StripeLoader.instance = new StripeLoader();
-    }
-    return StripeLoader.instance;
-  }
-
-  async loadStripe(): Promise<any> {
-    if (this.stripePromise && !this.lastError) {
-      return this.stripePromise;
-    }
-
-    if (!stripeKey) {
-      throw new Error("Stripe publishable key is missing from environment variables");
-    }
-
-    if (this.isLoading) {
-      throw new Error("Stripe is already loading");
-    }
-
-    this.isLoading = true;
-    this.lastError = null;
-
-    try {
-      console.log("Loading Stripe.js library...");
-      
-      this.stripePromise = loadStripe(stripeKey, {
-        locale: 'en',
-        apiVersion: '2023-10-16'
-      });
-
-      const stripe = await this.stripePromise;
-      
-      if (!stripe) {
-        throw new Error("Stripe.js loaded but returned null - this may indicate network issues or an invalid key");
-      }
-
-      console.log("Stripe.js loaded successfully");
-      this.isLoading = false;
-      return stripe;
-    } catch (error) {
-      this.isLoading = false;
-      this.lastError = error as Error;
-      this.stripePromise = null;
-      console.error("Failed to load Stripe.js:", error);
-      throw error instanceof Error ? error : new Error("Unknown error loading Stripe");
-    }
-  }
-
-  reset(): void {
-    this.stripePromise = null;
-    this.lastError = null;
-    this.isLoading = false;
-  }
-}
+import { stripeLoader } from "@/utils/stripe-loader";
 
 interface Props {
   eventId: number;
@@ -248,7 +185,6 @@ export function CheckoutForm({
   const [_, setLocation] = useLocation();
 
   const maxRetryAttempts = 3;
-  const stripeLoader = StripeLoader.getInstance();
 
   const loadStripeAndPayment = async () => {
     try {
@@ -265,10 +201,16 @@ export function CheckoutForm({
         return;
       }
 
-      // Load Stripe first
+      // Load Stripe with fallback strategies
       console.log("Loading Stripe payment system...");
-      const stripe = await stripeLoader.loadStripe();
-      setStripeInstance(stripe);
+      const stripeResult = await stripeLoader.loadStripeWithFallbacks();
+      
+      if (!stripeResult.stripe) {
+        throw new Error(stripeResult.error || "Failed to load Stripe");
+      }
+      
+      console.log(`Stripe loaded using method: ${stripeResult.method}`);
+      setStripeInstance(stripeResult.stripe);
 
       // Get payment intent
       console.log("Creating payment intent...");
