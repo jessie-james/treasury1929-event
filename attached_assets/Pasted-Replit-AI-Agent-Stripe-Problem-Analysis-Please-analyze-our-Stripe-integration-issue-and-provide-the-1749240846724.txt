@@ -1,0 +1,56 @@
+Replit AI Agent: Stripe Problem Analysis
+Please analyze our Stripe integration issue and provide the following information in a structured format:
+1. Problem Description
+
+What specific Stripe functionality is failing?
+What error messages are you seeing (exact text)?
+When does the error occur (during payment, webhook processing, subscription creation, etc.)?
+What was the expected vs actual behavior?
+
+2. Current Implementation Details
+Please provide the relevant code snippets for:
+
+Stripe initialization/configuration
+The specific function or endpoint that's failing
+Any webhook handlers (if applicable)
+Frontend payment form code (if relevant)
+Environment variable setup (without exposing actual keys)
+
+3. Technical Environment
+
+Programming language and framework being used
+Stripe SDK version
+Node.js version (if applicable)
+Any relevant dependencies and their versions
+Database being used (if relevant to the issue)
+
+4. Stripe Configuration
+
+Are you using Test mode or Live mode?
+What Stripe features are you implementing? (one-time payments, subscriptions, connect, etc.)
+Are webhooks involved? If so, which events are you listening for?
+What payment methods are you supporting?
+
+5. Recent Changes
+
+What was the last thing that worked?
+What changes were made before the issue started?
+Have you updated any dependencies recently?
+
+6. Debugging Information
+
+Include any relevant console logs or error traces
+Network request/response details from browser dev tools (if applicable)
+Stripe Dashboard logs or events (without sensitive data)
+
+7. File Structure
+Provide the file structure showing where Stripe-related code is located:
+project/
+├── src/
+│   ├── components/
+│   ├── api/
+│   └── ...
+Format Your Response
+Please organize all this information clearly with code blocks for any code snippets, and use headers to separate different sections. Include file names and line numbers where relevant.
+
+Important: Do not include actual API keys, webhook secrets, or other sensitive credentials in your response. Use placeholders like YOUR_STRIPE_SECRET_KEY instead.
