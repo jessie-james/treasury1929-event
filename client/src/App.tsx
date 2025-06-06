@@ -26,7 +26,7 @@ import EntrancePage from "@/pages/backoffice/EntrancePage";
 import VenueDesigner from "@/pages/admin/VenueDesigner";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import ProfilePage from "@/pages/ProfilePage";
-import StripeDiagnostics from "@/pages/StripeDiagnostics";
+
 
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import { BookingSuccess } from "@/pages/BookingSuccess";
@@ -67,7 +67,7 @@ function Router() {
         <ProtectedRoute path="/backoffice/venue-designer" component={VenueDesigner} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/users" component={UsersPage} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/logs" component={LogsPage} requiredRole="admin" />
-        <ProtectedRoute path="/backoffice/stripe-diagnostics" component={StripeDiagnostics} requiredRole="admin" />
+
         <ProtectedRoute path="/dashboard" component={CustomerDashboard} />
         <Route path="/profile" component={ProfilePage} />
 
