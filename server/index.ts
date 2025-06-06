@@ -231,7 +231,16 @@ app.use((req, res, next) => {
     log("Setting up pricing routes...");
     registerPricingRoutes(app);
     
-
+    // Add catch-all route for React Router (after all API routes)
+    app.get('*', (req: Request, res: Response, next: NextFunction) => {
+      // Only handle non-API routes to let React Router handle frontend routing
+      if (req.path.startsWith('/api/')) {
+        return next();
+      }
+      // For all other routes, let the frontend handle it
+      req.url = '/';
+      next();
+    });
 
     // Error logging middleware
     app.use(async (err: any, req: Request, res: Response, next: NextFunction) => {
