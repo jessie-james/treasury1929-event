@@ -349,13 +349,13 @@ app.use((req, res, next) => {
     log("Setting up authentication...");
     setupAuth(app);
     
-    // Set up seat selection routes FIRST to ensure they handle venue-layout calls
-    log("Setting up seat selection routes...");
-    registerSeatSelectionRoutes(app);
-    
     // Set up routes and error handling
     log("Setting up routes...");
     const server = await registerRoutes(app);
+    
+    // Set up seat selection routes
+    log("Setting up seat selection routes...");
+    registerSeatSelectionRoutes(app);
     
     // Set up dedicated payment routes
     log("Setting up payment routes...");
@@ -364,22 +364,6 @@ app.use((req, res, next) => {
     // Set up pricing routes
     log("Setting up pricing routes...");
     registerPricingRoutes(app);
-    
-    // Add catch-all route for React Router (after all API routes)
-    app.get('*', (req: Request, res: Response, next: NextFunction) => {
-      // Skip API routes, assets, Vite dev server routes, and payment success routes
-      if (req.path.startsWith('/api/') || 
-          req.path.startsWith('/src/') || 
-          req.path.startsWith('/@') || 
-          req.path.startsWith('/booking-success') ||
-          req.path.startsWith('/payment-success') ||
-          req.path.includes('.')) {
-        return next();
-      }
-      // For frontend routes, let the frontend handle it
-      req.url = '/';
-      next();
-    });
 
     // Error logging middleware
     app.use(async (err: any, req: Request, res: Response, next: NextFunction) => {
@@ -429,20 +413,7 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
-    // Add specific routes for client-side routing in production
-    const clientRoutes = ['/dashboard', '/auth', '/events', '/onboarding', '/backoffice'];
-    clientRoutes.forEach(route => {
-      app.get(route, (req, res, next) => {
-        req.url = '/';
-        next();
-      });
-      app.get(`${route}/*`, (req, res, next) => {
-        req.url = '/';
-        next();
-      });
-    });
-
-    // Set up serving mode based on environment BEFORE starting server
+    // Set up serving mode based on environment BEFORE client routes
     if (app.get("env") === "development") {
       log("Setting up Vite development server...");
       await setupVite(app, server);
