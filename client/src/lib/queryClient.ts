@@ -245,14 +245,29 @@ export const getQueryFn: <T>(options: {
       });
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        console.log(`Auth query returned 401 for ${url}, returning null as expected`);
         return null;
       }
 
       await throwIfResNotOk(res);
       return await res.json();
     } catch (error) {
+      // Enhanced error handling for auth queries
+      if (unauthorizedBehavior === "returnNull" && 
+          error instanceof Error && 
+          error.message.includes('401')) {
+        console.log(`Auth query failed with 401 for ${queryKey[0]}, returning null as expected`);
+        return null;
+      }
+      
       // Log detailed error information to help with debugging
       console.error(`Network error in query to ${queryKey[0]}:`, error);
+      
+      // For auth queries that should return null on error, do so
+      if (unauthorizedBehavior === "returnNull") {
+        console.log(`Auth query failed for ${queryKey[0]}, returning null`);
+        return null;
+      }
       
       // Rethrow so the query state will be set to error
       throw new Error(
@@ -309,9 +324,6 @@ export const queryClient = new QueryClient({
 
 // Set up a comprehensive global error handler
 window.addEventListener('unhandledrejection', (event) => {
-  // Prevent default handler
-  event.preventDefault();
-  
   // Enhanced error logging
   const error = event.reason;
   const errorContext = {
@@ -319,8 +331,8 @@ window.addEventListener('unhandledrejection', (event) => {
     message: error?.message,
     stack: error?.stack,
     isQueryError: error?.name === 'QueryError' || error?.name === 'MutationError',
-    isTanStackError: error?.toString().includes('TanStack Query'),
-    isAuthError: error?.message?.includes('401') || error?.message?.includes('Not authenticated')
+    isTanStackError: error?.toString?.().includes('TanStack Query') || false,
+    isAuthError: (error?.message?.includes('401') || error?.message?.includes('Not authenticated')) || false
   };
 
   console.error('Global error handler caught unhandled rejection:', errorContext);
@@ -328,7 +340,16 @@ window.addEventListener('unhandledrejection', (event) => {
   // Handle specific error types
   if (errorContext.isAuthError) {
     console.info('Authentication error detected. User may need to log in again.');
+    // Don't prevent default for auth errors - let them be handled normally
+    return;
   } else if (errorContext.isQueryError || errorContext.isTanStackError) {
     console.info('React Query error detected. Check network requests and authentication state.');
+    // Don't prevent default for query errors - let them be handled normally
+    return;
+  }
+  
+  // Only prevent default for other types of errors
+  if (!errorContext.isAuthError && !errorContext.isQueryError && !errorContext.isTanStackError) {
+    event.preventDefault();
   }
 });
