@@ -4,6 +4,27 @@ import { getStripe, createPaymentIntent, formatStripeError } from "./stripe";
 import { storage } from "./storage";
 import express from "express";
 
+// Helper function to create booking from Stripe session
+async function createBookingFromStripeSession(session: any) {
+  const metadata = session.metadata;
+  
+  const bookingData = {
+    eventId: parseInt(metadata.eventId),
+    tableId: parseInt(metadata.tableId),
+    userId: parseInt(metadata.userId),
+    partySize: parseInt(metadata.partySize),
+    customerEmail: session.customer_details?.email || metadata.customerEmail,
+    stripePaymentId: session.payment_intent,
+    stripeSessionId: session.id,
+    amount: session.amount_total,
+    status: 'confirmed' as const,
+    foodSelections: metadata.foodSelections ? JSON.parse(metadata.foodSelections) : null,
+    guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : null
+  };
+
+  return await storage.createBooking(bookingData);
+}
+
 export function registerPaymentRoutes(app: Express) {
   // Create checkout session for server-side Stripe processing
   app.post("/api/create-checkout-session", async (req, res) => {
@@ -109,7 +130,7 @@ export function registerPaymentRoutes(app: Express) {
       
       if (session.payment_status === 'paid') {
         // Create booking from session metadata
-        const booking = await createBookingFromSession(session);
+        const booking = await createBookingFromStripeSession(session);
         
         res.send(`
           <!DOCTYPE html>

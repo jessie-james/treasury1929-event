@@ -233,10 +233,12 @@ app.use((req, res, next) => {
     
     // Add catch-all route for React Router (after all API routes)
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
-      // Skip API routes, assets, and Vite dev server routes
+      // Skip API routes, assets, Vite dev server routes, and payment success routes
       if (req.path.startsWith('/api/') || 
           req.path.startsWith('/src/') || 
           req.path.startsWith('/@') || 
+          req.path.startsWith('/booking-success') ||
+          req.path.startsWith('/payment-success') ||
           req.path.includes('.')) {
         return next();
       }
