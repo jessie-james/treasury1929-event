@@ -8,11 +8,15 @@ import express from "express";
 async function createBookingFromStripeSession(session: any) {
   const metadata = session.metadata;
   
+  // Calculate party size from seats count
+  const seats = metadata.seats ? metadata.seats.split(',') : [];
+  const partySize = seats.length;
+  
   const bookingData = {
     eventId: parseInt(metadata.eventId),
     tableId: parseInt(metadata.tableId),
     userId: parseInt(metadata.userId),
-    partySize: parseInt(metadata.partySize),
+    partySize: partySize,
     customerEmail: session.customer_details?.email || metadata.customerEmail,
     stripePaymentId: session.payment_intent,
     stripeSessionId: session.id,
