@@ -112,35 +112,73 @@ class StripeLoaderService {
     return new Promise((resolve) => {
       // Check if Stripe is already loaded globally
       if ((window as any).Stripe) {
-        const stripe = (window as any).Stripe(stripeKey);
-        resolve({ stripe, error: null, method: "global" });
-        return;
+        try {
+          const stripe = (window as any).Stripe(stripeKey);
+          resolve({ stripe, error: null, method: "global" });
+          return;
+        } catch (error) {
+          console.error('Error initializing existing Stripe:', error);
+        }
       }
 
-      // Load Stripe script manually
-      const script = document.createElement('script');
-      script.src = 'https://js.stripe.com/v3/';
-      script.async = true;
-      
-      script.onload = () => {
-        if ((window as any).Stripe) {
-          const stripe = (window as any).Stripe(stripeKey);
-          resolve({ stripe, error: null, method: "script" });
-        } else {
-          resolve({ stripe: null, error: "Stripe script loaded but Stripe not available", method: "script" });
+      // Remove any existing Stripe scripts
+      const existingScripts = document.querySelectorAll('script[src*="stripe.com"]');
+      existingScripts.forEach(script => script.remove());
+
+      // Load Stripe script manually with multiple CDN fallbacks
+      const scriptUrls = [
+        'https://js.stripe.com/v3/',
+        'https://cdn.jsdelivr.net/npm/@stripe/stripe-js@latest/dist/stripe.umd.min.js'
+      ];
+
+      let scriptIndex = 0;
+
+      const tryLoadScript = () => {
+        if (scriptIndex >= scriptUrls.length) {
+          resolve({ stripe: null, error: "All Stripe CDN sources failed", method: "script" });
+          return;
         }
+
+        const script = document.createElement('script');
+        script.src = scriptUrls[scriptIndex];
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        
+        script.onload = () => {
+          console.log(`Stripe script loaded from: ${scriptUrls[scriptIndex]}`);
+          
+          // Wait a bit for Stripe to be available
+          setTimeout(() => {
+            if ((window as any).Stripe) {
+              try {
+                const stripe = (window as any).Stripe(stripeKey);
+                resolve({ stripe, error: null, method: "script" });
+              } catch (error) {
+                console.error('Error initializing Stripe after script load:', error);
+                resolve({ stripe: null, error: `Stripe initialization failed: ${error}`, method: "script" });
+              }
+            } else {
+              console.error('Stripe script loaded but Stripe object not available');
+              resolve({ stripe: null, error: "Stripe script loaded but Stripe not available", method: "script" });
+            }
+          }, 100);
+        };
+
+        script.onerror = () => {
+          console.error(`Failed to load Stripe from: ${scriptUrls[scriptIndex]}`);
+          scriptIndex++;
+          tryLoadScript();
+        };
+
+        document.head.appendChild(script);
       };
 
-      script.onerror = () => {
-        resolve({ stripe: null, error: "Failed to load Stripe script", method: "script" });
-      };
-
-      // Timeout after 10 seconds
+      // Timeout after 15 seconds total
       setTimeout(() => {
         resolve({ stripe: null, error: "Stripe script load timeout", method: "script" });
-      }, 10000);
+      }, 15000);
 
-      document.head.appendChild(script);
+      tryLoadScript();
     });
   }
 

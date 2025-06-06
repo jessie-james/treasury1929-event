@@ -2566,6 +2566,85 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Main booking endpoint - handles both Stripe and direct bookings
+  app.post("/api/bookings", async (req, res) => {
+    console.log('📅 MAIN BOOKING ENDPOINT');
+    console.log('📅 Method:', req.method);
+    console.log('📅 Path:', req.path);
+    console.log('📅 Body:', JSON.stringify(req.body, null, 2));
+    
+    try {
+      // Check authentication
+      if (!req.isAuthenticated()) {
+        console.log('🔴 Authentication failed');
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const userId = req.user.id;
+      const { eventId, tableId, selectedSeats, foodSelections, guestNames, paymentMethod } = req.body;
+
+      // Validate required fields
+      if (!eventId || !tableId || !selectedSeats || selectedSeats.length === 0) {
+        return res.status(400).json({ message: "Missing required booking information" });
+      }
+
+      // Create booking data
+      const bookingData = {
+        eventId: Number(eventId),
+        userId: Number(userId),
+        tableId: Number(tableId),
+        partySize: selectedSeats.length,
+        customerEmail: req.user.email,
+        stripePaymentId: paymentMethod === "direct" ? `direct-${Date.now()}-${userId}` : req.body.stripePaymentId,
+        guestNames: guestNames || [],
+        foodSelections: foodSelections || [],
+        status: 'confirmed'
+      };
+
+      console.log('📅 Creating booking:', JSON.stringify(bookingData, null, 2));
+      const newBooking = await storage.createBooking(bookingData);
+      console.log('📅 Booking created successfully:', newBooking.id);
+      
+      // Send emails if possible
+      try {
+        const event = await storage.getEventById(bookingData.eventId);
+        const table = await storage.getTableById(bookingData.tableId);
+        const venue = await storage.getVenueById(event.venueId);
+        
+        if (event && table && venue) {
+          await EmailService.sendBookingConfirmation({
+            booking: newBooking,
+            event,
+            table,
+            venue
+          });
+          
+          await EmailService.sendAdminBookingNotification({
+            booking: newBooking,
+            event,
+            table,
+            venue
+          });
+        }
+      } catch (emailError) {
+        console.error('Email notification failed (booking still successful):', emailError);
+      }
+      
+      res.status(200).json({ 
+        success: true, 
+        booking: newBooking,
+        message: paymentMethod === "direct" ? "Booking created - payment will be processed separately" : "Booking confirmed with payment"
+      });
+
+    } catch (error) {
+      console.log('🔴 Booking creation error:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+    }
+  });
+
   // PRODUCTION BOOKING ENDPOINT - with enhanced debugging
   app.post("/api/create-booking", async (req, res) => {
     console.log('🟢 PRODUCTION API ENDPOINT HIT!');
