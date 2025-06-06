@@ -63,7 +63,7 @@ export function setupAuth(app: Express) {
   
   // Configure session store (errorCallback is not in the type definition but is supported)
   const sessionStore = new PostgresSessionStore({
-    pool,
+    pool: pool,
     createTableIfMissing: true,
     // Custom error logging without using the errorCallback option
   });

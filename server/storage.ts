@@ -1,6 +1,6 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import pkg from "pg";
-const { Pool } = pkg;
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from "ws";
 import * as schema from "@shared/schema";
 import {
   type User, type Event, type Booking, type BookingWithDetails,
@@ -11,8 +11,16 @@ import type { IStorage } from "./storage-base.js";
 import { eq, and, desc, asc } from "drizzle-orm";
 import { hashPassword } from "./auth.js";
 
+neonConfig.webSocketConstructor = ws;
+
+if (!process.env.DATABASE_URL) {
+  throw new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database?",
+  );
+}
+
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const db = drizzle(pool, { schema });
+const db = drizzle({ client: pool, schema });
 
 export class PgStorage implements IStorage {
   
