@@ -1,0 +1,195 @@
+# SOLUTION: Fix Vite Dev Server Route Interference
+
+## Root Cause: Vite Dev Server Override
+The issue is that **Vite dev server is intercepting routes after Stripe redirects**, even though your Express routes are registered first. This creates a race condition where browser requests after external redirects get handled by Vite instead of Express.
+
+## Critical Fix: Configure Vite to Exclude Success Routes
+
+### Step 1: Update vite.config.ts
+
+```typescript
+// vite.config.ts
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5000,
+    // CRITICAL: Configure proxy to ensure Express handles success routes
+    proxy: {
+      // Payment success routes - send to Express backend
+      '/booking-success': {
+        target: 'http://localhost:3001', // Your Express server port
+        changeOrigin: true,
+        configure: (proxy, options) => {
+          // Ensure these routes never get cached or intercepted
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            proxyReq.setHeader('Cache-Control', 'no-cache');
+          });
+        }
+      },
+      '/booking-cancel': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      },
+      '/payment-success': {
+        target: 'http://localhost:3001', 
+        changeOrigin: true
+      },
+      // All API routes go to Express
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      }
+    }
+  },
+  build: {
+    outDir: 'dist'
+  }
+})
+```
+
+### Step 2: Alternative - Separate Port Solution
+
+If proxy doesn't work, separate the servers completely:
+
+```typescript
+// server/index.ts - Run Express on different port
+const EXPRESS_PORT = 3001;
+const FRONTEND_PORT = 5000;
+
+async function startServer() {
+  const app = express();
+  
+  // Your Express routes (unchanged)
+  app.get('/booking-success', async (req, res) => {
+    // Your existing success page logic
+  });
+  
+  // Start Express server on port 3001
+  app.listen(EXPRESS_PORT, () => {
+    console.log(`✓ Express server running on port ${EXPRESS_PORT}`);
+  });
+  
+  // Don't setup Vite here - run separately
+}
+
+startServer();
+```
+
+**Then update Stripe URLs:**
+
+```typescript
+// server/routes-payment.ts
+const session = await stripe.checkout.sessions.create({
+  // ... other config
+  success_url: `http://localhost:3001/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+  cancel_url: `http://localhost:3001/booking-cancel`,
+  // ... rest of config
+});
+```
+
+**Run both servers:**
+```bash
+# Terminal 1: Express server
+npm run server
+
+# Terminal 2: Vite dev server  
+npm run dev
+```
+
+### Step 3: Production-Style Solution (Recommended)
+
+Build the frontend and serve it from Express:
+
+```bash
+# Build the React app
+npm run build
+
+# Update package.json scripts
+{
+  "scripts": {
+    "build": "vite build",
+    "start": "node server/index.js",
+    "dev:build": "npm run build && npm run start"
+  }
+}
+```
+
+**Update Express to serve built files:**
+
+```typescript
+// server/index.ts
+import path from 'path';
+
+const app = express();
+
+// Serve built React files
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Your success routes (BEFORE catch-all)
+app.get('/booking-success', async (req, res) => {
+  // Your existing success page logic
+});
+
+app.get('/booking-cancel', (req, res) => {
+  // Your existing cancel page logic
+});
+
+// API routes
+app.use('/api', paymentRoutes);
+
+// Catch-all for React Router (AFTER success routes)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`✓ Server running on port ${PORT}`);
+});
+```
+
+## Step 4: Test Each Solution
+
+### Test Proxy Solution:
+1. Update vite.config.ts with proxy
+2. Restart dev server
+3. Complete payment flow
+4. Check if success page loads
+
+### Test Separate Ports:
+1. Start Express on port 3001
+2. Start Vite on port 5000
+3. Update Stripe URLs to use port 3001
+4. Test payment flow
+
+### Test Production Build:
+1. Run `npm run build`
+2. Start single Express server serving built files
+3. Test payment flow on single port
+
+## Why This Happens
+
+**Vite Development Server** has aggressive route handling that can override Express routes, especially after external redirects. The browser's request after Stripe redirect gets intercepted by Vite's routing system instead of reaching your Express routes.
+
+**This explains why:**
+- ✅ `curl` works (direct to Express)
+- ✅ Server logs show correct execution
+- ❌ Browser shows 403 (Vite interference)
+
+## Expected Results
+
+After implementing any of these solutions:
+- ✅ User completes Stripe payment
+- ✅ Gets redirected to working success page
+- ✅ No 403 errors
+- ✅ Booking confirmation displays properly
+
+## Recommended Approach
+
+**For immediate fix:** Use the **separate ports solution** (Step 2)
+**For production:** Use the **build and serve solution** (Step 3)
+
+This completely bypasses the Vite dev server interference issue! 🎯
