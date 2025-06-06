@@ -451,8 +451,8 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Use port 3001 for Express server to bypass Vite interference
-    const port = 3001;
+    // Force port 5000 for Replit
+    const port = 5000;
     log(`Attempting to start server on port ${port}...`);
 
     server.listen(port, "0.0.0.0", () => {
