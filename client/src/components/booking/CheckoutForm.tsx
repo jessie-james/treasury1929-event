@@ -186,7 +186,7 @@ export function CheckoutForm({
 
   const maxRetryAttempts = 3;
 
-  const loadStripeAndPayment = async () => {
+  const handleStripeCheckout = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -201,82 +201,62 @@ export function CheckoutForm({
         return;
       }
 
-      // Load Stripe with fallback strategies
-      console.log("Loading Stripe payment system...");
-      const stripeResult = await stripeLoader.loadStripeWithFallbacks();
-      
-      if (!stripeResult.stripe) {
-        console.error("Stripe failed to load:", stripeResult.error);
-        
-        // Instead of failing, create a direct booking without Stripe for now
-        setError("Payment system temporarily unavailable. Creating direct booking...");
-        
-        try {
-          const directBookingResponse = await apiRequest("POST", "/api/bookings", {
-            eventId,
-            tableId,
-            selectedSeats,
-            foodSelections,
-            guestNames,
-            paymentMethod: "direct",
-            amount: Math.round(19.99 * selectedSeats.length * 100)
-          });
-
-          if (directBookingResponse.ok) {
-            queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
-            queryClient.invalidateQueries({ queryKey: ["/api/events"] });
-            onSuccess();
-            toast({
-              title: "Booking Confirmed",
-              description: "Your booking has been created successfully. Payment will be processed separately.",
-              variant: "default"
-            });
-            return;
-          }
-        } catch (directBookingError) {
-          console.error("Direct booking also failed:", directBookingError);
-        }
-        
-        throw new Error(stripeResult.error || "Failed to load payment system and direct booking failed");
-      }
-      
-      console.log(`Stripe loaded using method: ${stripeResult.method}`);
-      setStripeInstance(stripeResult.stripe);
-
-      // Get payment intent
-      console.log("Creating payment intent...");
-      const response = await apiRequest("POST", "/api/create-payment-intent", {
+      console.log("Creating Stripe checkout session...");
+      const response = await apiRequest("POST", "/api/create-checkout-session", {
         eventId,
         tableId,
         selectedSeats,
+        foodSelections,
+        guestNames,
         amount: Math.round(19.99 * selectedSeats.length * 100) // Convert to cents
       });
 
-      const responseData = await response.json() as { clientSecret: string };
+      const data = await response.json();
 
-      if (!responseData.clientSecret) {
-        throw new Error("Failed to create payment intent");
+      if (!response.ok) {
+        throw new Error(data.error || 'Payment setup failed');
       }
 
-      setClientSecret(responseData.clientSecret);
-      console.log("Payment system ready");
-    } catch (error) {
-      console.error("Failed to initialize payment:", error);
-      setError(error instanceof Error ? error.message : "Failed to load payment system");
+      // Redirect to Stripe Checkout
+      console.log("Redirecting to Stripe Checkout...");
+      window.location.href = data.url;
       
-      if (retryAttempts < maxRetryAttempts) {
-        toast({
-          title: "Loading Payment System",
-          description: `Retrying... (${retryAttempts + 1}/${maxRetryAttempts})`,
-          variant: "default"
+    } catch (error) {
+      console.error('Stripe checkout failed, trying direct booking:', error);
+      
+      // Fallback to direct booking
+      try {
+        const directBookingResponse = await apiRequest("POST", "/api/bookings", {
+          eventId,
+          tableId,
+          selectedSeats,
+          foodSelections,
+          guestNames,
+          paymentMethod: "direct",
+          amount: Math.round(19.99 * selectedSeats.length * 100)
         });
-      } else {
-        toast({
-          title: "Payment System Error",
-          description: "Unable to load payment system. Please refresh the page or try again later.",
-          variant: "destructive"
-        });
+
+        if (directBookingResponse.ok) {
+          queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+          onSuccess();
+          toast({
+            title: "Booking Confirmed",
+            description: "Your booking has been created successfully. Payment will be processed separately.",
+            variant: "default"
+          });
+          return;
+        }
+      } catch (directBookingError) {
+        console.error("Direct booking also failed:", directBookingError);
       }
+      
+      setError(error instanceof Error ? error.message : "Payment setup failed");
+      toast({
+        title: "Payment Error",
+        description: "Unable to process payment. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
@@ -292,9 +272,7 @@ export function CheckoutForm({
     }
   };
 
-  useEffect(() => {
-    loadStripeAndPayment();
-  }, []);
+  // No automatic loading needed for server-side checkout
 
   if (isLoading) {
     return (

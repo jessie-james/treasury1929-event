@@ -1,9 +1,107 @@
-// Simplified payment routes
+// Server-side payment routes using Stripe Checkout
 import type { Express } from "express";
 import { getStripe, createPaymentIntent, formatStripeError } from "./stripe";
 import { storage } from "./storage";
+import express from "express";
 
 export function registerPaymentRoutes(app: Express) {
+  // Create checkout session for server-side Stripe processing
+  app.post("/api/create-checkout-session", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const { eventId, tableId, selectedSeats, amount, foodSelections, guestNames } = req.body;
+      
+      // Validate input
+      if (!eventId || !tableId || !selectedSeats || !amount) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const stripe = getStripe();
+      if (!stripe) {
+        return res.status(500).json({ error: "Stripe not initialized" });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `Event Booking - ${selectedSeats.length} seats`,
+                description: `Event ID: ${eventId}, Table: ${tableId}`,
+              },
+              unit_amount: Math.round(amount / selectedSeats.length), // amount per seat in cents
+            },
+            quantity: selectedSeats.length,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5173'}/booking-cancelled`,
+        metadata: {
+          eventId: eventId.toString(),
+          tableId: tableId.toString(),
+          userId: req.user.id.toString(),
+          seats: selectedSeats.join(','),
+          foodSelections: JSON.stringify(foodSelections || []),
+          guestNames: JSON.stringify(guestNames || []),
+        },
+      });
+
+      res.json({ sessionId: session.id, url: session.url });
+    } catch (error) {
+      console.error('Checkout session creation failed:', error);
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Payment setup failed' });
+    }
+  });
+
+  // Handle successful payment callback
+  app.get("/api/payment-success", async (req, res) => {
+    try {
+      const { session_id } = req.query;
+      
+      if (!session_id) {
+        return res.status(400).json({ error: 'Missing session ID' });
+      }
+
+      const stripe = getStripe();
+      if (!stripe) {
+        return res.status(500).json({ error: "Stripe not initialized" });
+      }
+
+      const session = await stripe.checkout.sessions.retrieve(session_id as string);
+      
+      if (session.payment_status === 'paid') {
+        // Create booking in database
+        const bookingData = {
+          eventId: parseInt(session.metadata!.eventId),
+          userId: parseInt(session.metadata!.userId),
+          tableId: parseInt(session.metadata!.tableId),
+          partySize: session.metadata!.seats.split(',').length,
+          customerEmail: session.customer_details?.email || '',
+          stripePaymentId: session.payment_intent as string,
+          guestNames: JSON.parse(session.metadata!.guestNames || '[]'),
+          foodSelections: JSON.parse(session.metadata!.foodSelections || '[]'),
+          status: 'confirmed'
+        };
+
+        // Insert booking into database
+        const booking = await storage.createBooking(bookingData);
+        
+        res.json({ success: true, booking });
+      } else {
+        res.status(400).json({ error: 'Payment not completed' });
+      }
+    } catch (error) {
+      console.error('Payment verification failed:', error);
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Payment verification failed' });
+    }
+  });
+
   // Simplified direct payment intent creation endpoint
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
