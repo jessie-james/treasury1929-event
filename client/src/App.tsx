@@ -29,6 +29,8 @@ import ProfilePage from "@/pages/ProfilePage";
 import StripeDiagnostics from "@/pages/StripeDiagnostics";
 
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
+import { BookingSuccess } from "@/pages/BookingSuccess";
+import { BookingCancel } from "@/pages/BookingCancel";
 import { Header } from "./components/Header";
 import { BottomNavigation } from "./components/BottomNavigation";
 import { useAuth } from "./hooks/use-auth";
@@ -70,6 +72,8 @@ function Router() {
         <Route path="/profile" component={ProfilePage} />
 
         <Route path="/payment-success" component={PaymentSuccessPage} />
+        <Route path="/booking-success" component={BookingSuccess} />
+        <Route path="/booking-cancel" component={BookingCancel} />
         <Route component={NotFound} />
       </Switch>
 
