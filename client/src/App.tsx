@@ -81,20 +81,48 @@ function Router() {
 function App() {
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error('Unhandled rejection:', event.reason);
-      // Add more detailed logging
-      if (event.reason instanceof Error) {
-        console.error('Error details:', {
-          message: event.reason.message,
-          stack: event.reason.stack,
-          name: event.reason.name
-        });
+      const error = event.reason;
+      
+      // Enhanced debugging information
+      const errorInfo = {
+        type: typeof error,
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        isAuthError: error?.message?.includes('401') || error?.message?.includes('Not authenticated'),
+        isNetworkError: error?.message?.includes('Network error') || error?.message?.includes('Failed to fetch'),
+        isQueryError: error?.name?.includes('Query') || error?.toString?.()?.includes('TanStack')
+      };
+
+      console.group('🚨 Unhandled Promise Rejection');
+      console.error('Error object:', error);
+      console.error('Error analysis:', errorInfo);
+      console.error('Full stack trace:', error?.stack);
+      console.groupEnd();
+
+      // Don't prevent default for auth errors - they should be handled by the auth system
+      if (!errorInfo.isAuthError) {
+        event.preventDefault();
       }
-      event.preventDefault();
+    };
+
+    const handleError = (event: ErrorEvent) => {
+      console.group('🚨 JavaScript Error');
+      console.error('Error message:', event.message);
+      console.error('File:', event.filename);
+      console.error('Line:', event.lineno);
+      console.error('Column:', event.colno);
+      console.error('Error object:', event.error);
+      console.groupEnd();
     };
 
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    return () => window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    window.addEventListener('error', handleError);
+    
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+      window.removeEventListener('error', handleError);
+    };
   }, []);
 
   return (

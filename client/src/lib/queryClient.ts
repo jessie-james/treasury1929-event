@@ -301,6 +301,8 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: Infinity,
       retry: (failureCount, error) => {
+        console.log(`Query retry attempt ${failureCount} for error:`, error);
+        
         // Don't retry 401, 403, 404 responses as they're likely deliberate responses
         if (
           error instanceof Error && 
@@ -309,15 +311,32 @@ export const queryClient = new QueryClient({
            error.message.startsWith('403:') || 
            error.message.startsWith('404:'))
         ) {
+          console.log('Not retrying due to auth/permission error');
           return false;
         }
         
         // Retry network errors but limit to 2 attempts
-        return failureCount < 2;
+        const shouldRetry = failureCount < 2;
+        console.log(`Should retry: ${shouldRetry}`);
+        return shouldRetry;
+      },
+      onError: (error) => {
+        console.group('🔍 Query Error Detected');
+        console.error('Query failed with error:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error constructor:', error.constructor.name);
+        console.groupEnd();
       }
     },
     mutations: {
-      retry: false
+      retry: false,
+      onError: (error) => {
+        console.group('🔍 Mutation Error Detected');
+        console.error('Mutation failed with error:', error);
+        console.error('Error type:', typeof error);
+        console.error('Error constructor:', error.constructor.name);
+        console.groupEnd();
+      }
     },
   },
 });
