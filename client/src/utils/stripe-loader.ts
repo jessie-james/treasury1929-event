@@ -32,7 +32,15 @@ class StripeLoaderService {
     }
 
     const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+    console.log('Environment check:', {
+      hasKey: !!stripeKey,
+      keyPrefix: stripeKey ? stripeKey.substring(0, 10) + '...' : 'undefined',
+      envMode: import.meta.env.MODE,
+      isDev: import.meta.env.DEV
+    });
+    
     if (!stripeKey) {
+      console.error('Stripe key missing. Available env vars:', Object.keys(import.meta.env));
       return { stripe: null, error: "Stripe publishable key is missing", method: "validation" };
     }
 
@@ -44,6 +52,8 @@ class StripeLoaderService {
   }
 
   private async _attemptStripeLoad(stripeKey: string): Promise<StripeLoadResult> {
+    console.log(`Starting Stripe load with key prefix: ${stripeKey.substring(0, 10)}...`);
+    
     const strategies = [
       () => this._loadStripeStandard(stripeKey),
       () => this._loadStripeWithScript(stripeKey),
@@ -55,6 +65,8 @@ class StripeLoaderService {
       try {
         console.log(`Attempting Stripe load strategy ${i + 1}/${strategies.length}`);
         const result = await strategies[i]();
+        console.log(`Strategy ${i + 1} result:`, { success: !!result.stripe, error: result.error, method: result.method });
+        
         if (result.stripe) {
           this.stripeInstance = result.stripe;
           console.log(`Stripe loaded successfully using strategy ${i + 1}: ${result.method}`);
@@ -66,9 +78,11 @@ class StripeLoaderService {
       }
     }
 
+    const finalError = `All loading strategies failed. Last error: ${this.lastError?.message || 'Unknown error'}`;
+    console.error(finalError);
     return { 
       stripe: null, 
-      error: `All loading strategies failed. Last error: ${this.lastError?.message || 'Unknown error'}`, 
+      error: finalError, 
       method: "failed" 
     };
   }

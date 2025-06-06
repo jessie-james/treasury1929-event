@@ -320,23 +320,10 @@ export const queryClient = new QueryClient({
         console.log(`Should retry: ${shouldRetry}`);
         return shouldRetry;
       },
-      onError: (error) => {
-        console.group('🔍 Query Error Detected');
-        console.error('Query failed with error:', error);
-        console.error('Error type:', typeof error);
-        console.error('Error constructor:', error.constructor.name);
-        console.groupEnd();
-      }
+
     },
     mutations: {
-      retry: false,
-      onError: (error) => {
-        console.group('🔍 Mutation Error Detected');
-        console.error('Mutation failed with error:', error);
-        console.error('Error type:', typeof error);
-        console.error('Error constructor:', error.constructor.name);
-        console.groupEnd();
-      }
+      retry: false
     },
   },
 });
