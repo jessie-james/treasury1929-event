@@ -40,7 +40,7 @@ export function registerPaymentRoutes(app: Express) {
           },
         ],
         mode: 'payment',
-        success_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/api/booking-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/booking-cancel`,
         metadata: {
           eventId: eventId.toString(),
@@ -56,6 +56,138 @@ export function registerPaymentRoutes(app: Express) {
     } catch (error) {
       console.error('Checkout session creation failed:', error);
       res.status(500).json({ error: error instanceof Error ? error.message : 'Payment setup failed' });
+    }
+  });
+
+  // Handle Stripe redirect to server-side success page
+  app.get("/api/booking-success", async (req, res) => {
+    try {
+      const { session_id } = req.query;
+      
+      if (!session_id) {
+        return res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Payment Error</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .error { color: red; }
+            </style>
+          </head>
+          <body>
+            <h1 class="error">Payment Error</h1>
+            <p>No session ID found. Please contact support.</p>
+            <button onclick="window.location.href='/'">Return Home</button>
+          </body>
+          </html>
+        `);
+      }
+
+      const stripe = getStripe();
+      if (!stripe) {
+        return res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>System Error</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .error { color: red; }
+            </style>
+          </head>
+          <body>
+            <h1 class="error">System Error</h1>
+            <p>Payment system temporarily unavailable.</p>
+            <button onclick="window.location.href='/'">Return Home</button>
+          </body>
+          </html>
+        `);
+      }
+
+      const session = await stripe.checkout.sessions.retrieve(session_id as string);
+      
+      if (session.payment_status === 'paid') {
+        // Create booking from session metadata
+        const booking = await createBookingFromSession(session);
+        
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Payment Successful</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; max-width: 600px; margin: 0 auto; }
+              .success { color: green; font-size: 2em; }
+              .booking-details { background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; }
+              .session-id { background: #f5f5f5; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.9em; word-break: break-all; margin: 20px 0; }
+              button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; margin: 10px; }
+              button:hover { background: #0056b3; }
+              .secondary { background: #6c757d; }
+              .secondary:hover { background: #5a6268; }
+            </style>
+          </head>
+          <body>
+            <h1 class="success">🎉 Payment Successful!</h1>
+            <p>Thank you! Your booking has been confirmed.</p>
+            
+            <div class="booking-details">
+              <h3>Booking Details</h3>
+              <p><strong>Booking ID:</strong> #${booking}</p>
+              <p><strong>Amount:</strong> $${(session.amount_total / 100).toFixed(2)}</p>
+            </div>
+            
+            <div class="session-id">
+              <strong>Session ID:</strong><br>
+              ${session_id}
+            </div>
+            
+            <button onclick="window.location.href='/'">Back to Events</button>
+            <button onclick="window.location.href='/profile'" class="secondary">View My Bookings</button>
+          </body>
+          </html>
+        `);
+      } else {
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Payment Pending</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .warning { color: orange; }
+            </style>
+          </head>
+          <body>
+            <h1 class="warning">Payment Pending</h1>
+            <p>Your payment is being processed. Please check back shortly.</p>
+            <button onclick="window.location.href='/'">Return Home</button>
+          </body>
+          </html>
+        `);
+      }
+    } catch (error) {
+      console.error("Payment success page error:", error);
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Payment Verification Error</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .error { color: red; }
+          </style>
+        </head>
+        <body>
+          <h1 class="error">Payment Verification Error</h1>
+          <p>Unable to verify your payment. Please contact support with your session ID.</p>
+          <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; font-family: monospace; margin: 20px 0;">
+            ${req.query.session_id}
+          </div>
+          <button onclick="window.location.href='/'">Return Home</button>
+        </body>
+        </html>
+      `);
     }
   });
 
