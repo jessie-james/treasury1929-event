@@ -62,6 +62,11 @@ export function registerPaymentRoutes(app: Express) {
   // Handle successful payment callback
   app.get("/api/payment-success", async (req, res) => {
     try {
+      // Add CORS headers for better cross-origin support
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      
       const { session_id } = req.query;
       
       if (!session_id) {
