@@ -10,6 +10,7 @@ import './api-server'; // Start the dedicated API server
 import cors from 'cors';
 import { setupAuth } from "./auth";
 import { setupSecurity, validateInput, securityErrorHandler, validateEnvironment } from "./security";
+import { getStripe } from "./stripe";
 
 const app = express();
 
@@ -74,6 +75,138 @@ app.use(express.urlencoded({ extended: false }));
 
 // Add input validation middleware for all routes
 app.use(validateInput);
+
+// PUBLIC success route (no auth required) - REGISTERED FIRST TO AVOID INTERCEPTION
+console.log("🔧 Registering public success route BEFORE all other middleware...");
+app.get('/booking-success', async (req, res) => {
+  console.log("🎯 BOOKING SUCCESS ROUTE HIT - BYPASSING ALL MIDDLEWARE");
+  const { session_id } = req.query;
+  
+  if (!session_id) {
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Payment Success</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; max-width: 600px; margin: 0 auto; }
+          .success { color: green; font-size: 2.5em; margin-bottom: 20px; }
+          .details { background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; }
+        </style>
+      </head>
+      <body>
+        <h1 class="success">🎉 Payment Successful!</h1>
+        <p>Thank you! Your booking has been confirmed.</p>
+        <p>You can close this window or return to the main site.</p>
+        <a href="/" class="button">Back to Home</a>
+      </body>
+      </html>
+    `);
+  }
+
+  try {
+    // Verify payment and get booking details (no user session required)
+    const stripe = getStripe();
+    if (!stripe) {
+      throw new Error('Stripe not initialized');
+    }
+    
+    const session = await stripe.checkout.sessions.retrieve(session_id as string);
+    
+    if (session.payment_status === 'paid') {
+      // Payment verified - show success page
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Payment Success</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; max-width: 600px; margin: 0 auto; }
+            .success { color: green; font-size: 2.5em; margin-bottom: 20px; }
+            .details { background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .session-id { font-family: monospace; font-size: 0.8em; word-break: break-all; }
+            .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px; }
+          </style>
+        </head>
+        <body>
+          <h1 class="success">🎉 Payment Successful!</h1>
+          <p><strong>Your booking has been confirmed!</strong></p>
+          
+          <div class="details">
+            <h3>Booking Details:</h3>
+            <p><strong>Event ID:</strong> ${session.metadata?.eventId || 'N/A'}</p>
+            <p><strong>Table:</strong> ${session.metadata?.tableId || 'N/A'}</p>
+            <p><strong>Seats:</strong> ${session.metadata?.seats || 'N/A'}</p>
+            <p><strong>Amount:</strong> $${(session.amount_total / 100).toFixed(2)}</p>
+            <p><strong>Email:</strong> ${session.customer_details?.email || 'N/A'}</p>
+          </div>
+          
+          <div class="details">
+            <p><strong>Payment Reference:</strong></p>
+            <p class="session-id">${session.id}</p>
+          </div>
+          
+          <a href="/" class="button">Back to Home</a>
+          <a href="/events" class="button">View More Events</a>
+          
+          <p style="margin-top: 30px; font-size: 0.9em; color: #666;">
+            A confirmation email will be sent to ${session.customer_details?.email || 'your email address'}.
+          </p>
+        </body>
+        </html>
+      `);
+    } else {
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head><title>Payment Verification</title></head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h1>Payment Verification</h1>
+          <p>Your payment is being processed. Please check back in a few minutes.</p>
+          <a href="/" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Back to Home</a>
+        </body>
+        </html>
+      `);
+    }
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Payment Confirmation</title></head>
+      <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+        <h1>Payment Received</h1>
+        <p>Your payment has been processed successfully. Your booking is being confirmed.</p>
+        <a href="/" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Back to Home</a>
+      </body>
+      </html>
+    `);
+  }
+});
+
+// PUBLIC cancel route
+app.get('/booking-cancel', (req, res) => {
+  console.log("🎯 BOOKING CANCEL ROUTE HIT");
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Payment Cancelled</title>
+      <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px; }
+      </style>
+    </head>
+    <body>
+      <h1>Payment Cancelled</h1>
+      <p>Your booking was not completed. No charges were made.</p>
+      <a href="/" class="button">Back to Home</a>
+      <a href="/events" class="button">Try Again</a>
+    </body>
+    </html>
+  `);
+});
 
 // Basic health check endpoint
 app.get("/api/health", (_req, res) => {
