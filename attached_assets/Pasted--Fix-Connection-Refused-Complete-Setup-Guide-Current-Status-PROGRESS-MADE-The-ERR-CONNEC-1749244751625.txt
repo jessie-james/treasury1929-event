@@ -1,0 +1,228 @@
+# Fix Connection Refused - Complete Setup Guide
+
+## Current Status: ✅ PROGRESS MADE!
+The `ERR_CONNECTION_REFUSED` error means we're on the right track - your Stripe redirect is now trying to connect to the Express server instead of getting intercepted by Vite!
+
+## Issue: Express Server Not Running on Expected Port
+
+You updated the Stripe URLs to point to port 3001, but the Express server isn't running there yet.
+
+## Solution: Complete the Separate Servers Setup
+
+### Step 1: Update server/index.ts
+
+```typescript
+// server/index.ts
+import express from 'express';
+import cors from 'cors';
+// ... your other imports
+
+const app = express();
+const EXPRESS_PORT = 3001; // Dedicated port for Express
+
+// CORS setup
+app.use(cors({
+  origin: ['http://localhost:5000', 'http://localhost:3001'],
+  credentials: true
+}));
+
+// Your middleware setup
+app.use(express.json());
+// ... other middleware
+
+// SUCCESS ROUTES FIRST (before any other routes)
+app.get('/booking-success', async (req, res) => {
+  const { session_id } = req.query;
+  
+  console.log(`✓ Success page accessed with session: ${session_id}`);
+  
+  if (!session_id) {
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Payment Success</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; max-width: 600px; margin: 0 auto; }
+          .success { color: green; font-size: 2.5em; margin-bottom: 20px; }
+          .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; }
+        </style>
+      </head>
+      <body>
+        <h1 class="success">🎉 Payment Successful!</h1>
+        <p>Thank you! Your booking has been confirmed.</p>
+        <a href="http://localhost:5000" class="button">Back to Home</a>
+      </body>
+      </html>
+    `);
+  }
+
+  try {
+    // Verify payment with Stripe
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.retrieve(session_id as string);
+    
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Payment Success</title>
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; max-width: 600px; margin: 0 auto; }
+          .success { color: green; font-size: 2.5em; margin-bottom: 20px; }
+          .details { background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .session-id { font-family: monospace; font-size: 0.8em; word-break: break-all; }
+          .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px; }
+        </style>
+      </head>
+      <body>
+        <h1 class="success">🎉 Payment Successful!</h1>
+        <p><strong>Your booking has been confirmed!</strong></p>
+        
+        <div class="details">
+          <h3>Booking Details:</h3>
+          <p><strong>Event ID:</strong> ${session.metadata?.eventId || 'N/A'}</p>
+          <p><strong>Table:</strong> ${session.metadata?.tableId || 'N/A'}</p>
+          <p><strong>Seats:</strong> ${session.metadata?.seats || 'N/A'}</p>
+          <p><strong>Amount:</strong> $${(session.amount_total / 100).toFixed(2)}</p>
+          <p><strong>Email:</strong> ${session.customer_details?.email || 'N/A'}</p>
+        </div>
+        
+        <div class="details">
+          <p><strong>Payment Reference:</strong></p>
+          <p class="session-id">${session.id}</p>
+        </div>
+        
+        <a href="http://localhost:5000" class="button">Back to Home</a>
+        <a href="http://localhost:5000/events" class="button">View More Events</a>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Payment Confirmation</title></head>
+      <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+        <h1 class="success">🎉 Payment Received!</h1>
+        <p>Your payment has been processed successfully.</p>
+        <a href="http://localhost:5000" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Back to Home</a>
+      </body>
+      </html>
+    `);
+  }
+});
+
+app.get('/booking-cancel', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Payment Cancelled</title>
+      <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px; }
+      </style>
+    </head>
+    <body>
+      <h1>Payment Cancelled</h1>
+      <p>Your booking was not completed. No charges were made.</p>
+      <a href="http://localhost:5000" class="button">Back to Home</a>
+      <a href="http://localhost:5000/events" class="button">Try Again</a>
+    </body>
+    </html>
+  `);
+});
+
+// Your API routes
+app.use('/api', /* your payment routes */);
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', port: EXPRESS_PORT });
+});
+
+// Start Express server on dedicated port
+app.listen(EXPRESS_PORT, () => {
+  console.log(`✓ Express server running on http://localhost:${EXPRESS_PORT}`);
+  console.log(`✓ Success pages: http://localhost:${EXPRESS_PORT}/booking-success`);
+});
+```
+
+### Step 2: Confirm Stripe URLs
+
+Make sure your payment route uses the correct URLs:
+
+```typescript
+// server/routes-payment.ts
+const session = await stripe.checkout.sessions.create({
+  // ... other config
+  success_url: `http://localhost:3001/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+  cancel_url: `http://localhost:3001/booking-cancel`,
+  // ... rest of config
+});
+```
+
+### Step 3: Update package.json Scripts
+
+```json
+{
+  "scripts": {
+    "dev": "npm run server & npm run client",
+    "server": "node server/index.js",
+    "client": "vite --port 5000",
+    "build": "vite build"
+  }
+}
+```
+
+### Step 4: Start Both Servers
+
+```bash
+# Method 1: Run both together
+npm run dev
+
+# Method 2: Run separately (recommended for testing)
+# Terminal 1: Express server
+npm run server
+
+# Terminal 2: Vite dev server (separate terminal)
+npm run client
+```
+
+### Step 5: Test the Setup
+
+1. **Check Express server**: Visit `http://localhost:3001/health`
+   - Should show: `{"status":"ok","port":3001}`
+
+2. **Check success page**: Visit `http://localhost:3001/booking-success`
+   - Should show: Payment success page
+
+3. **Check main app**: Visit `http://localhost:5000`
+   - Should show: Your React app
+
+4. **Test payment flow**:
+   - Complete a payment
+   - Should redirect to `http://localhost:3001/booking-success`
+   - Should show success page WITHOUT connection refused error
+
+## Expected Results
+
+✅ **Express server**: Running on port 3001  
+✅ **Vite dev server**: Running on port 5000  
+✅ **Payment flow**: Stripe → port 3001 success page  
+✅ **Main app**: Available on port 5000  
+✅ **No more connection refused errors**  
+
+## Quick Test Command
+
+```bash
+# Test if Express server is running
+curl http://localhost:3001/health
+
+# Test success page
+curl http://localhost:3001/booking-success
+```
+
+Copy this to your Replit agent and ask them to implement it. The connection refused error means we're almost there - just need to get the Express server running on the right port! 🎯

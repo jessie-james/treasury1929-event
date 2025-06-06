@@ -217,6 +217,11 @@ app.use(session({
 // Initialize authentication
 setupAuth(app);
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', port: 3002, timestamp: new Date().toISOString() });
+});
+
 // Register all routes
 registerRoutes(app);
 registerPaymentRoutes(app);
