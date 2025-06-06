@@ -74,8 +74,14 @@ export function setupSecurity(app: Express) {
   app.use('/create-booking-final', bookingLimiter);
   app.use('/api/payment/create-intent', bookingLimiter);
   
-  // Apply general rate limiter to all other API routes
-  app.use('/api/', generalLimiter);
+  // Apply general rate limiter to all other API routes except payment callbacks
+  app.use('/api/', (req, res, next) => {
+    // Exclude Stripe payment callback endpoints from rate limiting
+    if (req.path === '/api/payment-success' || req.path === '/api/payment-webhook') {
+      return next();
+    }
+    return generalLimiter(req, res, next);
+  });
 
   console.log('✓ Security middleware configured with rate limiting and headers');
 }

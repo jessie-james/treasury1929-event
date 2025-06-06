@@ -18,7 +18,13 @@ export function BookingSuccess() {
         const sessionId = urlParams.get('session_id');
 
         if (sessionId) {
-          const response = await apiRequest('GET', `/api/payment-success?session_id=${sessionId}`);
+          const response = await fetch(`/api/payment-success?session_id=${sessionId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include'
+          });
           const data = await response.json();
 
           if (response.ok) {
