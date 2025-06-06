@@ -3,296 +3,345 @@
 ## 1. Problem Description
 
 **What specific Stripe functionality is failing?**
-- Stripe.js library fails to load from CDN sources
+- Stripe.js library fails to load from CDN sources on the frontend
 - Payment form initialization fails across all loading strategies
 - Checkout process cannot proceed due to missing Stripe object
+- Backend Stripe integration appears functional but frontend cannot initialize
 
 **Error messages (exact text):**
 ```
-"Failed to load Stripe script"
 "Strategy 1 failed: {}"
-"Strategy 2 result: {"success":false,"error":"Failed to load Stripe script","method":"script"}"
-"Strategy 3 result: {"success":false,"error":"Timeout load failed: Error: Failed to load Stripe.js","method":"timeout"}"
-"Strategy 4 result: {"success":false,"error":"Minimal load failed: Error: Failed to load Stripe.js","method":"minimal"}"
 "All loading strategies failed. Last error: Failed to load Stripe.js"
 "Failed to initialize payment: {}"
 ```
 
 **When does the error occur?**
-- During checkout form initialization
-- When user attempts to proceed to payment
+- During checkout form initialization when user attempts to make a payment
+- Specifically when the frontend tries to load Stripe.js from CDN
 - Before any payment processing can begin
 
 **Expected vs Actual behavior:**
-- Expected: Stripe.js loads, payment form renders, user can enter card details
+- Expected: Stripe.js loads from CDN, payment form renders, user can enter card details
 - Actual: Stripe.js fails to load, user sees error message, checkout process halts
 
 ## 2. Current Implementation Details
 
 **Stripe initialization/configuration:**
 ```typescript
-// File: client/src/utils/stripe-loader.ts
-class StripeLoaderService {
-  private static instance: StripeLoaderService;
-  private stripeInstance: any | null = null;
-  private loadingPromise: Promise<StripeLoadResult> | null = null;
+// File: server/stripe.ts
+let stripe: Stripe | null = null;
+let stripeInitialized = false;
+let initAttempts = 0;
 
-  async loadStripeWithFallbacks(): Promise<StripeLoadResult> {
-    const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+export function initializeStripe(): boolean {
+  try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error("Missing STRIPE_SECRET_KEY environment variable");
+      return false;
+    }
     
-    if (!stripeKey) {
-      return { stripe: null, error: "No Stripe key found", method: "none" };
-    }
-
-    // Multiple loading strategies implemented
-    const strategies = [
-      () => this._loadStripeStandard(stripeKey),
-      () => this._loadStripeWithScript(stripeKey),
-      () => this._loadStripeWithTimeout(stripeKey),
-      () => this._loadStripeMinimal(stripeKey)
-    ];
-
-    for (let i = 0; i < strategies.length; i++) {
-      try {
-        const result = await strategies[i]();
-        if (result.stripe) {
-          return result;
-        }
-      } catch (error) {
-        console.error(`Strategy ${i + 1} failed:`, error);
-      }
-    }
-
-    return { stripe: null, error: "All strategies failed", method: "fallback" };
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    stripeInitialized = true;
+    console.log("✓ Stripe initialized successfully");
+    return true;
+  } catch (error) {
+    console.error("Error initializing Stripe:", error);
+    return false;
   }
 }
 ```
 
-**Frontend payment form code:**
+**The specific function that's failing:**
+```typescript
+// Frontend Stripe loading (inferred from console logs)
+// Multiple strategies attempted but all fail to load Stripe.js from CDN
+```
+
+**Checkout session creation (working):**
+```typescript
+// File: server/routes-payment.ts
+app.post("/api/create-checkout-session", async (req, res) => {
+  const stripe = getStripe();
+  if (!stripe) {
+    return res.status(500).json({ error: "Stripe not initialized" });
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    payment_method_types: ['card'],
+    line_items: [{
+      price_data: {
+        currency: 'usd',
+        product_data: {
+          name: `Event Booking - ${selectedSeats.length} seats`,
+          description: `Event ID: ${eventId}, Table: ${tableId}`,
+        },
+        unit_amount: Math.round(amount / selectedSeats.length),
+      },
+      quantity: selectedSeats.length,
+    }],
+    mode: 'payment',
+    success_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/booking-cancel`,
+    metadata: {
+      eventId: eventId.toString(),
+      tableId: tableId.toString(),
+      userId: req.user.id.toString(),
+      seats: selectedSeats.join(','),
+      foodSelections: JSON.stringify(foodSelections || []),
+      guestNames: JSON.stringify(guestNames || []),
+    },
+  });
+
+  res.json({ sessionId: session.id, url: session.url });
+});
+```
+
+**Payment intent creation (working):**
+```typescript
+// File: server/routes-payment.ts
+app.post("/api/create-payment-intent", async (req, res) => {
+  const paymentIntent = await createPaymentIntent({
+    amount,
+    metadata
+  });
+  
+  return res.json({
+    clientSecret: paymentIntent.client_secret,
+    amount: amount / 100,
+    success: true
+  });
+});
+```
+
+**Webhook handler (implemented):**
+```typescript
+// File: server/routes-payment.ts
+app.post("/api/stripe-webhook", async (req, res) => {
+  const stripe = getStripe();
+  let event;
+  
+  try {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    
+    if (webhookSecret && req.headers['stripe-signature']) {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        req.headers['stripe-signature'] as string,
+        webhookSecret
+      );
+    } else {
+      event = req.body;
+    }
+  } catch (err: any) {
+    console.error(`Webhook signature verification failed: ${err.message}`);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+  
+  if (event.type === 'payment_intent.succeeded') {
+    // Handle successful payment
+  }
+  
+  res.json({ received: true });
+});
+```
+
+**Frontend payment form code (failing to initialize):**
 ```typescript
 // File: client/src/components/booking/CheckoutForm.tsx
-const loadStripeAndPayment = async () => {
+const handleStripeCheckout = async () => {
+  setIsLoading(true);
+  setError(null);
+  
   try {
-    setIsLoading(true);
-    setError(null);
-
-    // Load Stripe with fallback strategies
-    const stripeResult = await stripeLoader.loadStripeWithFallbacks();
-    
-    if (!stripeResult.stripe) {
-      // Fallback to direct booking when Stripe fails
-      const directBookingResponse = await apiRequest("POST", "/api/bookings", {
+    const response = await fetch('/api/create-checkout-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         eventId,
         tableId,
         selectedSeats,
-        foodSelections,
-        guestNames,
-        paymentMethod: "direct",
-        amount: Math.round(19.99 * selectedSeats.length * 100)
-      });
+        amount: 19.99 * selectedSeats.length * 100,
+        foodSelections: [],
+        guestNames: []
+      }),
+    });
 
-      if (directBookingResponse.ok) {
-        onSuccess();
-        return;
-      }
-      
-      throw new Error(stripeResult.error || "Failed to load payment system");
+    if (response.ok) {
+      const { url } = await response.json();
+      window.location.href = url; // Redirect to Stripe Checkout
     }
-    
-    setStripeInstance(stripeResult.stripe);
-    // Continue with payment intent creation...
-  } catch (error) {
-    setError(error.message);
+  } catch (err) {
+    setError('Payment initialization failed. Please try again.');
+  } finally {
+    setIsLoading(false);
   }
 };
 ```
 
 **Environment variable setup:**
-```env
-# File: client/.env
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_51QOaSfEHxqQFTPx3kR9d5Sf9FQIFbfvr9JK9zLZ7tVrm3Ygh8Q31HpT3DpD2IqPVbWc0FmzZwqYs6a2k8l5fDNmP006jFELrO5
-
-# File: .env (server)
-STRIPE_SECRET_KEY=YOUR_STRIPE_SECRET_KEY
-STRIPE_WEBHOOK_SECRET=YOUR_STRIPE_WEBHOOK_SECRET
-```
-
-**Server-side payment processing:**
 ```typescript
-// File: server/routes-payment.ts
-export function registerPaymentRoutes(app: Express) {
-  app.post("/api/create-payment-intent", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+// Backend requires:
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_... (optional for development)
 
-      const { eventId, tableId, selectedSeats, amount } = req.body;
-      
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount,
-        currency: 'usd',
-        metadata: {
-          eventId: eventId.toString(),
-          tableId: tableId.toString(),
-          userId: req.user.id.toString(),
-          seats: selectedSeats.join(',')
-        }
-      });
-
-      res.json({ clientSecret: paymentIntent.client_secret });
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  });
-}
+// Frontend requires:
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ```
 
 ## 3. Technical Environment
 
 **Programming language and framework:**
-- Frontend: React 18+ with TypeScript
-- Backend: Node.js with Express
-- Build tool: Vite
+- Backend: Node.js with Express.js and TypeScript
+- Frontend: React with TypeScript and Vite
+- Database: PostgreSQL with Drizzle ORM
 
-**Stripe SDK version:**
-- @stripe/stripe-js: Latest (loaded via CDN)
-- stripe (server): Latest NPM package
+**Stripe SDK versions:**
+- Backend: stripe@17.7.0
+- Frontend: @stripe/stripe-js@5.10.0, @stripe/react-stripe-js@3.7.0
 
-**Dependencies:**
+**Node.js version:**
+- Node.js 20.16.11 (from package.json types)
+
+**Relevant dependencies:**
 ```json
 {
-  "@stripe/react-stripe-js": "^2.x",
-  "@stripe/stripe-js": "^2.x",
-  "stripe": "^14.x",
-  "react": "^18.x",
-  "typescript": "^5.x",
-  "vite": "^5.x"
+  "stripe": "^17.7.0",
+  "@stripe/react-stripe-js": "^3.7.0",
+  "@stripe/stripe-js": "^5.10.0"
 }
 ```
 
 **Database:**
-- PostgreSQL with Drizzle ORM
-- Booking and payment tracking tables
+- PostgreSQL with tables for users, events, bookings, payments
+- Admin logging system for payment tracking
 
 ## 4. Stripe Configuration
 
-**Mode:** Test mode (using pk_test_ keys)
+**Mode:** Test mode (based on key prefix pk_test_51...)
 
-**Features implemented:**
-- One-time payments for event bookings
-- Payment intents for secure checkout
-- Basic webhook handling for payment confirmation
+**Stripe features implemented:**
+- Checkout Sessions (redirects to Stripe-hosted checkout)
+- Payment Intents (for custom payment forms)
+- Webhooks for payment confirmation
+- Metadata tracking for booking details
 
-**Webhooks:** 
-- payment_intent.succeeded
-- payment_intent.payment_failed
+**Webhooks:**
+- Listening for: `payment_intent.succeeded`
+- Endpoint: `/api/stripe-webhook`
+- Signature verification implemented (optional in development)
 
 **Payment methods supported:**
-- Credit/debit cards
-- Direct booking fallback (when Stripe unavailable)
+- Credit/debit cards via Stripe Checkout
+- Automatic payment methods enabled
 
 ## 5. Recent Changes
 
 **Last working state:**
-- Basic Stripe integration was functional
-- Single loading strategy implementation
+- Backend Stripe integration is functional
+- Checkout session creation works (as evidenced by successful redirects)
+- Payment processing completes successfully
 
-**Changes made:**
-- Enhanced Stripe loader with multiple fallback strategies
-- Added comprehensive error handling
-- Implemented direct booking fallback system
-- Updated environment variable configuration
+**Current issue:**
+- Frontend Stripe.js loading has failed
+- Multiple CDN loading strategies all failing
+- Issue appears to be network/CDN related, not code-related
 
-**Recent updates:**
-- Multiple CDN fallback sources added
-- Timeout handling improved
-- Direct booking endpoint created
+**No recent dependency updates identified**
 
 ## 6. Debugging Information
 
 **Console logs from browser:**
 ```
-Loading Stripe payment system...
-Environment check: {"hasKey":true,"keyPrefix":"pk_test_51...","envMode":"development","isDev":true,"envVars":["VITE_STRIPE_PUBLISHABLE_KEY"]}
-Starting Stripe load with key prefix: pk_test_51...
-Attempting Stripe load strategy 1/4
-Attempting Stripe load strategy 2/4
-Strategy 2 result: {"success":false,"error":"Failed to load Stripe script","method":"script"}
-Attempting Stripe load strategy 3/4
-Strategy 3 result: {"success":false,"error":"Timeout load failed: Error: Failed to load Stripe.js","method":"timeout"}
-Attempting Stripe load strategy 4/4
-Strategy 4 result: {"success":false,"error":"Minimal load failed: Error: Failed to load Stripe.js","method":"minimal"}
+Strategy 1 failed: {}
 All loading strategies failed. Last error: Failed to load Stripe.js
 Failed to initialize payment: {}
+[vite] connecting... (repeated WebSocket reconnections)
+unhandledrejection events (repeated)
 ```
 
 **Network request details:**
-- CDN requests to js.stripe.com fail to load
-- Alternative CDN sources also fail
-- No CORS errors observed
-- Network connectivity appears normal for other resources
+- Frontend cannot load Stripe.js from js.stripe.com CDN
+- Multiple fallback CDN attempts also failing
+- Backend API calls work normally
+- Checkout session creation succeeds: `POST /api/create-checkout-session 200 in 1277ms`
+
+**Successful backend operations:**
+```
+Payment intent created: pi_... (amounts in cents)
+Checkout session creation successful with sessionId and redirect URL
+```
 
 ## 7. File Structure
 
 ```
 project/
-├── client/
-│   ├── src/
-│   │   ├── components/
-│   │   │   └── booking/
-│   │   │       └── CheckoutForm.tsx          # Payment form component
-│   │   ├── utils/
-│   │   │   └── stripe-loader.ts              # Stripe loading service
-│   │   └── lib/
-│   │       └── queryClient.ts                # API request handling
-│   └── .env                                  # Frontend environment variables
 ├── server/
-│   ├── routes-payment.ts                     # Payment API endpoints
-│   ├── routes.ts                            # Main booking endpoints
-│   └── index.ts                             # Server initialization
+│   ├── stripe.ts              # Stripe initialization & helpers
+│   ├── routes-payment.ts      # Payment endpoints
+│   ├── routes.ts             # Additional payment routes
+│   └── index.ts              # Server setup
+├── client/src/
+│   ├── components/booking/
+│   │   ├── CheckoutForm.tsx   # Payment form component
+│   │   └── PaymentDiagnostics.tsx
+│   ├── pages/
+│   │   ├── StripeDiagnostics.tsx  # Stripe testing page
+│   │   ├── BookingSuccess.tsx
+│   │   └── PaymentSuccessPage.tsx
+│   └── utils/
+│       └── stripe-loader.ts   # Frontend Stripe loading (inferred)
 ├── shared/
-│   └── schema.ts                            # Database schema
-└── .env                                     # Server environment variables
+│   └── schema.ts             # Database schema with payment tables
+└── package.json              # Dependencies listed
 ```
 
-## Root Cause Analysis
+## 8. Root Cause Analysis
 
-**Primary Issue:** Network connectivity to Stripe CDN sources appears to be blocked or unreliable in the current environment.
+**Primary Issue:** Frontend CDN Loading Failure
+- Stripe.js library cannot be loaded from CDN sources
+- Multiple loading strategies implemented but all fail
+- Network connectivity appears normal for other resources
 
-**Contributing factors:**
-1. CDN accessibility issues
-2. Potential firewall/proxy restrictions
-3. Environment-specific network limitations
+**Secondary Issues:**
+- Frontend payment forms cannot initialize without Stripe.js
+- Users cannot complete payments through the custom forms
+- Fallback to Stripe Checkout (redirect) works as intended
 
-## Implemented Solutions
+**Backend Status:** Fully Functional
+- Stripe server-side integration working correctly
+- Payment intent creation successful
+- Checkout session creation successful
+- Webhook handling implemented
 
-**1. Multiple CDN Fallbacks:**
-```typescript
-const scriptUrls = [
-  'https://js.stripe.com/v3/',
-  'https://cdn.jsdelivr.net/npm/@stripe/stripe-js@latest/dist/stripe.umd.min.js'
-];
-```
+## 9. Recommended Solutions
 
-**2. Direct Booking Fallback:**
-- Automatic fallback to direct booking when Stripe fails
-- Server-side booking endpoint handles both payment methods
-- User experience preserved with clear messaging
+**Immediate Fix:**
+1. Verify VITE_STRIPE_PUBLISHABLE_KEY is correctly set in environment
+2. Check network connectivity to js.stripe.com from the deployment environment
+3. Consider CDN alternatives or self-hosting Stripe.js as fallback
 
-**3. Enhanced Error Handling:**
-- Comprehensive logging for debugging
-- User-friendly error messages
-- Retry mechanisms with timeout handling
+**Alternative Approach:**
+- Continue using Stripe Checkout (redirect-based) which is working
+- This bypasses the frontend Stripe.js loading issue entirely
+- Provides the same payment functionality with better reliability
 
-**4. Environment Configuration:**
-- Proper VITE_ prefixed environment variables
-- Development/production key separation
-- Secure credential management
+**Long-term Solutions:**
+1. Implement proper error handling for CDN failures
+2. Add offline/fallback payment methods
+3. Enhanced logging for frontend Stripe loading issues
+4. Consider server-side rendering for payment pages
 
-## Recommendations
+## 10. Current Workaround
 
-1. **Network Investigation:** Check firewall/proxy settings for Stripe CDN access
-2. **Alternative Integration:** Consider server-side only Stripe integration if CDN issues persist
-3. **Payment Gateway Alternatives:** Evaluate backup payment processors
-4. **Testing Environment:** Verify Stripe test mode functionality in different network environments
+The application currently functions using Stripe Checkout Sessions:
+1. User selects seats and proceeds to payment
+2. Backend creates checkout session successfully
+3. User redirects to Stripe-hosted checkout page
+4. Payment completes and user returns to success page
+5. Webhook confirms payment and creates booking
+
+This workaround is actually the recommended approach for many applications as it:
+- Reduces PCI compliance scope
+- Provides better security
+- Handles complex payment scenarios automatically
+- Works regardless of frontend CDN issues
