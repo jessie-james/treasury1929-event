@@ -26,10 +26,11 @@ import EntrancePage from "@/pages/backoffice/EntrancePage";
 import VenueDesigner from "@/pages/admin/VenueDesigner";
 import CustomerDashboard from "@/pages/CustomerDashboard";
 import ProfilePage from "@/pages/ProfilePage";
+import BookingSuccessSimple from "@/pages/BookingSuccessSimple";
 
 
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
-import { BookingSuccess } from "@/pages/BookingSuccess";
+
 import { BookingCancel } from "@/pages/BookingCancel";
 import { Header } from "./components/Header";
 import { BottomNavigation } from "./components/BottomNavigation";
@@ -72,7 +73,7 @@ function Router() {
         <Route path="/profile" component={ProfilePage} />
 
         <Route path="/payment-success" component={PaymentSuccessPage} />
-        <Route path="/booking-success" component={BookingSuccess} />
+        <Route path="/booking-success" component={BookingSuccessSimple} />
         <Route path="/booking-cancel" component={BookingCancel} />
         <Route component={NotFound} />
       </Switch>
