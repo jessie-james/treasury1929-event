@@ -14,70 +14,9 @@ import { getStripe } from "./stripe";
 
 const app = express();
 
-// Enhanced CORS configuration for deployments with better Stripe compatibility
-const corsOptions = {
-  // In production, restrict origins to our own domains
-  // In development, allow all origins
-  origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) => {
-    // If no origin (like from a same-origin request) or in development, allow all
-    if (!origin || process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
-    }
-    
-    // List of allowed origins for production
-    // Make sure to include both the .replit.app domain and Stripe domains
-    const allowedOrigins = [
-      /\.replit\.app$/,     // Any Replit app subdomain
-      /\.repl\.co$/,        // Any Repl.co domain
-      /stripe\.com$/,       // Stripe domains
-      /stripe\.network$/,   // Stripe network domains for processing
-      /checkout\.stripe$/   // Stripe checkout domains
-    ];
-    
-    // Check if the request origin matches any of our allowed patterns
-    const isAllowed = allowedOrigins.some(pattern => pattern.test(origin));
-    
-    if (isAllowed) {
-      callback(null, true); // Allow the request
-    } else {
-      console.log(`CORS blocked origin: ${origin}`);
-      callback(null, false); // Block the request
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
-    'X-Requested-With',
-    'Origin',
-    'Accept',
-    'X-CSRF-Token',
-    'stripe-signature' // Important for Stripe webhook verification
-  ],
-  credentials: true, // Critical to allow cookies in cross-domain requests
-  maxAge: 86400, // Cache preflight requests for 24 hours
-  // Allow browsers to send these headers with cross-origin requests
-  exposedHeaders: ['Set-Cookie', 'Date', 'ETag']
-};
+// CRITICAL: Register public booking routes FIRST before any middleware
+console.log("🔧 Registering public booking routes BEFORE all middleware to bypass 403 errors...");
 
-// Apply CORS middleware
-app.use(cors(corsOptions));
-
-// Validate environment variables on startup
-validateEnvironment();
-
-// Setup security middleware (rate limiting, headers, etc.)
-setupSecurity(app);
-
-// Standard middleware setup
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Add input validation middleware for all routes
-app.use(validateInput);
-
-// PUBLIC success route (no auth required) - REGISTERED FIRST TO AVOID INTERCEPTION
-console.log("🔧 Registering public success route BEFORE all other middleware...");
 app.get('/booking-success', async (req, res) => {
   console.log("🎯 BOOKING SUCCESS ROUTE HIT - BYPASSING ALL MIDDLEWARE");
   const { session_id } = req.query;
@@ -106,7 +45,7 @@ app.get('/booking-success', async (req, res) => {
   }
 
   try {
-    // Verify payment and get booking details (no user session required)
+    const { getStripe } = await import("./stripe");
     const stripe = getStripe();
     if (!stripe) {
       throw new Error('Stripe not initialized');
@@ -115,7 +54,6 @@ app.get('/booking-success', async (req, res) => {
     const session = await stripe.checkout.sessions.retrieve(session_id as string);
     
     if (session.payment_status === 'paid') {
-      // Payment verified - show success page
       res.send(`
         <!DOCTYPE html>
         <html>
@@ -185,7 +123,6 @@ app.get('/booking-success', async (req, res) => {
   }
 });
 
-// PUBLIC cancel route
 app.get('/booking-cancel', (req, res) => {
   console.log("🎯 BOOKING CANCEL ROUTE HIT");
   res.send(`
@@ -207,6 +144,70 @@ app.get('/booking-cancel', (req, res) => {
     </html>
   `);
 });
+
+// Enhanced CORS configuration for deployments with better Stripe compatibility
+const corsOptions = {
+  // In production, restrict origins to our own domains
+  // In development, allow all origins
+  origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) => {
+    // If no origin (like from a same-origin request) or in development, allow all
+    if (!origin || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    // List of allowed origins for production
+    // Make sure to include both the .replit.app domain and Stripe domains
+    const allowedOrigins = [
+      /\.replit\.app$/,     // Any Replit app subdomain
+      /\.repl\.co$/,        // Any Repl.co domain
+      /stripe\.com$/,       // Stripe domains
+      /stripe\.network$/,   // Stripe network domains for processing
+      /checkout\.stripe$/   // Stripe checkout domains
+    ];
+    
+    // Check if the request origin matches any of our allowed patterns
+    const isAllowed = allowedOrigins.some(pattern => pattern.test(origin));
+    
+    if (isAllowed) {
+      callback(null, true); // Allow the request
+    } else {
+      console.log(`CORS blocked origin: ${origin}`);
+      callback(null, false); // Block the request
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'Origin',
+    'Accept',
+    'X-CSRF-Token',
+    'stripe-signature' // Important for Stripe webhook verification
+  ],
+  credentials: true, // Critical to allow cookies in cross-domain requests
+  maxAge: 86400, // Cache preflight requests for 24 hours
+  // Allow browsers to send these headers with cross-origin requests
+  exposedHeaders: ['Set-Cookie', 'Date', 'ETag']
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Validate environment variables on startup
+validateEnvironment();
+
+// Setup security middleware (rate limiting, headers, etc.)
+setupSecurity(app);
+
+// Standard middleware setup
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// Add input validation middleware for all routes
+app.use(validateInput);
+
+
 
 // Basic health check endpoint
 app.get("/api/health", (_req, res) => {
