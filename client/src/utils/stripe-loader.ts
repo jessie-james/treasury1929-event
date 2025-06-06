@@ -31,17 +31,31 @@ class StripeLoaderService {
       return this.loadingPromise;
     }
 
-    const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+    // Try multiple ways to get the Stripe key
+    let stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+    
+    // Fallback: check if it's available in window object (for deployment scenarios)
+    if (!stripeKey && typeof window !== 'undefined') {
+      stripeKey = (window as any).__STRIPE_PUBLISHABLE_KEY__;
+    }
+    
+    // Fallback: hardcoded for development (will be replaced by build process)
+    if (!stripeKey && import.meta.env.DEV) {
+      // This will only work in development mode
+      stripeKey = 'pk_test_51QOaSfEHxqQFTPx3kR9d5Sf9FQIFbfvr9JK9zLZ7tVrm3Ygh8Q31HpT3DpD2IqPVbWc0FmzZwqYs6a2k8l5fDNmP006jFELrO5';
+    }
+    
     console.log('Environment check:', {
       hasKey: !!stripeKey,
       keyPrefix: stripeKey ? stripeKey.substring(0, 10) + '...' : 'undefined',
       envMode: import.meta.env.MODE,
-      isDev: import.meta.env.DEV
+      isDev: import.meta.env.DEV,
+      envVars: Object.keys(import.meta.env).filter(key => key.includes('STRIPE'))
     });
     
     if (!stripeKey) {
       console.error('Stripe key missing. Available env vars:', Object.keys(import.meta.env));
-      return { stripe: null, error: "Stripe publishable key is missing", method: "validation" };
+      return { stripe: null, error: "Stripe publishable key is missing from environment variables", method: "validation" };
     }
 
     this.loadingPromise = this._attemptStripeLoad(stripeKey);
