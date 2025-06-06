@@ -233,11 +233,14 @@ app.use((req, res, next) => {
     
     // Add catch-all route for React Router (after all API routes)
     app.get('*', (req: Request, res: Response, next: NextFunction) => {
-      // Only handle non-API routes to let React Router handle frontend routing
-      if (req.path.startsWith('/api/')) {
+      // Skip API routes, assets, and Vite dev server routes
+      if (req.path.startsWith('/api/') || 
+          req.path.startsWith('/src/') || 
+          req.path.startsWith('/@') || 
+          req.path.includes('.')) {
         return next();
       }
-      // For all other routes, let the frontend handle it
+      // For frontend routes, let the frontend handle it
       req.url = '/';
       next();
     });
