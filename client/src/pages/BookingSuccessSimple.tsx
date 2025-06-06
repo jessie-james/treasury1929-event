@@ -17,18 +17,24 @@ export default function BookingSuccessSimple() {
       setSessionId(id);
       
       // Simple verification without credentials
-      fetch(`/api/payment-success?session_id=${id}`, {
+      fetch(`/api/booking-success?session_id=${id}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         }
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          setBookingData(data);
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.text();
+      })
+      .then(htmlContent => {
+        // Server returns HTML success page, so we parse for success indicators
+        if (htmlContent.includes('Payment Successful') || htmlContent.includes('🎉')) {
+          setBookingData({ success: true, html: htmlContent });
         } else {
-          setError(data.error || 'Payment verification failed');
+          setError('Payment verification failed');
         }
       })
       .catch(err => {

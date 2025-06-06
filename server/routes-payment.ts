@@ -65,7 +65,7 @@ export function registerPaymentRoutes(app: Express) {
           },
         ],
         mode: 'payment',
-        success_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/api/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/booking-cancel`,
         metadata: {
           eventId: eventId.toString(),
