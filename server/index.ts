@@ -6,7 +6,7 @@ import { registerVenueRoutes } from "./routes-venue";
 import { registerSeatSelectionRoutes } from "./routes-seat-selection";
 import { setupVite, log, serveStatic } from "./vite";
 import { storage } from "./storage";
-import './api-server'; // Start the dedicated API server
+// import './api-server'; // Disabled to prevent port conflicts
 import cors from 'cors';
 import { setupAuth } from "./auth";
 import { setupSecurity, validateInput, securityErrorHandler, validateEnvironment } from "./security";
@@ -19,6 +19,14 @@ console.log("🔧 Registering public booking routes BEFORE all middleware to byp
 
 app.get('/booking-success', async (req, res) => {
   console.log("🎯 BOOKING SUCCESS ROUTE HIT - BYPASSING ALL MIDDLEWARE");
+  
+  // Add no-cache headers to prevent browser caching issues that cause 403 errors
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  
   const { session_id } = req.query;
   
   if (!session_id) {
@@ -76,7 +84,7 @@ app.get('/booking-success', async (req, res) => {
             <p><strong>Event ID:</strong> ${session.metadata?.eventId || 'N/A'}</p>
             <p><strong>Table:</strong> ${session.metadata?.tableId || 'N/A'}</p>
             <p><strong>Seats:</strong> ${session.metadata?.seats || 'N/A'}</p>
-            <p><strong>Amount:</strong> $${(session.amount_total / 100).toFixed(2)}</p>
+            <p><strong>Amount:</strong> $${((session.amount_total || 0) / 100).toFixed(2)}</p>
             <p><strong>Email:</strong> ${session.customer_details?.email || 'N/A'}</p>
           </div>
           

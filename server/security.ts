@@ -21,10 +21,10 @@ export function setupSecurity(app: Express) {
     crossOriginEmbedderPolicy: false, // Disable for Stripe compatibility
   }));
 
-  // Rate limiting for booking endpoints (most critical)
+  // Rate limiting for booking endpoints (more generous to prevent 403 errors)
   const bookingLimiter = rateLimit({
     windowMs: 5 * 60 * 1000, // 5 minutes
-    max: 3, // Maximum 3 booking attempts per 5 minutes per IP
+    max: 50, // Increased from 3 to 50 to prevent blocking legitimate users
     message: {
       error: 'Too many booking attempts. Please wait 5 minutes before trying again.',
       retryAfter: 300
@@ -36,6 +36,12 @@ export function setupSecurity(app: Express) {
       const baseKey = req.ip || 'unknown';
       const userId = req.user?.id;
       return userId ? `${baseKey}-${userId}` : baseKey;
+    },
+    // CRITICAL: Skip rate limiting for success/cancel pages
+    skip: (req) => {
+      return req.path.includes('/booking-success') || 
+             req.path.includes('/booking-cancel') ||
+             req.path.includes('/payment-success');
     }
   });
 

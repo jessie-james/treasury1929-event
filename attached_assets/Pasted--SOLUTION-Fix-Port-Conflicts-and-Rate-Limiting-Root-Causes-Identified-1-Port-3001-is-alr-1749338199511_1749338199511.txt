@@ -1,0 +1,261 @@
+# SOLUTION: Fix Port Conflicts and Rate Limiting
+
+## Root Causes Identified ✅
+
+1. **Port 3001 is already in use** → Server can't start properly
+2. **Aggressive rate limiting** → 3 requests per 5 minutes for booking endpoints
+3. **Dual server setup** → Authentication/session issues between ports
+
+## IMMEDIATE FIX: Clear Ports and Adjust Rate Limits
+
+### Step 1: Kill Existing Processes
+
+```bash
+# Kill all processes using the ports
+lsof -ti:3001 | xargs kill -9 2>/dev/null || echo "No process on 3001"
+lsof -ti:5000 | xargs kill -9 2>/dev/null || echo "No process on 5000"
+pkill -f node 2>/dev/null || echo "No node processes"
+
+# Verify ports are free
+netstat -tulpn | grep -E ":3001|:5000" || echo "Ports are now free"
+```
+
+### Step 2: Fix Rate Limiting for Payment Routes
+
+```typescript
+// server/security.ts or wherever rate limiting is configured
+import rateLimit from 'express-rate-limit';
+
+// FIXED: More generous rate limits for payment/booking flows
+const bookingLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 50, // INCREASED from 3 to 50 requests per 5 minutes
+  message: {
+    error: 'Too many booking attempts, please try again later.',
+    retryAfter: Math.ceil(5 * 60 * 1000 / 1000) // 5 minutes
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  // CRITICAL: Skip rate limiting for success/cancel pages
+  skip: (req) => {
+    return req.path.includes('/booking-success') || 
+           req.path.includes('/booking-cancel') ||
+           req.path.includes('/payment-success');
+  }
+});
+
+// Apply ONLY to booking creation, NOT success pages
+app.use('/api/create-checkout-session', bookingLimiter);
+app.use('/api/bookings', bookingLimiter);
+
+// NEVER apply rate limiting to success pages
+// app.use('/booking-success', bookingLimiter); // ❌ REMOVE THIS
+// app.use('/booking-cancel', bookingLimiter);  // ❌ REMOVE THIS
+```
+
+### Step 3: Simplified Single-Port Solution
+
+Instead of dual servers, use single port with proper routing:
+
+```typescript
+// server/index.ts - SIMPLIFIED SINGLE SERVER
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+
+const app = express();
+const PORT = process.env.PORT || 5000; // SINGLE PORT
+
+console.log("🚀 Starting unified server on single port...");
+
+// CORS for all origins (development)
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+
+// CRITICAL: Success pages FIRST (before any middleware)
+app.get('/booking-success', async (req, res) => {
+  console.log("🎯 SUCCESS PAGE HIT - NO RATE LIMITING");
+  const { session_id } = req.query;
+  
+  // Add no-cache headers to prevent browser caching issues
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+
+  if (!session_id) {
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Payment Success</title>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; max-width: 600px; margin: 0 auto; }
+          .success { color: green; font-size: 2.5em; margin-bottom: 20px; }
+          .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px; }
+        </style>
+      </head>
+      <body>
+        <h1 class="success">🎉 Payment Successful!</h1>
+        <p>Thank you! Your booking has been confirmed.</p>
+        <a href="/" class="button">Back to Home</a>
+      </body>
+      </html>
+    `);
+  }
+
+  try {
+    // Verify with Stripe (same as before)
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.retrieve(session_id as string);
+    
+    console.log(`✅ Payment verified for session: ${session.id}`);
+    
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Payment Success</title>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: Arial, sans-serif; text-align: center; padding: 50px; max-width: 600px; margin: 0 auto; }
+          .success { color: green; font-size: 2.5em; margin-bottom: 20px; }
+          .details { background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .session-id { font-family: monospace; font-size: 0.8em; word-break: break-all; }
+          .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px; }
+        </style>
+      </head>
+      <body>
+        <h1 class="success">🎉 Payment Successful!</h1>
+        <p><strong>Your booking has been confirmed!</strong></p>
+        
+        <div class="details">
+          <h3>Booking Details:</h3>
+          <p><strong>Event ID:</strong> ${session.metadata?.eventId || 'N/A'}</p>
+          <p><strong>Table:</strong> ${session.metadata?.tableId || 'N/A'}</p>
+          <p><strong>Seats:</strong> ${session.metadata?.seats || 'N/A'}</p>
+          <p><strong>Amount:</strong> $${(session.amount_total / 100).toFixed(2)}</p>
+          <p><strong>Email:</strong> ${session.customer_details?.email || 'N/A'}</p>
+        </div>
+        
+        <div class="details">
+          <p><strong>Payment Reference:</strong></p>
+          <p class="session-id">${session.id}</p>
+        </div>
+        
+        <a href="/" class="button">Back to Home</a>
+        <a href="/events" class="button">View More Events</a>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head><title>Payment Confirmation</title></head>
+      <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+        <h1 style="color: green;">🎉 Payment Received!</h1>
+        <p>Your payment has been processed successfully.</p>
+        <a href="/" style="background: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Back to Home</a>
+      </body>
+      </html>
+    `);
+  }
+});
+
+app.get('/booking-cancel', (req, res) => {
+  console.log("❌ CANCEL PAGE HIT");
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Payment Cancelled</title>
+      <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px; }
+      </style>
+    </head>
+    <body>
+      <h1>Payment Cancelled</h1>
+      <p>Your booking was not completed. No charges were made.</p>
+      <a href="/" class="button">Back to Home</a>
+      <a href="/events" class="button">Try Again</a>
+    </body>
+    </html>
+  `);
+});
+
+// NOW apply middleware (after success routes)
+app.use(express.json());
+
+// Apply rate limiting ONLY to creation endpoints
+const createBookingLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 20, // More generous limit
+  message: { error: 'Too many booking attempts, please try again later.' }
+});
+
+app.use('/api/create-checkout-session', createBookingLimiter);
+
+// Your API routes
+app.use('/api', /* your existing routes */);
+
+// Serve static files (for production)
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// Catch-all for React Router (LAST)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
+// START SINGLE SERVER
+app.listen(PORT, () => {
+  console.log(`✅ Unified server running on http://localhost:${PORT}`);
+  console.log(`✅ Success pages: http://localhost:${PORT}/booking-success`);
+  console.log(`✅ Ready for payments!`);
+});
+```
+
+### Step 4: Update Stripe URLs for Single Port
+
+```typescript
+// server/routes-payment.ts
+const session = await stripe.checkout.sessions.create({
+  // ... other config
+  success_url: `http://localhost:5000/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+  cancel_url: `http://localhost:5000/booking-cancel`,
+  // ... rest of config
+});
+```
+
+### Step 5: Clean Restart
+
+```bash
+# Kill everything
+pkill -f node
+
+# Start fresh
+npm run dev
+```
+
+## Expected Results
+
+✅ **Single server on port 5000**  
+✅ **No port conflicts**  
+✅ **Success pages bypass rate limiting**  
+✅ **No 403 errors after payments**  
+✅ **Clean browser experience**  
+
+## Why This Works
+
+1. **Single port** = No cross-port authentication issues
+2. **Success routes registered first** = Bypass all middleware
+3. **Generous rate limits** = No blocking during payment flow
+4. **No-cache headers** = Prevent browser caching issues
+
+Copy this to your Replit agent - this should completely solve the 403 issue! 🎯
