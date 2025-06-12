@@ -180,7 +180,7 @@ export function registerPaymentRoutes(app: Express) {
             <div class="booking-details">
               <h3>Booking Details</h3>
               <p><strong>Booking ID:</strong> #${booking}</p>
-              <p><strong>Amount:</strong> $${(session.amount_total / 100).toFixed(2)}</p>
+              <p><strong>Amount:</strong> $${((session.amount_total || 0) / 100).toFixed(2)}</p>
             </div>
             
             <div class="session-id">
