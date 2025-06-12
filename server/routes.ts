@@ -79,22 +79,28 @@ function initializeStripe() {
   }
 }
 
-// Initial initialization attempt
+// Initial initialization attempt with proper async handling
 (async () => {
-  // Attempt initialization immediately
-  const success = initializeStripe();
+  try {
+    // Attempt initialization immediately
+    const success = initializeStripe();
 
-  // If initial attempt fails, try once more after a delay
-  // This helps in deployment environments where secrets might load with a delay
-  if (!success) {
-    console.log("First Stripe initialization failed, retrying after delay...");
-    setTimeout(() => {
+    // If initial attempt fails, try once more after a delay
+    if (!success) {
+      console.log("First Stripe initialization failed, retrying after delay...");
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
       if (initializeStripe()) {
         console.log("Delayed Stripe initialization succeeded");
       } else {
         console.error("Delayed Stripe initialization also failed");
+        // Set a flag to indicate Stripe is unavailable
+        process.env.STRIPE_UNAVAILABLE = 'true';
       }
-    }, 3000); // 3 second delay
+    }
+  } catch (error) {
+    console.error("Critical error during Stripe initialization:", error);
+    process.env.STRIPE_UNAVAILABLE = 'true';
   }
 })();
 
