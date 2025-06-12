@@ -120,6 +120,7 @@ export const bookings = pgTable("bookings", {
   eventId: integer("event_id").notNull(),
   userId: integer("user_id").notNull(),
   tableId: integer("table_id").notNull(),
+  seatNumbers: integer("seat_numbers").array().default([]), // Array of seat numbers booked
   partySize: integer("party_size").default(1), // Number of people at the table - made optional
   guestNames: json("guest_names").$type<string[]>().default([]), // Array of guest names
   foodSelections: json("food_selections").$type<any[]>().default([]),

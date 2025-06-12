@@ -1307,7 +1307,9 @@ export async function registerRoutes(app: Express) {
         if (!bookedSeatsByTable[booking.tableId]) {
           bookedSeatsByTable[booking.tableId] = new Set<number>();
         }
-        booking.seatNumbers.forEach(seatNum => 
+        // Handle different seat number formats in booking data
+        const seatNumbers = booking.seatNumbers || (booking.partySize ? Array.from({length: booking.partySize || 1}, (_, i) => i + 1) : [1]);
+        seatNumbers.forEach((seatNum: number) => 
           bookedSeatsByTable[booking.tableId].add(seatNum)
         );
       });
@@ -1364,7 +1366,9 @@ export async function registerRoutes(app: Express) {
       const bookedSeats = new Set<number>();
       eventBookings.forEach(booking => {
         if (booking.tableId === tableId) {
-          booking.seatNumbers.forEach(seatNum => bookedSeats.add(seatNum));
+          // Handle different seat number formats in booking data
+          const seatNumbers = booking.seatNumbers || (booking.partySize ? Array.from({length: booking.partySize || 1}, (_, i) => i + 1) : [1]);
+          seatNumbers.forEach((seatNum: number) => bookedSeats.add(seatNum));
         }
       });
       
