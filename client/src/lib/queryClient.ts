@@ -338,24 +338,23 @@ window.addEventListener('unhandledrejection', (event) => {
     stack: error?.stack,
     isQueryError: error?.name === 'QueryError' || error?.name === 'MutationError',
     isTanStackError: error?.toString?.().includes('TanStack Query') || false,
-    isAuthError: (error?.message?.includes('401') || error?.message?.includes('Not authenticated')) || false
+    isAuthError: (error?.message?.includes('401') || error?.message?.includes('Not authenticated')) || false,
+    isNetworkError: error?.message?.includes('Failed to fetch') || error?.message?.includes('Network error') || false
   };
 
   console.error('Global error handler caught unhandled rejection:', errorContext);
 
+  // Always prevent default to stop unhandled rejection warnings
+  event.preventDefault();
+
   // Handle specific error types
   if (errorContext.isAuthError) {
     console.info('Authentication error detected. User may need to log in again.');
-    // Don't prevent default for auth errors - let them be handled normally
-    return;
   } else if (errorContext.isQueryError || errorContext.isTanStackError) {
     console.info('React Query error detected. Check network requests and authentication state.');
-    // Don't prevent default for query errors - let them be handled normally
-    return;
-  }
-  
-  // Only prevent default for other types of errors
-  if (!errorContext.isAuthError && !errorContext.isQueryError && !errorContext.isTanStackError) {
-    event.preventDefault();
+  } else if (errorContext.isNetworkError) {
+    console.info('Network error detected. Check connection and server status.');
+  } else {
+    console.warn('Unhandled error type:', error);
   }
 });

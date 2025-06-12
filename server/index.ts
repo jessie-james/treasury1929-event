@@ -320,7 +320,7 @@ app.post('/booking-direct', async (req, res) => {
 
     console.log('🟢 CREATING BOOKING WITH DIRECT ROUTE:', JSON.stringify(bookingData, null, 2));
     const newBooking = await storage.createBooking(bookingData);
-    console.log('🟢 DIRECT BOOKING CREATED SUCCESSFULLY:', newBooking.id);
+    console.log('🟢 DIRECT BOOKING CREATED SUCCESSFULLY:', newBooking);
     
     // Use writeHead and end for maximum control over response
     res.writeHead(200, {
@@ -375,13 +375,13 @@ app.use((req, res, next) => {
             action: "performance_warning",
             entityType: "system",
             entityId: 0,
-            details: {
+            details: JSON.stringify({
               path: path,
               method: req.method,
               durationMs: duration,
               status: res.statusCode,
               timestamp: new Date().toISOString()
-            }
+            })
           });
           console.warn(`[PERFORMANCE] Slow request: ${req.method} ${path} - ${duration}ms`);
         } catch (err) {
@@ -430,7 +430,7 @@ app.use((req, res, next) => {
             action: "api_error",
             entityType: "system",
             entityId: 0,
-            details: {
+            details: JSON.stringify({
               path: req.path,
               method: req.method,
               error: err.message,
@@ -438,7 +438,7 @@ app.use((req, res, next) => {
               statusCode: err.status || err.statusCode || 500,
               timestamp: new Date().toISOString(),
               requestBody: req.body ? JSON.stringify(req.body).substring(0, 500) : undefined // Truncate long bodies
-            }
+            })
           });
         } else {
           // Log unauthenticated errors with user ID 0 (system)
@@ -447,13 +447,13 @@ app.use((req, res, next) => {
             action: "system_error",
             entityType: "system",
             entityId: 0,
-            details: {
+            details: JSON.stringify({
               path: req.path,
               method: req.method,
               error: err.message,
               timestamp: new Date().toISOString(),
               ipAddress: req.ip
-            }
+            })
           });
         }
       } catch (loggingError) {
