@@ -38,44 +38,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      try {
-        // Clear any existing auth state flags
-        localStorage.removeItem("user_auth_state");
-        
-        console.log("Attempting login for:", credentials.email);
-        const res = await apiRequest("POST", "/api/login", credentials);
-        
-        // Network or server error handling
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({ message: res.statusText || "Login failed" }));
-          const errorMessage = errorData.message || errorData.error || "Authentication failed";
-          throw new Error(errorMessage);
-        }
-        
-        // Parse the user data with error handling
-        let userData: User;
-        try {
-          userData = await res.json();
-        } catch (parseError) {
-          console.error("Error parsing login response:", parseError);
-          throw new Error("Invalid response format from server");
-        }
-        
-        // Additional validation of user data
-        if (!userData || !userData.id) {
-          throw new Error("Invalid user data received");
-        }
-        
-        // Set auth state flag for status tracking
-        localStorage.setItem("user_auth_state", "logged_in");
-        localStorage.setItem("user_email", userData.email || '');
-        
-        return userData;
-      } catch (error) {
-        // Ensure errors are properly propagated
-        console.error("Login error in mutation function:", error);
-        throw error; // Rethrow for the onError handler
+      // Clear any existing auth state flags
+      localStorage.removeItem("user_auth_state");
+      
+      console.log("Attempting login for:", credentials.email);
+      const res = await apiRequest("POST", "/api/login", credentials);
+      
+      // Parse the user data with error handling
+      const userData = await res.json();
+      
+      // Additional validation of user data
+      if (!userData || !userData.id) {
+        throw new Error("Invalid user data received");
       }
+      
+      // Set auth state flag for status tracking
+      localStorage.setItem("user_auth_state", "logged_in");
+      localStorage.setItem("user_email", userData.email || '');
+      
+      return userData;
     },
     onSuccess: (user: User) => {
       console.log("Login successful, setting user data");
@@ -104,48 +85,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: NewUser) => {
-      try {
-        console.log('Registration mutation received data:', credentials);
-        
-        // Validate data before sending
-        if (!credentials.email || !credentials.password) {
-          throw new Error("Email and password are required");
-        }
-        
-        const res = await apiRequest("POST", "/api/register", credentials);
-        
-        // Handle non-success responses
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({ message: res.statusText || "Registration failed" }));
-          const errorMessage = errorData.message || errorData.error || "Registration failed";
-          throw new Error(errorMessage);
-        }
-        
-        // Parse the user data with error handling
-        let userData: User;
-        try {
-          userData = await res.json();
-        } catch (parseError) {
-          console.error("Error parsing registration response:", parseError);
-          throw new Error("Invalid response format from server");
-        }
-        
-        // Additional validation of user data
-        if (!userData || !userData.id) {
-          throw new Error("Invalid user data received");
-        }
-        
-        console.log('Registration response received:', userData);
-        
-        // Set auth state flags
-        localStorage.setItem("user_auth_state", "logged_in");
-        localStorage.setItem("user_email", userData.email || '');
-        
-        return userData;
-      } catch (error) {
-        console.error("Registration error in mutation function:", error);
-        throw error; // Rethrow for the onError handler
+      console.log('Registration mutation received data:', credentials);
+      
+      // Validate data before sending
+      if (!credentials.email || !credentials.password) {
+        throw new Error("Email and password are required");
       }
+      
+      const res = await apiRequest("POST", "/api/register", credentials);
+      const userData = await res.json();
+      
+      // Additional validation of user data
+      if (!userData || !userData.id) {
+        throw new Error("Invalid user data received");
+      }
+      
+      console.log('Registration response received:', userData);
+      
+      // Set auth state flags
+      localStorage.setItem("user_auth_state", "logged_in");
+      localStorage.setItem("user_email", userData.email || '');
+      
+      return userData;
     },
     onSuccess: (user: User & { autoLoginFailed?: boolean; message?: string }) => {
       console.log('Registration success, setting user data:', user);
@@ -194,22 +155,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logoutMutation = useMutation({
     mutationFn: async () => {
       try {
-        const res = await apiRequest("POST", "/api/logout");
-        
-        if (!res.ok) {
-          console.warn("Logout returned non-success status:", res.status);
-        }
+        await apiRequest("POST", "/api/logout");
       } catch (error) {
-        console.error("Logout request failed:", error);
-        // We still want to clear local state even on API failure
-        // So we'll continue without throwing to let onSuccess handle it
-      } finally {
-        // Always clear local storage auth data regardless of API response
-        localStorage.setItem("user_auth_state", "logged_out");
-        localStorage.removeItem("payment_token");
-        localStorage.removeItem("user_email");
-        localStorage.removeItem("auth_timestamp");
+        console.warn("Logout request failed:", error);
+        // Continue with local cleanup even if API fails
       }
+      
+      // Always clear local storage auth data
+      localStorage.setItem("user_auth_state", "logged_out");
+      localStorage.removeItem("payment_token");
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("auth_timestamp");
     },
     onSuccess: () => {
       // Clear all auth state
