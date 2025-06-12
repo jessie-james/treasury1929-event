@@ -253,21 +253,18 @@ export const getQueryFn: <T>(options: {
       return await res.json();
     } catch (error) {
       // Enhanced error handling for auth queries
-      if (unauthorizedBehavior === "returnNull" && 
-          error instanceof Error && 
-          error.message.includes('401')) {
-        console.log(`Auth query failed with 401 for ${queryKey[0]}, returning null as expected`);
+      if (unauthorizedBehavior === "returnNull") {
+        // For auth queries, always return null on any error to prevent unhandled rejections
+        if (error instanceof Error && error.message.includes('401')) {
+          console.log(`Auth query failed with 401 for ${queryKey[0]}, returning null as expected`);
+        } else {
+          console.log(`Auth query failed for ${queryKey[0]}, returning null to prevent rejection`);
+        }
         return null;
       }
       
       // Log detailed error information to help with debugging
       console.error(`Network error in query to ${queryKey[0]}:`, error);
-      
-      // For auth queries that should return null on error, do so
-      if (unauthorizedBehavior === "returnNull") {
-        console.log(`Auth query failed for ${queryKey[0]}, returning null`);
-        return null;
-      }
       
       // Rethrow so the query state will be set to error
       throw new Error(
@@ -342,19 +339,20 @@ window.addEventListener('unhandledrejection', (event) => {
     isNetworkError: error?.message?.includes('Failed to fetch') || error?.message?.includes('Network error') || false
   };
 
-  console.error('Global error handler caught unhandled rejection:', errorContext);
-
   // Always prevent default to stop unhandled rejection warnings
   event.preventDefault();
 
-  // Handle specific error types
-  if (errorContext.isAuthError) {
-    console.info('Authentication error detected. User may need to log in again.');
-  } else if (errorContext.isQueryError || errorContext.isTanStackError) {
-    console.info('React Query error detected. Check network requests and authentication state.');
-  } else if (errorContext.isNetworkError) {
-    console.info('Network error detected. Check connection and server status.');
-  } else {
-    console.warn('Unhandled error type:', error);
+  // Only log non-auth errors to reduce noise
+  if (!errorContext.isAuthError) {
+    console.error('Global error handler caught unhandled rejection:', errorContext);
+    
+    // Handle specific error types
+    if (errorContext.isQueryError || errorContext.isTanStackError) {
+      console.info('React Query error detected. Check network requests and authentication state.');
+    } else if (errorContext.isNetworkError) {
+      console.info('Network error detected. Check connection and server status.');
+    } else {
+      console.warn('Unhandled error type:', error);
+    }
   }
 });
