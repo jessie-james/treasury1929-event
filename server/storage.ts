@@ -440,6 +440,11 @@ export class PgStorage implements IStorage {
     return result[0] || null;
   }
 
+  async getTableById(id: number): Promise<Table | null> {
+    const result = await db.select().from(schema.tables).where(eq(schema.tables.id, id));
+    return result[0] || null;
+  }
+
   async getTableWithSeats(id: number): Promise<TableWithSeats | null> {
     const table = await this.getTable(id);
     if (!table) return null;

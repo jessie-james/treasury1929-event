@@ -1283,6 +1283,15 @@ export async function registerRoutes(app: Express) {
       
       console.log(`Getting availability for all tables, event ${eventId}`);
       
+      // Get event details to determine venue
+      const event = await storage.getEventById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: 'Event not found' });
+      }
+      
+      // Get actual tables from database for the event's venue
+      const actualTables = await storage.getTablesByVenue(event.venueId);
+      
       // Get all bookings for this event
       const allBookings = await storage.getBookings();
       const eventBookings = allBookings.filter(
@@ -1303,35 +1312,11 @@ export async function registerRoutes(app: Express) {
         );
       });
       
-      // Get all tables in the mezzanine (tables 1-7, all with 2 seats)
-      // Tables 4 and 5 are set to unavailable by default
-      const tables = [
-        { id: 1, seatCount: 2, isAvailable: true },
-        { id: 2, seatCount: 2, isAvailable: true },
-        { id: 3, seatCount: 2, isAvailable: true },
-        { id: 4, seatCount: 2, isAvailable: false },
-        { id: 5, seatCount: 2, isAvailable: false },
-        { id: 6, seatCount: 2, isAvailable: true },
-        { id: 7, seatCount: 2, isAvailable: true }
-      ];
-      
-      // Create availability data for all tables
+      // Create availability data based on actual database tables
       const availability = [];
       
-      for (const table of tables) {
-        // Skip generating entries for permanently unavailable tables
-        if (!table.isAvailable) {
-          for (let seatNum = 1; seatNum <= table.seatCount; seatNum++) {
-            availability.push({
-              tableId: table.id,
-              seatNumber: seatNum,
-              isBooked: true // Mark as booked to make the table appear unavailable
-            });
-          }
-          continue;
-        }
-        
-        for (let seatNum = 1; seatNum <= table.seatCount; seatNum++) {
+      for (const table of actualTables) {
+        for (let seatNum = 1; seatNum <= table.capacity; seatNum++) {
           const isBooked = bookedSeatsByTable[table.id]?.has(seatNum) || false;
           
           availability.push({
@@ -1361,6 +1346,12 @@ export async function registerRoutes(app: Express) {
       
       console.log(`Getting seat availability for table ${tableId}, event ${eventId}`);
       
+      // Get the actual table from database to get correct capacity
+      const table = await storage.getTableById(tableId);
+      if (!table) {
+        return res.status(404).json({ message: 'Table not found' });
+      }
+      
       // Get all bookings for this event
       const allBookings = await storage.getBookings();
       const eventBookings = allBookings.filter(
@@ -1377,8 +1368,8 @@ export async function registerRoutes(app: Express) {
         }
       });
       
-      // All tables in the mezzanine have 2 seats
-      const seatCount = 2;
+      // Use actual table capacity from database
+      const seatCount = table.capacity;
       
       // Create seat availability data
       const tableSeats = Array.from({ length: seatCount }, (_, i) => {
