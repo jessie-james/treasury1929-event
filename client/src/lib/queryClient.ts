@@ -297,22 +297,31 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
-      retry: false,
+      retry: (failureCount, error) => {
+        // Don't retry auth errors or client errors
+        if (error instanceof Error && (error.message.includes('401') || error.message.startsWith('4'))) {
+          return false;
+        }
+        return failureCount < 1; // Only retry once for network errors
+      },
+      retryDelay: 1000,
     },
     mutations: {
       retry: false,
     },
   },
   queryCache: new QueryCache({
-    onError: (error: unknown) => {
-      // Silently handle all query errors to prevent unhandled rejections
-      console.log('Query cache error handled:', error);
+    onError: (error: unknown, query) => {
+      // Log but don't throw to prevent unhandled rejections
+      if (error instanceof Error && !error.message.includes('401')) {
+        console.warn(`Query error for ${query.queryKey}:`, error.message);
+      }
     },
   }),
   mutationCache: new MutationCache({
-    onError: (error: unknown) => {
-      // Silently handle all mutation errors to prevent unhandled rejections
-      console.log('Mutation cache error handled:', error);
+    onError: (error: unknown, variables, context, mutation) => {
+      // Log but don't throw to prevent unhandled rejections
+      console.warn(`Mutation error:`, error);
     },
   }),
 });
