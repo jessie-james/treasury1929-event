@@ -402,21 +402,21 @@ app.use((req, res, next) => {
     log("Setting up authentication...");
     setupAuth(app);
     
-    // Set up routes and error handling
+    // CRITICAL: Register ALL API routes BEFORE Vite middleware
     log("Setting up routes...");
     const server = await registerRoutes(app);
     
-    // Set up seat selection routes
     log("Setting up seat selection routes...");
     registerSeatSelectionRoutes(app);
     
-    // Set up dedicated payment routes
     log("Setting up payment routes...");
     registerPaymentRoutes(app);
     
-    // Set up pricing routes
     log("Setting up pricing routes...");
     registerPricingRoutes(app);
+    
+    log("Setting up venue routes...");
+    registerVenueRoutes(app);
 
     // Error logging middleware
     app.use(async (err: any, req: Request, res: Response, next: NextFunction) => {
