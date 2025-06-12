@@ -17,33 +17,36 @@ export default function BookingSuccessSimple() {
       setSessionId(id);
       
       // Simple verification without credentials
-      fetch(`/api/booking-success?session_id=${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+      const verifyPayment = async () => {
+        try {
+          const response = await fetch(`/api/booking-success?session_id=${id}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          
+          const htmlContent = await response.text();
+          
+          // Server returns HTML success page, so we parse for success indicators
+          if (htmlContent.includes('Payment Successful') || htmlContent.includes('🎉')) {
+            setBookingData({ success: true, html: htmlContent });
+          } else {
+            setError('Payment verification failed');
+          }
+        } catch (err) {
+          console.error('Verification error:', err);
+          setError('Unable to verify payment. Please contact support with your session ID.');
+        } finally {
+          setIsVerifying(false);
         }
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-        return response.text();
-      })
-      .then(htmlContent => {
-        // Server returns HTML success page, so we parse for success indicators
-        if (htmlContent.includes('Payment Successful') || htmlContent.includes('🎉')) {
-          setBookingData({ success: true, html: htmlContent });
-        } else {
-          setError('Payment verification failed');
-        }
-      })
-      .catch(err => {
-        console.error('Verification error:', err);
-        setError('Unable to verify payment. Please contact support with your session ID.');
-      })
-      .finally(() => {
-        setIsVerifying(false);
-      });
+      };
+      
+      verifyPayment();
     } else {
       setError('No session ID found');
       setIsVerifying(false);

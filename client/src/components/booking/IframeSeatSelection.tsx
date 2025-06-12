@@ -304,12 +304,9 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   // Fetch existing bookings
   const { data: existingBookings, error: bookingsError } = useQuery({
     queryKey: ['/api/event-bookings', eventId],
-    queryFn: () => fetch(`/api/event-bookings?eventId=${eventId}`).then(res => {
-      if (!res.ok) throw new Error('Failed to fetch bookings');
-      return res.json();
-    }),
     enabled: !!eventId,
-    retry: 2
+    retry: 2,
+    throwOnError: false
   });
 
   // Get the current venue layout based on selected venue or fallback to event data
@@ -331,7 +328,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       
       if (selected && selected.tables) {
         // Ensure we're only getting tables for THIS specific venue
-        const venueSpecificTables = selected.tables.filter(table => 
+        const venueSpecificTables = selected.tables.filter((table: any) => 
           table.id && typeof table.id === 'number'
         );
         

@@ -297,6 +297,7 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
+      throwOnError: false, // Prevent unhandled promise rejections globally
       retry: (failureCount, error) => {
         console.log(`Query retry attempt ${failureCount} for error:`, error);
         
@@ -317,10 +318,10 @@ export const queryClient = new QueryClient({
         console.log(`Should retry: ${shouldRetry}`);
         return shouldRetry;
       },
-
     },
     mutations: {
-      retry: false
+      retry: false,
+      throwOnError: false, // Prevent unhandled promise rejections for mutations
     },
   },
 });

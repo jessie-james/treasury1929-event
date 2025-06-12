@@ -34,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    throwOnError: false, // Prevent unhandled promise rejections
   });
 
   const loginMutation = useMutation({

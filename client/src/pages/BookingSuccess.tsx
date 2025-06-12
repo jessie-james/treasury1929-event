@@ -25,6 +25,11 @@ export function BookingSuccess() {
             },
             credentials: 'include'
           });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
           const data = await response.json();
 
           if (response.ok) {
