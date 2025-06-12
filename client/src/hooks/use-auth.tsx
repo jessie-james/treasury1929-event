@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         return await response.json();
       } catch (error) {
-        console.log('Auth query failed silently:', error);
+        // Silently handle all errors to prevent unhandled rejections
         return null; // Always return null on any error
       }
     },
@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     staleTime: 5 * 60 * 1000,
+    throwOnError: false, // Prevent throwing errors that cause unhandled rejections
   });
 
   const loginMutation = useMutation({
