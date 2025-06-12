@@ -1,4 +1,4 @@
-import { QueryClient, QueryFunction, QueryClientConfig } from "@tanstack/react-query";
+import { QueryClient, QueryFunction, QueryClientConfig, QueryCache, MutationCache } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -293,37 +293,28 @@ const logError = (error: unknown) => {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: "returnNull" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
-      throwOnError: false, // Prevent unhandled promise rejections globally
-      retry: (failureCount, error) => {
-        console.log(`Query retry attempt ${failureCount} for error:`, error);
-        
-        // Don't retry 401, 403, 404 responses as they're likely deliberate responses
-        if (
-          error instanceof Error && 
-          error.message && 
-          (error.message.startsWith('401:') || 
-           error.message.startsWith('403:') || 
-           error.message.startsWith('404:'))
-        ) {
-          console.log('Not retrying due to auth/permission error');
-          return false;
-        }
-        
-        // Retry network errors but limit to 2 attempts
-        const shouldRetry = failureCount < 2;
-        console.log(`Should retry: ${shouldRetry}`);
-        return shouldRetry;
-      },
+      retry: false,
     },
     mutations: {
       retry: false,
-      throwOnError: false, // Prevent unhandled promise rejections for mutations
     },
   },
+  queryCache: new QueryCache({
+    onError: (error: unknown) => {
+      // Silently handle all query errors to prevent unhandled rejections
+      console.log('Query cache error handled:', error);
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error: unknown) => {
+      // Silently handle all mutation errors to prevent unhandled rejections
+      console.log('Mutation cache error handled:', error);
+    },
+  }),
 });
 
 // Set up a comprehensive global error handler

@@ -105,10 +105,8 @@ function App() {
       console.error('Full stack trace:', error?.stack);
       console.groupEnd();
 
-      // Don't prevent default for auth errors - they should be handled by the auth system
-      if (!errorInfo.isAuthError) {
-        event.preventDefault();
-      }
+      // Always prevent default to stop unhandled rejection warnings
+      event.preventDefault();
     };
 
     const handleError = (event: ErrorEvent) => {
