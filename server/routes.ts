@@ -271,7 +271,7 @@ export async function registerRoutes(app: Express) {
         .where(eq(eventVenues.eventId, eventId));
       
       const venueIds = allEventVenues.map(ev => ev.venueId);
-      let actualVenues = [];
+      let actualVenues: { id: number }[] = [];
       if (venueIds.length > 0) {
         actualVenues = await db
           .select({ id: venues.id })
@@ -289,7 +289,7 @@ export async function registerRoutes(app: Express) {
         !actualVenueIds.includes(ev.venueId)
       );
       
-      const recordsToDelete = [...new Set([...phantomRecords, ...suspiciousRecords])];
+      const recordsToDelete = Array.from(new Set([...phantomRecords, ...suspiciousRecords]));
       
       console.log(`🎯 Found ${recordsToDelete.length} phantom records to delete:`, 
         recordsToDelete.map(r => ({ id: r.id, displayName: r.displayName, venueId: r.venueId }))
@@ -866,12 +866,12 @@ export async function registerRoutes(app: Express) {
         action: "update_event",
         entityType: "event",
         entityId: id,
-        details: {
+        details: JSON.stringify({
           title: event.title,
           date: event.date,
           changes: changes,
           image: event.image
-        }
+        })
       });
 
       res.json(event);
@@ -906,10 +906,10 @@ export async function registerRoutes(app: Express) {
         action: "delete_event",
         entityType: "event",
         entityId: id,
-        details: {
+        details: JSON.stringify({
           title: event.title,
           date: event.date
-        }
+        })
       });
 
       res.sendStatus(200);
