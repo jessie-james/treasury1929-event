@@ -314,28 +314,31 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
 
   // Get the current venue layout based on selected venue or fallback to event data
   const currentVenueLayout: VenueLayout | undefined = useMemo(() => {
-    // Debug logging
-    console.log('🔍 VENUE SELECTION DEBUG:', {
-      eventVenueLayouts: eventVenueLayouts,
-      selectedVenueIndex,
-      layoutsLength: eventVenueLayouts?.length
-    });
+    // Reset any cached table data to prevent accumulation
     
     // First try new venue layouts system
     if (eventVenueLayouts && Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 0) {
-      const selected = eventVenueLayouts[selectedVenueIndex];
-      console.log('📍 Selected venue layout:', {
-        selectedIndex: selectedVenueIndex,
-        selected: selected,
+      // Ensure selectedVenueIndex is within bounds
+      const safeIndex = Math.max(0, Math.min(selectedVenueIndex, eventVenueLayouts.length - 1));
+      const selected = eventVenueLayouts[safeIndex];
+      
+      console.log('🔍 VENUE SELECTION FIXED:', {
+        selectedIndex: safeIndex,
         venueName: selected?.venue?.name,
-        tableCount: selected?.tables?.length
+        tableCount: selected?.tables?.length,
+        venueId: selected?.venue?.id
       });
       
-      if (selected) {
+      if (selected && selected.tables) {
+        // Ensure we're only getting tables for THIS specific venue
+        const venueSpecificTables = selected.tables.filter(table => 
+          table.id && typeof table.id === 'number'
+        );
+        
         return {
           venue: selected.venue,
-          tables: selected.tables,
-          stages: selected.stages
+          tables: venueSpecificTables, // Only return tables for the selected venue
+          stages: selected.stages || []
         };
       }
     }

@@ -19,12 +19,17 @@ console.log("🔧 Registering public booking routes BEFORE all middleware to byp
 
 app.get('/booking-success', async (req, res) => {
   console.log("🎯 BOOKING SUCCESS ROUTE HIT - BYPASSING ALL MIDDLEWARE");
+  console.log("Request URL:", req.url);
+  console.log("Query params:", req.query);
   
   // Add no-cache headers to prevent browser caching issues that cause 403 errors
   res.set({
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Pragma': 'no-cache',
-    'Expires': '0'
+    'Expires': '0',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
   });
   
   const { session_id } = req.query;

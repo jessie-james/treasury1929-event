@@ -8,15 +8,34 @@ import express from "express";
 async function createBookingFromStripeSession(session: any) {
   const metadata = session.metadata;
   
+  // Validate metadata exists
+  if (!metadata || !metadata.eventId || !metadata.tableId || !metadata.userId) {
+    throw new Error('Missing required booking metadata in Stripe session');
+  }
+  
   // Calculate party size from seats count
   const seats = metadata.seats ? metadata.seats.split(',') : [];
   const partySize = seats.length;
   
+  // Validate table exists and belongs to the event
+  const tableId = parseInt(metadata.tableId);
+  const eventId = parseInt(metadata.eventId);
+  
+  // Check if table is already booked for this event
+  const existingBookings = await storage.getBookingsByEventId(eventId);
+  const tableAlreadyBooked = existingBookings.some(booking => 
+    booking.tableId === tableId && booking.status === 'confirmed'
+  );
+  
+  if (tableAlreadyBooked) {
+    throw new Error(`Table ${tableId} is already booked for this event`);
+  }
+  
   const bookingData = {
-    eventId: parseInt(metadata.eventId),
-    tableId: parseInt(metadata.tableId),
+    eventId,
+    tableId,
     userId: parseInt(metadata.userId),
-    partySize: partySize,
+    partySize: partySize || 1,
     customerEmail: session.customer_details?.email || metadata.customerEmail,
     stripePaymentId: session.payment_intent,
     stripeSessionId: session.id,
@@ -26,6 +45,7 @@ async function createBookingFromStripeSession(session: any) {
     guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : null
   };
 
+  console.log('Creating booking with validated data:', bookingData);
   return await storage.createBooking(bookingData);
 }
 
@@ -65,8 +85,8 @@ export function registerPaymentRoutes(app: Express) {
           },
         ],
         mode: 'payment',
-        success_url: `http://localhost:5000/booking-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `http://localhost:5000/booking-cancel`,
+        success_url: `${req.protocol}://${req.get('host')}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.protocol}://${req.get('host')}/booking-cancel`,
         metadata: {
           eventId: eventId.toString(),
           tableId: tableId.toString(),
