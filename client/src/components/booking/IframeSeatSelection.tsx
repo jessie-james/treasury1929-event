@@ -352,7 +352,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   
   // Memoize available tables calculation
   const { availableTables, bookedTableIds } = useMemo(() => {
-    const bookedIds = existingBookings?.map((booking: any) => booking.tableId) || [];
+    const bookedIds = Array.isArray(existingBookings) ? existingBookings.map((booking: any) => booking.tableId) : [];
     const available = currentVenueLayout?.tables?.filter((table: VenueTable) => 
       !bookedIds.includes(table.id)
     ) || [];
@@ -539,7 +539,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       </div>
 
       {/* Venue Selection */}
-      {eventVenueLayouts && Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 1 && (
+      {Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 1 && (
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-4">
@@ -572,11 +572,11 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-medium">
               {currentVenueLayout?.venue?.name || "Venue Layout"}
-              {eventVenueLayouts && eventVenueLayouts.length > 1 && (
+              {Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 1 && selectedVenueIndex < eventVenueLayouts.length ? (
                 <span className="text-sm text-gray-500 ml-2">
-                  ({eventVenueLayouts[selectedVenueIndex]?.displayName})
+                  ({(eventVenueLayouts as any[])[selectedVenueIndex]?.displayName || 'Venue'})
                 </span>
-              )}
+              ) : null}
             </h3>
             <div className="flex items-center gap-4">
               <Badge variant="outline">
