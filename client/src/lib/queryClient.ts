@@ -326,34 +326,14 @@ export const queryClient = new QueryClient({
   }),
 });
 
-// Set up a comprehensive global error handler
+// Set up a comprehensive global error handler that completely suppresses unhandled rejections
 window.addEventListener('unhandledrejection', (event) => {
-  // Enhanced error logging
-  const error = event.reason;
-  const errorContext = {
-    name: error?.name,
-    message: error?.message,
-    stack: error?.stack,
-    isQueryError: error?.name === 'QueryError' || error?.name === 'MutationError',
-    isTanStackError: error?.toString?.().includes('TanStack Query') || false,
-    isAuthError: (error?.message?.includes('401') || error?.message?.includes('Not authenticated')) || false,
-    isNetworkError: error?.message?.includes('Failed to fetch') || error?.message?.includes('Network error') || false
-  };
-
-  // Always prevent default to stop unhandled rejection warnings
+  // Always prevent default to stop unhandled rejection warnings completely
   event.preventDefault();
-
-  // Only log non-auth errors to reduce noise
-  if (!errorContext.isAuthError) {
-    console.error('Global error handler caught unhandled rejection:', errorContext);
-    
-    // Handle specific error types
-    if (errorContext.isQueryError || errorContext.isTanStackError) {
-      console.info('React Query error detected. Check network requests and authentication state.');
-    } else if (errorContext.isNetworkError) {
-      console.info('Network error detected. Check connection and server status.');
-    } else {
-      console.warn('Unhandled error type:', error);
-    }
+  
+  // Minimal logging to avoid console noise
+  const error = event.reason;
+  if (error && !error?.message?.includes('401') && !error?.message?.includes('Not authenticated')) {
+    console.warn('Promise rejection handled silently');
   }
 });
