@@ -29,12 +29,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
   } = useQuery<User | null>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
-    retry: false, // Don't retry auth queries
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/user', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (response.status === 401) {
+          return null; // Not authenticated - this is expected
+        }
+        
+        if (!response.ok) {
+          return null; // Any other error - return null to prevent rejections
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.log('Auth query failed silently:', error);
+        return null; // Always return null on any error
+      }
+    },
+    retry: false,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    throwOnError: false, // Prevent unhandled promise rejections
+    staleTime: 5 * 60 * 1000,
   });
 
   const loginMutation = useMutation({
