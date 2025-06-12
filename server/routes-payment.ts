@@ -36,13 +36,14 @@ async function createBookingFromStripeSession(session: any) {
     tableId,
     userId: parseInt(metadata.userId),
     partySize: partySize || 1,
+    seatNumbers: seats.map((s: string) => parseInt(s)),
     customerEmail: session.customer_details?.email || metadata.customerEmail,
     stripePaymentId: session.payment_intent,
     stripeSessionId: session.id,
-    amount: session.amount_total,
+    amount: session.amount_total || 0,
     status: 'confirmed' as const,
-    foodSelections: metadata.foodSelections ? JSON.parse(metadata.foodSelections) : null,
-    guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : null
+    foodSelections: metadata.foodSelections ? JSON.parse(metadata.foodSelections) : [],
+    guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : []
   };
 
   console.log('Creating booking with validated data:', bookingData);
@@ -383,12 +384,12 @@ export function registerPaymentRoutes(app: Express) {
             action: "create_payment_intent",
             entityType: "payment",
             entityId: 0,
-            details: {
+            details: JSON.stringify({
               paymentIntentId: paymentIntent.id,
               amount: amount / 100,
               seatCount: req.body.seatCount || 0,
               createdAt: new Date().toISOString()
-            }
+            })
           });
         } catch (logError) {
           // Don't fail if logging fails
@@ -461,11 +462,11 @@ export function registerPaymentRoutes(app: Express) {
             action: "payment_succeeded",
             entityType: "payment",
             entityId: 0,
-            details: {
+            details: JSON.stringify({
               paymentIntentId: paymentIntent.id,
               amount: paymentIntent.amount / 100,
               metadata: paymentIntent.metadata
-            }
+            })
           });
         } catch (logError) {
           console.error("Error logging payment success:", logError);
