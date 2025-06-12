@@ -17,6 +17,35 @@ const app = express();
 // CRITICAL: Register public booking routes FIRST before any middleware
 console.log("🔧 Registering public booking routes BEFORE all middleware to bypass 403 errors...");
 
+// Add booking cancel route first
+app.get('/booking-cancel', (req, res) => {
+  console.log("🎯 BOOKING CANCEL ROUTE HIT - BYPASSING ALL MIDDLEWARE");
+  res.set({
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  });
+  
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Booking Cancelled</title>
+      <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; max-width: 600px; margin: 0 auto; }
+        .cancelled { color: #ff6b6b; font-size: 2em; margin-bottom: 20px; }
+        .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; }
+      </style>
+    </head>
+    <body>
+      <h1 class="cancelled">Booking Cancelled</h1>
+      <p>Your booking was cancelled. No charges were made.</p>
+      <a href="/" class="button">Back to Events</a>
+    </body>
+    </html>
+  `);
+});
+
 app.get('/booking-success', async (req, res) => {
   console.log("🎯 BOOKING SUCCESS ROUTE HIT - BYPASSING ALL MIDDLEWARE");
   console.log("Request URL:", req.url);
@@ -65,6 +94,39 @@ app.get('/booking-success', async (req, res) => {
     }
     
     const session = await stripe.checkout.sessions.retrieve(session_id as string);
+    
+    // Create booking from successful payment
+    let bookingId = null;
+    if (session.payment_status === 'paid') {
+      try {
+        const { storage } = await import("./storage");
+        const metadata = session.metadata;
+        
+        if (metadata && metadata.eventId && metadata.tableId && metadata.userId) {
+          const seats = metadata.seats ? metadata.seats.split(',') : [];
+          const bookingData = {
+            eventId: parseInt(metadata.eventId),
+            tableId: parseInt(metadata.tableId),
+            userId: parseInt(metadata.userId),
+            partySize: seats.length || 1,
+            customerEmail: session.customer_details?.email || metadata.customerEmail,
+            stripePaymentId: session.payment_intent,
+            stripeSessionId: session.id,
+            amount: session.amount_total,
+            status: 'confirmed' as const,
+            seatNumbers: seats.map(s => parseInt(s)),
+            foodSelections: metadata.foodSelections ? JSON.parse(metadata.foodSelections) : [],
+            guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : {}
+          };
+          
+          bookingId = await storage.createBooking(bookingData);
+          console.log(`Booking created: #${bookingId} for payment ${session.payment_intent}`);
+        }
+      } catch (bookingError) {
+        console.error('Booking creation error:', bookingError);
+        // Continue with success page even if booking creation fails
+      }
+    }
     
     if (session.payment_status === 'paid') {
       res.send(`
@@ -134,28 +196,6 @@ app.get('/booking-success', async (req, res) => {
       </html>
     `);
   }
-});
-
-app.get('/booking-cancel', (req, res) => {
-  console.log("🎯 BOOKING CANCEL ROUTE HIT");
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Payment Cancelled</title>
-      <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-        .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px; }
-      </style>
-    </head>
-    <body>
-      <h1>Payment Cancelled</h1>
-      <p>Your booking was not completed. No charges were made.</p>
-      <a href="/" class="button">Back to Home</a>
-      <a href="/events" class="button">Try Again</a>
-    </body>
-    </html>
-  `);
 });
 
 // Enhanced CORS configuration for deployments with better Stripe compatibility
