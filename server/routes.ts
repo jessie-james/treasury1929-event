@@ -761,12 +761,12 @@ export async function registerRoutes(app: Express) {
         action: "create_event",
         entityType: "event",
         entityId: event.id,
-        details: {
+        details: JSON.stringify({
           title: event.title,
           date: event.date,
           totalSeats: event.totalSeats,
           image: event.image
-        }
+        })
       });
 
       res.status(201).json(event);
@@ -1202,10 +1202,10 @@ export async function registerRoutes(app: Express) {
         action: "update_event_venue",
         entityType: "event",
         entityId: eventId,
-        details: {
+        details: JSON.stringify({
           venueId: venueId,
           changes: updateData
-        }
+        })
       });
 
       res.json(updatedEventVenue);
@@ -1253,9 +1253,9 @@ export async function registerRoutes(app: Express) {
         action: "remove_event_venue",
         entityType: "event",
         entityId: eventId,
-        details: {
+        details: JSON.stringify({
           venueId: venueId
-        }
+        })
       });
 
       res.json({ success: true });

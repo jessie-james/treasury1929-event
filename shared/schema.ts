@@ -472,7 +472,7 @@ export const adminLogs = pgTable("admin_logs", {
   action: varchar("action", { length: 100 }).notNull(),
   entityType: varchar("entity_type", { length: 50 }).notNull(),
   entityId: integer("entity_id"),
-  details: json("details").$type<Record<string, any>>().default({}),
+  details: text("details"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   ipAddress: varchar("ip_address", { length: 100 }),
 });
