@@ -204,18 +204,23 @@ export class PgStorage implements IStorage {
       event: schema.events,
       user: schema.users,
       table: schema.tables,
+      venue: schema.venues,
     })
     .from(schema.bookings)
     .leftJoin(schema.events, eq(schema.bookings.eventId, schema.events.id))
     .leftJoin(schema.users, eq(schema.bookings.userId, schema.users.id))
     .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
+    .leftJoin(schema.venues, eq(schema.tables.venueId, schema.venues.id))
     .orderBy(desc(schema.bookings.createdAt));
 
-    return bookings.map(({ booking, event, user, table }) => ({
+    return bookings.map(({ booking, event, user, table, venue }) => ({
       ...booking,
       event: event!,
       user: user!,
-      table: table!,
+      table: {
+        ...table!,
+        venue: venue!,
+      },
     }));
   }
 
@@ -225,19 +230,24 @@ export class PgStorage implements IStorage {
       event: schema.events,
       user: schema.users,
       table: schema.tables,
+      venue: schema.venues,
     })
     .from(schema.bookings)
     .leftJoin(schema.events, eq(schema.bookings.eventId, schema.events.id))
     .leftJoin(schema.users, eq(schema.bookings.userId, schema.users.id))
     .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
+    .leftJoin(schema.venues, eq(schema.tables.venueId, schema.venues.id))
     .where(eq(schema.bookings.userId, userId))
     .orderBy(desc(schema.bookings.createdAt));
 
-    return bookings.map(({ booking, event, user, table }) => ({
+    return bookings.map(({ booking, event, user, table, venue }) => ({
       ...booking,
       event: event!,
       user: user!,
-      table: table!,
+      table: {
+        ...table!,
+        venue: venue!,
+      },
     }));
   }
 
@@ -247,19 +257,24 @@ export class PgStorage implements IStorage {
       event: schema.events,
       user: schema.users,
       table: schema.tables,
+      venue: schema.venues,
     })
     .from(schema.bookings)
     .leftJoin(schema.events, eq(schema.bookings.eventId, schema.events.id))
     .leftJoin(schema.users, eq(schema.bookings.userId, schema.users.id))
     .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
+    .leftJoin(schema.venues, eq(schema.tables.venueId, schema.venues.id))
     .where(eq(schema.bookings.eventId, eventId))
     .orderBy(desc(schema.bookings.createdAt));
 
-    return bookings.map(({ booking, event, user, table }) => ({
+    return bookings.map(({ booking, event, user, table, venue }) => ({
       ...booking,
       event: event!,
       user: user!,
-      table: table!,
+      table: {
+        ...table!,
+        venue: venue!,
+      },
     }));
   }
 
@@ -298,18 +313,23 @@ export class PgStorage implements IStorage {
       event: schema.events,
       user: schema.users,
       table: schema.tables,
+      venue: schema.venues,
     })
     .from(schema.bookings)
     .leftJoin(schema.events, eq(schema.bookings.eventId, schema.events.id))
     .leftJoin(schema.users, eq(schema.bookings.userId, schema.users.id))
     .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
+    .leftJoin(schema.venues, eq(schema.tables.venueId, schema.venues.id))
     .orderBy(desc(schema.bookings.createdAt));
 
-    return bookings.map(({ booking, event, user, table }) => ({
+    return bookings.map(({ booking, event, user, table, venue }) => ({
       ...booking,
       event: event!,
       user: user!,
-      table: table!,
+      table: {
+        ...table!,
+        venue: venue!,
+      },
     }));
   }
 
