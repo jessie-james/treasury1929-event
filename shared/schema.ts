@@ -458,9 +458,7 @@ export interface TableWithSeats extends Table {
 export interface BookingWithDetails extends Booking {
   event: Event;
   user: User;
-  table: Table & {
-    venue: Venue;
-  };
+  table: Table;
 }
 
 // Enum-like types for allergies and dietary restrictions
