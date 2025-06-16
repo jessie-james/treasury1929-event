@@ -662,6 +662,106 @@ export class PgStorage implements IStorage {
     return true;
   }
 
+  async getEventFoodTotals(eventId: number): Promise<any> {
+    // Get all bookings for this event that have food selections
+    const bookingsWithFood = await db
+      .select({
+        id: schema.bookings.id,
+        foodSelections: schema.bookings.foodSelections
+      })
+      .from(schema.bookings)
+      .where(and(
+        eq(schema.bookings.eventId, eventId),
+        eq(schema.bookings.status, 'confirmed')
+      ));
+
+    // Get all food options to map IDs to names
+    const allFoodOptions = await db.select().from(schema.foodOptions);
+    const foodOptionsMap = new Map(allFoodOptions.map(opt => [opt.id, opt]));
+
+    // Initialize totals structure
+    const totals = {
+      salads: {} as Record<string, number>,
+      entrees: {} as Record<string, number>,
+      desserts: {} as Record<string, number>
+    };
+
+    // Process each booking's food selections
+    for (const booking of bookingsWithFood) {
+      if (!booking.foodSelections || !Array.isArray(booking.foodSelections)) {
+        continue;
+      }
+
+      // Process each food selection in the booking
+      for (const selection of booking.foodSelections) {
+        if (!selection || typeof selection !== 'object') {
+          continue;
+        }
+
+        // Process salad selection
+        if (selection.salad && typeof selection.salad === 'number') {
+          const foodOption = foodOptionsMap.get(selection.salad);
+          if (foodOption && foodOption.type === 'salad') {
+            const key = foodOption.name;
+            totals.salads[key] = (totals.salads[key] || 0) + 1;
+          }
+        }
+
+        // Process entree selection
+        if (selection.entree && typeof selection.entree === 'number') {
+          const foodOption = foodOptionsMap.get(selection.entree);
+          if (foodOption && foodOption.type === 'entree') {
+            const key = foodOption.name;
+            totals.entrees[key] = (totals.entrees[key] || 0) + 1;
+          }
+        }
+
+        // Process dessert selection
+        if (selection.dessert && typeof selection.dessert === 'number') {
+          const foodOption = foodOptionsMap.get(selection.dessert);
+          if (foodOption && foodOption.type === 'dessert') {
+            const key = foodOption.name;
+            totals.desserts[key] = (totals.desserts[key] || 0) + 1;
+          }
+        }
+      }
+    }
+
+    return totals;
+  }
+
+  async updateBookingFoodSelections(bookingId: number, foodSelections: any, modifiedBy: number): Promise<any> {
+    const result = await db.update(schema.bookings)
+      .set({ 
+        foodSelections,
+        modifiedBy
+      })
+      .where(eq(schema.bookings.id, bookingId))
+      .returning();
+    return result[0];
+  }
+
+  // Layout methods (stub implementations)
+  async getFloors(venueId: number): Promise<any[]> {
+    return [];
+  }
+
+  async getZones(venueId: number): Promise<any[]> {
+    return [];
+  }
+
+  async getLayoutTemplates(venueId: number): Promise<any[]> {
+    return [];
+  }
+
+  async saveLayoutTemplate(venueId: number, templateData: any): Promise<any> {
+    return null;
+  }
+
+  async updateFloorImage(venueId: number, floorId: string, imageUrl: string): Promise<boolean> {
+    return true;
+  }
+
   // Admin Log methods
   async createAdminLog(logData: InsertAdminLog): Promise<number> {
     const result = await db.insert(schema.adminLogs).values(logData).returning({ id: schema.adminLogs.id });
@@ -677,8 +777,6 @@ export class PgStorage implements IStorage {
       .where(eq(schema.adminLogs.entityType, entityType))
       .orderBy(desc(schema.adminLogs.createdAt));
   }
-
-  // Legacy layout methods removed - using simplified venue design
 }
 
 export const storage = new PgStorage();

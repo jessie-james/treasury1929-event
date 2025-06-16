@@ -104,6 +104,21 @@ export interface IStorage {
   getAdminLogs(): Promise<AdminLog[]>;
   getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]>;
   
+  // Food methods
+  getFoodOptionsByDisplayOrder(): Promise<any[]>;
+  getRandomizedFoodOptions(eventId: number): Promise<any[]>;
+  getEventFoodOptions(eventId: number): Promise<any[]>;
+  updateEventFoodOptions(eventId: number, foodOptionIds: number[]): Promise<void>;
+  getFoodOptionsByIds(ids: number[]): Promise<any[]>;
+  createFoodOption(foodData: any): Promise<any>;
+  updateFoodOption(id: number, foodData: any): Promise<any>;
+  deleteFoodOption(id: number): Promise<boolean>;
+  updateFoodOptionsOrder(orderedIds: number[]): Promise<boolean>;
+  getEventFoodTotals(eventId: number): Promise<any>;
+
+  // Booking food selections methods
+  updateBookingFoodSelections(bookingId: number, foodSelections: any, modifiedBy: number): Promise<any>;
+
   // Layout methods
   getFloors(venueId: number): Promise<any[]>;
   getZones(venueId: number): Promise<any[]>;
@@ -429,8 +444,135 @@ export class MemStorage implements IStorage {
     return true;
   }
   
-  // Layout Methods
-  // Legacy layout methods - removed in favor of simplified venue design
+  // Venue Methods (stub implementations)
+  async getAllVenues(): Promise<any[]> {
+    return [];
+  }
+  
+  async getVenueById(id: number): Promise<any> {
+    return null;
+  }
+  
+  async getVenueWithTables(id: number): Promise<any> {
+    return null;
+  }
+  
+  async createVenue(venueData: any): Promise<number> {
+    return 1;
+  }
+  
+  async updateVenue(id: number, venueData: any): Promise<any> {
+    return null;
+  }
+  
+  async deleteVenue(id: number): Promise<boolean> {
+    return true;
+  }
+
+  // Stage Methods (stub implementations)
+  async getStagesByVenue(venueId: number): Promise<any[]> {
+    return [];
+  }
+  
+  async getStage(id: number): Promise<any> {
+    return null;
+  }
+  
+  async createStage(stageData: any): Promise<number> {
+    return 1;
+  }
+  
+  async updateStage(id: number, stageData: any): Promise<any> {
+    return null;
+  }
+  
+  async deleteStage(id: number): Promise<boolean> {
+    return true;
+  }
+
+  // Food Methods (stub implementations)
+  async getFoodOptionsByDisplayOrder(): Promise<any[]> {
+    return [];
+  }
+  
+  async getRandomizedFoodOptions(eventId: number): Promise<any[]> {
+    return [];
+  }
+  
+  async getEventFoodOptions(eventId: number): Promise<any[]> {
+    return [];
+  }
+  
+  async updateEventFoodOptions(eventId: number, foodOptionIds: number[]): Promise<void> {
+    return;
+  }
+  
+  async getFoodOptionsByIds(ids: number[]): Promise<any[]> {
+    return [];
+  }
+  
+  async createFoodOption(foodData: any): Promise<any> {
+    return null;
+  }
+  
+  async updateFoodOption(id: number, foodData: any): Promise<any> {
+    return null;
+  }
+  
+  async deleteFoodOption(id: number): Promise<boolean> {
+    return true;
+  }
+  
+  async updateFoodOptionsOrder(orderedIds: number[]): Promise<boolean> {
+    return true;
+  }
+  
+  async getEventFoodTotals(eventId: number): Promise<any> {
+    return {
+      salads: {},
+      entrees: {},
+      desserts: {}
+    };
+  }
+
+  // Booking food selections methods
+  async updateBookingFoodSelections(bookingId: number, foodSelections: any, modifiedBy: number): Promise<any> {
+    return null;
+  }
+
+  // Missing booking methods
+  async getTablesByEventId(eventId: number): Promise<any[]> {
+    return [];
+  }
+  
+  async getAvailableTablesByEventId(eventId: number): Promise<any[]> {
+    return [];
+  }
+  
+  async getAllBookingsWithDetails(): Promise<any[]> {
+    return [];
+  }
+
+  // Layout Methods (stub implementations)
+  async getFloors(venueId: number): Promise<any[]> {
+    return [];
+  }
+  
+  async getZones(venueId: number): Promise<any[]> {
+    return [];
+  }
+  
+  async getLayoutTemplates(venueId: number): Promise<any[]> {
+    return [];
+  }
+  
+  async saveLayoutTemplate(venueId: number, templateData: any): Promise<any> {
+    return null;
+  }
+  
+  async updateFloorImage(venueId: number, floorId: string, imageUrl: string): Promise<boolean> {
+    return true;
+  }
 
   // Admin Log methods
   async createAdminLog(logData: InsertAdminLog): Promise<number> {
