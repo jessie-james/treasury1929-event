@@ -114,7 +114,7 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
         </div>
         
         <p className="text-muted-foreground">
-          Click on green circles to select up to 4 seats (max 4 per booking)
+          Click on grey circles to select up to 4 seats (max 4 per booking)
         </p>
         
         <div className="flex gap-2 items-center mb-4">
@@ -168,27 +168,21 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
               {/* Direct positioning of buttons with absolute positioning */}
               {/* Table 1 Seats */}
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(1, 1) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-90 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '932px', top: '280px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 1, tableId: 1, seatNumber: 1 })}
               >
                 {isSeatSelected(1, 1) ? '1' : ''}
               </Button>
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(1, 2) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-90 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '946px', top: '304px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 2, tableId: 1, seatNumber: 2 })}
               >
                 {isSeatSelected(1, 2) ? '2' : ''}
               </Button>
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(1, 3) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-90 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '933px', top: '341px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 3, tableId: 1, seatNumber: 3 })}
               >
@@ -197,18 +191,14 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
               
               {/* Table 2 Seats */}
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(2, 1) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '854px', top: '402px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 4, tableId: 2, seatNumber: 1 })}
               >
                 {isSeatSelected(2, 1) ? '1' : ''}
               </Button>
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(2, 2) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '815px', top: '402px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 5, tableId: 2, seatNumber: 2 })}
               >
@@ -217,18 +207,14 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
               
               {/* Table 3 Seats */}
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(3, 1) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '694px', top: '402px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 6, tableId: 3, seatNumber: 1 })}
               >
                 {isSeatSelected(3, 1) ? '1' : ''}
               </Button>
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(3, 2) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '654px', top: '402px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 7, tableId: 3, seatNumber: 2 })}
               >
@@ -237,18 +223,14 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
               
               {/* Table 4 Seats */}
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(4, 1) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '536px', top: '402px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 8, tableId: 4, seatNumber: 1 })}
               >
                 {isSeatSelected(4, 1) ? '1' : ''}
               </Button>
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(4, 2) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '494px', top: '402px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 9, tableId: 4, seatNumber: 2 })}
               >
@@ -257,18 +239,14 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
               
               {/* Table 5 Seats */}
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(5, 1) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '369px', top: '402px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 10, tableId: 5, seatNumber: 1 })}
               >
                 {isSeatSelected(5, 1) ? '1' : ''}
               </Button>
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(5, 2) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '328px', top: '402px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 11, tableId: 5, seatNumber: 2 })}
               >
@@ -277,18 +255,14 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
               
               {/* Table 6 Seats */}
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(6, 1) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '167px', top: '422px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 12, tableId: 6, seatNumber: 1 })}
               >
                 {isSeatSelected(6, 1) ? '1' : ''}
               </Button>
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(6, 2) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '139px', top: '394px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 13, tableId: 6, seatNumber: 2 })}
               >
@@ -297,18 +271,14 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
               
               {/* Table 7 Seats */}
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(7, 1) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '47px', top: '352px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 14, tableId: 7, seatNumber: 1 })}
               >
                 {isSeatSelected(7, 1) ? '1' : ''}
               </Button>
               <Button
-                className={`absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold ${
-                  isSeatSelected(7, 2) ? 'bg-blue-500 text-white' : 'bg-green-500 bg-opacity-80 text-white'
-                }`}
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '32px', top: '316px', transform: 'translate(-50%, -50%)' }}
                 onClick={() => toggleSeat({ id: 15, tableId: 7, seatNumber: 2 })}
               >
