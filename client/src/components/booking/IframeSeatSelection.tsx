@@ -501,13 +501,29 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     });
   }, []);
 
+  // Check if selection is valid for a table
+  const isValidTableSelection = (table: VenueTable, guestCount: number): { valid: boolean, reason?: string } => {
+    if (table.capacity === 4 && guestCount === 2) {
+      return { valid: false, reason: "You cannot select only 2 seats on a 4-seat table. Please select 1, 3, or 4 seats." };
+    }
+    return { valid: true };
+  };
+
   const handleConfirmSelection = useCallback(() => {
     if (selectedTable) {
+      // For this interface, we select all seats at the table
+      // In a real implementation, you might want to allow individual seat selection
       const seatNumbers = Array.from({ length: selectedTable.capacity }, (_, i) => i + 1);
-      onComplete({
-        tableId: selectedTable.id,
-        seatNumbers
-      });
+      
+      // For 4-seat tables with 3 guests, mark one seat as empty
+      const submission: any = { tableId: selectedTable.id, seatNumbers };
+      
+      if (selectedTable.capacity === 4 && seatNumbers.length === 3) {
+        submission.emptySeats = [4]; // Mark seat 4 as empty
+        submission.hasEmptySeats = true;
+      }
+      
+      onComplete(submission);
     }
   }, [selectedTable, onComplete]);
 
