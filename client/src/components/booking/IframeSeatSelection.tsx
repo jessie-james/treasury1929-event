@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import { IndividualSeatSelection } from "./IndividualSeatSelection";
 
 interface Props {
   eventId: number;
@@ -284,6 +285,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   });
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+  const [showSeatConfiguration, setShowSeatConfiguration] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -440,6 +442,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     
     if (clickedTable) {
       setSelectedTable(clickedTable);
+      // For 4-seat tables or when user wants individual seat selection, show configuration
+      if (clickedTable.capacity >= 4) {
+        setShowSeatConfiguration(true);
+      }
     } else {
       setIsDragging(true);
       setLastMousePos({ x: event.clientX, y: event.clientY });
@@ -511,21 +517,25 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
 
   const handleConfirmSelection = useCallback(() => {
     if (selectedTable) {
-      // For this interface, we select all seats at the table
-      // In a real implementation, you might want to allow individual seat selection
-      const seatNumbers = Array.from({ length: selectedTable.capacity }, (_, i) => i + 1);
-      
-      // For 4-seat tables with 3 guests, mark one seat as empty
-      const submission: any = { tableId: selectedTable.id, seatNumbers };
-      
-      if (selectedTable.capacity === 4 && seatNumbers.length === 3) {
-        submission.emptySeats = [4]; // Mark seat 4 as empty
-        submission.hasEmptySeats = true;
+      // For 4+ seat tables, show individual seat configuration
+      if (selectedTable.capacity >= 4) {
+        setShowSeatConfiguration(true);
+      } else {
+        // For smaller tables, select all seats
+        const seatNumbers = Array.from({ length: selectedTable.capacity }, (_, i) => i + 1);
+        onComplete({ tableId: selectedTable.id, seatNumbers });
       }
-      
-      onComplete(submission);
     }
   }, [selectedTable, onComplete]);
+
+  const handleSeatConfigurationComplete = useCallback((selection: any) => {
+    onComplete(selection);
+  }, [onComplete]);
+
+  const handleBackToTableSelection = useCallback(() => {
+    setShowSeatConfiguration(false);
+    setSelectedTable(null);
+  }, []);
 
   const isLoading = isLoadingVenues || isLoadingEvent;
   const hasError = venueError && !eventData || bookingsError;
@@ -542,6 +552,17 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
           </CardContent>
         </Card>
       </div>
+    );
+  }
+
+  // Show individual seat selection for 4+ seat tables
+  if (showSeatConfiguration && selectedTable && selectedTable.capacity >= 4) {
+    return (
+      <IndividualSeatSelection 
+        selectedTable={selectedTable}
+        onComplete={handleSeatConfigurationComplete}
+        onBack={handleBackToTableSelection}
+      />
     );
   }
 
@@ -671,10 +692,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
               <p className="text-xs text-blue-600 mt-1">
                 You will need to provide guest details for each seat at this table.
               </p>
-              {selectedTable.capacity === 4 && (
-                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
-                  <p className="text-yellow-800">
-                    <strong>Note:</strong> This is a 4-seat table. If you have 3 guests, one seat will remain empty and reserved for your group.
+              {selectedTable.capacity >= 4 && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                  <p className="text-blue-800">
+                    <strong>Next step:</strong> Configure individual seats and choose which ones to leave empty for your group.
                   </p>
                 </div>
               )}
@@ -690,7 +711,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
           onClick={handleConfirmSelection}
           disabled={!selectedTable}
         >
-          Continue to Guest Details
+          {selectedTable && selectedTable.capacity >= 4 ? 'Configure Seats' : 'Continue to Guest Details'}
         </Button>
       </div>
     </div>
