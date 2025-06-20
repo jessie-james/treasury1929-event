@@ -165,6 +165,15 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
                 className="max-w-full"
               />
               
+              {/* Green table overlays */}
+              <div className="absolute" style={{ left: '840px', top: '260px', width: '120px', height: '120px', background: 'rgba(76, 175, 80, 0.7)', borderRadius: '50%', transform: 'translate(-50%, -50%)' }}></div>
+              <div className="absolute" style={{ left: '780px', top: '380px', width: '100px', height: '100px', background: 'rgba(76, 175, 80, 0.7)', borderRadius: '50%', transform: 'translate(-50%, -50%)' }}></div>
+              <div className="absolute" style={{ left: '640px', top: '380px', width: '100px', height: '100px', background: 'rgba(76, 175, 80, 0.7)', borderRadius: '50%', transform: 'translate(-50%, -50%)' }}></div>
+              <div className="absolute" style={{ left: '500px', top: '380px', width: '100px', height: '100px', background: 'rgba(76, 175, 80, 0.7)', borderRadius: '50%', transform: 'translate(-50%, -50%)' }}></div>
+              <div className="absolute" style={{ left: '340px', top: '380px', width: '100px', height: '100px', background: 'rgba(76, 175, 80, 0.7)', borderRadius: '50%', transform: 'translate(-50%, -50%)' }}></div>
+              <div className="absolute" style={{ left: '150px', top: '380px', width: '100px', height: '100px', background: 'rgba(76, 175, 80, 0.7)', borderRadius: '50%', transform: 'translate(-50%, -50%)' }}></div>
+              <div className="absolute" style={{ left: '40px', top: '320px', width: '100px', height: '100px', background: 'rgba(76, 175, 80, 0.7)', borderRadius: '50%', transform: 'translate(-50%, -50%)' }}></div>
+              
               {/* Direct positioning of buttons with absolute positioning */}
               {/* Table 1 Seats */}
               <Button
