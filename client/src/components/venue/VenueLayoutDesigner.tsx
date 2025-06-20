@@ -263,9 +263,9 @@ export function VenueLayoutDesigner({
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 2;
     
-    // Table surface - Light gray as per your spec
-    ctx.fillStyle = isSelected ? '#d0d0d0' : '#e0e0e0';
-    ctx.strokeStyle = isSelected ? '#333' : '#555';
+    // Table surface - Green as per your spec
+    ctx.fillStyle = isSelected ? '#4CAF50' : '#66BB6A';
+    ctx.strokeStyle = isSelected ? '#2E7D32' : '#388E3C';
     ctx.lineWidth = 2;
     
     if (isHalf) {
@@ -336,9 +336,9 @@ export function VenueLayoutDesigner({
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 1;
         
-        // Seat circle - Green color as per your spec
-        ctx.fillStyle = '#4CAF50'; // Green seat color
-        ctx.strokeStyle = '#2E7D32'; // Darker green border
+        // Seat circle - Grey color as per your spec
+        ctx.fillStyle = '#6B7280'; // Grey seat color
+        ctx.strokeStyle = '#4B5563'; // Darker grey border
         ctx.lineWidth = 1;
         
         ctx.beginPath();
@@ -354,7 +354,7 @@ export function VenueLayoutDesigner({
         
         // Seat number (scale with seat size)
         const seatFontSize = Math.max(8, Math.min(16, seatRadius - 4));
-        ctx.fillStyle = 'white'; // White text on green seats
+        ctx.fillStyle = 'white'; // White text on grey seats
         ctx.font = `bold ${seatFontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
