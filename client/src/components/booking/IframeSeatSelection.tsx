@@ -165,8 +165,8 @@ const useCanvasRenderer = (
         ctx.fillStyle = '#3b82f6';
         ctx.strokeStyle = '#1d4ed8';
       } else {
-        ctx.fillStyle = '#e5e7eb';
-        ctx.strokeStyle = '#6b7280';
+        ctx.fillStyle = '#10b981';
+        ctx.strokeStyle = '#059669';
       }
       
       ctx.lineWidth = 2;
@@ -223,8 +223,8 @@ const useCanvasRenderer = (
           const seatY = seatOffset * Math.sin(rad);
           
           // Seat styling
-          ctx.fillStyle = '#10b981';
-          ctx.strokeStyle = '#059669';
+          ctx.fillStyle = '#6b7280';
+          ctx.strokeStyle = '#4b5563';
           ctx.lineWidth = 1;
           ctx.shadowColor = 'rgba(0,0,0,0.1)';
           ctx.shadowBlur = 2;
