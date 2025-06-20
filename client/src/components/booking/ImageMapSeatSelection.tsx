@@ -59,6 +59,31 @@ export function ImageMapSeatSelection({ eventId, onComplete, hasExistingBooking 
   const [showTooltips, setShowTooltips] = useState<boolean>(true);
   const mapRef = useRef<HTMLMapElement>(null);
   
+  // Get table capacity based on table ID (hardcoded for current layout)
+  const getTableCapacity = (tableId: number): number => {
+    // Based on the current layout:
+    // Table 1: 3 seats (capacity 3)
+    // Tables 2-7: 2 seats each (capacity 2)
+    if (tableId === 1) return 3;
+    return 2;
+  };
+
+  // Check if selection is valid for a table
+  const isValidTableSelection = (tableId: number, currentSeats: {tableId: number, seatNumber: number}[], newSeat?: {tableId: number, seatNumber: number}): { valid: boolean, reason?: string } => {
+    const tableCapacity = getTableCapacity(tableId);
+    const seatsOnTable = currentSeats.filter(s => s.tableId === tableId);
+    const totalSeatsOnTable = newSeat ? seatsOnTable.length + 1 : seatsOnTable.length;
+    
+    // For 4-seat tables (none in current layout, but future-proofing)
+    if (tableCapacity === 4) {
+      if (totalSeatsOnTable === 2) {
+        return { valid: false, reason: "You cannot select only 2 seats on a 4-seat table. Please select 1, 3, or 4 seats." };
+      }
+    }
+    
+    return { valid: true };
+  };
+
   // Function to toggle seat selection
   const toggleSeat = (seat: SeatPosition) => {
     const existingIndex = selectedSeats.findIndex(
@@ -78,12 +103,16 @@ export function ImageMapSeatSelection({ eventId, onComplete, hasExistingBooking 
     } else {
       // Add seat if not already selected (max 4 seats)
       if (selectedSeats.length < 4) {
-        setSelectedSeats([...selectedSeats, { tableId: seat.tableId, seatNumber: seat.seatNumber }]);
-        
-        // Update selected IDs
-        const newIds = new Set(selectedIds);
-        newIds.add(seat.id);
-        setSelectedIds(newIds);
+        // Check if this selection would be valid
+        const validation = isValidTableSelection(seat.tableId, selectedSeats, { tableId: seat.tableId, seatNumber: seat.seatNumber });
+        if (validation.valid) {
+          setSelectedSeats([...selectedSeats, { tableId: seat.tableId, seatNumber: seat.seatNumber }]);
+          
+          // Update selected IDs
+          const newIds = new Set(selectedIds);
+          newIds.add(seat.id);
+          setSelectedIds(newIds);
+        }
       }
     }
   };
@@ -125,7 +154,22 @@ export function ImageMapSeatSelection({ eventId, onComplete, hasExistingBooking 
       .filter(seat => seat.tableId === firstTableId)
       .map(seat => seat.seatNumber);
     
-    return { tableId: firstTableId, seatNumbers };
+    // For 4-seat tables with 3 selected seats, add empty seat info
+    const tableCapacity = getTableCapacity(firstTableId);
+    let emptySeats: number[] = [];
+    
+    if (tableCapacity === 4 && seatNumbers.length === 3) {
+      // Find which seat number is missing (1, 2, 3, or 4)
+      const allSeats = [1, 2, 3, 4];
+      emptySeats = allSeats.filter(seatNum => !seatNumbers.includes(seatNum));
+    }
+    
+    return { 
+      tableId: firstTableId, 
+      seatNumbers,
+      emptySeats: emptySeats.length > 0 ? emptySeats : undefined,
+      hasEmptySeats: emptySeats.length > 0
+    };
   };
   
   // Generate the markers for selected seats
@@ -184,9 +228,17 @@ export function ImageMapSeatSelection({ eventId, onComplete, hasExistingBooking 
           </Button>
         </div>
         
-        <p className="text-muted-foreground">
-          Click on green circles to select up to 4 seats (max 4 per booking)
-        </p>
+        <div className="space-y-2 text-sm text-muted-foreground">
+          <p>Click on green circles to select up to 4 seats (max 4 per booking)</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+            <h4 className="font-medium text-blue-900 mb-1">Table Selection Rules:</h4>
+            <ul className="text-blue-800 space-y-1">
+              <li>• For 4-seat tables: You cannot select only 2 seats</li>
+              <li>• If selecting 3 seats on a 4-seat table, the 4th seat will remain empty for your group</li>
+              <li>• 2-seat and 3-seat tables can be fully or partially selected</li>
+            </ul>
+          </div>
+        </div>
         
         <div className="flex gap-2 items-center mb-4">
           <Button 
@@ -282,6 +334,19 @@ export function ImageMapSeatSelection({ eventId, onComplete, hasExistingBooking 
             <div className="mt-4 p-3 bg-slate-50 rounded-md">
               <h3 className="font-medium mb-1">Selected Seats:</h3>
               <p className="text-sm">{formatSelectedSeats()}</p>
+              {(() => {
+                const submission = getGroupedSeatsForSubmission();
+                if (submission?.hasEmptySeats && submission.emptySeats) {
+                  return (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                      <p className="text-yellow-800">
+                        <strong>Note:</strong> Seat {submission.emptySeats.join(', ')} will remain empty and reserved for your group.
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
           )}
         </CardContent>
