@@ -536,6 +536,14 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
         <p className="text-muted-foreground">
           Click on an available table in the venue layout below. Use mouse wheel to zoom and drag to pan around.
         </p>
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+          <h4 className="font-medium text-blue-900 mb-1">Table Selection Rules:</h4>
+          <ul className="text-blue-800 space-y-1 text-sm">
+            <li>• For 4-seat tables: You cannot select only 2 seats</li>
+            <li>• If selecting 3 seats on a 4-seat table, the 4th seat will remain empty for your group</li>
+            <li>• 2-seat and 3-seat tables can be fully or partially selected</li>
+          </ul>
+        </div>
       </div>
 
       {/* Venue Selection */}
@@ -647,6 +655,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
               <p className="text-xs text-blue-600 mt-1">
                 You will need to provide guest details for each seat at this table.
               </p>
+              {selectedTable.capacity === 4 && (
+                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                  <p className="text-yellow-800">
+                    <strong>Note:</strong> This is a 4-seat table. If you have 3 guests, one seat will remain empty and reserved for your group.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </CardContent>

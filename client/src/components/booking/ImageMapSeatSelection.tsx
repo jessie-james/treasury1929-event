@@ -22,32 +22,37 @@ interface SeatPosition {
 
 // Define all seats with coordinates for image map
 const MEZZANINE_SEATS: SeatPosition[] = [
-  // Table 1 (top right)
+  // Table 1 (top right) - Now 4 seats
   { id: "1-1", tableId: 1, seatNumber: 1, coords: "952,284,12" }, // Top green circle
   { id: "1-2", tableId: 1, seatNumber: 2, coords: "968,314,12" }, // Right green circle
   { id: "1-3", tableId: 1, seatNumber: 3, coords: "954,347,12" }, // Bottom green circle
+  { id: "1-4", tableId: 1, seatNumber: 4, coords: "938,315,12" }, // Left green circle
   
-  // Table 2 (right bottom)
+  // Table 2 (right bottom) - Now 4 seats
   { id: "2-1", tableId: 2, seatNumber: 1, coords: "854,402,12" }, // Right green circle
   { id: "2-2", tableId: 2, seatNumber: 2, coords: "815,402,12" }, // Left green circle
+  { id: "2-3", tableId: 2, seatNumber: 3, coords: "854,430,12" }, // Bottom right
+  { id: "2-4", tableId: 2, seatNumber: 4, coords: "815,430,12" }, // Bottom left
   
-  // Table 3 (middle right)
+  // Table 3 (middle right) - Now 4 seats
   { id: "3-1", tableId: 3, seatNumber: 1, coords: "694,402,12" }, // Right green circle
   { id: "3-2", tableId: 3, seatNumber: 2, coords: "654,402,12" }, // Left green circle
+  { id: "3-3", tableId: 3, seatNumber: 3, coords: "694,430,12" }, // Bottom right
+  { id: "3-4", tableId: 3, seatNumber: 4, coords: "654,430,12" }, // Bottom left
   
-  // Table 4 (middle left)
+  // Table 4 (middle left) - 2 seats
   { id: "4-1", tableId: 4, seatNumber: 1, coords: "536,402,12" }, // Right green circle
   { id: "4-2", tableId: 4, seatNumber: 2, coords: "494,402,12" }, // Left green circle
   
-  // Table 5 (far left bottom)
+  // Table 5 (far left bottom) - 2 seats
   { id: "5-1", tableId: 5, seatNumber: 1, coords: "369,402,12" }, // Right green circle
   { id: "5-2", tableId: 5, seatNumber: 2, coords: "328,402,12" }, // Left green circle
   
-  // Table 6 (far left)
+  // Table 6 (far left) - 2 seats
   { id: "6-1", tableId: 6, seatNumber: 1, coords: "167,422,12" }, // Bottom green circle
   { id: "6-2", tableId: 6, seatNumber: 2, coords: "139,394,12" }, // Left green circle
   
-  // Table 7 (upper left)
+  // Table 7 (upper left) - 2 seats
   { id: "7-1", tableId: 7, seatNumber: 1, coords: "47,352,12" },  // Bottom green circle
   { id: "7-2", tableId: 7, seatNumber: 2, coords: "32,316,12" }   // Left green circle
 ];
@@ -61,10 +66,11 @@ export function ImageMapSeatSelection({ eventId, onComplete, hasExistingBooking 
   
   // Get table capacity based on table ID (hardcoded for current layout)
   const getTableCapacity = (tableId: number): number => {
-    // Based on the current layout:
-    // Table 1: 3 seats (capacity 3)
-    // Tables 2-7: 2 seats each (capacity 2)
-    if (tableId === 1) return 3;
+    // Updated layout to demonstrate 4-seat table functionality:
+    // Table 1: 4 seats (capacity 4) - to demonstrate the restriction
+    // Table 2-3: 4 seats each (capacity 4)
+    // Tables 4-7: 2 seats each (capacity 2)
+    if (tableId === 1 || tableId === 2 || tableId === 3) return 4;
     return 2;
   };
 

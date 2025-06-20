@@ -26,10 +26,11 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
   
   // Get table capacity based on table ID (hardcoded for current layout)
   const getTableCapacity = (tableId: number): number => {
-    // Based on the current layout:
-    // Table 1: 3 seats (capacity 3)
-    // Tables 2-7: 2 seats each (capacity 2)
-    if (tableId === 1) return 3;
+    // Updated layout to demonstrate 4-seat table functionality:
+    // Table 1: 4 seats (capacity 4) - to demonstrate the restriction
+    // Table 2-3: 4 seats each (capacity 4) 
+    // Tables 4-7: 2 seats each (capacity 2)
+    if (tableId === 1 || tableId === 2 || tableId === 3) return 4;
     return 2;
   };
 
@@ -227,7 +228,7 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
               <div className="absolute" style={{ left: '40px', top: '320px', width: '100px', height: '100px', background: 'rgba(76, 175, 80, 0.7)', borderRadius: '50%', transform: 'translate(-50%, -50%)' }}></div>
               
               {/* Direct positioning of buttons with absolute positioning */}
-              {/* Table 1 Seats */}
+              {/* Table 1 Seats - Now 4 seats */}
               <Button
                 className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '932px', top: '280px', transform: 'translate(-50%, -50%)' }}
@@ -249,8 +250,15 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
               >
                 {isSeatSelected(1, 3) ? '3' : ''}
               </Button>
+              <Button
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
+                style={{ left: '918px', top: '315px', transform: 'translate(-50%, -50%)' }}
+                onClick={() => toggleSeat({ id: 16, tableId: 1, seatNumber: 4 })}
+              >
+                {isSeatSelected(1, 4) ? '4' : ''}
+              </Button>
               
-              {/* Table 2 Seats */}
+              {/* Table 2 Seats - Now 4 seats */}
               <Button
                 className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '854px', top: '402px', transform: 'translate(-50%, -50%)' }}
@@ -265,8 +273,22 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
               >
                 {isSeatSelected(2, 2) ? '2' : ''}
               </Button>
+              <Button
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
+                style={{ left: '854px', top: '430px', transform: 'translate(-50%, -50%)' }}
+                onClick={() => toggleSeat({ id: 17, tableId: 2, seatNumber: 3 })}
+              >
+                {isSeatSelected(2, 3) ? '3' : ''}
+              </Button>
+              <Button
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
+                style={{ left: '815px', top: '430px', transform: 'translate(-50%, -50%)' }}
+                onClick={() => toggleSeat({ id: 18, tableId: 2, seatNumber: 4 })}
+              >
+                {isSeatSelected(2, 4) ? '4' : ''}
+              </Button>
               
-              {/* Table 3 Seats */}
+              {/* Table 3 Seats - Now 4 seats */}
               <Button
                 className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
                 style={{ left: '694px', top: '402px', transform: 'translate(-50%, -50%)' }}
@@ -280,6 +302,20 @@ export function StyledSeatSelection({ eventId, onComplete, hasExistingBooking }:
                 onClick={() => toggleSeat({ id: 7, tableId: 3, seatNumber: 2 })}
               >
                 {isSeatSelected(3, 2) ? '2' : ''}
+              </Button>
+              <Button
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
+                style={{ left: '694px', top: '430px', transform: 'translate(-50%, -50%)' }}
+                onClick={() => toggleSeat({ id: 19, tableId: 3, seatNumber: 3 })}
+              >
+                {isSeatSelected(3, 3) ? '3' : ''}
+              </Button>
+              <Button
+                className="absolute rounded-full w-5 h-5 p-0 flex items-center justify-center text-[10px] font-bold bg-gray-500 text-white"
+                style={{ left: '654px', top: '430px', transform: 'translate(-50%, -50%)' }}
+                onClick={() => toggleSeat({ id: 20, tableId: 3, seatNumber: 4 })}
+              >
+                {isSeatSelected(3, 4) ? '4' : ''}
               </Button>
               
               {/* Table 4 Seats */}
