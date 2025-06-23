@@ -31,11 +31,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/user"],
     queryFn: async () => {
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        
         const res = await fetch('/api/user', {
           method: 'GET',
           credentials: 'include',
-          headers: { 'Accept': 'application/json' }
+          headers: { 'Accept': 'application/json' },
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         if (res.status === 401 || res.status === 204) {
           return null;
@@ -47,8 +53,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         return await res.json();
-      } catch (error) {
-        console.warn('Auth query error:', error);
+      } catch (error: any) {
+        // Enhanced error handling
+        if (error.name === 'AbortError') {
+          console.warn('Auth query timeout');
+        } else {
+          console.warn('Auth query error:', error);
+        }
         return null;
       }
     },
@@ -56,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
   });
 
   const loginMutation = useMutation({

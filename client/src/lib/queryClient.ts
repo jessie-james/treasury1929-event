@@ -326,25 +326,43 @@ export const queryClient = new QueryClient({
   }),
 });
 
-// Enhanced global error handler for unhandled rejections
+// Enhanced unhandled rejection handler
 window.addEventListener('unhandledrejection', (event) => {
-  event.preventDefault();
-  
+  // Get error details
   const error = event.reason;
+  const errorMessage = error?.message || String(error);
   
-  // Filter out expected auth and query errors
-  if (error?.message?.includes('401') || 
-      error?.message?.includes('Not authenticated') ||
-      error?.message?.includes('Query') ||
-      error?.message?.includes('TanStack') ||
-      error?.message?.includes('vite') ||
-      error?.message?.includes('does not provide an export') ||
-      error?.name === 'AbortError') {
-    return; // Silently ignore these expected errors
+  // Filter out expected/harmless rejections
+  const ignoredErrors = [
+    'AbortError',
+    'NetworkError', 
+    'Failed to fetch',
+    'Load failed',
+    'Not authenticated',
+    'Unauthorized',
+    '401',
+    'Query',
+    'TanStack',
+    'vite',
+    'does not provide an export'
+  ];
+  
+  const shouldIgnore = ignoredErrors.some(ignored => 
+    errorMessage.includes(ignored)
+  );
+  
+  if (shouldIgnore) {
+    event.preventDefault();
+    return;
   }
   
   // Log unexpected errors for debugging
-  if (error instanceof Error) {
-    console.warn('Unhandled promise rejection:', error.message);
-  }
+  console.warn('Unhandled Promise Rejection:', {
+    message: errorMessage,
+    stack: error?.stack,
+    timestamp: new Date().toISOString()
+  });
+  
+  // Prevent default behavior
+  event.preventDefault();
 });
