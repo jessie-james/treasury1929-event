@@ -27,26 +27,27 @@ export function VenueFloorSelection({ venues, onSelect }: VenueFloorSelectionPro
       </div>
 
       <Card className="hover:shadow-lg transition-shadow">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Venue Floor Selection
+        <CardHeader className="pb-3 sm:pb-6">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Building className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="truncate">Venue Floor Selection</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3 sm:px-6 pb-4 sm:pb-6">
           <Tabs defaultValue={venues[0]?.displayName.toLowerCase().replace(' ', '-') || 'main-floor'} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-2 h-auto">
               {venues.map((venue) => (
                 <TabsTrigger 
                   key={venue.id}
                   value={venue.displayName.toLowerCase().replace(' ', '-')}
-                  className="relative"
+                  className="relative flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2 px-2 text-xs sm:text-sm whitespace-normal text-center"
                 >
-                  {venue.displayName}
+                  <span className="truncate">{venue.displayName}</span>
                   {venue.displayName === "Mezzanine" && (
-                    <Badge variant="secondary" className="ml-2 text-xs">
-                      <Star className="h-3 w-3 mr-1" />
-                      Premium
+                    <Badge variant="secondary" className="text-[10px] sm:text-xs px-1 py-0 h-auto flex items-center gap-0.5">
+                      <Star className="h-2 w-2 sm:h-3 sm:w-3" />
+                      <span className="hidden xs:inline">Premium</span>
+                      <span className="xs:hidden">★</span>
                     </Badge>
                   )}
                 </TabsTrigger>
@@ -57,17 +58,17 @@ export function VenueFloorSelection({ venues, onSelect }: VenueFloorSelectionPro
               <TabsContent 
                 key={venue.id}
                 value={venue.displayName.toLowerCase().replace(' ', '-')}
-                className="space-y-4 mt-4"
+                className="space-y-3 sm:space-y-4 mt-3 sm:mt-4"
               >
-                <p className="text-muted-foreground">{venue.description}</p>
+                <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">{venue.description}</p>
                 
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 text-xs sm:text-sm">
                   <div className="flex items-center gap-1">
-                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                     <span>{venue.tableCount} tables available</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Eye className="h-4 w-4 text-muted-foreground" />
+                    <Eye className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
                     <span>
                       {venue.displayName === "Main Floor" ? "Stage view" : "Elevated view"}
                     </span>
@@ -77,9 +78,9 @@ export function VenueFloorSelection({ venues, onSelect }: VenueFloorSelectionPro
                 {/* Venue-specific highlights */}
                 <div className="space-y-2">
                   {venue.displayName === "Main Floor" && (
-                    <div className="text-sm">
-                      <h4 className="font-medium mb-1">Highlights:</h4>
-                      <ul className="text-muted-foreground space-y-1">
+                    <div className="text-xs sm:text-sm">
+                      <h4 className="font-medium mb-2">Highlights:</h4>
+                      <ul className="text-muted-foreground space-y-1 leading-relaxed">
                         <li>• Close to stage and performers</li>
                         <li>• Intimate candlelit atmosphere</li>
                         <li>• Easy access to restrooms and bar</li>
@@ -88,9 +89,9 @@ export function VenueFloorSelection({ venues, onSelect }: VenueFloorSelectionPro
                   )}
                   
                   {venue.displayName === "Mezzanine" && (
-                    <div className="text-sm">
-                      <h4 className="font-medium mb-1">Highlights:</h4>
-                      <ul className="text-muted-foreground space-y-1">
+                    <div className="text-xs sm:text-sm">
+                      <h4 className="font-medium mb-2">Highlights:</h4>
+                      <ul className="text-muted-foreground space-y-1 leading-relaxed">
                         <li>• Elevated premium seating</li>
                         <li>• Panoramic view of the venue</li>
                         <li>• Quieter, more exclusive setting</li>
@@ -100,7 +101,7 @@ export function VenueFloorSelection({ venues, onSelect }: VenueFloorSelectionPro
                 </div>
 
                 <Button 
-                  className="w-full"
+                  className="w-full text-sm sm:text-base py-2 sm:py-3"
                   onClick={() => onSelect(venue.displayName, index)}
                 >
                   Select {venue.displayName}
