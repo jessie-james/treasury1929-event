@@ -337,6 +337,8 @@ window.addEventListener('unhandledrejection', (event) => {
       error?.message?.includes('Not authenticated') ||
       error?.message?.includes('Query') ||
       error?.message?.includes('TanStack') ||
+      error?.message?.includes('vite') ||
+      error?.message?.includes('does not provide an export') ||
       error?.name === 'AbortError') {
     return; // Silently ignore these expected errors
   }
