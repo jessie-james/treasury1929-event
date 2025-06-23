@@ -289,7 +289,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [showSeatConfiguration, setShowSeatConfiguration] = useState(false);
   const [showFourTopWarning, setShowFourTopWarning] = useState(false);
-  const [guestCount, setGuestCount] = useState(2); // This should come from parent props
+  const [desiredGuestCount, setDesiredGuestCount] = useState(2); // Number of guests the user wants to bring
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -452,19 +452,22 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     const clickedTable = getTableAtPosition(event.clientX, event.clientY);
     
     if (clickedTable) {
+      const validation = isValidTableSelection(clickedTable, desiredGuestCount);
+      if (!validation.valid) {
+        alert(validation.reason);
+        return;
+      }
+
       setSelectedTable(clickedTable);
       
-      // Check for 4-top warning (2 guests selecting 4-seat table)
-      if (clickedTable.capacity === 4 && guestCount === 2) {
-        setShowFourTopWarning(true);
-      } else if (clickedTable.capacity >= 4) {
+      if (clickedTable.capacity >= 4) {
         setShowSeatConfiguration(true);
       }
     } else {
       setIsDragging(true);
       setLastMousePos({ x: event.clientX, y: event.clientY });
     }
-  }, [getTableAtPosition]);
+  }, [getTableAtPosition, desiredGuestCount, isValidTableSelection]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     if (isDragging) {
@@ -523,18 +526,22 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
 
   // Check if selection is valid for a table
   const isValidTableSelection = (table: VenueTable, guestCount: number): { valid: boolean, reason?: string } => {
-    if (table.capacity === 4 && guestCount === 2) {
-      return { valid: false, reason: "You cannot select only 2 seats on a 4-seat table. Please select 1, 3, or 4 seats." };
+    if (table.capacity === 4 && guestCount < 3) {
+      return { valid: false, reason: "4-seat tables require a minimum of 3 guests. Please select a smaller table or add more guests." };
     }
     return { valid: true };
   };
 
   const handleConfirmSelection = useCallback(() => {
     if (selectedTable) {
-      // Check for 4-top warning before proceeding
-      if (selectedTable.capacity === 4 && guestCount === 2) {
-        setShowFourTopWarning(true);
-      } else if (selectedTable.capacity >= 4) {
+      const validation = isValidTableSelection(selectedTable, desiredGuestCount);
+      if (!validation.valid) {
+        // Show error message or prevent selection
+        alert(validation.reason);
+        return;
+      }
+
+      if (selectedTable.capacity >= 4) {
         setShowSeatConfiguration(true);
       } else {
         // For smaller tables, select all seats
@@ -542,7 +549,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
         onComplete({ tableId: selectedTable.id, seatNumbers });
       }
     }
-  }, [selectedTable, guestCount, onComplete]);
+  }, [selectedTable, desiredGuestCount, onComplete]);
 
   const handleSeatConfigurationComplete = useCallback((selection: any) => {
     onComplete(selection);
@@ -627,6 +634,36 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
           </CardContent>
         </Card>
       )}
+
+      {/* Guest Count Selection */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-4">
+            <Label htmlFor="guest-count" className="font-medium">Number of Guests:</Label>
+            <Select
+              value={desiredGuestCount.toString()}
+              onValueChange={(value) => {
+                setDesiredGuestCount(parseInt(value));
+                setSelectedTable(null); // Clear table selection when changing guest count
+              }}
+            >
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4].map((count) => (
+                  <SelectItem key={count} value={count.toString()}>
+                    {count} {count === 1 ? 'guest' : 'guests'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="text-sm text-muted-foreground">
+              Note: 4-seat tables require minimum 3 guests
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-6">
@@ -731,7 +768,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
         </Button>
       </div>
 
-      {/* Four-Top Warning Dialog */}
+      {/* Four-Top Warning Dialog - This should not appear anymore with proper validation */}
       {showFourTopWarning && selectedTable && (
         <FourTopWarning
           isOpen={showFourTopWarning}
@@ -746,7 +783,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
             }
           }}
           tableCapacity={selectedTable.capacity}
-          guestCount={guestCount}
+          guestCount={desiredGuestCount}
         />
       )}
     </div>
