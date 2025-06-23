@@ -523,8 +523,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
 
   const handleConfirmSelection = useCallback(() => {
     if (selectedTable) {
-      // For 4+ seat tables, show individual seat configuration
-      if (selectedTable.capacity >= 4) {
+      // Check for 4-top warning before proceeding
+      if (selectedTable.capacity === 4 && guestCount === 2) {
+        setShowFourTopWarning(true);
+      } else if (selectedTable.capacity >= 4) {
         setShowSeatConfiguration(true);
       } else {
         // For smaller tables, select all seats
@@ -532,7 +534,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
         onComplete({ tableId: selectedTable.id, seatNumbers });
       }
     }
-  }, [selectedTable, onComplete]);
+  }, [selectedTable, guestCount, onComplete]);
 
   const handleSeatConfigurationComplete = useCallback((selection: any) => {
     onComplete(selection);
@@ -722,13 +724,23 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
       </div>
 
       {/* Four-Top Warning Dialog */}
-      <FourTopWarning
-        isOpen={showFourTopWarning}
-        onClose={handleFourTopWarningClose}
-        onContinue={handleFourTopWarningContinue}
-        guestCount={guestCount}
-        tableCapacity={selectedTable?.capacity || 0}
-      />
+      {showFourTopWarning && selectedTable && (
+        <FourTopWarning
+          isOpen={showFourTopWarning}
+          onClose={() => {
+            setShowFourTopWarning(false);
+            setSelectedTable(null);
+          }}
+          onContinue={() => {
+            setShowFourTopWarning(false);
+            if (selectedTable) {
+              setShowSeatConfiguration(true);
+            }
+          }}
+          tableCapacity={selectedTable.capacity}
+          guestCount={guestCount}
+        />
+      )}
     </div>
   );
 }
