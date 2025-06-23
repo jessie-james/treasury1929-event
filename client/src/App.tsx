@@ -90,22 +90,17 @@ function App() {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const error = event.reason;
       
-      // Enhanced debugging information
-      const errorInfo = {
-        type: typeof error,
-        name: error?.name,
-        message: error?.message,
-        stack: error?.stack,
-        isAuthError: error?.message?.includes('401') || error?.message?.includes('Not authenticated'),
-        isNetworkError: error?.message?.includes('Network error') || error?.message?.includes('Failed to fetch'),
-        isQueryError: error?.name?.includes('Query') || error?.toString?.()?.includes('TanStack')
-      };
-
-      console.group('🚨 Unhandled Promise Rejection');
-      console.error('Error object:', error);
-      console.error('Error analysis:', errorInfo);
-      console.error('Full stack trace:', error?.stack);
-      console.groupEnd();
+      // Check if this is an auth error or query error we can ignore
+      const isAuthError = error?.message?.includes('401') || error?.message?.includes('Not authenticated');
+      const isQueryError = error?.name?.includes('Query') || error?.toString?.()?.includes('TanStack');
+      
+      // Only log non-auth, non-query errors
+      if (!isAuthError && !isQueryError) {
+        console.group('🚨 Unhandled Promise Rejection');
+        console.error('Error object:', error);
+        console.error('Error message:', error?.message);
+        console.groupEnd();
+      }
 
       // Always prevent default to stop unhandled rejection warnings
       event.preventDefault();

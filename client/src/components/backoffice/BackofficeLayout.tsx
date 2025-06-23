@@ -16,7 +16,6 @@ import {
   CreditCard,
   DoorOpen,
   QrCode,
-
   TableProperties,
 } from "lucide-react";
 import { useState, useEffect } from "react";

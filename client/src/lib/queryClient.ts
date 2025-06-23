@@ -334,6 +334,9 @@ window.addEventListener('unhandledrejection', (event) => {
   // Minimal logging to avoid console noise
   const error = event.reason;
   if (error && !error?.message?.includes('401') && !error?.message?.includes('Not authenticated')) {
-    console.warn('Promise rejection handled silently');
+    // Only log actual errors, not auth failures
+    if (!error?.message?.includes('Query') && !error?.message?.includes('TanStack')) {
+      console.warn('Promise rejection handled silently');
+    }
   }
 });
