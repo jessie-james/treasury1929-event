@@ -35,6 +35,7 @@ import { registerAdminRoutes } from "./routes-admin";
 import { registerVenueRoutes } from "./routes-venue";
 import { registerSeatSelectionRoutes } from "./routes-seat-selection";
 import { registerBookingValidationRoutes } from "./routes-booking-validation";
+import { registerPrivateEventRoutes } from "./routes-private-events";
 import { EmailService } from "./email-service";
 
 // Initialize Stripe with the secret key
