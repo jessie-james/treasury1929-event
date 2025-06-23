@@ -1,0 +1,152 @@
+# Bug Fix Canvas - Code Analysis Request
+
+## Instructions for AI Agent
+I need to analyze your code before providing bug fixes. Please provide the following files and information exactly as requested. **Do not attempt any fixes yet** - just provide the code and diagnostic information.
+
+---
+
+## **CRITICAL PRIORITY** - Fix These First
+
+### 1. Lucide React Import Error 
+**Status**: 🔴 BLOCKING APP FUNCTIONALITY
+
+**Files needed:**
+```
+client/src/components/booking/WineSelection.tsx
+```
+**Specific focus**: Lines 140-160 where the `Bottle` import error occurs
+
+**Also check these files for similar import issues:**
+- Any other components importing Lucide icons
+- Search your codebase for: `import.*Bottle.*from.*lucide-react`
+
+---
+
+### 2. Unhandled Promise Rejections
+**Status**: 🔴 APP STABILITY ISSUE
+
+**Files needed:**
+```
+client/src/lib/queryClient.ts
+client/src/hooks/use-auth.tsx
+```
+
+**Debug info needed:**
+- What exact error messages appear in browser console?
+- What HTTP status codes are the failing API calls returning?
+- Paste the browser Network tab details for failed `/api/user` and `/api/events` requests
+
+---
+
+## **HIGH PRIORITY** - Core Functionality
+
+### 3. Authentication State Issues
+**Status**: 🟡 USER EXPERIENCE IMPACT
+
+**Files needed:**
+```
+client/src/hooks/use-auth.tsx
+server/auth.ts
+client/src/lib/protected-route.tsx
+```
+
+**API endpoints that are failing:**
+```
+server/routes/[file-containing-api-user-endpoint].ts
+server/routes/[file-containing-api-events-endpoint].ts
+```
+
+---
+
+### 4. Stripe Integration Problems
+**Status**: 🟡 PAYMENT FUNCTIONALITY BROKEN
+
+**Files needed:**
+```
+client/src/components/booking/CheckoutForm.tsx
+server/stripe.ts
+server/routes-payment.ts
+```
+
+**Debug info needed:**
+- Does `console.log(window.Stripe)` show anything when CheckoutForm loads?
+- Are there any Stripe-related errors in browser console?
+- What's the exact Stripe initialization code on the frontend?
+
+---
+
+## **MEDIUM PRIORITY** - Data Integrity
+
+### 5. Database Venue Layout Issues
+**Status**: 🟡 DATA CLEANUP NEEDED
+
+**Files needed:**
+```
+server/storage.ts
+server/routes-venue.ts
+shared/schema.ts
+```
+
+**Database schema:**
+- Show me the venue and table-related database schema definitions
+- Any migration files related to venues
+
+---
+
+## **QUICK DIAGNOSTIC COMMANDS**
+
+Please run these commands and paste the output:
+
+```bash
+# Check available Lucide icons
+npm list lucide-react
+
+# Check for Bottle icon usage
+grep -r "Bottle" client/src/
+
+# Check for unhandled promise rejections
+grep -r "unhandledrejection" client/src/
+
+# Check Stripe integration files
+find . -name "*.ts" -o -name "*.tsx" | grep -i stripe
+```
+
+---
+
+## **BROWSER DEBUGGING**
+
+Open your browser console and paste the results of:
+
+```javascript
+// Check what Lucide icons are available
+console.log(Object.keys(require('lucide-react')).filter(k => k.includes('Bottle')));
+
+// Check Stripe availability
+console.log('Stripe available:', typeof window.Stripe);
+
+// Check current auth state
+console.log('Auth state:', localStorage.getItem('auth-token') || 'No token');
+```
+
+---
+
+## **SUBMISSION FORMAT**
+
+For each file, use this format:
+
+```
+=== FILENAME: client/src/components/booking/WineSelection.tsx ===
+[paste entire file content here]
+=== END FILE ===
+```
+
+---
+
+## **PRIORITY ORDER**
+
+1. **Fix Lucide import** (5 minutes) - App crashes fixed
+2. **Fix auth error handling** (15 minutes) - Console errors resolved  
+3. **Fix Stripe initialization** (30 minutes) - Payments working
+4. **Clean up database issues** (60 minutes) - Data integrity restored
+
+**Just provide the requested code and information - I'll analyze it and then give you specific fixes to implement.**
