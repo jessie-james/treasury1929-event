@@ -1,0 +1,137 @@
+# Replit AI Agent Task Plan: Event Booking App Enhancements
+
+This document outlines a **step-by-step implementation plan** for updating the event booking app with minimal disruption and no bugs. The goal is to help the Replit AI Agent execute the changes cleanly, based on the user's handwritten feature request list.
+
+---
+
+## 🟩 Phase 1 – Content & UI Enhancements (Low Risk)
+
+### 1. Add Photos of Food
+- **Location**: Menu or event detail page template.
+- **Change**: Add `<img>` tags or dynamic component to pull images from a `/public/assets/food/` folder.
+- **How**:
+  - Create `foodPhotos[]` array in JSON or backend.
+  - Display with a simple gallery loop.
+
+### 2. Add Wine Choices (Glasses & Bottles)
+- **Location**: Menu or order modal.
+- **Change**: Extend the menu object with a `wine` category.
+- **How**:
+  - Add `wine: { glasses: [], bottles: [] }` to menu schema.
+  - Render new section in the order modal.
+
+### 3. Table & Chair Color Updates
+- **Location**: CSS or canvas rendering layer.
+- **Change**: Set tables to green (`#28a745`) and chairs to grey (`#6c757d`).
+- **How**:
+  - Update CSS classes or Fabric.js fill/stroke colors.
+
+### 4. 4-Top Table Description Rule
+- **Location**: Seat selection UI.
+- **Change**: Display a warning if 2 guests attempt to select a 4-top.
+- **How**:
+  - Add validation logic: `if guests === 2 && selectedTable.capacity === 4` → show message.
+
+### 5. Alcohol Selection Button & Policy Text
+- **Location**: Order modal or confirmation page.
+- **Change**: Add a "Select Alcohol" button with modal popup.
+- **How**:
+  - Modal lists drink options (or just a checkbox for "order at venue").
+  - Add static disclaimer text: "Mixed drinks available at venue. Please arrive 5–10 minutes early and bring a valid ID."
+
+---
+
+## 🟨 Phase 2 – Selection Menu & Timeout Logic (Medium Risk)
+
+### 6. 2-Button Floor Level Selection
+- **Location**: Booking UI.
+- **Change**: Add required radio buttons: `Main Floor` or `Mezzanine`.
+- **How**:
+  - Add radio input group with `required` flag.
+  - Store selection in booking state.
+
+### 7. Fix Table Layout
+- **Location**: Admin layout view.
+- **Change**: Adjust spacing and alignment of tables visually.
+- **How**:
+  - Use grid/snap logic with Fabric.js or update absolute coordinates.
+  - Optional: Implement layout editor tab with draggable tables.
+
+### 8. Add 20-Minute Hold Timeout
+- **Location**: Booking session logic.
+- **Change**: Start timer when user selects table.
+- **How**:
+  - Store `bookingStartTime`.
+  - Auto-release table if `Date.now() - bookingStartTime > 20min`.
+  - Show countdown timer to user.
+
+---
+
+## 🟧 Phase 3 – Backend Logic Safeguards (Medium–High Risk)
+
+### 9. Prevent Double Table Booking
+- **Location**: Booking submission logic.
+- **Change**: Validate that table status is still available before confirming.
+- **How**:
+  - Backend check before `status = booked` is applied.
+  - Reject transaction if `status === booked`.
+
+### 10. Prevent Changing to Booked Table (Backend-Only)
+- **Location**: Admin reassignment tool.
+- **Change**: Prevent reassigning guests to already-booked tables.
+- **How**:
+  - Add safeguard in admin endpoint: `if newTable.status === booked → return error`.
+
+### 11. Set 3-Day Ticket Purchase Expiration
+- **Location**: Event creation/edit logic.
+- **Change**: Set `ticketCutoffDate = eventDate - 3 days`.
+- **How**:
+  - Add check during ticket checkout: `if Date.now() > ticketCutoffDate → show warning`.
+
+---
+
+## 🟥 Phase 4 – Flow Diversification & Permissions (High Risk)
+
+### 12. Ticket-Only Event Support
+- **Location**: Event type config + booking flow.
+- **Change**: Allow two flows: `full` vs. `ticket-only`.
+- **How**:
+  - Add `eventType = 'full' | 'ticket-only'` to event model.
+  - If `ticket-only`, skip seat and food selection UI.
+  - Show just image, description, and ticket quantity selector.
+
+### 13. Private Event with Special Link
+- **Location**: Event visibility control.
+- **Change**: Hide event from public list; access only via URL.
+- **How**:
+  - Add `isPrivate: true` flag to event.
+  - Only render if `user.hasURLToken`.
+  - Generate secure invite URLs.
+
+---
+
+## 🟥 Phase 5 – Backend Table-Order Linking (Advanced)
+
+### 14. Track Orders by Table & Guest Name
+- **Location**: Order system and table map.
+- **Change**: Associate order with table ID and guest name.
+- **How**:
+  - Add `tableId` and `guestName` to order schema.
+  - Display on kitchen or admin dashboard view.
+
+---
+
+## Optional Enhancements (Already Crossed Out)
+- [ ] “Need to put a little blurb” – intentionally omitted.
+
+---
+
+## Final Notes for AI Agent
+- Test each module in isolation before merging.
+- Use feature flags for Phase 4 changes to avoid disrupting live flow.
+- Write unit tests for table booking validation and timeouts.
+- UI changes should fall back to default states if data is missing.
+
+Once all phases are complete, proceed to deployment staging and QA.
+
+---
