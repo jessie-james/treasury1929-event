@@ -142,7 +142,7 @@ export const bookings = pgTable("bookings", {
   selectedVenue: varchar("selected_venue", { length: 100 }), // 'Main Floor' or 'Mezzanine'
   holdStartTime: timestamp("hold_start_time"), // For 20-minute timeout
   wineSelections: json("wine_selections").$type<any[]>().default([]),
-  orderTracking: text("order_tracking"),
+  orderTracking: text("orderTracking"),
 });
 
 // Unique constraint for bookings (one table per event)
