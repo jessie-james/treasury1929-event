@@ -30,6 +30,8 @@ import BookingSuccessSimple from "@/pages/BookingSuccessSimple";
 
 
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
+import TicketOnlyBookingPage from "@/pages/TicketOnlyBookingPage";
+import KitchenDashboard from "@/pages/backoffice/KitchenDashboard";
 
 import { BookingCancel } from "@/pages/BookingCancel";
 import { Header } from "./components/Header";
@@ -56,7 +58,7 @@ function Router() {
         <Route path="/admin-login" component={AdminLoginPage} />
         <Route path="/events/:id" component={EventPage} />
         <ProtectedRoute path="/events/:id/book" component={BookingPage} />
-        <ProtectedRoute path="/events/:id/tickets" component={() => import("./pages/TicketOnlyBookingPage")} />
+        <ProtectedRoute path="/events/:id/tickets" component={TicketOnlyBookingPage} />
         <ProtectedRoute path="/onboarding" component={OnboardingPage} />
         <ProtectedRoute path="/backoffice" component={DashboardPage} />
         <ProtectedRoute path="/backoffice/orders" component={OrdersPage} />
@@ -69,7 +71,7 @@ function Router() {
         <ProtectedRoute path="/backoffice/venue-designer" component={VenueDesigner} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/users" component={UsersPage} requiredRole="admin" />
         <ProtectedRoute path="/backoffice/logs" component={LogsPage} requiredRole="admin" />
-        <ProtectedRoute path="/backoffice/kitchen" component={() => import("./pages/backoffice/KitchenDashboard")} />
+        <ProtectedRoute path="/backoffice/kitchen" component={KitchenDashboard} />
 
         <ProtectedRoute path="/dashboard" component={CustomerDashboard} />
         <Route path="/profile" component={ProfilePage} />
