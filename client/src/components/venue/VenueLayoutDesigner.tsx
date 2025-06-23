@@ -263,9 +263,9 @@ export function VenueLayoutDesigner({
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 2;
     
-    // Table surface - Green as per your spec
-    ctx.fillStyle = isSelected ? '#4CAF50' : '#66BB6A';
-    ctx.strokeStyle = isSelected ? '#2E7D32' : '#388E3C';
+    // Table surface - Green as specified
+    ctx.fillStyle = isSelected ? '#22c55e' : '#28a745';
+    ctx.strokeStyle = isSelected ? '#16a34a' : '#1e7e34';
     ctx.lineWidth = 2;
     
     if (isHalf) {

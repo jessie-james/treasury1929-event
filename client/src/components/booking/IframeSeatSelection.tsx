@@ -158,16 +158,16 @@ const useCanvasRenderer = (
       ctx.translate(centerX, centerY);
       ctx.rotate((table.rotation * Math.PI) / 180);
       
-      // Table styling
+      // Table styling - Green tables as specified
       if (isBooked) {
         ctx.fillStyle = '#ef4444';
         ctx.strokeStyle = '#dc2626';
       } else if (isSelected) {
-        ctx.fillStyle = '#3b82f6';
-        ctx.strokeStyle = '#1d4ed8';
+        ctx.fillStyle = '#22c55e';
+        ctx.strokeStyle = '#16a34a';
       } else {
-        ctx.fillStyle = '#10b981';
-        ctx.strokeStyle = '#059669';
+        ctx.fillStyle = '#28a745';
+        ctx.strokeStyle = '#1e7e34';
       }
       
       ctx.lineWidth = 2;
@@ -286,6 +286,8 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [showSeatConfiguration, setShowSeatConfiguration] = useState(false);
+  const [showFourTopWarning, setShowFourTopWarning] = useState(false);
+  const [guestCount, setGuestCount] = useState(2); // This should come from parent props
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -442,8 +444,11 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
     
     if (clickedTable) {
       setSelectedTable(clickedTable);
-      // For 4-seat tables or when user wants individual seat selection, show configuration
-      if (clickedTable.capacity >= 4) {
+      
+      // Check for 4-top warning (2 guests selecting 4-seat table)
+      if (clickedTable.capacity === 4 && guestCount === 2) {
+        setShowFourTopWarning(true);
+      } else if (clickedTable.capacity >= 4) {
         setShowSeatConfiguration(true);
       }
     } else {
@@ -714,6 +719,15 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
           {selectedTable && selectedTable.capacity >= 4 ? 'Configure Seats' : 'Continue to Guest Details'}
         </Button>
       </div>
+
+      {/* Four-Top Warning Dialog */}
+      <FourTopWarning
+        isOpen={showFourTopWarning}
+        onClose={handleFourTopWarningClose}
+        onContinue={handleFourTopWarningContinue}
+        guestCount={guestCount}
+        tableCapacity={selectedTable?.capacity || 0}
+      />
     </div>
   );
 }
