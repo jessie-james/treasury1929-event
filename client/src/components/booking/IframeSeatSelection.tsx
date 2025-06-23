@@ -13,6 +13,7 @@ interface Props {
   eventId: number;
   onComplete: (selection: { tableId: number; seatNumbers: number[] }) => void;
   hasExistingBooking?: boolean;
+  selectedVenueIndex?: number;
 }
 
 interface VenueTable {
@@ -276,9 +277,9 @@ const useCanvasRenderer = (
   return { drawVenueLayout };
 };
 
-export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }: Props) {
+export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, selectedVenueIndex: propSelectedVenueIndex }: Props) {
   const [selectedTable, setSelectedTable] = useState<VenueTable | null>(null);
-  const [selectedVenueIndex, setSelectedVenueIndex] = useState<number>(0);
+  const [selectedVenueIndex, setSelectedVenueIndex] = useState<number>(propSelectedVenueIndex ?? 0);
   const [viewport, setViewport] = useState<ViewportState>({
     zoom: 1,
     panX: 0,
@@ -291,6 +292,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
   const [guestCount, setGuestCount] = useState(2); // This should come from parent props
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Sync venue index with prop changes
+  useEffect(() => {
+    if (propSelectedVenueIndex !== undefined) {
+      setSelectedVenueIndex(propSelectedVenueIndex);
+    }
+  }, [propSelectedVenueIndex]);
 
   // Fetch event venue layouts using the new API
   const { data: eventVenueLayouts, isLoading: isLoadingVenues, error: venueError } = useQuery({

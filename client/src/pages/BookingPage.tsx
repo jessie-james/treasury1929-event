@@ -122,6 +122,7 @@ export default function BookingPage() {
             <IframeSeatSelection
               eventId={eventId}
               hasExistingBooking={hasExistingBooking}
+              selectedVenueIndex={selectedVenueIndex}
               onComplete={(selection) => {
                 setSelectedSeats(selection);
                 setHoldStartTime(new Date()); // Start the 20-minute timer
