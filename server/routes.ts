@@ -522,6 +522,15 @@ export async function registerRoutes(app: Express) {
   // Register venue management routes
   registerVenueRoutes(app);
   
+  // Register seat selection routes
+  registerSeatSelectionRoutes(app);
+  
+  // Register booking validation routes
+  registerBookingValidationRoutes(app);
+  
+  // Register private event routes
+  registerPrivateEventRoutes(app);
+  
   // Register seat selection routes for booking
   registerSeatSelectionRoutes(app);
 
