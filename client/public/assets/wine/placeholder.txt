@@ -1,0 +1,11 @@
+Wine image placeholders directory
+Add wine images here:
+- chardonnay-glass.jpg
+- cabernet-glass.jpg
+- pinot-grigio-glass.jpg
+- merlot-glass.jpg
+- sauvignon-blanc-glass.jpg
+- chardonnay-bottle.jpg
+- cabernet-bottle.jpg
+- pinot-noir-bottle.jpg
+- champagne-bottle.jpg

@@ -66,8 +66,10 @@ export default function BookingPage() {
               : step === "seats"
               ? "Pick the best seats for your experience" 
               : step === "food" 
-                ? "Customize your dining experience for each guest" 
-                : "Review and finalize your booking details"
+                ? "Customize your dining experience for each guest"
+                : step === "wine"
+                  ? "Add wine and beverages to your order"
+                  : "Review and finalize your booking details"
             }
           </p>
         </div>
@@ -75,19 +77,49 @@ export default function BookingPage() {
         <div className="space-y-2">
           <Progress value={progress} className="w-full" />
           <p className="text-center text-sm text-muted-foreground">
-            Step {step === "seats" ? "1" : step === "food" ? "2" : "3"} of 3
+            Step {step === "venue" ? "1" : step === "seats" ? "2" : step === "food" ? "3" : step === "wine" ? "4" : "5"} of 5
           </p>
         </div>
       </div>
 
+      {/* Booking Timer */}
+      {holdStartTime && (
+        <div className="max-w-4xl mx-auto">
+          <BookingTimer
+            startTime={holdStartTime}
+            onTimeout={() => {
+              setStep("venue");
+              setSelectedSeats(null);
+              setHoldStartTime(null);
+              setSelectedVenue("");
+            }}
+          />
+        </div>
+      )}
+
       <Card className="max-w-4xl mx-auto">
         <div className="p-6">
-          {step === "seats" && (
+          {step === "venue" && (
+            <VenueFloorSelection
+              venues={[
+                { id: 1, displayName: "Main Floor", description: "Main dining area with stage view", tableCount: 70 },
+                { id: 2, displayName: "Mezzanine", description: "Elevated seating with premium view", tableCount: 13 }
+              ]}
+              onSelect={(venueDisplayName, venueIndex) => {
+                setSelectedVenue(venueDisplayName);
+                setSelectedVenueIndex(venueIndex);
+                setStep("seats");
+              }}
+            />
+          )}
+
+          {step === "seats" && selectedVenue && (
             <IframeSeatSelection
               eventId={eventId}
               hasExistingBooking={hasExistingBooking}
               onComplete={(selection) => {
                 setSelectedSeats(selection);
+                setHoldStartTime(new Date()); // Start the 20-minute timer
                 setStep("food");
               }}
             />
@@ -100,6 +132,20 @@ export default function BookingPage() {
               onComplete={(selections, names) => {
                 setFoodSelections(selections);
                 setGuestNames(names);
+                setStep("wine");
+              }}
+            />
+          )}
+
+          {step === "wine" && (
+            <WineSelection
+              eventId={eventId}
+              onComplete={(selections) => {
+                setWineSelections(selections);
+                setStep("checkout");
+              }}
+              onSkip={() => {
+                setWineSelections([]);
                 setStep("checkout");
               }}
             />
@@ -111,9 +157,10 @@ export default function BookingPage() {
               tableId={selectedSeats.tableId}
               selectedSeats={selectedSeats.seatNumbers}
               foodSelections={foodSelections}
+              wineSelections={wineSelections}
               guestNames={guestNames}
+              selectedVenue={selectedVenue}
               onSuccess={() => {
-                // Use a short timeout to allow the query invalidation to complete
                 setTimeout(() => {
                   setLocation("/dashboard");
                 }, 300);

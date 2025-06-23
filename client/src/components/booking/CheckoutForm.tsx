@@ -5,7 +5,9 @@ interface CheckoutFormProps {
   tableId: number;
   selectedSeats: number[];
   foodSelections?: any[];
-  guestNames?: string[];
+  wineSelections?: any[];
+  guestNames?: Record<number, string>;
+  selectedVenue?: string;
   onSuccess?: () => void;
 }
 
@@ -14,7 +16,9 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
   tableId, 
   selectedSeats, 
   foodSelections = [], 
-  guestNames = [],
+  wineSelections = [],
+  guestNames = {},
+  selectedVenue,
   onSuccess 
 }) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -37,7 +41,9 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
           selectedSeats,
           amount: Math.round(19.99 * selectedSeats.length * 100), // amount in cents
           foodSelections,
-          guestNames
+          wineSelections,
+          guestNames,
+          selectedVenue
         }),
       });
 
