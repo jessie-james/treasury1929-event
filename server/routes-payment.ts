@@ -43,7 +43,10 @@ async function createBookingFromStripeSession(session: any) {
     amount: session.amount_total || 0,
     status: 'confirmed' as const,
     foodSelections: metadata.foodSelections ? JSON.parse(metadata.foodSelections) : [],
-    guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : []
+    wineSelections: metadata.wineSelections ? JSON.parse(metadata.wineSelections) : [],
+    guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : [],
+    selectedVenue: metadata.selectedVenue || null,
+    holdStartTime: new Date()
   };
 
   console.log('Creating booking with validated data:', bookingData);
@@ -95,7 +98,7 @@ export function registerPaymentRoutes(app: Express) {
           seats: selectedSeats.join(','),
           foodSelections: JSON.stringify(foodSelections || []),
           wineSelections: JSON.stringify(wineSelections || []),
-          guestNames: JSON.stringify(guestNames || []),
+          guestNames: JSON.stringify(guestNames || {}),
           selectedVenue: selectedVenue || '',
         },
       });
