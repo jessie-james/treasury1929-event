@@ -70,17 +70,25 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
         <h3 className="text-lg font-semibold mb-4">Booking Summary</h3>
         <div className="space-y-2">
           <div className="flex justify-between">
-            <span>Event ID:</span>
-            <span>{eventId}</span>
+            <span>Event:</span>
+            <span>#{eventId}</span>
           </div>
+          {tableId > 0 && (
+            <div className="flex justify-between">
+              <span>Table:</span>
+              <span>{tableId}</span>
+            </div>
+          )}
           <div className="flex justify-between">
-            <span>Table:</span>
-            <span>{tableId}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Seats:</span>
+            <span>{tableId > 0 ? 'Seats' : 'Tickets'}:</span>
             <span>{selectedSeats.length}</span>
           </div>
+          {selectedVenue && (
+            <div className="flex justify-between">
+              <span>Venue:</span>
+              <span>{selectedVenue}</span>
+            </div>
+          )}
           <div className="border-t pt-2 flex justify-between font-semibold text-lg">
             <span>Total:</span>
             <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>

@@ -89,10 +89,7 @@ export function VenueFloorSelection({ venues, onSelect }: VenueFloorSelectionPro
 
               <Button 
                 className="w-full group-hover:bg-primary/90 transition-colors"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelect(venue.displayName, index);
-                }}
+                onClick={() => onSelect(venue.displayName, index)}
               >
                 Select {venue.displayName}
               </Button>
