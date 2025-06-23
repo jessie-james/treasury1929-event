@@ -6,6 +6,7 @@ import { WineSelection } from "@/components/booking/WineSelection";
 import { VenueFloorSelection } from "@/components/booking/VenueFloorSelection";
 import { CheckoutForm } from "@/components/booking/CheckoutForm";
 import { BookingTimer } from "@/components/booking/BookingTimer";
+import { useTableValidation, useTicketCutoffCheck } from "@/hooks/useBookingValidation";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
@@ -37,6 +38,10 @@ export default function BookingPage() {
   });
 
   const hasExistingBooking = existingBookings?.some(booking => booking.eventId === eventId);
+
+  // Validation hooks
+  const tableValidation = useTableValidation();
+  const { data: ticketCutoffData } = useTicketCutoffCheck(eventId);
 
   const progress =
     step === "venue" ? 20 : 

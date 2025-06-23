@@ -58,7 +58,7 @@ export function registerPaymentRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const { eventId, tableId, selectedSeats, amount, foodSelections, guestNames } = req.body;
+      const { eventId, tableId, selectedSeats, amount, foodSelections, wineSelections, guestNames, selectedVenue } = req.body;
       
       // Validate input
       if (!eventId || !tableId || !selectedSeats || !amount) {
@@ -94,7 +94,9 @@ export function registerPaymentRoutes(app: Express) {
           userId: req.user.id.toString(),
           seats: selectedSeats.join(','),
           foodSelections: JSON.stringify(foodSelections || []),
+          wineSelections: JSON.stringify(wineSelections || []),
           guestNames: JSON.stringify(guestNames || []),
+          selectedVenue: selectedVenue || '',
         },
       });
 

@@ -22,6 +22,7 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, hashPassword } from "./auth";
+import { BookingValidation } from "./booking-validation";
 import Stripe from "stripe";
 import multer from "multer";
 import path from "path";
@@ -33,6 +34,7 @@ import crypto from 'crypto';
 import { registerAdminRoutes } from "./routes-admin";
 import { registerVenueRoutes } from "./routes-venue";
 import { registerSeatSelectionRoutes } from "./routes-seat-selection";
+import { registerBookingValidationRoutes } from "./routes-booking-validation";
 import { EmailService } from "./email-service";
 
 // Initialize Stripe with the secret key
