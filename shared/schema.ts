@@ -44,6 +44,9 @@ export const events = pgTable("events", {
   venueId: integer("venue_id").notNull(),
   displayOrder: integer("display_order").default(0),
   isActive: boolean("is_active").default(true),
+  eventType: varchar("event_type", { length: 50 }).default("full").notNull(), // 'full' or 'ticket-only'
+  isPrivate: boolean("is_private").default(false),
+  ticketCutoffDays: integer("ticket_cutoff_days").default(3),
 });
 
 // Tickets Table
@@ -136,6 +139,9 @@ export const bookings = pgTable("bookings", {
   checkedIn: boolean("checked_in").default(false),
   checkedInAt: timestamp("checked_in_at"),
   checkedInBy: integer("checked_in_by"),
+  selectedVenue: varchar("selected_venue", { length: 100 }), // 'Main Floor' or 'Mezzanine'
+  holdStartTime: timestamp("hold_start_time"), // For 20-minute timeout
+  wineSelections: json("wine_selections").$type<any[]>().default([]),
 });
 
 // Unique constraint for bookings (one table per event)
@@ -169,7 +175,7 @@ export const foodOptions = pgTable("food_options", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
-  type: varchar("type", { length: 50 }).notNull(), // 'salad', 'entree', 'dessert'
+  type: varchar("type", { length: 50 }).notNull(), // 'salad', 'entree', 'dessert', 'wine_glass', 'wine_bottle'
   price: integer("price").notNull(), // Price in cents
   allergens: json("allergens").$type<string[]>().default([]),
   dietaryRestrictions: json("dietary_restrictions").$type<string[]>().default([]),

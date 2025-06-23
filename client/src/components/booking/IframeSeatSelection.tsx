@@ -223,9 +223,9 @@ const useCanvasRenderer = (
           const seatX = seatOffset * Math.cos(rad);
           const seatY = seatOffset * Math.sin(rad);
           
-          // Seat styling
-          ctx.fillStyle = '#6b7280';
-          ctx.strokeStyle = '#4b5563';
+          // Seat styling - Grey as specified
+          ctx.fillStyle = '#6c757d';
+          ctx.strokeStyle = '#5a6268';
           ctx.lineWidth = 1;
           ctx.shadowColor = 'rgba(0,0,0,0.1)';
           ctx.shadowBlur = 2;
@@ -576,7 +576,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking }:
         <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
           <h4 className="font-medium text-blue-900 mb-1">Table Selection Rules:</h4>
           <ul className="text-blue-800 space-y-1 text-sm">
-            <li>• For 4-seat tables: You cannot select only 2 seats</li>
+            <li>• For 4-seat tables: Groups of 2 guests should consider smaller tables for better experience</li>
             <li>• If selecting 3 seats on a 4-seat table, the 4th seat will remain empty for your group</li>
             <li>• 2-seat and 3-seat tables can be fully or partially selected</li>
           </ul>
