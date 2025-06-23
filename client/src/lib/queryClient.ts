@@ -326,17 +326,23 @@ export const queryClient = new QueryClient({
   }),
 });
 
-// Set up a comprehensive global error handler that completely suppresses unhandled rejections
+// Enhanced global error handler for unhandled rejections
 window.addEventListener('unhandledrejection', (event) => {
-  // Always prevent default to stop unhandled rejection warnings completely
   event.preventDefault();
   
-  // Minimal logging to avoid console noise
   const error = event.reason;
-  if (error && !error?.message?.includes('401') && !error?.message?.includes('Not authenticated')) {
-    // Only log actual errors, not auth failures
-    if (!error?.message?.includes('Query') && !error?.message?.includes('TanStack')) {
-      console.warn('Promise rejection handled silently');
-    }
+  
+  // Filter out expected auth and query errors
+  if (error?.message?.includes('401') || 
+      error?.message?.includes('Not authenticated') ||
+      error?.message?.includes('Query') ||
+      error?.message?.includes('TanStack') ||
+      error?.name === 'AbortError') {
+    return; // Silently ignore these expected errors
+  }
+  
+  // Log unexpected errors for debugging
+  if (error instanceof Error) {
+    console.warn('Unhandled promise rejection:', error.message);
   }
 });

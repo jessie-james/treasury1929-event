@@ -86,44 +86,7 @@ function Router() {
 }
 
 function App() {
-  useEffect(() => {
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      const error = event.reason;
-      
-      // Check if this is an auth error or query error we can ignore
-      const isAuthError = error?.message?.includes('401') || error?.message?.includes('Not authenticated');
-      const isQueryError = error?.name?.includes('Query') || error?.toString?.()?.includes('TanStack');
-      
-      // Only log non-auth, non-query errors
-      if (!isAuthError && !isQueryError) {
-        console.group('🚨 Unhandled Promise Rejection');
-        console.error('Error object:', error);
-        console.error('Error message:', error?.message);
-        console.groupEnd();
-      }
-
-      // Always prevent default to stop unhandled rejection warnings
-      event.preventDefault();
-    };
-
-    const handleError = (event: ErrorEvent) => {
-      console.group('🚨 JavaScript Error');
-      console.error('Error message:', event.message);
-      console.error('File:', event.filename);
-      console.error('Line:', event.lineno);
-      console.error('Column:', event.colno);
-      console.error('Error object:', event.error);
-      console.groupEnd();
-    };
-
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-    window.addEventListener('error', handleError);
-    
-    return () => {
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-      window.removeEventListener('error', handleError);
-    };
-  }, []);
+  // Error handling is now managed by queryClient.ts globally
 
   return (
     <QueryClientProvider client={queryClient}>
