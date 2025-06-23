@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { IndividualSeatSelection } from "./IndividualSeatSelection";
+import { FourTopWarning } from "./FourTopWarning";
 
 interface Props {
   eventId: number;
