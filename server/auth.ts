@@ -363,40 +363,16 @@ export function setupAuth(app: Express) {
 
   // Enhanced user endpoint with better debugging and fallback auth
   app.get("/api/user", (req, res) => {
-    // Track authentication debug information
-    const authDebug = {
-      hasSession: !!req.session,
-      hasSessionID: !!req.sessionID,
-      cookiesHeader: req.headers.cookie ? 'Present' : 'Missing',
-      isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false,
-      origin: req.headers.origin || 'unknown',
-      userAgent: req.headers['user-agent'] || 'unknown'
-    };
-    
-    // Log detailed auth debugging info
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('Auth debug info:', authDebug);
-    }
-    
-    // Primary authentication check
     if (req.isAuthenticated() && req.user) {
-      // Clone the user object to avoid direct modification of req.user
       const userObj = { ...req.user };
-      
-      // Don't send the password hash to the client
       if ('password' in userObj) {
         delete userObj.password;
       }
-      
       return res.json(userObj);
     }
     
-    // If we get here, authentication failed
-    return res.status(401).json({ 
-      message: "Not authenticated",
-      // Only include debug info in development
-      ...(process.env.NODE_ENV !== 'production' ? { debug: authDebug } : {})
-    });
+    // Return 204 instead of 401 to prevent unhandled promise rejections
+    return res.status(204).send();
   });
   
 

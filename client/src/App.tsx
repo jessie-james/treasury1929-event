@@ -37,6 +37,7 @@ import { BookingCancel } from "@/pages/BookingCancel";
 import { Header } from "./components/Header";
 import { BottomNavigation } from "./components/BottomNavigation";
 import { useAuth } from "./hooks/use-auth";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 function Router() {
   const [location] = useLocation();
@@ -92,10 +93,12 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-        <Toaster />
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <Router />
+          <Toaster />
+        </AuthProvider>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }

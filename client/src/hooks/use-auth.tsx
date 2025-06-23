@@ -29,12 +29,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
   } = useQuery<User | null>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/user', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (res.status === 401 || res.status === 204) {
+          return null;
+        }
+        
+        if (!res.ok) {
+          console.warn(`Auth query failed with status ${res.status}`);
+          return null;
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.warn('Auth query error:', error);
+        return null;
+      }
+    },
     retry: false,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     staleTime: 5 * 60 * 1000,
-    throwOnError: false,
   });
 
   const loginMutation = useMutation({
