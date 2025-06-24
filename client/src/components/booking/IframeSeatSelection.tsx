@@ -447,19 +447,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
         return;
       }
 
+      // Just select the table - don't proceed automatically
       setSelectedTable(clickedTable);
-      
-      // Generate seat numbers based on guest count
-      const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
-      onComplete({
-        tableId: clickedTable.id,
-        seatNumbers: seatNumbers
-      });
     } else {
       setIsDragging(true);
       setLastMousePos({ x: event.clientX, y: event.clientY });
     }
-  }, [getTableAtPosition, desiredGuestCount, isValidTableSelection, onComplete]);
+  }, [getTableAtPosition, desiredGuestCount, isValidTableSelection]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     if (isDragging) {
@@ -689,11 +683,44 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
             </div>
           )}
           
-          {/* Selection Summary */}
+          {/* Selection Summary and Confirmation */}
           {selectedTable && (
-            <div className="mt-6 p-4 bg-green-50 rounded-md border border-green-200">
-              <h3 className="font-medium mb-1 text-green-900">Table Selected!</h3>
-              <p className="text-sm text-green-800">Table {selectedTable.tableNumber} ({selectedTable.capacity} seats) - Proceeding to guest details...</p>
+            <div className="mt-6 space-y-4">
+              <div className="p-4 bg-green-50 rounded-md border border-green-200">
+                <h3 className="font-medium mb-2 text-green-900">Table Selected!</h3>
+                <div className="text-sm text-green-800 space-y-1">
+                  <p><strong>Table {selectedTable.tableNumber}</strong> ({selectedTable.capacity} seats)</p>
+                  <p>Guests: {desiredGuestCount}</p>
+                  {selectedTable.capacity > desiredGuestCount && (
+                    <p className="text-green-600">
+                      {selectedTable.capacity - desiredGuestCount} seat{selectedTable.capacity - desiredGuestCount > 1 ? 's' : ''} will remain empty
+                    </p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    // Generate seat numbers based on guest count
+                    const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
+                    onComplete({
+                      tableId: selectedTable.id,
+                      seatNumbers: seatNumbers
+                    });
+                  }}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  Confirm Table Selection
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setSelectedTable(null)}
+                  className="px-6"
+                >
+                  Change Table
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
