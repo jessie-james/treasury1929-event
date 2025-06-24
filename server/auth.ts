@@ -115,7 +115,7 @@ export function setupAuth(app: Express) {
     cookie: cookieSettings,
     
     // Better compatibility with proxy setups (like Replit)
-    proxy: true,
+    proxy: false, // Disable proxy to fix session issues
     
     // Add rolling session - extends expiration on each request
     rolling: true,
@@ -128,8 +128,8 @@ export function setupAuth(app: Express) {
   console.log(`Auth setup: ${isDevelopment ? 'Development' : 'Production'} mode`);
   console.log(`Session cookie: secure=${cookieSettings.secure}, sameSite=${cookieSettings.sameSite}`);
   
-  // Enable trust proxy in Express (needed for secure cookies with proxies)
-  app.set('trust proxy', 1);
+  // Disable trust proxy for development
+  app.set('trust proxy', false);
 
   app.use(session(sessionSettings));
   app.use(passport.initialize());
@@ -363,6 +363,13 @@ export function setupAuth(app: Express) {
 
   // Enhanced user endpoint with better debugging and fallback auth
   app.get("/api/user", (req, res) => {
+    console.log("User endpoint check:", {
+      isAuthenticated: req.isAuthenticated(),
+      hasUser: !!req.user,
+      sessionID: req.sessionID,
+      cookies: req.headers.cookie
+    });
+    
     if (req.isAuthenticated() && req.user) {
       const userObj = { ...req.user };
       if ('password' in userObj) {
