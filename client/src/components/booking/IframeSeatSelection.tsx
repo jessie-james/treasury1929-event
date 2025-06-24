@@ -1,13 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
-import { IndividualSeatSelection } from "./IndividualSeatSelection";
-import { FourTopWarning } from "./FourTopWarning";
 
 interface Props {
   eventId: number;
@@ -363,10 +359,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     return undefined;
   }, [eventVenueLayouts, selectedVenueIndex, eventData]);
   
-  // Check if selection is valid for a table - defined early to avoid initialization errors
+  // Check if selection is valid for a table - simplified validation
   const isValidTableSelection = useCallback((table: VenueTable, guestCount: number): { valid: boolean, reason?: string } => {
-    if (table.capacity === 4 && guestCount < 3) {
-      return { valid: false, reason: "4-seat tables require a minimum of 3 guests. Please select a smaller table or add more guests." };
+    if (guestCount > table.capacity) {
+      return { valid: false, reason: `This table seats ${table.capacity} guests maximum. You have ${guestCount} guests.` };
     }
     return { valid: true };
   }, []);
@@ -468,9 +464,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
 
       setSelectedTable(clickedTable);
       
-      if (clickedTable.capacity >= 4) {
-        setShowSeatConfiguration(true);
-      }
+      // Skip seat configuration - directly proceed with table selection
+      // Generate seat numbers based on guest count
+      const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
+      onComplete({
+        tableId: clickedTable.id,
+        seatNumbers: seatNumbers
+      });
     } else {
       setIsDragging(true);
       setLastMousePos({ x: event.clientX, y: event.clientY });
@@ -653,16 +653,14 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[1, 2, 3, 4].map((count) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => (
                   <SelectItem key={count} value={count.toString()}>
                     {count} {count === 1 ? 'guest' : 'guests'}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <div className="text-sm text-muted-foreground">
-              Note: 4-seat tables require minimum 3 guests
-            </div>
+
           </div>
         </CardContent>
       </Card>
@@ -741,53 +739,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
           
           {/* Selection Summary */}
           {selectedTable && (
-            <div className="mt-6 p-4 bg-blue-50 rounded-md border border-blue-200">
-              <h3 className="font-medium mb-1 text-blue-900">Selected Table:</h3>
-              <p className="text-sm text-blue-800">Table {selectedTable.tableNumber} ({selectedTable.capacity} seats)</p>
-              <p className="text-xs text-blue-600 mt-1">
-                You will need to provide guest details for each seat at this table.
-              </p>
-              {selectedTable.capacity >= 4 && (
-                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
-                  <p className="text-blue-800">
-                    <strong>Next step:</strong> Configure individual seats and choose which ones to leave empty for your group.
-                  </p>
-                </div>
-              )}
+            <div className="mt-6 p-4 bg-green-50 rounded-md border border-green-200">
+              <h3 className="font-medium mb-1 text-green-900">Table Selected!</h3>
+              <p className="text-sm text-green-800">Table {selectedTable.tableNumber} ({selectedTable.capacity} seats) - Proceeding to guest details...</p>
             </div>
           )}
         </CardContent>
       </Card>
-      
-      {/* Continue button */}
-      <div className="flex justify-center">
-        <Button
-          size="lg"
-          onClick={handleConfirmSelection}
-          disabled={!selectedTable}
-        >
-          {selectedTable && selectedTable.capacity >= 4 ? 'Configure Seats' : 'Continue to Guest Details'}
-        </Button>
-      </div>
-
-      {/* Four-Top Warning Dialog - This should not appear anymore with proper validation */}
-      {showFourTopWarning && selectedTable && (
-        <FourTopWarning
-          isOpen={showFourTopWarning}
-          onClose={() => {
-            setShowFourTopWarning(false);
-            setSelectedTable(null);
-          }}
-          onContinue={() => {
-            setShowFourTopWarning(false);
-            if (selectedTable) {
-              setShowSeatConfiguration(true);
-            }
-          }}
-          tableCapacity={selectedTable.capacity}
-          guestCount={desiredGuestCount}
-        />
-      )}
     </div>
   );
 }
