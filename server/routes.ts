@@ -731,7 +731,15 @@ export async function registerRoutes(app: Express) {
   // Add new CRUD endpoints for events
   app.post("/api/events", async (req, res) => {
     try {
+      console.log("Event creation auth check:", {
+        isAuthenticated: req.isAuthenticated(),
+        user: req.user ? { id: req.user.id, email: req.user.email, role: req.user.role } : null,
+        sessionID: req.sessionID,
+        cookies: req.headers.cookie
+      });
+      
       if (!req.isAuthenticated() || req.user?.role === "customer") {
+        console.log("Authorization failed for event creation");
         return res.status(401).json({ message: "Unauthorized" });
       }
 
