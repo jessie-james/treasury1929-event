@@ -81,18 +81,18 @@ export function setupAuth(app: Express) {
     );
   };
   
-  // Configure cookie settings for production deployment
+  // Configure cookie settings for development compatibility
   const cookieSettings: session.CookieOptions = {
-    // In production (deployed), use secure cookies for HTTPS
-    secure: isProduction,
+    // Always use non-secure cookies for development
+    secure: false,
     
     // Use a longer session lifetime to reduce authentication issues
     maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
     
     httpOnly: true, // Prevent JavaScript access for security
     
-    // Use 'lax' for better compatibility in production deployment
-    sameSite: isProduction ? 'lax' : 'none',
+    // Use 'lax' for better compatibility
+    sameSite: 'lax',
     
     path: '/', // Available across entire site
     domain: undefined // Let browser determine domain automatically for compatibility
