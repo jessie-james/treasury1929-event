@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
@@ -319,15 +320,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
 
   // Get the current venue layout based on selected venue or fallback to event data
   const currentVenueLayout: VenueLayout | undefined = useMemo(() => {
-    // Reset any cached table data to prevent accumulation
-    
     // First try new venue layouts system
     if (eventVenueLayouts && Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 0) {
       // Ensure selectedVenueIndex is within bounds
       const safeIndex = Math.max(0, Math.min(selectedVenueIndex, eventVenueLayouts.length - 1));
       const selected = eventVenueLayouts[safeIndex];
       
-      console.log('🔍 VENUE SELECTION FIXED:', {
+      console.log('✅ VENUE LAYOUT FOUND:', {
         selectedIndex: safeIndex,
         venueName: selected?.venue?.name,
         tableCount: selected?.tables?.length,
@@ -342,7 +341,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
         
         return {
           venue: selected.venue,
-          tables: venueSpecificTables, // Only return tables for the selected venue
+          tables: venueSpecificTables,
           stages: selected.stages || []
         };
       }
@@ -350,11 +349,11 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     
     // Fallback to event data structure
     if (eventData && (eventData as any).venueLayout) {
-      console.log('🔄 Using fallback event data');
+      console.log('✅ Using fallback event data for venue layout');
       return (eventData as any).venueLayout;
     }
     
-    console.log('❌ No venue layout found');
+    console.log('⚠️ No venue layout found - this will prevent table selection');
     return undefined;
   }, [eventVenueLayouts, selectedVenueIndex, eventData]);
   
@@ -452,14 +451,9 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
 
   // Mouse event handlers
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    console.log('Canvas clicked at:', event.clientX, event.clientY);
-    console.log('Available tables count:', availableTables.length);
-    
     const clickedTable = getTableAtPosition(event.clientX, event.clientY);
-    console.log('Clicked table:', clickedTable);
     
     if (clickedTable) {
-      console.log('Table selected:', clickedTable.tableNumber, 'capacity:', clickedTable.capacity);
       const validation = isValidTableSelection(clickedTable, desiredGuestCount);
       if (!validation.valid) {
         alert(validation.reason);
@@ -468,20 +462,17 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
 
       setSelectedTable(clickedTable);
       
-      // Skip seat configuration - directly proceed with table selection
       // Generate seat numbers based on guest count
       const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
-      console.log('Proceeding with booking:', { tableId: clickedTable.id, seatNumbers });
       onComplete({
         tableId: clickedTable.id,
         seatNumbers: seatNumbers
       });
     } else {
-      console.log('No table clicked, starting drag');
       setIsDragging(true);
       setLastMousePos({ x: event.clientX, y: event.clientY });
     }
-  }, [getTableAtPosition, desiredGuestCount, isValidTableSelection, onComplete, availableTables]);
+  }, [getTableAtPosition, desiredGuestCount, isValidTableSelection, onComplete]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     if (isDragging) {
