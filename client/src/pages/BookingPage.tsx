@@ -119,7 +119,7 @@ export default function BookingPage() {
           )}
 
           {step === "seats" && selectedVenue && (
-            <IframeSeatSelection
+            <SimpleTableSelection
               eventId={eventId}
               hasExistingBooking={hasExistingBooking}
               selectedVenueIndex={selectedVenueIndex}
