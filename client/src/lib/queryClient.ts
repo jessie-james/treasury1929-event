@@ -340,11 +340,15 @@ window.addEventListener('unhandledrejection', (event) => {
     'Load failed',
     'Not authenticated',
     'Unauthorized',
+    'Auth query failed',
     '401',
+    '204',
     'Query',
     'TanStack',
     'vite',
-    'does not provide an export'
+    'does not provide an export',
+    'Cannot access',
+    'before initialization'
   ];
   
   const shouldIgnore = ignoredErrors.some(ignored => 

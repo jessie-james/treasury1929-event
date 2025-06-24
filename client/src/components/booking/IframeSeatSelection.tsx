@@ -474,7 +474,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
       setIsDragging(true);
       setLastMousePos({ x: event.clientX, y: event.clientY });
     }
-  }, [getTableAtPosition, desiredGuestCount, isValidTableSelection]);
+  }, [getTableAtPosition, desiredGuestCount, isValidTableSelection, onComplete]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     if (isDragging) {
