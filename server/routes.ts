@@ -762,11 +762,16 @@ export async function registerRoutes(app: Express) {
         date: formattedDate.toISOString()
       });
 
+      // Get the next display order (highest + 1)
+      const allEvents = await storage.getAllEvents();
+      const maxDisplayOrder = allEvents.length > 0 ? Math.max(...allEvents.map(e => e.displayOrder || 0)) : 0;
+
       const event = await storage.createEvent({
         ...req.body,
         date: formattedDate,
         totalSeats: Number(req.body.totalSeats),
-        venueId: 1, // For now, hardcode to venue 1
+        displayOrder: maxDisplayOrder + 1,
+        venueId: req.body.venueId || 1, // Use provided venueId or default to 1
       });
 
       console.log("Event created successfully:", event);

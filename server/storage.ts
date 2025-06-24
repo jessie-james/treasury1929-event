@@ -168,7 +168,7 @@ export class PgStorage implements IStorage {
 
   // Event methods
   async getAllEvents(): Promise<Event[]> {
-    return await db.select().from(schema.events).orderBy(desc(schema.events.date));
+    return await db.select().from(schema.events).orderBy(asc(schema.events.displayOrder), desc(schema.events.date));
   }
 
   async getActiveEvents(): Promise<Event[]> {

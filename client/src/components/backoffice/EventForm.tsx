@@ -264,7 +264,9 @@ export function EventForm({ event, onClose }: Props) {
         }
       }
       
-      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      // Force refresh the events list
+      await queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/events"] });
       queryClient.invalidateQueries({ queryKey: [`/api/events/${savedEvent.id || event?.id}/food-options`] });
       toast({
         title: `Event ${event ? "updated" : "created"} successfully`,
