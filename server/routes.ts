@@ -766,7 +766,7 @@ export async function registerRoutes(app: Express) {
       const allEvents = await storage.getAllEvents();
       const maxDisplayOrder = allEvents.length > 0 ? Math.max(...allEvents.map(e => e.displayOrder || 0)) : 0;
 
-      const event = await storage.createEvent({
+      const eventId = await storage.createEvent({
         ...req.body,
         date: formattedDate,
         totalSeats: Number(req.body.totalSeats),
@@ -774,6 +774,8 @@ export async function registerRoutes(app: Express) {
         venueId: req.body.venueId || 1, // Use provided venueId or default to 1
       });
 
+      // Get the created event to return full details
+      const event = await storage.getEventById(eventId);
       console.log("Event created successfully:", event);
 
       // Create detailed admin log
@@ -781,12 +783,12 @@ export async function registerRoutes(app: Express) {
         userId: req.user.id,
         action: "create_event",
         entityType: "event",
-        entityId: event.id,
+        entityId: eventId,
         details: JSON.stringify({
-          title: event.title,
-          date: event.date,
-          totalSeats: event.totalSeats,
-          image: event.image
+          title: event?.title || req.body.title,
+          date: formattedDate,
+          totalSeats: req.body.totalSeats,
+          image: req.body.image || null
         })
       });
 
