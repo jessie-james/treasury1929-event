@@ -560,8 +560,16 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">Select Your Table</h2>
         <p className="text-muted-foreground">
-          Choose your guest count, then click on any available table to proceed with your booking.
+          Click on an available table in the venue layout below. Use mouse wheel to zoom and drag to pan around.
         </p>
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+          <h4 className="font-medium text-blue-900 mb-1">Table Selection Info:</h4>
+          <ul className="text-blue-800 space-y-1 text-sm">
+            <li>• Choose any table that fits your group size</li>
+            <li>• You can book any number of guests up to the table capacity</li>
+            <li>• Click a table to immediately proceed to guest details</li>
+          </ul>
+        </div>
 
       </div>
 
@@ -610,14 +618,16 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => (
+                {[1, 2, 3, 4].map((count) => (
                   <SelectItem key={count} value={count.toString()}>
                     {count} {count === 1 ? 'guest' : 'guests'}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-
+            <div className="text-sm text-muted-foreground">
+              Select number of guests for your reservation
+            </div>
           </div>
         </CardContent>
       </Card>
