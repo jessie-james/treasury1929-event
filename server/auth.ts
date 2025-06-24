@@ -108,7 +108,7 @@ export function setupAuth(app: Express) {
     
     // SaveUninitialized determines whether a session should be stored for a request
     // that doesn't modify the session
-    saveUninitialized: true, // Changed to true to ensure cookie is always sent
+    saveUninitialized: false, // Change back to false to prevent empty sessions
     
     store: sessionStore,
     
