@@ -79,10 +79,23 @@ export function SimpleTableSelection({ eventId, onComplete, hasExistingBooking, 
     return currentVenueLayout.tables.filter((table: VenueTable) => !bookedIds.includes(table.id));
   }, [currentVenueLayout, existingBookings]);
 
-  // Check if table selection is valid
+  // Check if table selection is valid based on table capacity rules
   const isValidTableSelection = useCallback((table: VenueTable, guestCount: number) => {
-    if (guestCount > table.capacity) {
-      return { valid: false, reason: `This table seats ${table.capacity} guests maximum. You have ${guestCount} guests.` };
+    if (table.capacity === 2) {
+      // 2-seat tables: exactly 2 people
+      if (guestCount !== 2) {
+        return { valid: false, reason: `This 2-seat table requires exactly 2 guests. You have ${guestCount} guests.` };
+      }
+    } else if (table.capacity === 4) {
+      // 4-seat tables: 3 or 4 people only
+      if (guestCount < 3 || guestCount > 4) {
+        return { valid: false, reason: `This 4-seat table requires 3 or 4 guests. You have ${guestCount} guests.` };
+      }
+    } else {
+      // Other capacity tables: up to capacity
+      if (guestCount > table.capacity) {
+        return { valid: false, reason: `This table seats ${table.capacity} guests maximum. You have ${guestCount} guests.` };
+      }
     }
     return { valid: true };
   }, []);
@@ -133,13 +146,13 @@ export function SimpleTableSelection({ eventId, onComplete, hasExistingBooking, 
       ctx.translate(table.x + table.width / 2, table.y + table.height / 2);
       ctx.rotate((table.rotation * Math.PI) / 180);
 
-      // Table color based on status
+      // Table color based on status and capacity rules
       if (isSelected) {
         ctx.fillStyle = '#28a745';
         ctx.strokeStyle = '#1e7e34';
       } else if (!validation.valid) {
-        ctx.fillStyle = '#ffc107';
-        ctx.strokeStyle = '#e0a800';
+        ctx.fillStyle = '#dc3545';
+        ctx.strokeStyle = '#c82333';
       } else {
         ctx.fillStyle = '#007bff';
         ctx.strokeStyle = '#0056b3';
@@ -202,7 +215,8 @@ export function SimpleTableSelection({ eventId, onComplete, hasExistingBooking, 
 
       setSelectedTable(clickedTable);
       
-      // Generate seat numbers and complete selection
+      // Generate seat numbers based on actual guest count (not table capacity)
+      // If booking 3 people at 4-seat table, only create 3 seat numbers
       const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
       onComplete({
         tableId: clickedTable.id,
@@ -237,10 +251,11 @@ export function SimpleTableSelection({ eventId, onComplete, hasExistingBooking, 
     <div className="space-y-4">
       {/* Instructions */}
       <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-        <h4 className="font-medium text-blue-900 mb-1">Table Selection:</h4>
+        <h4 className="font-medium text-blue-900 mb-1">Table Selection Rules:</h4>
         <ul className="text-blue-800 space-y-1 text-sm">
-          <li>• Choose any table that fits your group size</li>
-          <li>• Click a table to immediately proceed to guest details</li>
+          <li>• <strong>2-seat tables:</strong> Exactly 2 guests</li>
+          <li>• <strong>4-seat tables:</strong> 3 or 4 guests only</li>
+          <li>• Click any available table to proceed to guest details</li>
         </ul>
       </div>
 
@@ -326,8 +341,8 @@ export function SimpleTableSelection({ eventId, onComplete, hasExistingBooking, 
               <span>Available</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-              <span>Too Small</span>
+              <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+              <span>Invalid for party size</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-500 rounded-full"></div>
