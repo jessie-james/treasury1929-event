@@ -792,7 +792,7 @@ export async function registerRoutes(app: Express) {
           userId: req.user.id,
           action: "create_event",
           entityType: "event",
-        entityId: eventId,
+          entityId: eventId,
           details: JSON.stringify({
             title: event?.title || req.body.title,
             date: formattedDate,
