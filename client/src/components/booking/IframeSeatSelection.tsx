@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
@@ -326,22 +327,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
       const safeIndex = Math.max(0, Math.min(selectedVenueIndex, eventVenueLayouts.length - 1));
       const selected = eventVenueLayouts[safeIndex];
       
-      console.log('✅ VENUE LAYOUT FOUND:', {
-        selectedIndex: safeIndex,
-        venueName: selected?.venue?.name,
-        tableCount: selected?.tables?.length,
-        venueId: selected?.venue?.id
-      });
-      
-      if (selected && selected.tables) {
-        // Ensure we're only getting tables for THIS specific venue
-        const venueSpecificTables = selected.tables.filter((table: any) => 
-          table.id && typeof table.id === 'number'
-        );
-        
+      if (selected && selected.tables && selected.venue) {
         return {
           venue: selected.venue,
-          tables: venueSpecificTables,
+          tables: selected.tables,
           stages: selected.stages || []
         };
       }
@@ -349,11 +338,9 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     
     // Fallback to event data structure
     if (eventData && (eventData as any).venueLayout) {
-      console.log('✅ Using fallback event data for venue layout');
       return (eventData as any).venueLayout;
     }
     
-    console.log('⚠️ No venue layout found - this will prevent table selection');
     return undefined;
   }, [eventVenueLayouts, selectedVenueIndex, eventData]);
   

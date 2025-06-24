@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { IframeSeatSelection } from "@/components/booking/IframeSeatSelection";
+import { SimpleTableSelection } from "@/components/booking/SimpleTableSelection";
 import { FoodSelection } from "@/components/booking/FoodSelection";
 import { WineSelection } from "@/components/booking/WineSelection";
 import { VenueFloorSelection } from "@/components/booking/VenueFloorSelection";

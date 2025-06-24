@@ -132,6 +132,7 @@ This is a sophisticated mobile-first event venue booking platform designed for l
 ## Changelog
 - June 24, 2025. Initial setup
 - June 24, 2025. Critical bug fixes: authentication errors, table selection validation, payment success pages
+- June 24, 2025. Fixed table selection system by replacing broken IframeSeatSelection with working SimpleTableSelection component
 
 ## User Preferences
 
