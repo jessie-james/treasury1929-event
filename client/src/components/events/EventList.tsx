@@ -17,8 +17,20 @@ export function EventList() {
   const sortedEvents = useMemo(() => {
     if (!events) return [];
     
-    // Only show active events to the customer
-    const activeEvents = events.filter(event => event.isActive !== false);
+    // Only show active events that haven't passed yet
+    const now = new Date();
+    const activeEvents = events.filter(event => {
+      // Check if event is active
+      if (event.isActive === false) return false;
+      
+      // Check if event date hasn't passed yet (compare just the date, not time)
+      const eventDate = new Date(event.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Set to start of today
+      eventDate.setHours(0, 0, 0, 0); // Set to start of event day
+      
+      return eventDate >= today;
+    });
     
     return [...activeEvents].sort((a, b) => {
       switch (sortBy) {
