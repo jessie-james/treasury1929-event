@@ -283,8 +283,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
   });
   const [isDragging, setIsDragging] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
-  const [showSeatConfiguration, setShowSeatConfiguration] = useState(false);
-  const [showFourTopWarning, setShowFourTopWarning] = useState(false);
+
   const [desiredGuestCount, setDesiredGuestCount] = useState(2); // Number of guests the user wants to bring
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -534,33 +533,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
 
 
 
-  const handleConfirmSelection = useCallback(() => {
-    if (selectedTable) {
-      const validation = isValidTableSelection(selectedTable, desiredGuestCount);
-      if (!validation.valid) {
-        // Show error message or prevent selection
-        alert(validation.reason);
-        return;
-      }
 
-      if (selectedTable.capacity >= 4) {
-        setShowSeatConfiguration(true);
-      } else {
-        // For smaller tables, select all seats
-        const seatNumbers = Array.from({ length: selectedTable.capacity }, (_, i) => i + 1);
-        onComplete({ tableId: selectedTable.id, seatNumbers });
-      }
-    }
-  }, [selectedTable, desiredGuestCount, onComplete]);
-
-  const handleSeatConfigurationComplete = useCallback((selection: any) => {
-    onComplete(selection);
-  }, [onComplete]);
-
-  const handleBackToTableSelection = useCallback(() => {
-    setShowSeatConfiguration(false);
-    setSelectedTable(null);
-  }, []);
 
   const isLoading = isLoadingVenues || isLoadingEvent;
   const hasError = venueError && !eventData || bookingsError;
@@ -580,32 +553,16 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     );
   }
 
-  // Show individual seat selection for 4+ seat tables
-  if (showSeatConfiguration && selectedTable && selectedTable.capacity >= 4) {
-    return (
-      <IndividualSeatSelection 
-        selectedTable={selectedTable}
-        onComplete={handleSeatConfigurationComplete}
-        onBack={handleBackToTableSelection}
-      />
-    );
-  }
+
 
   return (
     <div className="space-y-6">
       <div className="space-y-2">
         <h2 className="text-2xl font-bold">Select Your Table</h2>
         <p className="text-muted-foreground">
-          Click on an available table in the venue layout below. Use mouse wheel to zoom and drag to pan around.
+          Choose your guest count, then click on any available table to proceed with your booking.
         </p>
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-          <h4 className="font-medium text-blue-900 mb-1">Table Selection Rules:</h4>
-          <ul className="text-blue-800 space-y-1 text-sm">
-            <li>• For 4-seat tables: Groups of 2 guests should consider smaller tables for better experience</li>
-            <li>• If selecting 3 seats on a 4-seat table, the 4th seat will remain empty for your group</li>
-            <li>• 2-seat and 3-seat tables can be fully or partially selected</li>
-          </ul>
-        </div>
+
       </div>
 
       {/* Venue Selection */}
