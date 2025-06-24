@@ -363,6 +363,14 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     return undefined;
   }, [eventVenueLayouts, selectedVenueIndex, eventData]);
   
+  // Check if selection is valid for a table - defined early to avoid initialization errors
+  const isValidTableSelection = useCallback((table: VenueTable, guestCount: number): { valid: boolean, reason?: string } => {
+    if (table.capacity === 4 && guestCount < 3) {
+      return { valid: false, reason: "4-seat tables require a minimum of 3 guests. Please select a smaller table or add more guests." };
+    }
+    return { valid: true };
+  }, []);
+  
   // Memoize available tables calculation
   const { availableTables, bookedTableIds } = useMemo(() => {
     const bookedIds = Array.isArray(existingBookings) ? existingBookings.map((booking: any) => booking.tableId) : [];
@@ -524,13 +532,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     });
   }, []);
 
-  // Check if selection is valid for a table
-  const isValidTableSelection = (table: VenueTable, guestCount: number): { valid: boolean, reason?: string } => {
-    if (table.capacity === 4 && guestCount < 3) {
-      return { valid: false, reason: "4-seat tables require a minimum of 3 guests. Please select a smaller table or add more guests." };
-    }
-    return { valid: true };
-  };
+
 
   const handleConfirmSelection = useCallback(() => {
     if (selectedTable) {
