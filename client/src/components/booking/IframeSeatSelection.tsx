@@ -452,9 +452,14 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
 
   // Mouse event handlers
   const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+    console.log('Canvas clicked at:', event.clientX, event.clientY);
+    console.log('Available tables count:', availableTables.length);
+    
     const clickedTable = getTableAtPosition(event.clientX, event.clientY);
+    console.log('Clicked table:', clickedTable);
     
     if (clickedTable) {
+      console.log('Table selected:', clickedTable.tableNumber, 'capacity:', clickedTable.capacity);
       const validation = isValidTableSelection(clickedTable, desiredGuestCount);
       if (!validation.valid) {
         alert(validation.reason);
@@ -466,15 +471,17 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
       // Skip seat configuration - directly proceed with table selection
       // Generate seat numbers based on guest count
       const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
+      console.log('Proceeding with booking:', { tableId: clickedTable.id, seatNumbers });
       onComplete({
         tableId: clickedTable.id,
         seatNumbers: seatNumbers
       });
     } else {
+      console.log('No table clicked, starting drag');
       setIsDragging(true);
       setLastMousePos({ x: event.clientX, y: event.clientY });
     }
-  }, [getTableAtPosition, desiredGuestCount, isValidTableSelection, onComplete]);
+  }, [getTableAtPosition, desiredGuestCount, isValidTableSelection, onComplete, availableTables]);
 
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     if (isDragging) {
