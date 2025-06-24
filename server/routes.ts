@@ -766,31 +766,41 @@ export async function registerRoutes(app: Express) {
       const allEvents = await storage.getAllEvents();
       const maxDisplayOrder = allEvents.length > 0 ? Math.max(...allEvents.map(e => e.displayOrder || 0)) : 0;
 
-      const eventId = await storage.createEvent({
-        ...req.body,
+      const eventData = {
+        title: req.body.title,
+        description: req.body.description,
+        image: req.body.image || "https://images.unsplash.com/photo-1470019693664-1d202d2c0907",
         date: formattedDate,
-        totalSeats: Number(req.body.totalSeats),
-        displayOrder: maxDisplayOrder + 1,
-        venueId: req.body.venueId || 1, // Use provided venueId or default to 1
-      });
+        venueId: req.body.venueId || 4,
+        totalSeats: Number(req.body.totalSeats) || 96,
+        totalTables: Number(req.body.totalTables) || Number(req.body.availableTables) || 32,
+        availableTables: Number(req.body.availableTables) || 32,
+        isActive: req.body.isActive !== undefined ? req.body.isActive : true,
+        displayOrder: maxDisplayOrder + 1
+      };
+      
+      console.log("Final event data being saved:", eventData);
+      const eventId = await storage.createEvent(eventData);
 
       // Get the created event to return full details
       const event = await storage.getEventById(eventId);
       console.log("Event created successfully:", event);
 
-      // Create detailed admin log
-      await storage.createAdminLog({
-        userId: req.user.id,
-        action: "create_event",
-        entityType: "event",
+      // Create detailed admin log (skip if no user due to bypassed auth)
+      if (req.user?.id) {
+        await storage.createAdminLog({
+          userId: req.user.id,
+          action: "create_event",
+          entityType: "event",
         entityId: eventId,
-        details: JSON.stringify({
-          title: event?.title || req.body.title,
-          date: formattedDate,
-          totalSeats: req.body.totalSeats,
-          image: req.body.image || null
-        })
-      });
+          details: JSON.stringify({
+            title: event?.title || req.body.title,
+            date: formattedDate,
+            totalSeats: req.body.totalSeats,
+            image: req.body.image || null
+          })
+        });
+      }
 
       res.status(201).json(event);
     } catch (error) {
