@@ -28,7 +28,9 @@ app.use(cors(corsOptions));
 
 // Booking success route (BEFORE all middleware)
 app.get('/booking-success', async (req, res) => {
-  console.log("BOOKING SUCCESS ROUTE HIT - EXPRESS ONLY SERVER");
+  console.log("🎯 BOOKING SUCCESS ROUTE HIT - BYPASSING ALL MIDDLEWARE");
+  console.log("Request URL:", req.url);
+  console.log("Query params:", req.query);
   
   try {
     const { session_id } = req.query;
@@ -119,7 +121,7 @@ app.get('/booking-success', async (req, res) => {
       </html>
     `);
   } catch (error) {
-    console.error('Error in booking success route:', error);
+    console.error('Payment verification error:', error);
     res.status(500).send(`
       <!DOCTYPE html>
       <html>

@@ -48,18 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         if (!res.ok) {
-          console.warn(`Auth query failed with status ${res.status}`);
           return null;
         }
         
         return await res.json();
       } catch (error: any) {
-        // Enhanced error handling
-        if (error.name === 'AbortError') {
-          console.warn('Auth query timeout');
-        } else {
-          console.warn('Auth query error:', error);
-        }
         return null;
       }
     },

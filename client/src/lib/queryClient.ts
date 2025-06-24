@@ -244,22 +244,14 @@ export const getQueryFn: <T>(options: {
         cache: "no-cache"
       });
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        console.log(`Auth query returned 401 for ${url}, returning null as expected`);
+      if (unauthorizedBehavior === "returnNull" && (res.status === 401 || res.status === 204)) {
         return null;
       }
 
       await throwIfResNotOk(res);
       return await res.json();
     } catch (error) {
-      // Enhanced error handling for auth queries
       if (unauthorizedBehavior === "returnNull") {
-        // For auth queries, always return null on any error to prevent unhandled rejections
-        if (error instanceof Error && error.message.includes('401')) {
-          console.log(`Auth query failed with 401 for ${queryKey[0]}, returning null as expected`);
-        } else {
-          console.log(`Auth query failed for ${queryKey[0]}, returning null to prevent rejection`);
-        }
         return null;
       }
       
