@@ -94,6 +94,14 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
         </AlertDescription>
       </Alert>
 
+      {/* Additional Beverages Notice */}
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          Additional beverages will be available for purchase upon arrival and throughout the evening.
+        </AlertDescription>
+      </Alert>
+
       {/* Wine by the Glass */}
       <Card>
         <CardHeader>
