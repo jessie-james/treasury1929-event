@@ -2758,8 +2758,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Get detailed order information for an event (with tables and guests)
-  app.get("/api/events/:id/orders", async (req, res) => {
+  // Get detailed order information for an event (new orders page format)
+  app.get("/api/events/:id/orders-detailed", async (req, res) => {
     try {
       if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager", "hostess"].includes(req.user?.role || "")) {
         return res.status(401).json({ message: "Unauthorized" });

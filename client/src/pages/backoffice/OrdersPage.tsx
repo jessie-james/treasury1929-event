@@ -50,6 +50,83 @@ export default function OrdersPage() {
     setLocation('/backoffice');
   };
 
+  // Helper function to transform food selections from API format
+  const transformFoodSelections = (foodSelections: any[]): Array<{type: string, name: string, allergens: string[], dietary: string[]}> => {
+    const items: Array<{type: string, name: string, allergens: string[], dietary: string[]}> = [];
+    
+    if (Array.isArray(foodSelections)) {
+      foodSelections.forEach((selection: any) => {
+        if (selection.salad) {
+          items.push({
+            type: "Salad",
+            name: `Salad Option ${selection.salad}`,
+            allergens: [],
+            dietary: []
+          });
+        }
+        if (selection.entree) {
+          items.push({
+            type: "Entree", 
+            name: `Entree Option ${selection.entree}`,
+            allergens: [],
+            dietary: []
+          });
+        }
+        if (selection.dessert) {
+          items.push({
+            type: "Dessert",
+            name: `Dessert Option ${selection.dessert}`,
+            allergens: [],
+            dietary: []
+          });
+        }
+      });
+    }
+    
+    return items;
+  };
+
+  // Helper function to transform kitchen dashboard data format to orders page format
+  const transformOrdersData = (ordersResponse: any): EventOrder[] => {
+    if (!ordersResponse || !ordersResponse.ordersByTable) {
+      return [];
+    }
+
+    const transformedOrders: EventOrder[] = [];
+    
+    Object.entries(ordersResponse.ordersByTable).forEach(([tableId, tableOrders]: [string, any]) => {
+      if (Array.isArray(tableOrders) && tableOrders.length > 0) {
+        // Use the first order for table-level info
+        const firstOrder = tableOrders[0];
+        
+        const eventOrder: EventOrder = {
+          bookingId: firstOrder.bookingId,
+          tableNumber: parseInt(tableId),
+          tableId: parseInt(tableId),
+          tableZone: "General", // Default since not available
+          tablePriceCategory: "Standard", // Default since not available  
+          partySize: tableOrders.length,
+          customerEmail: "customer@example.com", // Default since not available
+          status: firstOrder.status || "confirmed",
+          createdAt: new Date().toISOString(),
+          checkedIn: false, // Default since not available
+          checkedInAt: null,
+          guestOrders: tableOrders.map((order: any, index: number) => ({
+            guestName: order.guestName || `Guest ${index + 1}`,
+            guestNumber: index + 1,
+            items: transformFoodSelections(order.foodSelections || [])
+          })),
+          totalGuests: tableOrders.length,
+          hasOrders: tableOrders.some((order: any) => order.foodSelections && order.foodSelections.length > 0)
+        };
+        
+        transformedOrders.push(eventOrder);
+      }
+    });
+
+    return transformedOrders;
+  };
+
   const generatePDF = async (event: Event, orders: EventOrder[]) => {
     try {
       const doc = new jsPDF();
@@ -168,11 +245,13 @@ export default function OrdersPage() {
 
   // Component to render individual event orders
   const EventOrdersCard = ({ event }: { event: Event }) => {
-    const { data: orders, isLoading } = useQuery<EventOrder[]>({
+    const { data: ordersResponse, isLoading } = useQuery({
       queryKey: [`/api/events/${event.id}/orders`],
       enabled: !!event.id,
     });
 
+    // Transform the kitchen dashboard format to the orders page format
+    const orders: EventOrder[] = ordersResponse ? transformOrdersData(ordersResponse) : [];
     const tablesWithOrders = orders?.filter(order => order.hasOrders) || [];
     const totalGuests = orders?.reduce((sum, order) => sum + order.totalGuests, 0) || 0;
 
