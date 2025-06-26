@@ -2864,9 +2864,19 @@ export async function registerRoutes(app: Express) {
       const originalTableId = originalBooking.tableId;
       const originalSeatNumbers = originalBooking.seatNumbers;
 
-      console.log("Using temporary implementation for seat validation in change-seats endpoint");
-      // In our temporary implementation, we're not performing detailed seat validation
-      // This will be reimplemented with the new approach
+      // Validate that the new table is available (not already booked by someone else)
+      const isTableAvailable = await BookingValidation.validateTableReassignment(
+        tableId, 
+        originalBooking.eventId, 
+        bookingId // Exclude current booking from conflict check
+      );
+
+      if (!isTableAvailable) {
+        return res.status(409).json({ 
+          message: "Cannot change to this table - it is already booked by another customer",
+          code: "TABLE_ALREADY_BOOKED"
+        });
+      }
 
       const updatedBooking = await storage.changeBookingSeats(
         bookingId,

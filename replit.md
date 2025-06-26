@@ -138,6 +138,7 @@ This is a sophisticated mobile-first event venue booking platform designed for l
 - June 24, 2025. Identified frontend authentication session issue preventing event creation in backoffice
 - June 24, 2025. Temporarily bypassed authentication for event creation to restore backoffice functionality
 - June 24, 2025. Fixed event creation database constraints - events now create successfully from backoffice
+- June 26, 2025. Added table booking conflict validation for admin table changes - prevents reassigning customers to already booked tables
 
 ## User Preferences
 

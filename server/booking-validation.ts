@@ -40,8 +40,22 @@ export class BookingValidation {
   }
 
   // Prevent reassigning to already booked tables (admin protection)
-  static async validateTableReassignment(newTableId: number, eventId: number): Promise<boolean> {
-    return await this.validateTableAvailability(newTableId, eventId);
+  static async validateTableReassignment(newTableId: number, eventId: number, excludeBookingId?: number): Promise<boolean> {
+    try {
+      const existingBookings = await storage.getBookings();
+      const conflictingBooking = existingBookings.find(booking => 
+        booking.tableId === newTableId && 
+        booking.eventId === eventId && 
+        booking.status !== "canceled" && 
+        booking.status !== "refunded" &&
+        (excludeBookingId ? booking.id !== excludeBookingId : true)
+      );
+      
+      return !conflictingBooking;
+    } catch (error) {
+      console.error("Error validating table reassignment:", error);
+      return false;
+    }
   }
 
   // Check if event allows booking (not private without proper access)
