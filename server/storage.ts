@@ -730,6 +730,122 @@ export class PgStorage implements IStorage {
     return totals;
   }
 
+  async getEventOrdersWithDetails(eventId: number): Promise<any> {
+    // Get all confirmed bookings for this event with detailed information
+    const bookings = await db
+      .select({
+        id: schema.bookings.id,
+        tableId: schema.bookings.tableId,
+        partySize: schema.bookings.partySize,
+        guestNames: schema.bookings.guestNames,
+        foodSelections: schema.bookings.foodSelections,
+        wineSelections: schema.bookings.wineSelections,
+        customerEmail: schema.bookings.customerEmail,
+        status: schema.bookings.status,
+        createdAt: schema.bookings.createdAt,
+        checkedIn: schema.bookings.checkedIn,
+        checkedInAt: schema.bookings.checkedInAt,
+        tableNumber: schema.tables.tableNumber,
+        tableCapacity: schema.tables.capacity,
+        tableZone: schema.tables.zone,
+        tablePriceCategory: schema.tables.priceCategory,
+      })
+      .from(schema.bookings)
+      .innerJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
+      .where(and(
+        eq(schema.bookings.eventId, eventId),
+        eq(schema.bookings.status, 'confirmed')
+      ))
+      .orderBy(asc(schema.tables.tableNumber));
+
+    // Get all food options to map IDs to names
+    const allFoodOptions = await db.select().from(schema.foodOptions);
+    const foodOptionsMap = new Map(allFoodOptions.map(opt => [opt.id, opt]));
+
+    // Process bookings to include detailed food information
+    const detailedOrders = bookings.map(booking => {
+      const processedFoodSelections = [];
+      
+      if (booking.foodSelections && Array.isArray(booking.foodSelections)) {
+        booking.foodSelections.forEach((selection, index) => {
+          if (selection && typeof selection === 'object') {
+            const guestName = booking.guestNames && booking.guestNames[index] 
+              ? booking.guestNames[index] 
+              : `Guest ${index + 1}`;
+            
+            const guestOrder = {
+              guestName,
+              guestNumber: index + 1,
+              items: [] as Array<{type: string, name: string, allergens: string[], dietary: string[]}>
+            };
+
+            // Process salad
+            if (selection.salad && typeof selection.salad === 'number') {
+              const foodOption = foodOptionsMap.get(selection.salad);
+              if (foodOption) {
+                guestOrder.items.push({
+                  type: 'Salad',
+                  name: foodOption.name,
+                  allergens: foodOption.allergens || [],
+                  dietary: foodOption.dietaryRestrictions || []
+                });
+              }
+            }
+
+            // Process entree
+            if (selection.entree && typeof selection.entree === 'number') {
+              const foodOption = foodOptionsMap.get(selection.entree);
+              if (foodOption) {
+                guestOrder.items.push({
+                  type: 'Entree',
+                  name: foodOption.name,
+                  allergens: foodOption.allergens || [],
+                  dietary: foodOption.dietaryRestrictions || []
+                });
+              }
+            }
+
+            // Process dessert
+            if (selection.dessert && typeof selection.dessert === 'number') {
+              const foodOption = foodOptionsMap.get(selection.dessert);
+              if (foodOption) {
+                guestOrder.items.push({
+                  type: 'Dessert',
+                  name: foodOption.name,
+                  allergens: foodOption.allergens || [],
+                  dietary: foodOption.dietaryRestrictions || []
+                });
+              }
+            }
+
+            if (guestOrder.items.length > 0) {
+              processedFoodSelections.push(guestOrder);
+            }
+          }
+        });
+      }
+
+      return {
+        bookingId: booking.id,
+        tableNumber: booking.tableNumber,
+        tableId: booking.tableId,
+        tableZone: booking.tableZone || 'General',
+        tablePriceCategory: booking.tablePriceCategory || 'standard',
+        partySize: booking.partySize,
+        customerEmail: booking.customerEmail,
+        status: booking.status,
+        createdAt: booking.createdAt,
+        checkedIn: booking.checkedIn,
+        checkedInAt: booking.checkedInAt,
+        guestOrders: processedFoodSelections,
+        totalGuests: processedFoodSelections.length,
+        hasOrders: processedFoodSelections.length > 0
+      };
+    });
+
+    return detailedOrders;
+  }
+
   async updateBookingFoodSelections(bookingId: number, foodSelections: any, modifiedBy: number): Promise<any> {
     const result = await db.update(schema.bookings)
       .set({ 

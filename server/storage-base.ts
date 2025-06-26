@@ -115,6 +115,7 @@ export interface IStorage {
   deleteFoodOption(id: number): Promise<boolean>;
   updateFoodOptionsOrder(orderedIds: number[]): Promise<boolean>;
   getEventFoodTotals(eventId: number): Promise<any>;
+  getEventOrdersWithDetails(eventId: number): Promise<any>;
 
   // Booking food selections methods
   updateBookingFoodSelections(bookingId: number, foodSelections: any, modifiedBy: number): Promise<any>;

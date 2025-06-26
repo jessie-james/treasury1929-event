@@ -2758,6 +2758,26 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Get detailed order information for an event (with tables and guests)
+  app.get("/api/events/:id/orders", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager", "hostess"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.id);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const orders = await storage.getEventOrdersWithDetails(eventId);
+      res.json(orders);
+    } catch (error) {
+      console.error("Error fetching event orders:", error);
+      res.status(500).json({ message: "Failed to fetch event orders" });
+    }
+  });
+
   // BOOKING MANAGEMENT ENDPOINTS
 
   // Get detailed booking info
