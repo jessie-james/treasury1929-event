@@ -252,8 +252,8 @@ export default function OrdersPage() {
 
     // Transform the kitchen dashboard format to the orders page format
     const orders: EventOrder[] = ordersResponse ? transformOrdersData(ordersResponse) : [];
-    const tablesWithOrders = orders?.filter(order => order.hasOrders) || [];
-    const totalGuests = orders?.reduce((sum, order) => sum + order.totalGuests, 0) || 0;
+    const tablesWithOrders = Array.isArray(orders) ? orders.filter(order => order.hasOrders) : [];
+    const totalGuests = Array.isArray(orders) ? orders.reduce((sum, order) => sum + order.totalGuests, 0) : 0;
 
     return (
       <Card className="overflow-hidden">
