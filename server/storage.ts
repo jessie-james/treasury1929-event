@@ -8,7 +8,7 @@ import {
   type InsertAdminLog, type AdminLog, type Venue, type Stage, type VenueWithTables
 } from "@shared/schema";
 import type { IStorage } from "./storage-base.js";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc, gt, lt, sql } from "drizzle-orm";
 import { hashPassword } from "./auth.js";
 
 neonConfig.webSocketConstructor = ws;
@@ -899,12 +899,13 @@ export class PgStorage implements IStorage {
   }
 
   async getActiveSeatHolds(eventId: number, tableId: number): Promise<any[]> {
+    const currentTime = new Date();
     return await db.select().from(schema.seatHolds)
       .where(and(
         eq(schema.seatHolds.eventId, eventId),
         eq(schema.seatHolds.tableId, tableId),
         eq(schema.seatHolds.status, 'active'),
-        sql`${schema.seatHolds.holdExpiry} > NOW()`
+        gt(schema.seatHolds.holdExpiry, currentTime)
       ));
   }
 
