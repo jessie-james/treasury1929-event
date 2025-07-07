@@ -5,9 +5,20 @@ import { format } from "date-fns";
 import { type Event } from "@shared/schema";
 import { Link, useLocation } from "wouter";
 import { EventTypeIndicator } from "./EventTypeIndicator";
+import { useQuery } from "@tanstack/react-query";
 
 export function EventCard({ event }: { event: Event }) {
   const [_, setLocation] = useLocation();
+
+  // Check if event has venue layouts to determine actual booking type
+  const { data: venueLayouts } = useQuery({
+    queryKey: [`/api/events/${event.id}/venue-layouts`],
+    enabled: !!event.id,
+    retry: false, // Don't retry on 404
+  });
+
+  const hasVenueLayouts = venueLayouts && Array.isArray(venueLayouts) && venueLayouts.length > 0;
+  const isTicketOnly = event.eventType === 'ticket-only' || !hasVenueLayouts;
   
   const availability = 
     event.availableSeats === 0
@@ -54,7 +65,7 @@ export function EventCard({ event }: { event: Event }) {
           <Button 
             size="sm"
             onClick={() => {
-              if (event.eventType === 'ticket-only') {
+              if (isTicketOnly) {
                 setLocation(`/events/${event.id}/tickets`);
               } else {
                 setLocation(`/events/${event.id}/book`);
@@ -67,7 +78,7 @@ export function EventCard({ event }: { event: Event }) {
               ? "Sold Out" 
               : event.isPrivate 
                 ? "Private Event" 
-                : event.eventType === 'ticket-only' 
+                : isTicketOnly 
                   ? "Buy Tickets" 
                   : "Book Table"
             }

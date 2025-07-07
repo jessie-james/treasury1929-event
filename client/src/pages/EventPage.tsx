@@ -2,7 +2,6 @@ import { useParams, useLocation } from "wouter";
 import { EventDetails } from "@/components/events/EventDetails";
 
 export default function EventPage() {
-  const [_, setLocation] = useLocation();
   const params = useParams<{ id: string }>();
   const eventId = parseInt(params.id);
 
@@ -10,7 +9,7 @@ export default function EventPage() {
     <div className="container py-8">
       <EventDetails
         eventId={eventId}
-        onBookNow={() => setLocation(`/events/${eventId}/book`)}
+        // No onBookNow prop - let EventDetails handle smart routing
       />
     </div>
   );

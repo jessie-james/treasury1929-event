@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { IframeSeatSelection } from "@/components/booking/IframeSeatSelection";
 import { FoodSelection } from "@/components/booking/FoodSelection";
@@ -33,6 +33,13 @@ export default function BookingPage() {
   const [guestNames, setGuestNames] = useState<Record<number, string>>({});
   const [holdStartTime, setHoldStartTime] = useState<Date | null>(null);
 
+  // Check if event has venue layouts - if not, redirect to ticket-only booking
+  const { data: venueLayouts, isLoading: isLoadingVenueLayouts, error: venueLayoutsError } = useQuery({
+    queryKey: [`/api/events/${eventId}/venue-layouts`],
+    enabled: !!eventId,
+    retry: false, // Don't retry on 404
+  });
+
   const { data: existingBookings } = useQuery<Booking[]>({
     queryKey: ["/api/user/bookings"],
   });
@@ -43,11 +50,40 @@ export default function BookingPage() {
   const tableValidation = useTableValidation();
   const { data: ticketCutoffData } = useTicketCutoffCheck(eventId);
 
+  // Redirect to ticket-only booking if event has no venue layouts
+  useEffect(() => {
+    if (!isLoadingVenueLayouts && venueLayoutsError) {
+      // Check if it's a 404 error (no venue layouts found)
+      const errorMessage = venueLayoutsError.message || '';
+      const is404Error = errorMessage.includes('404') || 
+                        errorMessage.includes('No active venues found') ||
+                        errorMessage.includes('No active venues');
+      
+      if (is404Error) {
+        console.log('📝 Event has no venue layouts - redirecting to ticket-only booking');
+        setLocation(`/events/${eventId}/tickets`);
+        return;
+      }
+    }
+  }, [isLoadingVenueLayouts, venueLayoutsError, eventId, setLocation]);
+
   const progress =
     step === "venue" ? 20 : 
     step === "seats" ? 40 : 
     step === "food" ? 60 : 
     step === "wine" ? 80 : 100;
+
+  // Show loading state while checking venue layouts
+  if (isLoadingVenueLayouts) {
+    return (
+      <div className="container py-8 space-y-6">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Checking event configuration...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-8 space-y-6">

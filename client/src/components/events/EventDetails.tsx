@@ -5,15 +5,16 @@ import { format } from "date-fns";
 import { Calendar, MapPin, Ticket, AlertTriangle } from "lucide-react";
 import { useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export function EventDetails({ 
   eventId,
   onBookNow 
 }: { 
   eventId: number;
-  onBookNow: () => void;
+  onBookNow?: () => void;
 }) {
+  const [_, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const { data: event, isLoading } = useQuery<Event>({
     queryKey: [`/api/events/${eventId}`],
@@ -25,6 +26,15 @@ export function EventDetails({
   });
 
   const hasBooking = bookings?.some(booking => booking.eventId === eventId);
+
+  // Check if event has venue layouts to determine booking type
+  const { data: venueLayouts } = useQuery({
+    queryKey: [`/api/events/${eventId}/venue-layouts`],
+    enabled: !!eventId,
+    retry: false, // Don't retry on 404
+  });
+
+  const hasVenueLayouts = venueLayouts && Array.isArray(venueLayouts) && venueLayouts.length > 0;
 
   useEffect(() => {
     // Setup WebSocket connection
@@ -115,7 +125,17 @@ export function EventDetails({
           </div>
           <Button 
             size="lg"
-            onClick={onBookNow}
+            onClick={() => {
+              if (onBookNow) {
+                onBookNow();
+              } else {
+                // Smart routing based on venue layout availability
+                const bookingPath = hasVenueLayouts 
+                  ? `/events/${eventId}/book`
+                  : `/events/${eventId}/tickets`;
+                setLocation(bookingPath);
+              }
+            }}
             disabled={event.availableTables === 0}
           >
             {event.availableTables === 0 ? "Sold Out" : hasBooking ? "Book More Tickets" : "Book Now"}
