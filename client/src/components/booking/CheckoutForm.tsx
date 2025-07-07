@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 interface CheckoutFormProps {
   eventId: number;
@@ -9,6 +10,14 @@ interface CheckoutFormProps {
   guestNames?: Record<number, string>;
   selectedVenue?: string;
   onSuccess?: () => void;
+}
+
+interface Event {
+  id: number;
+  basePrice: number;
+  includeFoodService: boolean;
+  includeBeverages: boolean;
+  includeAlcohol: boolean;
 }
 
 const CheckoutForm: React.FC<CheckoutFormProps> = ({ 
@@ -23,6 +32,30 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch event details for pricing
+  const { data: event } = useQuery<Event>({
+    queryKey: [`/api/events/${eventId}`],
+  });
+
+  // Calculate pricing using new $130 per person model
+  const calculatePricing = () => {
+    const basePrice = (event?.basePrice || 13000) * selectedSeats.length; // $130 per person
+    const winePrice = wineSelections.reduce((total, wine) => {
+      return total + (wine.price * wine.quantity);
+    }, 0);
+    
+    return {
+      basePrice,
+      winePrice,
+      totalPrice: basePrice + winePrice,
+      basePriceFormatted: `$${(basePrice / 100).toFixed(2)}`,
+      winePriceFormatted: `$${(winePrice / 100).toFixed(2)}`,
+      totalPriceFormatted: `$${((basePrice + winePrice) / 100).toFixed(2)}`
+    };
+  };
+
+  const pricing = calculatePricing();
 
   const handleStripeCheckout = async () => {
     setIsLoading(true);
@@ -39,7 +72,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
           eventId,
           tableId,
           selectedSeats,
-          amount: Math.round(19.99 * selectedSeats.length * 100), // amount in cents
+          amount: pricing.totalPrice, // NEW: $130 per person + wine
           foodSelections,
           wineSelections,
           guestNames,
@@ -89,9 +122,48 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
               <span>{selectedVenue}</span>
             </div>
           )}
-          <div className="border-t pt-2 flex justify-between font-semibold text-lg">
-            <span>Total:</span>
-            <span>${(19.99 * selectedSeats.length).toFixed(2)}</span>
+          
+          {/* NEW PRICING BREAKDOWN */}
+          <div className="border-t pt-2 space-y-1">
+            <div className="flex justify-between">
+              <span>{selectedSeats.length} person{selectedSeats.length > 1 ? 's' : ''} × $130.00:</span>
+              <span>{pricing.basePriceFormatted}</span>
+            </div>
+            <div className="text-sm text-gray-600 ml-4">
+              (Includes salad + entrée + dessert selection)
+            </div>
+            
+            {wineSelections.length > 0 && (
+              <>
+                <div className="flex justify-between">
+                  <span>Wine & Beverages:</span>
+                  <span>{pricing.winePriceFormatted}</span>
+                </div>
+                {wineSelections.map((wine, index) => (
+                  <div key={index} className="text-sm text-gray-600 ml-4 flex justify-between">
+                    <span>{wine.name} × {wine.quantity}</span>
+                    <span>${((wine.price * wine.quantity) / 100).toFixed(2)}</span>
+                  </div>
+                ))}
+              </>
+            )}
+            
+            <div className="border-t pt-2 flex justify-between font-semibold text-lg">
+              <span>Total:</span>
+              <span>{pricing.totalPriceFormatted}</span>
+            </div>
+          </div>
+          
+          {/* SERVICE NOTICES */}
+          <div className="text-xs text-gray-500 space-y-1 pt-2">
+            <p>• Water provided with all meals</p>
+            {wineSelections.length > 0 && (
+              <>
+                <p>• Must be 21+ to purchase alcohol</p>
+                <p>• ID verification required at venue</p>
+              </>
+            )}
+            <p>• Mixed drinks available at venue - arrive 10 minutes early to order</p>
           </div>
         </div>
       </div>

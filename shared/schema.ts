@@ -47,6 +47,13 @@ export const events = pgTable("events", {
   eventType: varchar("event_type", { length: 50 }).default("full").notNull(), // 'full' or 'ticket-only'
   isPrivate: boolean("is_private").default(false),
   ticketCutoffDays: integer("ticket_cutoff_days").default(3),
+  // NEW PRICING SYSTEM - $130 per person
+  basePrice: integer("base_price").default(13000), // $130.00 per person in cents
+  // Event toggles for flexibility
+  includeFoodService: boolean("include_food_service").default(true),
+  includeBeverages: boolean("include_beverages").default(true),
+  includeAlcohol: boolean("include_alcohol").default(true),
+  maxTicketsPerPurchase: integer("max_tickets_per_purchase").default(8), // 6 for ticket-only events
 });
 
 // Tickets Table
@@ -141,8 +148,13 @@ export const bookings = pgTable("bookings", {
   checkedInBy: integer("checked_in_by"),
   selectedVenue: varchar("selected_venue", { length: 100 }), // 'Main Floor' or 'Mezzanine'
   holdStartTime: timestamp("hold_start_time"), // For 20-minute timeout
+  holdExpiry: timestamp("hold_expiry"), // Calculated expiry time for efficient queries
   wineSelections: json("wine_selections").$type<any[]>().default([]),
   orderTracking: text("orderTracking"),
+  // Concurrency control fields
+  lockToken: varchar("lock_token", { length: 255 }), // UUID for seat hold locks
+  lockExpiry: timestamp("lock_expiry"), // When the lock expires
+  version: integer("version").default(1), // For optimistic locking
 });
 
 // Unique constraint for bookings (one table per event)
@@ -157,6 +169,23 @@ export const bookingTableEventUnique = pgTable(
     pk: primaryKey({ columns: [t.eventId, t.tableId] }),
   })
 );
+
+// Seat Holds Table - For concurrency control and timer-based holds
+export const seatHolds = pgTable("seat_holds", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").notNull(),
+  tableId: integer("table_id").notNull(),
+  seatNumbers: integer("seat_numbers").array().default([]),
+  userId: integer("user_id"),
+  sessionId: varchar("session_id", { length: 255 }).notNull(),
+  holdStartTime: timestamp("hold_start_time").defaultNow().notNull(),
+  holdExpiry: timestamp("hold_expiry").notNull(),
+  lockToken: varchar("lock_token", { length: 255 }).notNull(),
+  status: varchar("status", { length: 50 }).default("active").notNull(), // 'active', 'completed', 'expired'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  unique: unique().on(table.eventId, table.tableId), // One hold per table per event
+}));
 
 // Menu Items Table
 export const menuItems = pgTable("menu_items", {
@@ -177,7 +206,7 @@ export const foodOptions = pgTable("food_options", {
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   type: varchar("type", { length: 50 }).notNull(), // 'salad', 'entree', 'dessert', 'wine_glass', 'wine_bottle'
-  price: integer("price").notNull(), // Price in cents
+  price: integer("price").default(0), // Price in cents - NOW FREE for food items ($130 per person covers all food)
   allergens: json("allergens").$type<string[]>().default([]),
   dietaryRestrictions: json("dietary_restrictions").$type<string[]>().default([]),
   displayOrder: integer("display_order").default(0),

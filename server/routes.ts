@@ -2864,17 +2864,17 @@ export async function registerRoutes(app: Express) {
       const originalTableId = originalBooking.tableId;
       const originalSeatNumbers = originalBooking.seatNumbers;
 
-      // Validate that the new table is available (not already booked by someone else)
-      const isTableAvailable = await BookingValidation.validateTableReassignment(
+      // ENHANCED: Validate table reassignment with detailed error messages
+      const validationResult = await BookingValidation.validateTableReassignment(
         tableId, 
         originalBooking.eventId, 
         bookingId // Exclude current booking from conflict check
       );
 
-      if (!isTableAvailable) {
+      if (!validationResult.valid) {
         return res.status(409).json({ 
-          message: "Cannot change to this table - it is already booked by another customer",
-          code: "TABLE_ALREADY_BOOKED"
+          message: validationResult.reason || "Cannot change to this table",
+          code: "TABLE_MODIFICATION_BLOCKED"
         });
       }
 

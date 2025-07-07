@@ -4,6 +4,7 @@ import { registerPaymentRoutes } from "./routes-payment";
 import { registerPricingRoutes } from "./routes-pricing";
 import { registerVenueRoutes } from "./routes-venue";
 import { registerSeatSelectionRoutes } from "./routes-seat-selection";
+import { registerSeatHoldRoutes } from "./routes-seat-holds";
 import { setupVite, log, serveStatic } from "./vite";
 import { storage } from "./storage";
 // import './api-server'; // Disabled to prevent port conflicts
@@ -408,6 +409,9 @@ app.use((req, res, next) => {
     
     log("Setting up seat selection routes...");
     registerSeatSelectionRoutes(app);
+    
+    log("Setting up seat hold routes...");
+    registerSeatHoldRoutes(app);
     
     log("Setting up payment routes...");
     registerPaymentRoutes(app);

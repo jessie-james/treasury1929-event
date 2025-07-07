@@ -85,20 +85,21 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
         </p>
       </div>
 
-      {/* Alcohol Policy Notice */}
+      {/* ENHANCED ALCOHOL NOTICES */}
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <strong>21+ Only:</strong> Valid ID required for alcohol service. 
-          Wine orders can be modified until 48 hours before your event.
+          <strong>Must be 21+ to purchase alcohol</strong><br/>
+          ID verification required at venue for alcoholic beverages
         </AlertDescription>
       </Alert>
 
-      {/* Additional Beverages Notice */}
+      {/* MIXED DRINKS NOTICE */}
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          Additional beverages will be available for purchase upon arrival and throughout the evening.
+          <strong>Mixed drinks available at venue</strong><br/>
+          Arrive 10 minutes early to order from our bar
         </AlertDescription>
       </Alert>
 

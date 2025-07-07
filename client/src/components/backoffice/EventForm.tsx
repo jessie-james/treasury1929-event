@@ -34,6 +34,13 @@ const eventFormSchema = z.object({
   image: z.string().min(1, "Image is required"),
   date: z.string().min(1, "Date is required"),
   isActive: z.boolean().default(true),
+  // NEW EVENT FLEXIBILITY TOGGLES
+  includeFoodService: z.boolean().default(true),
+  includeBeverages: z.boolean().default(true),
+  includeAlcohol: z.boolean().default(true),
+  isPrivate: z.boolean().default(false),
+  eventType: z.enum(['full', 'ticket-only']).default('full'),
+  maxTicketsPerPurchase: z.number().min(1).max(8).default(8),
 });
 
 type EventFormData = z.infer<typeof eventFormSchema>;

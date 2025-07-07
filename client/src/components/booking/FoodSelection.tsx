@@ -201,7 +201,26 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
 
   return (
     <div className="space-y-4">
-
+      
+      {/* NEW PRICING NOTICE */}
+      <div className="text-center space-y-3">
+        <h2 className="text-2xl font-bold">Food Selection</h2>
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+          <p className="text-sm text-green-800 font-medium">
+            Food Selection Included • No Additional Charge
+          </p>
+          <p className="text-xs text-green-600 mt-1">
+            Your $130 per person ticket includes salad + entrée + dessert selection
+          </p>
+        </div>
+        
+        {/* WATER NOTICE */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+          <p className="text-xs text-blue-600">
+            • Water provided with all meals
+          </p>
+        </div>
+      </div>
 
       {/* Progress indicator */}
       <div className="space-y-2">

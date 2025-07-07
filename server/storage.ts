@@ -878,6 +878,67 @@ export class PgStorage implements IStorage {
     return true;
   }
 
+  // Seat Hold methods for concurrency control
+  async createSeatHold(holdData: any): Promise<number | null> {
+    try {
+      // First, clean up any expired holds for this table
+      await db.delete(schema.seatHolds)
+        .where(and(
+          eq(schema.seatHolds.eventId, holdData.eventId),
+          eq(schema.seatHolds.tableId, holdData.tableId),
+          sql`${schema.seatHolds.holdExpiry} < NOW()`
+        ));
+
+      // Try to create the new hold
+      const result = await db.insert(schema.seatHolds).values(holdData).returning({ id: schema.seatHolds.id });
+      return result[0].id;
+    } catch (error) {
+      console.error("Error creating seat hold:", error);
+      return null;
+    }
+  }
+
+  async getActiveSeatHolds(eventId: number, tableId: number): Promise<any[]> {
+    return await db.select().from(schema.seatHolds)
+      .where(and(
+        eq(schema.seatHolds.eventId, eventId),
+        eq(schema.seatHolds.tableId, tableId),
+        eq(schema.seatHolds.status, 'active'),
+        sql`${schema.seatHolds.holdExpiry} > NOW()`
+      ));
+  }
+
+  async getSeatHoldByToken(lockToken: string): Promise<any> {
+    const result = await db.select().from(schema.seatHolds)
+      .where(eq(schema.seatHolds.lockToken, lockToken));
+    return result[0] || null;
+  }
+
+  async expireSeatHold(holdId: number): Promise<boolean> {
+    const result = await db.update(schema.seatHolds)
+      .set({ status: 'expired' })
+      .where(eq(schema.seatHolds.id, holdId));
+    return result.rowCount > 0;
+  }
+
+  async completeSeatHold(holdId: number): Promise<boolean> {
+    const result = await db.update(schema.seatHolds)
+      .set({ status: 'completed' })
+      .where(eq(schema.seatHolds.id, holdId));
+    return result.rowCount > 0;
+  }
+
+  // Clean up expired holds periodically
+  async cleanupExpiredHolds(): Promise<number> {
+    const result = await db.update(schema.seatHolds)
+      .set({ status: 'expired' })
+      .where(and(
+        eq(schema.seatHolds.status, 'active'),
+        sql`${schema.seatHolds.holdExpiry} < NOW()`
+      ));
+    return result.rowCount;
+  }
+
   // Admin Log methods
   async createAdminLog(logData: InsertAdminLog): Promise<number> {
     const result = await db.insert(schema.adminLogs).values(logData).returning({ id: schema.adminLogs.id });
