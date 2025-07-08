@@ -42,6 +42,7 @@ const eventFormSchema = z.object({
   isPrivate: z.boolean().default(false),
   eventType: z.enum(['full', 'ticket-only']).default('full'),
   maxTicketsPerPurchase: z.number().min(1).max(8).default(8),
+  ticketPrice: z.number().min(100).default(5000), // $50.00 in cents
 });
 
 type EventFormData = z.infer<typeof eventFormSchema>;
@@ -98,6 +99,7 @@ export function EventForm({ event, onClose }: Props) {
       isPrivate: event.isPrivate ?? false,
       eventType: event.eventType ?? 'full',
       maxTicketsPerPurchase: event.maxTicketsPerPurchase ?? 8,
+      ticketPrice: event.ticketPrice ?? 5000,
     } : {
       title: "",
       description: "",
@@ -111,6 +113,7 @@ export function EventForm({ event, onClose }: Props) {
       isPrivate: false,
       eventType: 'full',
       maxTicketsPerPurchase: 8,
+      ticketPrice: 5000,
     },
   });
 
@@ -470,7 +473,55 @@ export function EventForm({ event, onClose }: Props) {
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="eventType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Event Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select event type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="full">Full Event (with venue/table selection)</SelectItem>
+                      <SelectItem value="ticket-only">Ticket-Only Event (simple ticket purchase)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Full events include venue layouts and table selection. Ticket-only events are simple quantity-based purchases.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
+            {form.watch('eventType') === 'ticket-only' && (
+              <FormField
+                control={form.control}
+                name="ticketPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ticket Price (in cents)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        type="number" 
+                        min="100" 
+                        placeholder="5000" 
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Price per ticket in cents. Example: 5000 = $50.00
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}

@@ -26,7 +26,7 @@ export function TicketOnlyFlow({ eventId, onComplete }: TicketOnlyFlowProps) {
     throwOnError: false
   });
 
-  const ticketPrice = 25.00; // Base ticket price
+  const ticketPrice = event?.ticketPrice ? event.ticketPrice / 100 : 25.00; // Convert cents to dollars
   const totalAmount = quantity * ticketPrice;
 
   const updateQuantity = (newQuantity: number) => {

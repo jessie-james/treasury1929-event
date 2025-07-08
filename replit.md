@@ -149,6 +149,13 @@ This is a sophisticated mobile-first event venue booking platform designed for l
   - ✅ Database constraints prevent all race conditions and booking conflicts
   - ✅ Seat hold system with UUID lock tokens ensures secure booking flow
   - ✅ Zero data corruption under maximum concurrent load testing
+- **July 8, 2025. TICKET-ONLY EVENTS & DUAL PRICING SYSTEM**
+  - ✅ Fixed venue layout routing to check event type before loading layouts
+  - ✅ Added separate ticket pricing system for ticket-only events (ticketPrice field)
+  - ✅ Enhanced backoffice EventForm with event type selector and ticket price editor
+  - ✅ Updated TicketOnlyFlow to use event-specific ticket pricing instead of hardcoded $25
+  - ✅ Implemented smart routing: Full events → venue layouts, Ticket-only events → direct ticket purchase
+  - ✅ Database schema updated with ticketPrice column for flexible pricing per event
 
 ## User Preferences
 

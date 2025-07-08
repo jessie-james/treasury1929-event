@@ -47,8 +47,10 @@ export const events = pgTable("events", {
   eventType: varchar("event_type", { length: 50 }).default("full").notNull(), // 'full' or 'ticket-only'
   isPrivate: boolean("is_private").default(false),
   ticketCutoffDays: integer("ticket_cutoff_days").default(3),
-  // NEW PRICING SYSTEM - $130 per person
+  // PRICING SYSTEM - $130 per person for full events
   basePrice: integer("base_price").default(13000), // $130.00 per person in cents
+  // TICKET-ONLY PRICING - separate price for ticket-only events
+  ticketPrice: integer("ticket_price").default(5000), // $50.00 per ticket in cents
   // Event toggles for flexibility
   includeFoodService: boolean("include_food_service").default(true),
   includeBeverages: boolean("include_beverages").default(true),
