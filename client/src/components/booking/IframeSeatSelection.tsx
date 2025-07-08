@@ -328,7 +328,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
               <span className="ml-2">Loading venue layout...</span>
             </div>
           ) : currentVenueLayout ? (
-            <div className="flex justify-center">
+            <div className="w-full overflow-x-auto">
               <TableLayoutCanvas
                 tables={currentVenueLayout.tables.map(table => ({
                   ...table,
@@ -345,7 +345,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
                   setSelectedTable(table);
                 }}
                 selectedTables={selectedTable ? [selectedTable.id] : []}
-                className="max-w-4xl"
+                className=""
               />
             </div>
           ) : (

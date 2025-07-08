@@ -41,10 +41,39 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
   selectedTables = [],
   className = ""
 }) => {
+  // Calculate dynamic canvas dimensions based on venue layout
+  const calculateCanvasDimensions = () => {
+    if (!tables.length && !stages.length) {
+      return { width: 800, height: 600 };
+    }
+
+    // Find the bounds of all tables and stages
+    const allObjects = [...tables, ...stages];
+    const bounds = allObjects.reduce((acc, obj) => {
+      const objRight = obj.x + obj.width;
+      const objBottom = obj.y + obj.height;
+      return {
+        minX: Math.min(acc.minX, obj.x),
+        minY: Math.min(acc.minY, obj.y),
+        maxX: Math.max(acc.maxX, objRight),
+        maxY: Math.max(acc.maxY, objBottom)
+      };
+    }, { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+
+    // Add padding and ensure minimum dimensions
+    const padding = 40;
+    const width = Math.max(800, bounds.maxX - bounds.minX + padding * 2);
+    const height = Math.max(600, bounds.maxY - bounds.minY + padding * 2);
+
+    return { width, height };
+  };
+
+  const canvasDimensions = calculateCanvasDimensions();
+  
   // CRITICAL: Use identical scaling factors for both editor and booking views
   const CANVAS_CONFIG = {
-    width: 800,
-    height: 600,
+    width: canvasDimensions.width,
+    height: canvasDimensions.height,
     padding: 20,
     // These values MUST be identical in both editor and booking components
     tableScale: 1.0,
@@ -243,12 +272,19 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
   };
 
   return (
-    <div className={`table-layout-canvas ${className}`}>
+    <div className={`table-layout-canvas w-full ${className}`}>
       <svg 
-        width={CANVAS_CONFIG.width} 
+        width="100%" 
         height={CANVAS_CONFIG.height}
         viewBox={`0 0 ${CANVAS_CONFIG.width} ${CANVAS_CONFIG.height}`}
-        style={{ border: '1px solid #e5e7eb', borderRadius: '8px', background: '#f9fafb' }}
+        style={{ 
+          border: '1px solid #e5e7eb', 
+          borderRadius: '8px', 
+          background: '#f9fafb',
+          maxWidth: '100%',
+          height: 'auto',
+          minHeight: '400px'
+        }}
       >
         {/* Render stages first (background) */}
         {stages.map((stage, index) => renderStage(stage, index))}
@@ -258,7 +294,7 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
         
         {/* Legend - only show in booking mode */}
         {!isEditorMode && (
-          <g transform={`translate(${CANVAS_CONFIG.width - 150}, 20)`}>
+          <g transform={`translate(${Math.max(20, CANVAS_CONFIG.width - 150)}, 20)`}>
             <rect x="0" y="0" width="130" height="80" fill="white" stroke="#d1d5db" strokeWidth="1" rx="4" />
             <text x="10" y="15" fontSize="12" fontWeight="bold" fill="#374151">Legend:</text>
             <circle cx="15" cy="28" r="6" fill="#10b981" />
