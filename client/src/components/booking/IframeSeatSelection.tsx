@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import { TableLayoutCanvas } from "@/components/shared/TableLayoutCanvas";
 
 interface Props {
   eventId: number;
@@ -61,234 +62,15 @@ interface VenueLayout {
   stages: VenueStage[];
 }
 
-interface ViewportState {
-  zoom: number;
-  panX: number;
-  panY: number;
-}
+// Viewport state removed - handled by TableLayoutCanvas component
 
 // Custom hook for canvas drawing operations
-const useCanvasRenderer = (
-  canvasRef: React.RefObject<HTMLCanvasElement>,
-  venueLayout: VenueLayout | undefined,
-  selectedTable: VenueTable | null,
-  bookedTableIds: number[],
-  viewport: ViewportState
-) => {
-  const drawVenueLayout = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !venueLayout) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Set canvas size to match container
-    const container = canvas.parentElement;
-    if (container) {
-      const rect = container.getBoundingClientRect();
-      canvas.width = rect.width * window.devicePixelRatio;
-      canvas.height = rect.height * window.devicePixelRatio;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-    }
-
-    // Clear canvas
-    ctx.fillStyle = '#f8f9fa';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // Calculate scaling
-    const venue = venueLayout.venue;
-    const canvasWidth = canvas.width / window.devicePixelRatio;
-    const canvasHeight = canvas.height / window.devicePixelRatio;
-    
-    const scaleX = canvasWidth / venue.width;
-    const scaleY = canvasHeight / venue.height;
-    const baseScale = Math.min(scaleX, scaleY) * 0.8;
-    const scale = baseScale * viewport.zoom;
-    
-    const offsetX = (canvasWidth - venue.width * scale) / 2 + viewport.panX;
-    const offsetY = (canvasHeight - venue.height * scale) / 2 + viewport.panY;
-
-    // Save context for transformations
-    ctx.save();
-    
-    // Draw venue outline
-    ctx.strokeStyle = '#d1d5db';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5, 5]);
-    ctx.strokeRect(offsetX, offsetY, venue.width * scale, venue.height * scale);
-    ctx.setLineDash([]);
-
-    // Draw stages
-    venueLayout.stages?.forEach((stage) => {
-      ctx.fillStyle = '#374151';
-      ctx.fillRect(
-        offsetX + stage.x * scale,
-        offsetY + stage.y * scale,
-        stage.width * scale,
-        stage.height * scale
-      );
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${Math.max(12, 14 * scale)}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(
-        'STAGE',
-        offsetX + (stage.x + stage.width / 2) * scale,
-        offsetY + (stage.y + stage.height / 2) * scale
-      );
-    });
-
-    // Draw tables
-    venueLayout.tables?.forEach((table) => {
-      const isSelected = selectedTable?.id === table.id;
-      const isBooked = bookedTableIds.includes(table.id);
-      const isHalf = table.shape === 'half';
-      
-      const tableRadius = Math.min(table.width, table.height) / 2;
-      const seatRadius = Math.max(6, tableRadius * 0.25);
-      const centerX = offsetX + (table.x + tableRadius) * scale;
-      const centerY = offsetY + (table.y + tableRadius) * scale;
-      const scaledTableRadius = tableRadius * scale;
-      const scaledSeatRadius = seatRadius * scale;
-      
-      ctx.save();
-      ctx.translate(centerX, centerY);
-      ctx.rotate((table.rotation * Math.PI) / 180);
-      
-      // Table styling - Green tables as specified
-      if (isBooked) {
-        ctx.fillStyle = '#ef4444';
-        ctx.strokeStyle = '#dc2626';
-      } else if (isSelected) {
-        ctx.fillStyle = '#22c55e';
-        ctx.strokeStyle = '#16a34a';
-      } else {
-        ctx.fillStyle = '#28a745';
-        ctx.strokeStyle = '#1e7e34';
-      }
-      
-      ctx.lineWidth = 2;
-      ctx.shadowColor = 'rgba(0,0,0,0.1)';
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetY = 2;
-      
-      // Draw table shape
-      ctx.beginPath();
-      if (isHalf) {
-        ctx.arc(0, 0, scaledTableRadius, Math.PI, 2 * Math.PI);
-        ctx.closePath();
-      } else {
-        ctx.arc(0, 0, scaledTableRadius, 0, 2 * Math.PI);
-      }
-      ctx.fill();
-      ctx.stroke();
-      
-      // Reset shadow
-      ctx.shadowColor = 'transparent';
-      ctx.shadowBlur = 0;
-      ctx.shadowOffsetY = 0;
-      
-      // Table number
-      const fontSize = Math.max(10, Math.min(20, scaledTableRadius * 0.4));
-      ctx.fillStyle = isSelected ? '#ffffff' : '#374151';
-      ctx.font = `bold ${fontSize}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      const textY = isHalf ? -scaledTableRadius * 0.3 : 0;
-      ctx.fillText(table.tableNumber.toString(), 0, textY);
-      
-      // Draw seats
-      if (table.capacity > 0) {
-        const seatOffset = scaledTableRadius + scaledSeatRadius + 2;
-        
-        for (let i = 0; i < table.capacity; i++) {
-          let angle;
-          
-          if (isHalf) {
-            if (table.capacity === 1) {
-              angle = 270;
-            } else {
-              const span = Math.min(180, table.capacity * 30);
-              const startAngle = 270 - span / 2;
-              angle = startAngle + (i * span) / (table.capacity - 1);
-            }
-          } else {
-            angle = (i * 360) / table.capacity;
-          }
-          
-          const rad = (angle * Math.PI) / 180;
-          const seatX = seatOffset * Math.cos(rad);
-          const seatY = seatOffset * Math.sin(rad);
-          
-          // Seat styling - Grey as specified
-          ctx.fillStyle = '#6c757d';
-          ctx.strokeStyle = '#5a6268';
-          ctx.lineWidth = 1;
-          ctx.shadowColor = 'rgba(0,0,0,0.1)';
-          ctx.shadowBlur = 2;
-          ctx.shadowOffsetY = 1;
-          
-          ctx.beginPath();
-          ctx.arc(seatX, seatY, scaledSeatRadius, 0, 2 * Math.PI);
-          ctx.fill();
-          ctx.stroke();
-          
-          // Reset shadow
-          ctx.shadowColor = 'transparent';
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetY = 0;
-          
-          // Seat number
-          const seatFontSize = Math.max(6, Math.min(12, scaledSeatRadius * 0.8));
-          ctx.fillStyle = '#ffffff';
-          ctx.font = `bold ${seatFontSize}px Arial`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText((i + 1).toString(), seatX, seatY);
-        }
-      }
-      
-      // Selection indicator
-      if (isSelected) {
-        ctx.strokeStyle = '#1d4ed8';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([8, 4]);
-        ctx.beginPath();
-        if (isHalf) {
-          ctx.arc(0, 0, scaledTableRadius + 6, Math.PI, 2 * Math.PI);
-        } else {
-          ctx.arc(0, 0, scaledTableRadius + 6, 0, 2 * Math.PI);
-        }
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-      
-      ctx.restore();
-    });
-    
-    ctx.restore();
-  }, [canvasRef, venueLayout, selectedTable, bookedTableIds, viewport]);
-
-  return { drawVenueLayout };
-};
+// Canvas renderer replaced with unified TableLayoutCanvas component
 
 export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, selectedVenueIndex: propSelectedVenueIndex }: Props) {
   const [selectedTable, setSelectedTable] = useState<VenueTable | null>(null);
   const [selectedVenueIndex, setSelectedVenueIndex] = useState<number>(propSelectedVenueIndex ?? 0);
-  const [viewport, setViewport] = useState<ViewportState>({
-    zoom: 1,
-    panX: 0,
-    panY: 0
-  });
-  const [isDragging, setIsDragging] = useState(false);
-  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
-
   const [desiredGuestCount, setDesiredGuestCount] = useState(2); // Number of guests the user wants to bring
-  
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   console.log('🎯 IframeSeatSelection props:', { eventId, propSelectedVenueIndex, selectedVenueIndex });
 
@@ -401,150 +183,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     };
   }, [currentVenueLayout, existingBookings]);
 
-  // Use custom hook for canvas rendering
-  const { drawVenueLayout } = useCanvasRenderer(
-    canvasRef,
-    currentVenueLayout,
-    selectedTable,
-    bookedTableIds,
-    viewport
-  );
-
-  // Redraw when dependencies change
-  useEffect(() => {
-    drawVenueLayout();
-  }, [drawVenueLayout]);
-
-  // Handle window resize
-  useEffect(() => {
-    const handleResize = () => {
-      drawVenueLayout();
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [drawVenueLayout]);
-
-  // Improved hit detection for circular tables
-  const getTableAtPosition = useCallback((x: number, y: number): VenueTable | null => {
-    if (!currentVenueLayout) return null;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-
-    const rect = canvas.getBoundingClientRect();
-    const canvasX = x - rect.left;
-    const canvasY = y - rect.top;
-
-    const venue = currentVenueLayout.venue;
-    const canvasWidth = rect.width;
-    const canvasHeight = rect.height;
-    
-    const scaleX = canvasWidth / venue.width;
-    const scaleY = canvasHeight / venue.height;
-    const baseScale = Math.min(scaleX, scaleY) * 0.8;
-    const scale = baseScale * viewport.zoom;
-    
-    const offsetX = (canvasWidth - venue.width * scale) / 2 + viewport.panX;
-    const offsetY = (canvasHeight - venue.height * scale) / 2 + viewport.panY;
-
-    // Convert to venue coordinates
-    const venueX = (canvasX - offsetX) / scale;
-    const venueY = (canvasY - offsetY) / scale;
-
-    // Check each available table
-    for (const table of availableTables) {
-      const tableRadius = Math.min(table.width, table.height) / 2;
-      const tableCenterX = table.x + tableRadius;
-      const tableCenterY = table.y + tableRadius;
-      
-      // Calculate distance from click to table center
-      const distance = Math.sqrt(
-        Math.pow(venueX - tableCenterX, 2) + Math.pow(venueY - tableCenterY, 2)
-      );
-      
-      // Check if click is within table radius
-      if (distance <= tableRadius) {
-        return table;
-      }
-    }
-    
-    return null;
-  }, [currentVenueLayout, availableTables, viewport]);
-
-  // Mouse event handlers
-  const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    const clickedTable = getTableAtPosition(event.clientX, event.clientY);
-    
-    if (clickedTable) {
-      const validation = isValidTableSelection(clickedTable, desiredGuestCount);
-      if (!validation.valid) {
-        alert(validation.reason);
-        return;
-      }
-
-      // Just select the table - don't proceed automatically
-      setSelectedTable(clickedTable);
-    } else {
-      setIsDragging(true);
-      setLastMousePos({ x: event.clientX, y: event.clientY });
-    }
-  }, [getTableAtPosition, desiredGuestCount, isValidTableSelection]);
-
-  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (isDragging) {
-      const deltaX = event.clientX - lastMousePos.x;
-      const deltaY = event.clientY - lastMousePos.y;
-      
-      setViewport(prev => ({
-        ...prev,
-        panX: prev.panX + deltaX,
-        panY: prev.panY + deltaY
-      }));
-      
-      setLastMousePos({ x: event.clientX, y: event.clientY });
-    }
-  }, [isDragging, lastMousePos]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  // Wheel event for zooming
-  const handleWheel = useCallback((event: React.WheelEvent<HTMLCanvasElement>) => {
-    event.preventDefault();
-    
-    const zoomSpeed = 0.1;
-    const delta = event.deltaY > 0 ? -zoomSpeed : zoomSpeed;
-    
-    setViewport(prev => ({
-      ...prev,
-      zoom: Math.max(0.2, Math.min(5, prev.zoom + delta))
-    }));
-  }, []);
-
-  // Zoom controls
-  const zoomIn = useCallback(() => {
-    setViewport(prev => ({
-      ...prev,
-      zoom: Math.min(5, prev.zoom + 0.2)
-    }));
-  }, []);
-
-  const zoomOut = useCallback(() => {
-    setViewport(prev => ({
-      ...prev,
-      zoom: Math.max(0.2, prev.zoom - 0.2)
-    }));
-  }, []);
-
-  const resetView = useCallback(() => {
-    setViewport({
-      zoom: 1,
-      panX: 0,
-      panY: 0
-    });
-  }, []);
+  // Table selection logic moved to TableLayoutCanvas component
 
 
 
@@ -678,36 +317,9 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
                 </span>
               ) : null}
             </h3>
-            <div className="flex items-center gap-4">
-              <Badge variant="outline">
-                {availableTables.length} of {currentVenueLayout?.tables?.length || 0} tables available
-              </Badge>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={zoomOut}
-                  disabled={viewport.zoom <= 0.2}
-                >
-                  -
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={resetView}
-                >
-                  Reset
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={zoomIn}
-                  disabled={viewport.zoom >= 5}
-                >
-                  +
-                </Button>
-              </div>
-            </div>
+            <Badge variant="outline">
+              {availableTables.length} of {currentVenueLayout?.tables?.length || 0} tables available
+            </Badge>
           </div>
           
           {isLoading ? (
@@ -716,19 +328,24 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
               <span className="ml-2">Loading venue layout...</span>
             </div>
           ) : currentVenueLayout ? (
-            <div className="relative bg-gray-50 rounded-lg overflow-hidden" style={{ height: '500px' }}>
-              <canvas
-                ref={canvasRef}
-                className="w-full h-full cursor-pointer"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
-                onWheel={handleWheel}
-                style={{ 
-                  display: 'block',
-                  cursor: isDragging ? 'grabbing' : 'grab'
+            <div className="flex justify-center">
+              <TableLayoutCanvas
+                tables={currentVenueLayout.tables.map(table => ({
+                  ...table,
+                  status: bookedTableIds.includes(table.id) ? 'sold' : 'available'
+                }))}
+                stages={currentVenueLayout.stages}
+                isEditorMode={false}
+                onTableSelect={(table) => {
+                  const validation = isValidTableSelection(table, desiredGuestCount);
+                  if (!validation.valid) {
+                    alert(validation.reason);
+                    return;
+                  }
+                  setSelectedTable(table);
                 }}
+                selectedTables={selectedTable ? [selectedTable.id] : []}
+                className="max-w-4xl"
               />
             </div>
           ) : (
