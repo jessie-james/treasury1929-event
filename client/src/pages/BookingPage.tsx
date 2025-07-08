@@ -142,11 +142,14 @@ export default function BookingPage() {
         <div className="p-6">
           {step === "venue" && (
             <VenueFloorSelection
-              venues={[
-                { id: 1, displayName: "Main Floor", description: "Main dining area with stage view", tableCount: 70 },
-                { id: 2, displayName: "Mezzanine", description: "Elevated seating with premium view", tableCount: 13 }
-              ]}
+              venues={venueLayouts?.map((layout, index) => ({
+                id: layout.eventVenueId,
+                displayName: layout.displayName,
+                description: layout.displayName === "Mezzanine" ? "Elevated seating with premium view" : "Main dining area with stage view",
+                tableCount: layout.tables?.length || 0
+              })) || []}
               onSelect={(venueDisplayName, venueIndex) => {
+                console.log('🎯 Venue selected:', { venueDisplayName, venueIndex });
                 setSelectedVenue(venueDisplayName);
                 setSelectedVenueIndex(venueIndex);
                 setStep("seats");

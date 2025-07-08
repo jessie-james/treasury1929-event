@@ -290,8 +290,11 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  console.log('🎯 IframeSeatSelection props:', { eventId, propSelectedVenueIndex, selectedVenueIndex });
+
   // Sync venue index with prop changes
   useEffect(() => {
+    console.log('🔄 Venue index prop changed:', { propSelectedVenueIndex, currentSelectedVenueIndex: selectedVenueIndex });
     if (propSelectedVenueIndex !== undefined) {
       setSelectedVenueIndex(propSelectedVenueIndex);
     }
@@ -328,11 +331,32 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
 
   // Get the current venue layout based on selected venue or fallback to event data
   const currentVenueLayout: VenueLayout | undefined = useMemo(() => {
+    console.log('🔍 VENUE SELECTION DEBUG:', {
+      eventVenueLayouts: eventVenueLayouts,
+      selectedVenueIndex,
+      layoutsLength: eventVenueLayouts?.length,
+      layouts: eventVenueLayouts?.map(l => ({ 
+        eventVenueId: l.eventVenueId, 
+        displayName: l.displayName, 
+        venueName: l.venue.name,
+        tableCount: l.tables?.length 
+      }))
+    });
+    
     // First try new venue layouts system
     if (eventVenueLayouts && Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 0) {
       // Ensure selectedVenueIndex is within bounds
       const safeIndex = Math.max(0, Math.min(selectedVenueIndex, eventVenueLayouts.length - 1));
       const selected = eventVenueLayouts[safeIndex];
+      
+      console.log('📍 Selected venue layout:', {
+        selectedIndex: selectedVenueIndex,
+        safeIndex,
+        selected: selected,
+        venueName: selected?.venue?.name,
+        displayName: selected?.displayName,
+        tableCount: selected?.tables?.length
+      });
       
       if (selected && selected.tables && selected.venue) {
         return {
@@ -345,9 +369,11 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     
     // Fallback to event data structure
     if (eventData && (eventData as any).venueLayout) {
+      console.log('🔄 Using fallback event data');
       return (eventData as any).venueLayout;
     }
     
+    console.log('❌ No venue layout found');
     return undefined;
   }, [eventVenueLayouts, selectedVenueIndex, eventData]);
   
