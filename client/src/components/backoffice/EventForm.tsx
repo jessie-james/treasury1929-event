@@ -33,6 +33,7 @@ const eventFormSchema = z.object({
   description: z.string().min(1, "Description is required"),
   image: z.string().min(1, "Image is required"),
   date: z.string().min(1, "Date is required"),
+  venueId: z.number().min(1, "Venue is required"),
   isActive: z.boolean().default(true),
   // NEW EVENT FLEXIBILITY TOGGLES
   includeFoodService: z.boolean().default(true),
@@ -67,7 +68,8 @@ export function EventForm({ event, onClose }: Props) {
       const response = await apiRequest('GET', '/api/admin/venues');
       if (!response.ok) throw new Error('Failed to fetch venues');
       return response.json();
-    }
+    },
+    throwOnError: false
   });
 
   // Fetch all food options
@@ -90,13 +92,25 @@ export function EventForm({ event, onClose }: Props) {
       date: new Date(event.date).toISOString().split('T')[0],
       venueId: event.venueId,
       isActive: event.isActive ?? true,
+      includeFoodService: event.includeFoodService ?? true,
+      includeBeverages: event.includeBeverages ?? true,
+      includeAlcohol: event.includeAlcohol ?? true,
+      isPrivate: event.isPrivate ?? false,
+      eventType: event.eventType ?? 'full',
+      maxTicketsPerPurchase: event.maxTicketsPerPurchase ?? 8,
     } : {
       title: "",
       description: "",
       image: "",
       date: new Date().toISOString().split('T')[0],
-      venueId: 1, // Default to first venue
+      venueId: venues?.[0]?.id || 1, // Default to first venue
       isActive: true,
+      includeFoodService: true,
+      includeBeverages: true,
+      includeAlcohol: true,
+      isPrivate: false,
+      eventType: 'full',
+      maxTicketsPerPurchase: 8,
     },
   });
 
@@ -110,7 +124,8 @@ export function EventForm({ event, onClose }: Props) {
       if (!response.ok) return null;
       return response.json();
     },
-    enabled: !!selectedVenueId
+    enabled: !!selectedVenueId,
+    throwOnError: false
   });
 
   // Calculate total tables and seats when venue layout changes

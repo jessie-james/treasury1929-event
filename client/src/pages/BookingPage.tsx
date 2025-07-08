@@ -38,6 +38,7 @@ export default function BookingPage() {
     queryKey: [`/api/events/${eventId}/venue-layouts`],
     enabled: !!eventId,
     retry: false, // Don't retry on 404
+    throwOnError: false, // Prevent unhandled promise rejection
   });
 
   console.log('🏛️ Venue layouts debug:', { 

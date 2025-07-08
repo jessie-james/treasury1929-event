@@ -30,6 +30,7 @@ export default function TicketOnlyBookingPage() {
   const { data: event, isLoading: isLoadingEvent } = useQuery<Event>({
     queryKey: [`/api/events/${eventId}`],
     enabled: !!eventId,
+    throwOnError: false
   });
 
   // Check ticket cutoff

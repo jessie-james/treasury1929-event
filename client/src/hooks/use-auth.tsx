@@ -61,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetchOnMount: false,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+    throwOnError: false, // Prevent unhandled promise rejection
   });
 
   const loginMutation = useMutation({

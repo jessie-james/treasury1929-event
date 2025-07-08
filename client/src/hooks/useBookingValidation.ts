@@ -44,6 +44,7 @@ export function useTicketCutoffCheck(eventId: number) {
     enabled: !!eventId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: false,
+    throwOnError: false, // Prevent unhandled promise rejection
   });
 }
 

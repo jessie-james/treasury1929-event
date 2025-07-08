@@ -304,14 +304,16 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
   const { data: eventVenueLayouts, isLoading: isLoadingVenues, error: venueError } = useQuery({
     queryKey: [`/api/events/${eventId}/venue-layouts`],
     enabled: !!eventId,
-    retry: 1
+    retry: 1,
+    throwOnError: false
   });
 
   // Fallback: Fetch event data if venue layouts aren't available
   const { data: eventData, isLoading: isLoadingEvent } = useQuery({
     queryKey: [`/api/events/${eventId}`],
     enabled: !!eventId && (!eventVenueLayouts || !!venueError),
-    retry: 2
+    retry: 2,
+    throwOnError: false
   });
 
   // Fetch existing bookings
@@ -327,6 +329,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     queryKey: [`/api/events/${eventId}/availability`],
     enabled: !!eventId,
     refetchInterval: 15000, // Refresh every 15 seconds during booking
+    throwOnError: false
   });
 
   // Get the current venue layout based on selected venue or fallback to event data

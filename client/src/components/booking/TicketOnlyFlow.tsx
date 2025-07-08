@@ -22,7 +22,8 @@ export function TicketOnlyFlow({ eventId, onComplete }: TicketOnlyFlowProps) {
 
   // Fetch event details
   const { data: event, isLoading } = useQuery<Event>({
-    queryKey: [`/api/events/${eventId}`]
+    queryKey: [`/api/events/${eventId}`],
+    throwOnError: false
   });
 
   const ticketPrice = 25.00; // Base ticket price
