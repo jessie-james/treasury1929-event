@@ -41,57 +41,12 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
   selectedTables = [],
   className = ""
 }) => {
-  // Calculate dynamic canvas dimensions based on venue layout
-  const calculateCanvasDimensions = () => {
-    if (!tables.length && !stages.length) {
-      return { width: 800, height: 600 };
-    }
-
-    // Find the bounds including tables with their seats
-    let minX = 0, minY = 0, maxX = 0, maxY = 0;
-    
-    // Check stages
-    stages.forEach(stage => {
-      minX = Math.min(minX, stage.x);
-      minY = Math.min(minY, stage.y);
-      maxX = Math.max(maxX, stage.x + stage.width);
-      maxY = Math.max(maxY, stage.y + stage.height);
-    });
-
-    // Check tables including their seats
-    tables.forEach(table => {
-      const tableRadius = Math.min(table.width, table.height) / 2;
-      const seatRadius = Math.max(6, tableRadius * 0.25);
-      const seatOffset = tableRadius + seatRadius + 2;
-      
-      // Table center
-      const centerX = table.x + tableRadius;
-      const centerY = table.y + tableRadius;
-      
-      // Account for the furthest seat position
-      const maxSeatDistance = seatOffset + seatRadius;
-      
-      minX = Math.min(minX, centerX - maxSeatDistance);
-      minY = Math.min(minY, centerY - maxSeatDistance);
-      maxX = Math.max(maxX, centerX + maxSeatDistance);
-      maxY = Math.max(maxY, centerY + maxSeatDistance);
-    });
-
-    // Add substantial padding to ensure nothing is cut off
-    const padding = 120;
-    const width = Math.max(1200, maxX - minX + padding * 2);
-    const height = Math.max(800, maxY - minY + padding * 2);
-
-    return { width, height };
-  };
-
-  const canvasDimensions = calculateCanvasDimensions();
-  
-  // CRITICAL: Use identical scaling factors for both editor and booking views
+  // CRITICAL: Use EXACT same coordinate system as venue editor
+  // The venue editor uses a 1000x800 canvas, so we must match this exactly
   const CANVAS_CONFIG = {
-    width: canvasDimensions.width,
-    height: canvasDimensions.height,
-    padding: 20,
+    width: 1000,
+    height: 800,
+    padding: 0, // No padding to match venue editor exactly
     // These values MUST be identical in both editor and booking components
     tableScale: 1.0,
     stageScale: 1.0,
@@ -106,9 +61,9 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
     const isSold = table.status === 'sold';
     const isHalf = table.shape === 'half';
 
-    // IDENTICAL positioning calculation for both views with proper bounds offset
-    const x = (table.x * CANVAS_CONFIG.tableScale) + CANVAS_CONFIG.padding;
-    const y = (table.y * CANVAS_CONFIG.tableScale) + CANVAS_CONFIG.padding;
+    // IDENTICAL positioning calculation - use exact coordinates from venue editor
+    const x = table.x * CANVAS_CONFIG.tableScale;
+    const y = table.y * CANVAS_CONFIG.tableScale;
     const width = table.width * CANVAS_CONFIG.tableScale;
     const height = table.height * CANVAS_CONFIG.tableScale;
     const tableRadius = Math.min(width, height) / 2;
@@ -253,9 +208,9 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
 
   // Unified stage rendering function - USE THIS IN BOTH VIEWS
   const renderStage = (stage: Stage, index: number) => {
-    // IDENTICAL stage positioning calculation
-    const x = (stage.x * CANVAS_CONFIG.stageScale) + CANVAS_CONFIG.padding;
-    const y = (stage.y * CANVAS_CONFIG.stageScale) + CANVAS_CONFIG.padding;
+    // IDENTICAL stage positioning calculation - use exact coordinates from venue editor
+    const x = stage.x * CANVAS_CONFIG.stageScale;
+    const y = stage.y * CANVAS_CONFIG.stageScale;
     const width = stage.width * CANVAS_CONFIG.stageScale;
     const height = stage.height * CANVAS_CONFIG.stageScale;
 
@@ -311,7 +266,7 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
         
         {/* Legend - only show in booking mode */}
         {!isEditorMode && (
-          <g transform={`translate(${Math.max(20, CANVAS_CONFIG.width - 150)}, 20)`}>
+          <g transform={`translate(${CANVAS_CONFIG.width - 150}, 20)`}>
             <rect x="0" y="0" width="130" height="80" fill="white" stroke="#d1d5db" strokeWidth="1" rx="4" />
             <text x="10" y="15" fontSize="12" fontWeight="bold" fill="#374151">Legend:</text>
             <circle cx="15" cy="28" r="6" fill="#10b981" />
