@@ -172,17 +172,19 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
             </div>
           </div>
           
-          {/* SERVICE NOTICES */}
-          <div className="text-xs text-gray-500 space-y-1 pt-2">
-            <p>• Water provided with all meals</p>
-            {wineSelections.length > 0 && (
-              <>
-                <p>• Must be 21+ to purchase alcohol</p>
-                <p>• ID verification required at venue</p>
-              </>
-            )}
-            <p>• Mixed drinks available at venue - arrive 10 minutes early to order</p>
-          </div>
+          {/* SERVICE NOTICES - Only show for full events */}
+          {event?.eventType !== 'ticket-only' && (
+            <div className="text-xs text-gray-500 space-y-1 pt-2">
+              <p>• Water provided with all meals</p>
+              {wineSelections.length > 0 && (
+                <>
+                  <p>• Must be 21+ to purchase alcohol</p>
+                  <p>• ID verification required at venue</p>
+                </>
+              )}
+              <p>• Mixed drinks available at venue - arrive 10 minutes early to order</p>
+            </div>
+          )}
         </div>
       </div>
       

@@ -24,7 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { type Event, type FoodOption } from "@shared/schema";
 import { useState, useRef, useEffect } from "react";
-import { ImagePlus, Loader2, RefreshCw, X, Building, UtensilsCrossed, Check } from "lucide-react";
+import { ImagePlus, Loader2, RefreshCw, X, Building, UtensilsCrossed, Check, Wine } from "lucide-react";
 import { EventPricingManager } from "./EventPricingManager";
 import { EventVenueManager } from "./EventVenueManager";
 
@@ -507,18 +507,20 @@ export function EventForm({ event, onClose }: Props) {
                   name="ticketPrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Ticket Price (in cents)</FormLabel>
+                      <FormLabel>Ticket Price (in dollars)</FormLabel>
                       <FormControl>
                         <Input 
                           {...field} 
                           type="number" 
-                          min="100" 
-                          placeholder="5000" 
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          min="1" 
+                          step="0.01"
+                          placeholder="50.00" 
+                          onChange={(e) => field.onChange(Math.round(parseFloat(e.target.value) * 100) || 0)}
+                          value={field.value ? (field.value / 100).toFixed(2) : ''}
                         />
                       </FormControl>
                       <FormDescription>
-                        Price per ticket in cents. Example: 5000 = $50.00
+                        Price per ticket in dollars. Example: 50.00 = $50.00
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -582,7 +584,7 @@ export function EventForm({ event, onClose }: Props) {
                 <h3 className="text-lg font-medium">Food Options</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Select which food options will be available for this event. If none are selected, all food options will be available.
+                Select which food options to serve at this event. Only selected items will be available to guests.
               </p>
               
               {allFoodOptions.length > 0 ? (
@@ -637,9 +639,6 @@ export function EventForm({ event, onClose }: Props) {
                                       {option.description}
                                     </p>
                                     <div className="flex items-center gap-2 mt-1">
-                                      <span className="text-sm font-medium">
-                                        ${(option.price / 100).toFixed(2)}
-                                      </span>
                                       {option.allergens && option.allergens.length > 0 && (
                                         <div className="flex gap-1">
                                           {option.allergens.slice(0, 2).map((allergen) => (
@@ -687,6 +686,72 @@ export function EventForm({ event, onClose }: Props) {
                       ) : null;
                     })}
                   </div>
+                </div>
+              )}
+            </div>
+
+            <Separator className="my-6" />
+            
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Wine className="h-5 w-5" />
+                <h3 className="text-lg font-medium">Wine & Beverages</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Select which wine and beverage options to serve at this event. Only selected items will be available to guests.
+              </p>
+              
+              {allFoodOptions.filter(option => option.type === 'wine_glass' || option.type === 'wine_bottle').length > 0 ? (
+                <div className="grid gap-3">
+                  {allFoodOptions
+                    .filter(option => option.type === 'wine_glass' || option.type === 'wine_bottle')
+                    .map((option) => (
+                      <div
+                        key={option.id}
+                        className={`flex items-center space-x-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                          selectedFoodOptions.includes(option.id)
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:bg-muted/50"
+                        }`}
+                        onClick={() => {
+                          if (selectedFoodOptions.includes(option.id)) {
+                            setSelectedFoodOptions(prev => prev.filter(id => id !== option.id));
+                          } else {
+                            setSelectedFoodOptions(prev => [...prev, option.id]);
+                          }
+                        }}
+                      >
+                        <div className={`w-5 h-5 border rounded flex items-center justify-center ${
+                          selectedFoodOptions.includes(option.id)
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-muted-foreground"
+                        }`}>
+                          {selectedFoodOptions.includes(option.id) && (
+                            <Check className="w-3 h-3" />
+                          )}
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-3">
+                            <Wine className="w-8 h-8 text-purple-600" />
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm">{option.name}</h4>
+                              <p className="text-xs text-muted-foreground line-clamp-1">
+                                {option.description}
+                              </p>
+                              <Badge variant="outline" className="text-xs mt-1">
+                                {option.type === 'wine_glass' ? 'By Glass' : 'By Bottle'}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Wine className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Create wine options first in the Beverage management section</p>
                 </div>
               )}
             </div>

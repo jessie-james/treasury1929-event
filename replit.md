@@ -156,6 +156,13 @@ This is a sophisticated mobile-first event venue booking platform designed for l
   - ✅ Updated TicketOnlyFlow to use event-specific ticket pricing instead of hardcoded $25
   - ✅ Implemented smart routing: Full events → venue layouts, Ticket-only events → direct ticket purchase
   - ✅ Database schema updated with ticketPrice column for flexible pricing per event
+  - ✅ **FOOD & PAYMENT SYSTEM ENHANCEMENTS**
+    - ✅ Removed price display from food selection (flat $130 per person rate)
+    - ✅ Added separate wine/beverage selection section in EventForm
+    - ✅ Implemented ticket-only Stripe checkout route `/api/stripe/ticket-only-checkout`
+    - ✅ Added `/ticket-success` page for ticket-only payment confirmations
+    - ✅ Fixed CheckoutForm to hide food/drink mentions for ticket-only events
+    - ✅ Price displays now show dollars (not cents) with proper formatting
 
 ## User Preferences
 

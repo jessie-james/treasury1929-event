@@ -481,4 +481,217 @@ export function registerPaymentRoutes(app: Express) {
     
     res.json({ received: true });
   });
+
+  // Ticket-only checkout route
+  app.post("/api/stripe/ticket-only-checkout", async (req, res) => {
+    try {
+      const { eventId, quantity, guestNames, totalAmount } = req.body;
+      
+      if (!eventId || !quantity || !totalAmount) {
+        return res.status(400).json({ 
+          error: "Missing required fields: eventId, quantity, totalAmount" 
+        });
+      }
+
+      // Get event details
+      const event = await storage.getEventById(eventId);
+      if (!event) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      // Check if it's a ticket-only event
+      if (event.eventType !== 'ticket-only') {
+        return res.status(400).json({ error: "This endpoint is only for ticket-only events" });
+      }
+
+      // Check ticket availability
+      const availability = await storage.getEventAvailability(eventId);
+      if (availability.availableSeats < quantity) {
+        return res.status(400).json({ error: "Not enough tickets available" });
+      }
+
+      const stripe = getStripe();
+      if (!stripe) {
+        return res.status(500).json({ error: "Payment system not initialized" });
+      }
+
+      // Create checkout session
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `${event.title} - Tickets`,
+                description: `${quantity} ticket${quantity > 1 ? 's' : ''} for ${event.title}`,
+              },
+              unit_amount: Math.round(totalAmount / quantity), // Price per ticket in cents
+            },
+            quantity: quantity,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/ticket-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/booking-cancel`,
+        metadata: {
+          eventId: eventId.toString(),
+          quantity: quantity.toString(),
+          guestNames: JSON.stringify(guestNames || []),
+          eventType: 'ticket-only'
+        }
+      });
+
+      res.json({ sessionId: session.id });
+    } catch (error) {
+      console.error("Ticket-only checkout error:", error);
+      res.status(500).json({ error: "Failed to create checkout session" });
+    }
+  });
+
+  // Ticket-only success page
+  app.get("/ticket-success", async (req, res) => {
+    try {
+      const { session_id } = req.query;
+      
+      if (!session_id) {
+        return res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Invalid Session</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .error { color: red; }
+            </style>
+          </head>
+          <body>
+            <h1 class="error">Invalid Session</h1>
+            <p>Missing session ID. Please try again.</p>
+            <button onclick="window.location.href='/'">Return Home</button>
+          </body>
+          </html>
+        `);
+      }
+
+      const stripe = getStripe();
+      if (!stripe) {
+        return res.status(500).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>System Error</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .error { color: red; }
+            </style>
+          </head>
+          <body>
+            <h1 class="error">System Error</h1>
+            <p>Payment system temporarily unavailable.</p>
+            <button onclick="window.location.href='/'">Return Home</button>
+          </body>
+          </html>
+        `);
+      }
+
+      const session = await stripe.checkout.sessions.retrieve(session_id as string);
+      
+      if (session.payment_status === 'paid') {
+        // Create ticket booking from session metadata
+        const metadata = session.metadata;
+        if (metadata && metadata.eventId && metadata.quantity) {
+          const bookingData = {
+            eventId: parseInt(metadata.eventId),
+            tableId: null, // No table for ticket-only events
+            userId: 1, // Anonymous user for now
+            partySize: parseInt(metadata.quantity),
+            seatNumbers: [],
+            customerEmail: session.customer_details?.email || 'anonymous@example.com',
+            stripePaymentId: session.payment_intent,
+            stripeSessionId: session.id,
+            amount: session.amount_total || 0,
+            status: 'confirmed' as const,
+            foodSelections: [],
+            wineSelections: [],
+            guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : [],
+            selectedVenue: null,
+            holdStartTime: new Date()
+          };
+
+          try {
+            const booking = await storage.createBooking(bookingData);
+            console.log("Ticket-only booking created:", booking);
+          } catch (error) {
+            console.error("Error creating ticket booking:", error);
+          }
+        }
+        
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Tickets Confirmed</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; max-width: 600px; margin: 0 auto; }
+              .success { color: green; font-size: 2em; }
+              .ticket-details { background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; }
+              button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; margin: 10px; }
+              button:hover { background: #0056b3; }
+            </style>
+          </head>
+          <body>
+            <h1 class="success">🎟️ Tickets Confirmed!</h1>
+            <p>Thank you! Your tickets have been purchased successfully.</p>
+            
+            <div class="ticket-details">
+              <h3>Ticket Details</h3>
+              <p><strong>Quantity:</strong> ${metadata?.quantity || 1} ticket${(metadata?.quantity || 1) > 1 ? 's' : ''}</p>
+              <p><strong>Amount:</strong> $${((session.amount_total || 0) / 100).toFixed(2)}</p>
+            </div>
+            
+            <button onclick="window.location.href='/'">Back to Events</button>
+          </body>
+          </html>
+        `);
+      } else {
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Payment Pending</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .warning { color: orange; }
+            </style>
+          </head>
+          <body>
+            <h1 class="warning">Payment Pending</h1>
+            <p>Your payment is being processed. Please check back shortly.</p>
+            <button onclick="window.location.href='/'">Return Home</button>
+          </body>
+          </html>
+        `);
+      }
+    } catch (error) {
+      console.error("Ticket success page error:", error);
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Payment Verification Error</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .error { color: red; }
+          </style>
+        </head>
+        <body>
+          <h1 class="error">Payment Verification Error</h1>
+          <p>Unable to verify your payment. Please contact support.</p>
+          <button onclick="window.location.href='/'">Return Home</button>
+        </body>
+        </html>
+      `);
+    }
+  });
 }
