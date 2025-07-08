@@ -46,6 +46,11 @@ export default function OrdersPage() {
     queryKey: ["/api/events"],
   });
 
+  // Fetch food options to get actual names
+  const { data: foodOptions } = useQuery<Array<{id: number, name: string, type: string, allergens: string[], dietaryRestrictions: string[]}>>({
+    queryKey: ["/api/food-options"],
+  });
+
   const handleBackToDashboard = () => {
     setLocation('/backoffice');
   };
@@ -54,30 +59,33 @@ export default function OrdersPage() {
   const transformFoodSelections = (foodSelections: any[]): Array<{type: string, name: string, allergens: string[], dietary: string[]}> => {
     const items: Array<{type: string, name: string, allergens: string[], dietary: string[]}> = [];
     
-    if (Array.isArray(foodSelections)) {
+    if (Array.isArray(foodSelections) && foodOptions) {
       foodSelections.forEach((selection: any) => {
         if (selection.salad) {
+          const saladItem = foodOptions.find(item => item.id === selection.salad);
           items.push({
             type: "Salad",
-            name: `Salad Option ${selection.salad}`,
-            allergens: [],
-            dietary: []
+            name: saladItem?.name || `Salad Option ${selection.salad}`,
+            allergens: saladItem?.allergens || [],
+            dietary: saladItem?.dietaryRestrictions || []
           });
         }
         if (selection.entree) {
+          const entreeItem = foodOptions.find(item => item.id === selection.entree);
           items.push({
             type: "Entree", 
-            name: `Entree Option ${selection.entree}`,
-            allergens: [],
-            dietary: []
+            name: entreeItem?.name || `Entree Option ${selection.entree}`,
+            allergens: entreeItem?.allergens || [],
+            dietary: entreeItem?.dietaryRestrictions || []
           });
         }
         if (selection.dessert) {
+          const dessertItem = foodOptions.find(item => item.id === selection.dessert);
           items.push({
             type: "Dessert",
-            name: `Dessert Option ${selection.dessert}`,
-            allergens: [],
-            dietary: []
+            name: dessertItem?.name || `Dessert Option ${selection.dessert}`,
+            allergens: dessertItem?.allergens || [],
+            dietary: dessertItem?.dietaryRestrictions || []
           });
         }
       });
