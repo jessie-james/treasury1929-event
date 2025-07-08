@@ -15,6 +15,8 @@ interface CheckoutFormProps {
 interface Event {
   id: number;
   basePrice: number;
+  ticketPrice: number;
+  eventType: string;
   includeFoodService: boolean;
   includeBeverages: boolean;
   includeAlcohol: boolean;
@@ -38,9 +40,18 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
     queryKey: [`/api/events/${eventId}`],
   });
 
-  // Calculate pricing using new $130 per person model
+  // Calculate pricing based on event type
   const calculatePricing = () => {
-    const basePrice = (event?.basePrice || 13000) * selectedSeats.length; // $130 per person
+    let basePrice;
+    
+    if (event?.eventType === 'ticket-only') {
+      // Use ticket price for ticket-only events
+      basePrice = (event?.ticketPrice || 5000) * selectedSeats.length;
+    } else {
+      // Use base price for full events
+      basePrice = (event?.basePrice || 13000) * selectedSeats.length;
+    }
+    
     const winePrice = wineSelections.reduce((total, wine) => {
       return total + (wine.price * wine.quantity);
     }, 0);
@@ -126,12 +137,19 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
           {/* NEW PRICING BREAKDOWN */}
           <div className="border-t pt-2 space-y-1">
             <div className="flex justify-between">
-              <span>{selectedSeats.length} person{selectedSeats.length > 1 ? 's' : ''} × $130.00:</span>
+              <span>
+                {selectedSeats.length} {event?.eventType === 'ticket-only' ? 'ticket' : 'person'}{selectedSeats.length > 1 ? 's' : ''} × 
+                ${event?.eventType === 'ticket-only' ? 
+                  ((event?.ticketPrice || 5000) / 100).toFixed(2) : 
+                  ((event?.basePrice || 13000) / 100).toFixed(2)}:
+              </span>
               <span>{pricing.basePriceFormatted}</span>
             </div>
-            <div className="text-sm text-gray-600 ml-4">
-              (Includes salad + entrée + dessert selection)
-            </div>
+            {event?.eventType !== 'ticket-only' && (
+              <div className="text-sm text-gray-600 ml-4">
+                (Includes salad + entrée + dessert selection)
+              </div>
+            )}
             
             {wineSelections.length > 0 && (
               <>
