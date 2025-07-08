@@ -701,10 +701,10 @@ export function EventForm({ event, onClose }: Props) {
                 Select which wine and beverage options to serve at this event. Only selected items will be available to guests.
               </p>
               
-              {allFoodOptions.filter(option => option.type === 'wine_glass' || option.type === 'wine_bottle').length > 0 ? (
+              {allFoodOptions.filter(option => option.type === 'wine_bottle').length > 0 ? (
                 <div className="grid gap-3">
                   {allFoodOptions
-                    .filter(option => option.type === 'wine_glass' || option.type === 'wine_bottle')
+                    .filter(option => option.type === 'wine_bottle')
                     .map((option) => (
                       <div
                         key={option.id}
@@ -740,7 +740,7 @@ export function EventForm({ event, onClose }: Props) {
                                 {option.description}
                               </p>
                               <Badge variant="outline" className="text-xs mt-1">
-                                {option.type === 'wine_glass' ? 'By Glass' : 'By Bottle'}
+                                By Bottle
                               </Badge>
                             </div>
                           </div>

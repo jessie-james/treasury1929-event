@@ -26,7 +26,7 @@ import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautif
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-type SortOption = "display-order" | "name-asc" | "name-desc" | "price-asc" | "price-desc" | "id-asc" | "id-desc";
+type SortOption = "display-order" | "name-asc" | "name-desc" | "id-asc" | "id-desc";
 
 export default function FoodPage() {
   const [, setLocation] = useLocation();
@@ -138,10 +138,7 @@ export default function FoodPage() {
               return a.name.localeCompare(b.name);
             case "name-desc":
               return b.name.localeCompare(a.name);
-            case "price-asc":
-              return (a.price || 0) - (b.price || 0);
-            case "price-desc":
-              return (b.price || 0) - (a.price || 0);
+
             case "id-asc":
               return a.id - b.id;
             case "id-desc":
@@ -181,8 +178,7 @@ export default function FoodPage() {
                       <SelectItem value="display-order">Custom Order</SelectItem>
                       <SelectItem value="name-asc">Name (A-Z)</SelectItem>
                       <SelectItem value="name-desc">Name (Z-A)</SelectItem>
-                      <SelectItem value="price-asc">Price (Low to High)</SelectItem>
-                      <SelectItem value="price-desc">Price (High to Low)</SelectItem>
+
                       <SelectItem value="id-asc">Added (Oldest first)</SelectItem>
                       <SelectItem value="id-desc">Added (Newest first)</SelectItem>
                     </SelectContent>
@@ -274,9 +270,7 @@ export default function FoodPage() {
                               <p className="text-sm text-muted-foreground">
                                 {food.description}
                               </p>
-                              <p className="text-sm font-medium">
-                                Price: ${food.price}
-                              </p>
+
                             </div>
                           </div>
                         </CardContent>
@@ -317,9 +311,7 @@ export default function FoodPage() {
                                     </div>
                                     <div>
                                       <h3 className="font-medium">{food.name}</h3>
-                                      <p className="text-sm text-muted-foreground">
-                                        ${food.price}
-                                      </p>
+
                                     </div>
                                   </div>
                                   <div className="h-16 w-24 overflow-hidden rounded">

@@ -39,15 +39,15 @@ export function BeverageManagement() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [type, setType] = useState<string>("wine_glass");
+  const [type, setType] = useState<string>("wine_bottle");
   const [isAvailable, setIsAvailable] = useState(true);
   const [image, setImage] = useState("");
 
-  // Fetch beverages (wine_glass and wine_bottle types)
+  // Fetch beverages (wine_bottle types only)
   const { data: beverages = [], isLoading } = useQuery<FoodOption[]>({
     queryKey: ["/api/food-options"],
     select: (data) => data.filter(option => 
-      option.type === 'wine_glass' || option.type === 'wine_bottle'
+      option.type === 'wine_bottle'
     ),
   });
 
@@ -131,7 +131,7 @@ export function BeverageManagement() {
     setName("");
     setDescription("");
     setPrice("");
-    setType("wine_glass");
+    setType("wine_bottle");
     setIsAvailable(true);
     setImage("");
   };
@@ -166,8 +166,6 @@ export function BeverageManagement() {
 
   const getBeverageIcon = (type: string) => {
     switch (type) {
-      case 'wine_glass':
-        return <Wine className="h-4 w-4" />;
       case 'wine_bottle':
         return <Wine className="h-4 w-4" />;
       default:
@@ -177,8 +175,6 @@ export function BeverageManagement() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case 'wine_glass':
-        return 'Wine by Glass';
       case 'wine_bottle':
         return 'Wine Bottle';
       default:
@@ -255,7 +251,6 @@ export function BeverageManagement() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="wine_glass">Wine by Glass</SelectItem>
                     <SelectItem value="wine_bottle">Wine Bottle</SelectItem>
                   </SelectContent>
                 </Select>
@@ -424,7 +419,6 @@ export function BeverageManagement() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="wine_glass">Wine by Glass</SelectItem>
                   <SelectItem value="wine_bottle">Wine Bottle</SelectItem>
                 </SelectContent>
               </Select>

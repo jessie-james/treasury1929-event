@@ -163,6 +163,14 @@ This is a sophisticated mobile-first event venue booking platform designed for l
     - ✅ Added `/ticket-success` page for ticket-only payment confirmations
     - ✅ Fixed CheckoutForm to hide food/drink mentions for ticket-only events
     - ✅ Price displays now show dollars (not cents) with proper formatting
+  - ✅ **WINE SYSTEM CONVERSION TO BOTTLE-ONLY PRICING**
+    - ✅ Converted all wine_glass items to wine_bottle in database (10 items migrated)
+    - ✅ Updated BeverageManagement UI to only show wine bottle options
+    - ✅ Removed wine_glass type from all selectors and forms
+    - ✅ Updated EventForm wine selection to display "By Bottle" badges
+    - ✅ Removed price sorting from FoodPage (price-asc/price-desc options)
+    - ✅ Fixed ticket-only checkout route to use AvailabilitySync.getRealTimeAvailability
+    - ✅ All systems now working with bottle-only wine pricing model
 
 ## User Preferences
 

@@ -504,8 +504,9 @@ export function registerPaymentRoutes(app: Express) {
         return res.status(400).json({ error: "This endpoint is only for ticket-only events" });
       }
 
-      // Check ticket availability
-      const availability = await storage.getEventAvailability(eventId);
+      // Check ticket availability using AvailabilitySync
+      const { AvailabilitySync } = await import('./availability-sync.js');
+      const availability = await AvailabilitySync.getRealTimeAvailability(eventId);
       if (availability.availableSeats < quantity) {
         return res.status(400).json({ error: "Not enough tickets available" });
       }
