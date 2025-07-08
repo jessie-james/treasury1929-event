@@ -319,6 +319,13 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     throwOnError: false
   });
 
+  // Real-time availability check to prevent sold-out bypass
+  const { data: realTimeAvailability } = useQuery({
+    queryKey: [`/api/events/${eventId}/availability`],
+    enabled: !!eventId,
+    refetchInterval: 15000, // Refresh every 15 seconds during booking
+  });
+
   // Get the current venue layout based on selected venue or fallback to event data
   const currentVenueLayout: VenueLayout | undefined = useMemo(() => {
     // First try new venue layouts system
@@ -533,6 +540,26 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
   }
 
 
+
+  // Check if event is sold out based on real-time availability
+  if (realTimeAvailability?.isSoldOut) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Event Sold Out</h2>
+          <p className="text-muted-foreground mb-4">
+            This event is currently sold out. All tables have been reserved.
+          </p>
+          <Button 
+            onClick={() => window.history.back()}
+            variant="outline"
+          >
+            Back to Events
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

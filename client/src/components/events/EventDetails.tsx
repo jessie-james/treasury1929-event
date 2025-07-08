@@ -36,6 +36,13 @@ export function EventDetails({
 
   const hasVenueLayouts = venueLayouts && Array.isArray(venueLayouts) && venueLayouts.length > 0;
 
+  // Real-time availability check to prevent sold-out bypass
+  const { data: realTimeAvailability } = useQuery({
+    queryKey: [`/api/events/${eventId}/availability`],
+    enabled: !!eventId,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
   useEffect(() => {
     // Setup WebSocket connection
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -136,9 +143,14 @@ export function EventDetails({
                 setLocation(bookingPath);
               }
             }}
-            disabled={event.availableTables === 0}
+            disabled={realTimeAvailability?.isSoldOut ?? event.availableTables === 0}
           >
-            {event.availableTables === 0 ? "Sold Out" : hasBooking ? "Book More Tickets" : "Book Now"}
+            {(realTimeAvailability?.isSoldOut ?? event.availableTables === 0) 
+              ? "Sold Out" 
+              : hasBooking 
+                ? "Book More Tickets" 
+                : "Book Now"
+            }
           </Button>
         </div>
       </div>

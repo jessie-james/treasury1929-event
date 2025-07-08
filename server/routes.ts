@@ -23,6 +23,7 @@ import {
 import { z } from "zod";
 import { setupAuth, hashPassword } from "./auth";
 import { BookingValidation } from "./booking-validation";
+import { AvailabilitySync } from "./availability-sync";
 import Stripe from "stripe";
 import multer from "multer";
 import path from "path";
@@ -1055,6 +1056,22 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching event bookings:", error);
       res.status(500).json({ message: "Failed to fetch event bookings" });
+    }
+  });
+
+  // Real-time availability check endpoint
+  app.get("/api/events/:eventId/availability", async (req, res) => {
+    try {
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const availability = await AvailabilitySync.getRealTimeAvailability(eventId);
+      res.json(availability);
+    } catch (error) {
+      console.error("Error fetching real-time availability:", error);
+      res.status(500).json({ message: "Failed to fetch availability" });
     }
   });
 

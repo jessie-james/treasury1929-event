@@ -19,11 +19,23 @@ export function EventCard({ event }: { event: Event }) {
 
   const hasVenueLayouts = venueLayouts && Array.isArray(venueLayouts) && venueLayouts.length > 0;
   const isTicketOnly = event.eventType === 'ticket-only' || !hasVenueLayouts;
+
+  // Real-time availability check to prevent sold-out bypass
+  const { data: realTimeAvailability } = useQuery({
+    queryKey: [`/api/events/${event.id}/availability`],
+    enabled: !!event.id,
+    refetchInterval: 60000, // Refresh every minute for cards
+  });
+  
+  // Use real-time availability if available, otherwise fall back to event data
+  const isSoldOut = realTimeAvailability?.isSoldOut ?? event.availableSeats === 0;
+  const availableSeats = realTimeAvailability?.availableSeats ?? event.availableSeats;
+  const totalSeats = realTimeAvailability?.totalSeats ?? event.totalSeats;
   
   const availability = 
-    event.availableSeats === 0
+    isSoldOut
       ? { text: "Sold out", color: "destructive" }
-      : event.availableSeats < event.totalSeats * 0.2
+      : availableSeats < totalSeats * 0.2
       ? { text: "Selling fast – Buy now!", color: "warning" }
       : { text: "Tickets available", color: "success" };
 
@@ -72,9 +84,9 @@ export function EventCard({ event }: { event: Event }) {
               }
             }}
             className="flex-1"
-            disabled={event.availableSeats === 0 || event.isPrivate}
+            disabled={isSoldOut || event.isPrivate}
           >
-            {event.availableSeats === 0 
+            {isSoldOut
               ? "Sold Out" 
               : event.isPrivate 
                 ? "Private Event" 
