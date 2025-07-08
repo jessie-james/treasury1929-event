@@ -1,0 +1,178 @@
+// TABLE LAYOUT CONSISTENCY FIX
+// This component ensures identical table rendering between venue editor and ticket selection
+
+const TableLayoutCanvas = ({ tables, stage, isEditorMode = false, onTableSelect, selectedTables = [] }) => {
+  // CRITICAL: Use identical scaling factors for both editor and booking views
+  const CANVAS_CONFIG = {
+    width: 800,
+    height: 600,
+    padding: 20,
+    // These values MUST be identical in both editor and booking components
+    tableScale: 1.0,
+    stageScale: 1.0,
+    gridSize: 20, // For consistent positioning
+  };
+
+  // Unified table rendering function - USE THIS IN BOTH VIEWS
+  const renderTable = (table, index) => {
+    const isSelected = selectedTables.includes(table.id);
+    const isAvailable = table.status === 'available';
+    const isOnHold = table.status === 'hold';
+    const isSold = table.status === 'sold';
+
+    // IDENTICAL positioning calculation for both views
+    const x = (table.x * CANVAS_CONFIG.tableScale) + CANVAS_CONFIG.padding;
+    const y = (table.y * CANVAS_CONFIG.tableScale) + CANVAS_CONFIG.padding;
+    const width = table.width * CANVAS_CONFIG.tableScale;
+    const height = table.height * CANVAS_CONFIG.tableScale;
+
+    return (
+      <g key={`table-${table.id}`}>
+        {/* Table rectangle - IDENTICAL styling */}
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          fill={
+            isSold ? '#ff4444' : 
+            isOnHold ? '#ffaa44' : 
+            isSelected ? '#4444ff' : 
+            isAvailable ? '#44ff44' : '#cccccc'
+          }
+          stroke="#333"
+          strokeWidth="2"
+          rx="4"
+          style={{ 
+            cursor: isEditorMode ? 'move' : (isAvailable ? 'pointer' : 'not-allowed'),
+            transition: 'all 0.2s ease'
+          }}
+          onClick={() => {
+            if (!isEditorMode && isAvailable && onTableSelect) {
+              onTableSelect(table);
+            }
+          }}
+        />
+        
+        {/* Table number - IDENTICAL text positioning */}
+        <text
+          x={x + width / 2}
+          y={y + height / 2}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="14"
+          fontWeight="bold"
+          fill="#333"
+          pointerEvents="none"
+        >
+          {table.number}
+        </text>
+        
+        {/* Capacity indicator - IDENTICAL positioning */}
+        <text
+          x={x + width / 2}
+          y={y + height / 2 + 16}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="10"
+          fill="#666"
+          pointerEvents="none"
+        >
+          {table.capacity} seats
+        </text>
+      </g>
+    );
+  };
+
+  // Unified stage rendering function - USE THIS IN BOTH VIEWS
+  const renderStage = () => {
+    if (!stage) return null;
+    
+    // IDENTICAL stage positioning calculation
+    const x = (stage.x * CANVAS_CONFIG.stageScale) + CANVAS_CONFIG.padding;
+    const y = (stage.y * CANVAS_CONFIG.stageScale) + CANVAS_CONFIG.padding;
+    const width = stage.width * CANVAS_CONFIG.stageScale;
+    const height = stage.height * CANVAS_CONFIG.stageScale;
+
+    return (
+      <g key="stage">
+        <rect
+          x={x}
+          y={y}
+          width={width}
+          height={height}
+          fill="#8B4513"
+          stroke="#654321"
+          strokeWidth="3"
+          rx="8"
+        />
+        <text
+          x={x + width / 2}
+          y={y + height / 2}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize="16"
+          fontWeight="bold"
+          fill="white"
+          pointerEvents="none"
+        >
+          STAGE
+        </text>
+      </g>
+    );
+  };
+
+  return (
+    <div className="table-layout-canvas">
+      <svg 
+        width={CANVAS_CONFIG.width} 
+        height={CANVAS_CONFIG.height}
+        style={{ border: '1px solid #ddd', borderRadius: '8px' }}
+      >
+        {/* Render stage first (background) */}
+        {renderStage()}
+        
+        {/* Render all tables with IDENTICAL positioning */}
+        {tables.map((table, index) => renderTable(table, index))}
+        
+        {/* Legend - only show in booking mode */}
+        {!isEditorMode && (
+          <g transform={`translate(${CANVAS_CONFIG.width - 150}, 20)`}>
+            <rect x="0" y="0" width="130" height="80" fill="white" stroke="#ddd" strokeWidth="1" rx="4" />
+            <text x="10" y="15" fontSize="12" fontWeight="bold" fill="#333">Legend:</text>
+            <circle cx="15" cy="28" r="6" fill="#44ff44" />
+            <text x="25" y="32" fontSize="10" fill="#333">Available</text>
+            <circle cx="15" cy="43" r="6" fill="#ffaa44" />
+            <text x="25" y="47" fontSize="10" fill="#333">On Hold</text>
+            <circle cx="15" cy="58" r="6" fill="#ff4444" />
+            <text x="25" y="62" fontSize="10" fill="#333">Sold</text>
+          </g>
+        )}
+      </svg>
+    </div>
+  );
+};
+
+// USAGE INSTRUCTIONS:
+// 1. Replace your existing table rendering in BOTH venue editor and ticket selection components
+// 2. Use isEditorMode={true} for venue editor
+// 3. Use isEditorMode={false} for ticket selection/booking
+// 4. The CANVAS_CONFIG values ensure identical proportions and distances
+
+// EXAMPLE USAGE IN VENUE EDITOR:
+// <TableLayoutCanvas 
+//   tables={venueLayout.tables} 
+//   stage={venueLayout.stage}
+//   isEditorMode={true}
+// />
+
+// EXAMPLE USAGE IN TICKET SELECTION:
+// <TableLayoutCanvas 
+//   tables={venueLayout.tables} 
+//   stage={venueLayout.stage}
+//   isEditorMode={false}
+//   onTableSelect={handleTableSelect}
+//   selectedTables={selectedTableIds}
+// />
+
+export default TableLayoutCanvas;
