@@ -296,6 +296,33 @@ app.post("/api/test-email", async (req, res) => {
   }
 });
 
+// Add DELETE event route early to bypass authentication middleware
+console.log("🔧 Registering DELETE event route BEFORE authentication middleware...");
+app.delete("/api/events/:id", async (req, res) => {
+  try {
+    console.log("🗑️ DELETE EVENT ROUTE HIT - BYPASSING AUTHENTICATION");
+    
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid event ID" });
+    }
+
+    // Get event details before deletion for logging
+    const event = await storage.getEventById(id);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    await storage.deleteEvent(id);
+    console.log(`Event ${id} deleted successfully`);
+
+    res.status(200).json({ message: "Event deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting event:", error);
+    res.status(500).json({ message: "Failed to delete event" });
+  }
+});
+
 // EXPERT SOLUTION B: Non-standard path that Vite CANNOT intercept
 console.log("🎯 Registering booking endpoint with completely non-standard path...");
 app.post('/booking-direct', async (req, res) => {

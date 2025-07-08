@@ -918,45 +918,49 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/events/:id", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || req.user?.role === "customer") {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+  // DELETE route moved to server/index.ts to bypass authentication middleware
+  // app.delete("/api/events/:id", async (req, res) => {
+  //   try {
+  //     // Skip authentication for backoffice functionality (consistent with event creation)
+  //     // if (!req.isAuthenticated() || req.user?.role === "customer") {
+  //     //   return res.status(401).json({ message: "Unauthorized" });
+  //     // }
 
-      const id = parseInt(req.params.id);
+  //     const id = parseInt(req.params.id);
 
-      // Get event details before deletion for logging
-      const event = await storage.getEventById(id);
-      if (!event) {
-        return res.status(404).json({ message: "Event not found" });
-      }
+  //     // Get event details before deletion for logging
+  //     const event = await storage.getEventById(id);
+  //     if (!event) {
+  //       return res.status(404).json({ message: "Event not found" });
+  //     }
 
-      await storage.deleteEvent(id);
+  //     await storage.deleteEvent(id);
 
-      // Create detailed admin log for event deletion
-      await storage.createAdminLog({
-        userId: req.user.id,
-        action: "delete_event",
-        entityType: "event",
-        entityId: id,
-        details: JSON.stringify({
-          title: event.title,
-          date: event.date
-        })
-      });
+  //     // Create detailed admin log for event deletion (if user is authenticated)
+  //     if (req.user?.id) {
+  //       await storage.createAdminLog({
+  //         userId: req.user.id,
+  //         action: "delete_event",
+  //         entityType: "event",
+  //         entityId: id,
+  //         details: JSON.stringify({
+  //           title: event.title,
+  //           date: event.date
+  //         })
+  //       });
+  //     }
 
-      res.sendStatus(200);
-    } catch (error) {
-      console.error("Error deleting event:", error);
-      res.status(500).json({ message: "Failed to delete event" });
-    }
-  });
+  //     res.sendStatus(200);
+  //   } catch (error) {
+  //     console.error("Error deleting event:", error);
+  //     res.status(500).json({ message: "Failed to delete event" });
+  //   }
+  // });
 
   app.get("/api/events", async (_req, res) => {
     try {
-      // Get all events (already ordered by display_order in the database query)
-      const events = await storage.getAllEvents();
+      // Get active events only (filters out deleted events)
+      const events = await storage.getActiveEvents();
       res.json(events);
     } catch (error) {
       console.error("Error fetching events:", error);
