@@ -33,16 +33,27 @@ export default function BookingPage() {
   const [guestNames, setGuestNames] = useState<Record<number, string>>({});
   const [holdStartTime, setHoldStartTime] = useState<Date | null>(null);
 
-  // Check if event has venue layouts - if not, redirect to ticket-only booking
-  const { data: venueLayouts, isLoading: isLoadingVenueLayouts, error: venueLayoutsError } = useQuery({
-    queryKey: [`/api/events/${eventId}/venue-layouts`],
+  // First check event type to determine booking flow
+  const { data: event, isLoading: isLoadingEvent } = useQuery({
+    queryKey: [`/api/events/${eventId}`],
     enabled: !!eventId,
-    retry: false, // Don't retry on 404
-    throwOnError: false, // Prevent unhandled promise rejection
+    retry: false,
+    throwOnError: false
   });
 
-  console.log('🏛️ Venue layouts debug:', { 
+  // Only load venue layouts if event type is 'full'
+  const { data: venueLayouts, isLoading: isLoadingVenueLayouts, error: venueLayoutsError } = useQuery({
+    queryKey: [`/api/events/${eventId}/venue-layouts`],
+    enabled: !!eventId && event?.eventType === 'full',
+    retry: false,
+    throwOnError: false
+  });
+
+  console.log('🏛️ Booking flow debug:', { 
+    event,
+    eventType: event?.eventType,
     venueLayouts, 
+    isLoadingEvent,
     isLoadingVenueLayouts, 
     venueLayoutsError, 
     step,
@@ -59,22 +70,16 @@ export default function BookingPage() {
   const tableValidation = useTableValidation();
   const { data: ticketCutoffData } = useTicketCutoffCheck(eventId);
 
-  // Redirect to ticket-only booking if event has no venue layouts
+  // Redirect to ticket-only booking if event type is 'ticket-only'
   useEffect(() => {
-    if (!isLoadingVenueLayouts && venueLayoutsError) {
-      // Check if it's a 404 error (no venue layouts found)
-      const errorMessage = venueLayoutsError.message || '';
-      const is404Error = errorMessage.includes('404') || 
-                        errorMessage.includes('No active venues found') ||
-                        errorMessage.includes('No active venues');
-      
-      if (is404Error) {
-        console.log('📝 Event has no venue layouts - redirecting to ticket-only booking');
+    if (!isLoadingEvent && event) {
+      if (event.eventType === 'ticket-only') {
+        console.log('📝 Event is ticket-only type - redirecting to ticket-only booking');
         setLocation(`/events/${eventId}/tickets`);
         return;
       }
     }
-  }, [isLoadingVenueLayouts, venueLayoutsError, eventId, setLocation]);
+  }, [isLoadingEvent, event, eventId, setLocation]);
 
   const progress =
     step === "venue" ? 20 : 
@@ -82,8 +87,8 @@ export default function BookingPage() {
     step === "food" ? 60 : 
     step === "wine" ? 80 : 100;
 
-  // Show loading state while checking venue layouts
-  if (isLoadingVenueLayouts) {
+  // Show loading state while checking event type
+  if (isLoadingEvent || (event?.eventType === 'full' && isLoadingVenueLayouts)) {
     return (
       <div className="container py-8 space-y-6">
         <div className="text-center">
