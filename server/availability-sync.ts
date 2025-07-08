@@ -32,9 +32,20 @@ export class AvailabilitySync {
       const bookedSeats = eventBookings.reduce((total, booking) => total + (booking.partySize || 0), 0);
       const bookedTables = new Set(eventBookings.map(b => b.tableId)).size;
 
-      // Calculate available seats and tables
-      const availableSeats = Math.max(0, event.totalSeats - bookedSeats);
-      const availableTables = Math.max(0, event.totalTables - bookedTables);
+      // Calculate available seats and tables based on event type
+      let availableSeats: number;
+      let availableTables: number;
+
+      if (event.eventType === 'ticket-only') {
+        // For ticket-only events, use ticketCapacity
+        const totalTickets = event.ticketCapacity || 0;
+        availableSeats = Math.max(0, totalTickets - bookedSeats);
+        availableTables = 1; // Ticket-only events don't have tables
+      } else {
+        // For full events, use venue capacity
+        availableSeats = Math.max(0, event.totalSeats - bookedSeats);
+        availableTables = Math.max(0, event.totalTables - bookedTables);
+      }
 
       // Update event with accurate availability
       await db
@@ -110,11 +121,28 @@ export class AvailabilitySync {
       const bookedSeats = eventBookings.reduce((total, booking) => total + (booking.partySize || 0), 0);
       const bookedTables = new Set(eventBookings.map(b => b.tableId)).size;
 
-      // Calculate available seats and tables
-      const availableSeats = Math.max(0, event.totalSeats - bookedSeats);
-      const availableTables = Math.max(0, event.totalTables - bookedTables);
+      // For ticket-only events, use ticket capacity instead of venue capacity
+      let availableSeats: number;
+      let availableTables: number;
+      let totalSeats: number;
+      let totalTables: number;
+      let isSoldOut: boolean;
 
-      const isSoldOut = availableSeats === 0 || availableTables === 0;
+      if (event.eventType === 'ticket-only') {
+        // For ticket-only events, use ticketCapacity
+        totalSeats = event.ticketCapacity || 0;
+        totalTables = 1; // Ticket-only events don't have tables
+        availableSeats = Math.max(0, totalSeats - bookedSeats);
+        availableTables = totalTables; // Always available for ticket-only
+        isSoldOut = availableSeats === 0;
+      } else {
+        // For full events, use venue capacity
+        totalSeats = event.totalSeats;
+        totalTables = event.totalTables;
+        availableSeats = Math.max(0, totalSeats - bookedSeats);
+        availableTables = Math.max(0, totalTables - bookedTables);
+        isSoldOut = availableSeats === 0 || availableTables === 0;
+      }
 
       return {
         availableSeats,

@@ -116,19 +116,34 @@ export function EventDetails({
 
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
           <div className="flex gap-6">
-            <div>
-              <p className="text-sm text-muted-foreground">Available Tables</p>
-              <p className="text-2xl font-bold">{event.availableTables || 0}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Seats</p>
-              <p className="text-2xl font-bold">
-                {event.venueLayout ? 
-                  event.venueLayout.tables.reduce((total: number, table: any) => total + table.capacity, 0) : 
-                  event.totalSeats || 0
-                }
-              </p>
-            </div>
+            {event.eventType === 'ticket-only' ? (
+              <>
+                <div>
+                  <p className="text-sm text-muted-foreground">Available Tickets</p>
+                  <p className="text-2xl font-bold">{realTimeAvailability?.availableSeats || 0}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Tickets</p>
+                  <p className="text-2xl font-bold">{event.ticketCapacity || 0}</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <p className="text-sm text-muted-foreground">Available Tables</p>
+                  <p className="text-2xl font-bold">{event.availableTables || 0}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Seats</p>
+                  <p className="text-2xl font-bold">
+                    {event.venueLayout ? 
+                      event.venueLayout.tables.reduce((total: number, table: any) => total + table.capacity, 0) : 
+                      event.totalSeats || 0
+                    }
+                  </p>
+                </div>
+              </>
+            )}
           </div>
           <Button 
             size="lg"

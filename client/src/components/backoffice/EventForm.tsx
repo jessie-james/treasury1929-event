@@ -100,6 +100,7 @@ export function EventForm({ event, onClose }: Props) {
       eventType: event.eventType ?? 'full',
       maxTicketsPerPurchase: event.maxTicketsPerPurchase ?? 8,
       ticketPrice: event.ticketPrice ?? 5000,
+      ticketCapacity: event.ticketCapacity ?? null,
     } : {
       title: "",
       description: "",
@@ -114,6 +115,7 @@ export function EventForm({ event, onClose }: Props) {
       eventType: 'full',
       maxTicketsPerPurchase: 8,
       ticketPrice: 5000,
+      ticketCapacity: null,
     },
   });
 
@@ -499,28 +501,54 @@ export function EventForm({ event, onClose }: Props) {
             />
 
             {form.watch('eventType') === 'ticket-only' && (
-              <FormField
-                control={form.control}
-                name="ticketPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Ticket Price (in cents)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        type="number" 
-                        min="100" 
-                        placeholder="5000" 
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Price per ticket in cents. Example: 5000 = $50.00
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <>
+                <FormField
+                  control={form.control}
+                  name="ticketPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ticket Price (in cents)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          type="number" 
+                          min="100" 
+                          placeholder="5000" 
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Price per ticket in cents. Example: 5000 = $50.00
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="ticketCapacity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Ticket Capacity</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          type="number" 
+                          min="1" 
+                          max="10000"
+                          placeholder="100" 
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || null)}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Maximum number of tickets available for this event
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
             )}
 
             <FormField
