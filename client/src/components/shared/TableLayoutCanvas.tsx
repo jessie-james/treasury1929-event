@@ -47,23 +47,40 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
       return { width: 800, height: 600 };
     }
 
-    // Find the bounds of all tables and stages
-    const allObjects = [...tables, ...stages];
-    const bounds = allObjects.reduce((acc, obj) => {
-      const objRight = obj.x + obj.width;
-      const objBottom = obj.y + obj.height;
-      return {
-        minX: Math.min(acc.minX, obj.x),
-        minY: Math.min(acc.minY, obj.y),
-        maxX: Math.max(acc.maxX, objRight),
-        maxY: Math.max(acc.maxY, objBottom)
-      };
-    }, { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity });
+    // Find the bounds including tables with their seats
+    let minX = 0, minY = 0, maxX = 0, maxY = 0;
+    
+    // Check stages
+    stages.forEach(stage => {
+      minX = Math.min(minX, stage.x);
+      minY = Math.min(minY, stage.y);
+      maxX = Math.max(maxX, stage.x + stage.width);
+      maxY = Math.max(maxY, stage.y + stage.height);
+    });
 
-    // Add padding and ensure minimum dimensions
-    const padding = 40;
-    const width = Math.max(800, bounds.maxX - bounds.minX + padding * 2);
-    const height = Math.max(600, bounds.maxY - bounds.minY + padding * 2);
+    // Check tables including their seats
+    tables.forEach(table => {
+      const tableRadius = Math.min(table.width, table.height) / 2;
+      const seatRadius = Math.max(6, tableRadius * 0.25);
+      const seatOffset = tableRadius + seatRadius + 2;
+      
+      // Table center
+      const centerX = table.x + tableRadius;
+      const centerY = table.y + tableRadius;
+      
+      // Account for the furthest seat position
+      const maxSeatDistance = seatOffset + seatRadius;
+      
+      minX = Math.min(minX, centerX - maxSeatDistance);
+      minY = Math.min(minY, centerY - maxSeatDistance);
+      maxX = Math.max(maxX, centerX + maxSeatDistance);
+      maxY = Math.max(maxY, centerY + maxSeatDistance);
+    });
+
+    // Add substantial padding to ensure nothing is cut off
+    const padding = 120;
+    const width = Math.max(1200, maxX - minX + padding * 2);
+    const height = Math.max(800, maxY - minY + padding * 2);
 
     return { width, height };
   };
@@ -89,7 +106,7 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
     const isSold = table.status === 'sold';
     const isHalf = table.shape === 'half';
 
-    // IDENTICAL positioning calculation for both views
+    // IDENTICAL positioning calculation for both views with proper bounds offset
     const x = (table.x * CANVAS_CONFIG.tableScale) + CANVAS_CONFIG.padding;
     const y = (table.y * CANVAS_CONFIG.tableScale) + CANVAS_CONFIG.padding;
     const width = table.width * CANVAS_CONFIG.tableScale;
