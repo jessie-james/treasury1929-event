@@ -40,6 +40,14 @@ export default function BookingPage() {
     retry: false, // Don't retry on 404
   });
 
+  console.log('🏛️ Venue layouts debug:', { 
+    venueLayouts, 
+    isLoadingVenueLayouts, 
+    venueLayoutsError, 
+    step,
+    eventId
+  });
+
   const { data: existingBookings } = useQuery<Booking[]>({
     queryKey: ["/api/user/bookings"],
   });
@@ -141,20 +149,38 @@ export default function BookingPage() {
       <Card className="max-w-4xl mx-auto">
         <div className="p-6">
           {step === "venue" && (
-            <VenueFloorSelection
-              venues={venueLayouts?.map((layout, index) => ({
-                id: layout.eventVenueId,
-                displayName: layout.displayName,
-                description: layout.displayName === "Mezzanine" ? "Elevated seating with premium view" : "Main dining area with stage view",
-                tableCount: layout.tables?.length || 0
-              })) || []}
-              onSelect={(venueDisplayName, venueIndex) => {
-                console.log('🎯 Venue selected:', { venueDisplayName, venueIndex });
-                setSelectedVenue(venueDisplayName);
-                setSelectedVenueIndex(venueIndex);
-                setStep("seats");
-              }}
-            />
+            <div>
+              <div className="mb-4 p-4 bg-gray-100 rounded">
+                <h3>Debug Info:</h3>
+                <p>Step: {step}</p>
+                <p>VenueLayouts: {venueLayouts ? `${venueLayouts.length} layouts` : 'null'}</p>
+                <p>IsLoading: {isLoadingVenueLayouts ? 'true' : 'false'}</p>
+                <p>Error: {venueLayoutsError?.message || 'none'}</p>
+              </div>
+              
+              {venueLayouts && venueLayouts.length > 0 ? (
+                <VenueFloorSelection
+                  venues={venueLayouts.map((layout, index) => ({
+                    id: layout.eventVenueId,
+                    displayName: layout.displayName,
+                    description: layout.displayName === "Mezzanine" ? "Elevated seating with premium view" : "Main dining area with stage view",
+                    tableCount: layout.tables?.length || 0
+                  }))}
+                  onSelect={(venueDisplayName, venueIndex) => {
+                    console.log('🎯 Venue selected:', { venueDisplayName, venueIndex });
+                    setSelectedVenue(venueDisplayName);
+                    setSelectedVenueIndex(venueIndex);
+                    setStep("seats");
+                  }}
+                />
+              ) : (
+                <div className="text-center p-8">
+                  <p>No venue layouts available or still loading...</p>
+                  <p>Loading: {isLoadingVenueLayouts ? 'Yes' : 'No'}</p>
+                  <p>Error: {venueLayoutsError?.message || 'None'}</p>
+                </div>
+              )}
+            </div>
           )}
 
           {step === "seats" && selectedVenue && (
