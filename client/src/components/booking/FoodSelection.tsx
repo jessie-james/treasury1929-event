@@ -163,7 +163,7 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
       }));
 
       const names = Object.fromEntries(
-        selectedSeats.map(seat => [seat, selections[seat].name])
+        selectedSeats.map((seat, index) => [index + 1, selections[seat].name])
       );
 
       onComplete(foodSelections, names);
