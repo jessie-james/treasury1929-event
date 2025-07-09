@@ -156,14 +156,6 @@ export default function BookingPage() {
         <div className="p-6">
           {step === "venue" && (
             <div>
-              <div className="mb-4 p-4 bg-gray-100 rounded">
-                <h3>Debug Info:</h3>
-                <p>Step: {step}</p>
-                <p>VenueLayouts: {venueLayouts ? `${venueLayouts.length} layouts` : 'null'}</p>
-                <p>IsLoading: {isLoadingVenueLayouts ? 'true' : 'false'}</p>
-                <p>Error: {venueLayoutsError?.message || 'none'}</p>
-              </div>
-              
               {venueLayouts && venueLayouts.length > 0 ? (
                 <VenueFloorSelection
                   venues={venueLayouts.map((layout, index) => ({
