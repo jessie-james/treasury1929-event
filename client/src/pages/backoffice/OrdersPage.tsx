@@ -196,14 +196,6 @@ export default function OrdersPage() {
             
             for (const item of guestOrder.items) {
               doc.text(`• ${item.type}: ${item.name}`, 40, yPosition);
-              if (item.allergens.length > 0) {
-                doc.text(`  Allergens: ${item.allergens.join(', ')}`, 45, yPosition + 6);
-                yPosition += 6;
-              }
-              if (item.dietary.length > 0) {
-                doc.text(`  Dietary: ${item.dietary.join(', ')}`, 45, yPosition + 6);
-                yPosition += 6;
-              }
               yPosition += 8;
             }
             yPosition += 5;
