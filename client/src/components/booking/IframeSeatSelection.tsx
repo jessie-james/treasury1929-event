@@ -162,11 +162,17 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     return undefined;
   }, [eventVenueLayouts, selectedVenueIndex, eventData]);
   
-  // Check if selection is valid for a table - simplified validation
+  // Check if selection is valid for a table - enhanced validation for 4-top tables
   const isValidTableSelection = useCallback((table: VenueTable, guestCount: number): { valid: boolean, reason?: string } => {
     if (guestCount > table.capacity) {
       return { valid: false, reason: `This table seats ${table.capacity} guests maximum. You have ${guestCount} guests.` };
     }
+    
+    // Special rule for 4-top tables: cannot select 1 or 2 guests
+    if (table.capacity === 4 && (guestCount === 1 || guestCount === 2)) {
+      return { valid: false, reason: `4-seat tables are for 3 or 4 guests only. Please select a different table or adjust your guest count.` };
+    }
+    
     return { valid: true };
   }, []);
   

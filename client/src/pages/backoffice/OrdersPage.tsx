@@ -31,8 +31,6 @@ interface EventOrder {
     items: Array<{
       type: string;
       name: string;
-      allergens: string[];
-      dietary: string[];
     }>;
   }>;
   totalGuests: number;
@@ -47,7 +45,7 @@ export default function OrdersPage() {
   });
 
   // Fetch food options to get actual names
-  const { data: foodOptions } = useQuery<Array<{id: number, name: string, type: string, allergens: string[], dietaryRestrictions: string[]}>>({
+  const { data: foodOptions } = useQuery<Array<{id: number, name: string, type: string}>>({
     queryKey: ["/api/food-options"],
   });
 
@@ -56,8 +54,8 @@ export default function OrdersPage() {
   };
 
   // Helper function to transform food selections from API format
-  const transformFoodSelections = (foodSelections: any[]): Array<{type: string, name: string, allergens: string[], dietary: string[]}> => {
-    const items: Array<{type: string, name: string, allergens: string[], dietary: string[]}> = [];
+  const transformFoodSelections = (foodSelections: any[]): Array<{type: string, name: string}> => {
+    const items: Array<{type: string, name: string}> = [];
     
     if (Array.isArray(foodSelections) && foodOptions) {
       foodSelections.forEach((selection: any) => {
@@ -65,27 +63,21 @@ export default function OrdersPage() {
           const saladItem = foodOptions.find(item => item.id === selection.salad);
           items.push({
             type: "Salad",
-            name: saladItem?.name || `Salad Option ${selection.salad}`,
-            allergens: saladItem?.allergens || [],
-            dietary: saladItem?.dietaryRestrictions || []
+            name: saladItem?.name || `Salad Option ${selection.salad}`
           });
         }
         if (selection.entree) {
           const entreeItem = foodOptions.find(item => item.id === selection.entree);
           items.push({
             type: "Entree", 
-            name: entreeItem?.name || `Entree Option ${selection.entree}`,
-            allergens: entreeItem?.allergens || [],
-            dietary: entreeItem?.dietaryRestrictions || []
+            name: entreeItem?.name || `Entree Option ${selection.entree}`
           });
         }
         if (selection.dessert) {
           const dessertItem = foodOptions.find(item => item.id === selection.dessert);
           items.push({
             type: "Dessert",
-            name: dessertItem?.name || `Dessert Option ${selection.dessert}`,
-            allergens: dessertItem?.allergens || [],
-            dietary: dessertItem?.dietaryRestrictions || []
+            name: dessertItem?.name || `Dessert Option ${selection.dessert}`
           });
         }
       });

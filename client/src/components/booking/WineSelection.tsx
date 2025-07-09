@@ -37,12 +37,15 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
       const current = prev[optionId] || 0;
       const newQuantity = Math.max(0, current + change);
       
-      if (newQuantity === 0) {
+      // Cap bottles at 2 per table
+      const cappedQuantity = Math.min(newQuantity, 2);
+      
+      if (cappedQuantity === 0) {
         const { [optionId]: _, ...rest } = prev;
         return rest;
       }
       
-      return { ...prev, [optionId]: newQuantity };
+      return { ...prev, [optionId]: cappedQuantity };
     });
   };
 
@@ -67,7 +70,9 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
 
   const totalCost = Object.entries(selections).reduce((total, [optionId, quantity]) => {
     const option = wineOptions.find(opt => opt.id === parseInt(optionId));
-    return total + (option ? (option.price * quantity) / 100 : 0);
+    // Apply price multiplier for bottles (price * 2)
+    const adjustedPrice = option && option.type === 'wine_bottle' ? option.price * 2 : option?.price || 0;
+    return total + (adjustedPrice * quantity) / 100;
   }, 0);
 
   const hasSelections = Object.keys(selections).length > 0;
@@ -89,64 +94,25 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <strong>Must be 21+ to purchase alcohol</strong><br/>
-          ID verification required at venue for alcoholic beverages
+          <strong>Tax and tip are included</strong><br/>
+          <strong>NA beverages included</strong><br/>
+          Mixed drinks and glasses of wine are available at the table
         </AlertDescription>
       </Alert>
 
-      {/* MIXED DRINKS NOTICE */}
-      <Alert>
-        <Info className="h-4 w-4" />
-        <AlertDescription>
-          <strong>Mixed drinks available at venue</strong><br/>
-          Arrive 10 minutes early to order from our bar
-        </AlertDescription>
-      </Alert>
-
-      {/* Wine by the Glass */}
+      {/* Wine by the Glass - Available at venue */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Wine className="h-5 w-5" />
             Wine by the Glass
+            <Badge variant="secondary">Available at venue</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            {wineOptions
-              .filter(option => option.type === 'wine_glass')
-              .map((option) => (
-                <div key={option.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-medium">{option.name}</h4>
-                    <p className="text-sm text-muted-foreground">{option.description}</p>
-                    <p className="text-sm font-medium mt-1">
-                      ${(option.price / 100).toFixed(2)} per glass
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateQuantity(option.id, -1)}
-                      disabled={!selections[option.id]}
-                    >
-                      <Minus className="h-4 w-4" />
-                    </Button>
-                    <span className="w-8 text-center font-medium">
-                      {selections[option.id] || 0}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => updateQuantity(option.id, 1)}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+          <div className="text-center p-4 text-muted-foreground">
+            <p>Mixed drinks and wine by the glass available at venue</p>
+            <p className="text-sm">Please order directly from our staff at your table</p>
           </div>
         </CardContent>
       </Card>
@@ -157,8 +123,11 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
           <CardTitle className="flex items-center gap-2">
             <Wine className="h-5 w-5" />
             Wine Bottles
-            <Badge variant="secondary">Best Value</Badge>
+            <Badge variant="secondary">Max 2 per table</Badge>
           </CardTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Limited to 2 bottles per table maximum
+          </p>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4">
@@ -170,7 +139,7 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
                     <h4 className="font-medium">{option.name}</h4>
                     <p className="text-sm text-muted-foreground">{option.description}</p>
                     <p className="text-sm font-medium mt-1">
-                      ${(option.price / 100).toFixed(2)} per bottle (750ml)
+                      ${((option.price * 2) / 100).toFixed(2)} per bottle (750ml)
                     </p>
                   </div>
                   
@@ -190,6 +159,7 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
                       variant="outline"
                       size="icon"
                       onClick={() => updateQuantity(option.id, 1)}
+                      disabled={selections[option.id] >= 2}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
@@ -212,10 +182,11 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
                 const option = wineOptions.find(opt => opt.id === parseInt(optionId));
                 if (!option || quantity === 0) return null;
                 
+                const adjustedPrice = option.type === 'wine_bottle' ? option.price * 2 : option.price;
                 return (
                   <div key={optionId} className="flex justify-between text-sm">
                     <span>{option.name} × {quantity}</span>
-                    <span>${((option.price * quantity) / 100).toFixed(2)}</span>
+                    <span>${((adjustedPrice * quantity) / 100).toFixed(2)}</span>
                   </div>
                 );
               })}

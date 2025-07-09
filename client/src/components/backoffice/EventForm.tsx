@@ -24,7 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { type Event, type FoodOption } from "@shared/schema";
 import { useState, useRef, useEffect } from "react";
-import { ImagePlus, Loader2, RefreshCw, X, Building, UtensilsCrossed, Check, Wine } from "lucide-react";
+import { ImagePlus, Loader2, RefreshCw, X, Building, UtensilsCrossed, Check, Wine, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EventPricingManager } from "./EventPricingManager";
 import { EventVenueManager } from "./EventVenueManager";
 
@@ -595,73 +596,97 @@ export function EventForm({ event, onClose }: Props) {
                     <TabsTrigger value="dessert">Desserts</TabsTrigger>
                   </TabsList>
                   
-                  {["salad", "entree", "dessert"].map((type) => (
-                    <TabsContent key={type} value={type} className="space-y-4">
-                      <div className="grid gap-3">
-                        {allFoodOptions
-                          .filter((option) => option.type === type)
-                          .map((option) => (
-                            <div
-                              key={option.id}
-                              className={`flex items-center space-x-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                                selectedFoodOptions.includes(option.id)
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border hover:bg-muted/50"
-                              }`}
-                              onClick={() => {
-                                if (selectedFoodOptions.includes(option.id)) {
-                                  setSelectedFoodOptions(prev => prev.filter(id => id !== option.id));
-                                } else {
-                                  setSelectedFoodOptions(prev => [...prev, option.id]);
-                                }
-                              }}
-                            >
-                              <div className={`w-5 h-5 border rounded flex items-center justify-center ${
-                                selectedFoodOptions.includes(option.id)
-                                  ? "border-primary bg-primary text-primary-foreground"
-                                  : "border-muted-foreground"
-                              }`}>
-                                {selectedFoodOptions.includes(option.id) && (
-                                  <Check className="w-3 h-3" />
-                                )}
-                              </div>
-                              
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-3">
-                                  <img
-                                    src={option.image || ''}
-                                    alt={option.name}
-                                    className="w-12 h-12 object-cover rounded"
-                                  />
-                                  <div className="flex-1">
-                                    <h4 className="font-medium text-sm">{option.name}</h4>
-                                    <p className="text-xs text-muted-foreground line-clamp-1">
-                                      {option.description}
-                                    </p>
-                                    <div className="flex items-center gap-2 mt-1">
-                                      {option.allergens && option.allergens.length > 0 && (
-                                        <div className="flex gap-1">
-                                          {option.allergens.slice(0, 2).map((allergen) => (
-                                            <Badge key={allergen} variant="secondary" className="text-xs">
-                                              {allergen}
-                                            </Badge>
-                                          ))}
-                                          {option.allergens.length > 2 && (
-                                            <Badge variant="secondary" className="text-xs">
-                                              +{option.allergens.length - 2}
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      )}
+                  {["salad", "entree", "dessert"].map((type) => {
+                    const selectedForThisType = selectedFoodOptions.filter(id => {
+                      const option = allFoodOptions.find(opt => opt.id === id);
+                      return option?.type === type;
+                    }).length;
+                    
+                    return (
+                      <TabsContent key={type} value={type} className="space-y-4">
+                        {selectedForThisType >= 3 && (
+                          <Alert>
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                              <strong>Maximum reached:</strong> You can only select up to 3 {type} options per event.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+                        <div className="grid gap-3">
+                          {allFoodOptions
+                            .filter((option) => option.type === type)
+                            .map((option) => (
+                              <div
+                                key={option.id}
+                                className={`flex items-center space-x-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                                  selectedFoodOptions.includes(option.id)
+                                    ? "border-primary bg-primary/5"
+                                    : "border-border hover:bg-muted/50"
+                                }`}
+                                onClick={() => {
+                                  if (selectedFoodOptions.includes(option.id)) {
+                                    setSelectedFoodOptions(prev => prev.filter(id => id !== option.id));
+                                  } else {
+                                    // Check if we already have 3 options selected for this type
+                                    if (selectedForThisType < 3) {
+                                      setSelectedFoodOptions(prev => [...prev, option.id]);
+                                    } else {
+                                      toast({
+                                        title: "Maximum reached",
+                                        description: `You can only select up to 3 ${type} options per event.`,
+                                        variant: "destructive",
+                                      });
+                                    }
+                                  }
+                                }}
+                              >
+                                <div className={`w-5 h-5 border rounded flex items-center justify-center ${
+                                  selectedFoodOptions.includes(option.id)
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-muted-foreground"
+                                }`}>
+                                  {selectedFoodOptions.includes(option.id) && (
+                                    <Check className="w-3 h-3" />
+                                  )}
+                                </div>
+                                
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={option.image || ''}
+                                      alt={option.name}
+                                      className="w-12 h-12 object-cover rounded"
+                                    />
+                                    <div className="flex-1">
+                                      <h4 className="font-medium text-sm">{option.name}</h4>
+                                      <p className="text-xs text-muted-foreground line-clamp-1">
+                                        {option.description}
+                                      </p>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        {option.allergens && option.allergens.length > 0 && (
+                                          <div className="flex gap-1">
+                                            {option.allergens.slice(0, 2).map((allergen) => (
+                                              <Badge key={allergen} variant="secondary" className="text-xs">
+                                                {allergen}
+                                              </Badge>
+                                            ))}
+                                            {option.allergens.length > 2 && (
+                                              <Badge variant="secondary" className="text-xs">
+                                                +{option.allergens.length - 2}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
-                      </div>
-                    </TabsContent>
-                  ))}
+                            ))}
+                        </div>
+                      </TabsContent>
+                    );
+                  })}
                 </Tabs>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">

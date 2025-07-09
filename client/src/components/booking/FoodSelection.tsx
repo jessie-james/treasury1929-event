@@ -214,10 +214,10 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
           </p>
         </div>
         
-        {/* WATER NOTICE */}
+        {/* TAX AND TIP NOTICE */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
           <p className="text-xs text-blue-600">
-            • Water provided with all meals
+            • Tax and tip are included • NA beverages included
           </p>
         </div>
       </div>
@@ -226,11 +226,15 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
       <div className="space-y-2">
         <div className="flex justify-between items-center">
           <div className="flex gap-2 items-center">
-            <span className="inline-flex items-center justify-center w-6 h-6 bg-primary text-primary-foreground rounded-full text-xs font-medium">
-              {currentSeat}
+            <span className="inline-flex items-center justify-center w-8 h-8 bg-primary text-primary-foreground rounded-full text-sm font-medium">
+              {selectedSeats.indexOf(currentSeat) + 1}
             </span>
-            <span className="text-sm text-muted-foreground">
-              of {selectedSeats.length} seats
+            <span className="text-lg font-medium">
+              {(() => {
+                const guestNumber = selectedSeats.indexOf(currentSeat) + 1;
+                const suffix = guestNumber === 1 ? 'st' : guestNumber === 2 ? 'nd' : guestNumber === 3 ? 'rd' : 'th';
+                return `${guestNumber}${suffix} guest`;
+              })()}
             </span>
           </div>
           <span className="text-sm text-muted-foreground">
@@ -326,22 +330,29 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
                               
                               {/* Food information section */}
                               <div className="mt-3">
-                                {/* Allergen information only */}
-                                {option.allergens && option.allergens.length > 0 && (
-                                  <div>
-                                    <p className="text-xs text-muted-foreground font-medium mb-1">Allergens:</p>
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {(option.allergens as Allergen[]).map((allergen) => (
-                                        <span 
-                                          key={allergen} 
-                                          className="inline-flex items-center bg-red-50 text-red-700 rounded-md px-2 py-1 text-xs font-medium"
-                                        >
-                                          {allergenLabels[allergen]}
-                                        </span>
-                                      ))}
+                                {/* Allergen and dietary information */}
+                                <div className="space-y-2">
+                                  {option.allergens && option.allergens.length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-muted-foreground font-medium mb-1">
+                                        Allergens: {(option.allergens as Allergen[]).map((allergen) => {
+                                          const label = allergenLabels[allergen];
+                                          return label.match(/\(([^)]+)\)/)?.[1] || label;
+                                        }).join(', ')}
+                                      </p>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
+                                  {option.dietaryRestrictions && option.dietaryRestrictions.length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-muted-foreground font-medium mb-1">
+                                        Dietary: {(option.dietaryRestrictions as DietaryRestriction[]).map((restriction) => {
+                                          const label = dietaryLabels[restriction];
+                                          return label.match(/\(([^)]+)\)/)?.[1] || label;
+                                        }).join(', ')}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </CardContent>
                           </div>
