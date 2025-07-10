@@ -394,8 +394,8 @@ function FoodSelectionInner({ selectedSeats, eventId, onComplete }: Props) {
                                     <div>
                                       <p className="text-xs text-muted-foreground font-medium mb-1">
                                         Allergens: {(option.allergens as Allergen[]).map((allergen) => {
-                                          const label = allergenLabels[allergen];
-                                          return label.match(/\(([^)]+)\)/)?.[1] || label;
+                                          const label = allergenLabels[allergen] || allergen;
+                                          return label?.match(/\(([^)]+)\)/)?.[1] || label;
                                         }).join(', ')}
                                       </p>
                                     </div>
@@ -404,8 +404,8 @@ function FoodSelectionInner({ selectedSeats, eventId, onComplete }: Props) {
                                     <div>
                                       <p className="text-xs text-muted-foreground font-medium mb-1">
                                         Dietary: {(option.dietaryRestrictions as DietaryRestriction[]).map((restriction) => {
-                                          const label = dietaryLabels[restriction];
-                                          return label.match(/\(([^)]+)\)/)?.[1] || label;
+                                          const label = dietaryLabels[restriction] || restriction;
+                                          return label?.match(/\(([^)]+)\)/)?.[1] || label;
                                         }).join(', ')}
                                       </p>
                                     </div>
