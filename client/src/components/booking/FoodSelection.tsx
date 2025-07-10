@@ -68,14 +68,20 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
   const [showAllergyWarning, setShowAllergyWarning] = useState<boolean>(false);
   const [allergyConflicts, setAllergyConflicts] = useState<Allergen[]>([]);
   const [dietaryConflicts, setDietaryConflicts] = useState<DietaryRestriction[]>([]);
-  const [selections, setSelections] = useState<Record<number, SeatSelections>>(
-    Object.fromEntries(
-      selectedSeats.map(seat => [
-        seat,
-        { name: "", salad: undefined, entree: undefined, dessert: undefined }
-      ])
-    )
-  );
+  const [selections, setSelections] = useState<Record<number, SeatSelections>>(() => {
+    const initialSelections: Record<number, SeatSelections> = {};
+    if (selectedSeats && selectedSeats.length > 0) {
+      selectedSeats.forEach(seat => {
+        initialSelections[seat] = { 
+          name: "", 
+          salad: undefined, 
+          entree: undefined, 
+          dessert: undefined 
+        };
+      });
+    }
+    return initialSelections;
+  });
 
   // Group options by type for easier selection
   const byType = useMemo(() => {
@@ -147,37 +153,55 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
   };
 
   const isCurrentSeatComplete = () => {
+    if (!currentSeat || !selections[currentSeat]) return false;
+    
     const selection = selections[currentSeat];
-    if (!selection) return false;
 
     return STEPS.every(step => {
-      if (step === "name") return selection.name.trim() !== "";
+      if (step === "name") return selection.name && selection.name.trim() !== "";
       return selection[step] !== undefined;
     });
   };
 
   const moveToNextStep = () => {
+    if (!selectedSeats || selectedSeats.length === 0) return;
+    
     const nextStepIndex = currentStepIndex + 1;
     if (nextStepIndex < STEPS.length) {
       setCurrentStep(STEPS[nextStepIndex]);
     } else if (currentSeat !== selectedSeats[selectedSeats.length - 1]) {
       // Move to next seat if available
       const nextSeatIndex = selectedSeats.indexOf(currentSeat) + 1;
-      setCurrentSeat(selectedSeats[nextSeatIndex]);
-      setCurrentStep("name");
+      if (nextSeatIndex < selectedSeats.length) {
+        setCurrentSeat(selectedSeats[nextSeatIndex]);
+        setCurrentStep("name");
+      }
     } else {
       // All seats and steps are complete
-      const foodSelections = selectedSeats.map(seat => ({
-        salad: selections[seat].salad!,
-        entree: selections[seat].entree!,
-        dessert: selections[seat].dessert!,
-      }));
+      try {
+        const foodSelections = selectedSeats.map(seat => {
+          const selection = selections[seat];
+          if (!selection) {
+            throw new Error(`Missing selection for seat ${seat}`);
+          }
+          return {
+            salad: selection.salad!,
+            entree: selection.entree!,
+            dessert: selection.dessert!,
+          };
+        });
 
-      const names = Object.fromEntries(
-        selectedSeats.map((seat, index) => [index + 1, selections[seat].name])
-      );
+        const names = Object.fromEntries(
+          selectedSeats.map((seat, index) => {
+            const selection = selections[seat];
+            return [index + 1, selection?.name || `Guest ${index + 1}`];
+          })
+        );
 
-      onComplete(foodSelections, names);
+        onComplete(foodSelections, names);
+      } catch (error) {
+        console.error("Error completing food selection:", error);
+      }
     }
   };
 
