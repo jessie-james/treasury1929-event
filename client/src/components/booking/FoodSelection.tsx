@@ -44,8 +44,15 @@ type Step = typeof STEPS[number];
 export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
   const { user } = useAuth();
   
-  // Early validation
+  // Early validation and debugging
+  console.log("FoodSelection component mounted:", {
+    selectedSeats,
+    eventId,
+    user: user?.id
+  });
+  
   if (!selectedSeats || selectedSeats.length === 0) {
+    console.error("No seats selected for food selection");
     return (
       <div className="text-center p-8">
         <p className="text-red-600">Error: No seats selected. Please go back and select seats.</p>
@@ -62,7 +69,10 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
   console.log("Food options loaded:", options?.length || 0, "options");
   console.log("Selected seats:", selectedSeats);
 
-  const [currentSeat, setCurrentSeat] = useState<number>(selectedSeats[0]);
+  const [currentSeat, setCurrentSeat] = useState<number>(() => {
+    console.log("Setting initial currentSeat to:", selectedSeats[0]);
+    return selectedSeats[0];
+  });
   const [currentStep, setCurrentStep] = useState<Step>("name");
   const [selectedOption, setSelectedOption] = useState<FoodOption | null>(null);
   const [showAllergyWarning, setShowAllergyWarning] = useState<boolean>(false);
@@ -80,6 +90,7 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
         };
       });
     }
+    console.log("Initial selections created:", initialSelections);
     return initialSelections;
   });
 
@@ -293,15 +304,26 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
               id="guest-name"
               placeholder="Enter guest's name"
               value={selections[currentSeat]?.name || ""}
-              onChange={(e) =>
-                setSelections({
-                  ...selections,
-                  [currentSeat]: {
-                    ...selections[currentSeat],
-                    name: e.target.value
-                  }
-                })
-              }
+              onChange={(e) => {
+                try {
+                  console.log("Name input change:", {
+                    currentSeat,
+                    value: e.target.value,
+                    currentSelection: selections[currentSeat],
+                    allSelections: selections
+                  });
+                  
+                  setSelections({
+                    ...selections,
+                    [currentSeat]: {
+                      ...selections[currentSeat],
+                      name: e.target.value
+                    }
+                  });
+                } catch (error) {
+                  console.error("Error in name input onChange:", error);
+                }
+              }}
             />
           </div>
         ) : (
