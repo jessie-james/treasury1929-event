@@ -24,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AlertCircle, AlertTriangle } from "lucide-react";
+import { ErrorBoundary, ErrorFallback } from "@/components/ErrorBoundary";
 
 interface SeatSelections {
   name: string;
@@ -41,7 +42,7 @@ interface Props {
 const STEPS = ["name", "salad", "entree", "dessert"] as const;
 type Step = typeof STEPS[number];
 
-export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
+function FoodSelectionInner({ selectedSeats, eventId, onComplete }: Props) {
   const { user } = useAuth();
   
   // Early validation and debugging
@@ -455,5 +456,13 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
         </div>
       </div>
     </div>
+  );
+}
+
+export function FoodSelection(props: Props) {
+  return (
+    <ErrorBoundary fallback={ErrorFallback}>
+      <FoodSelectionInner {...props} />
+    </ErrorBoundary>
   );
 }
