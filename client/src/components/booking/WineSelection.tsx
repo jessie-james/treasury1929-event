@@ -37,7 +37,16 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
       const current = prev[optionId] || 0;
       const newQuantity = Math.max(0, current + change);
       
-      // Cap bottles at 2 per table
+      // Check total bottles across all wine types
+      const totalBottles = Object.values(prev).reduce((sum, qty) => sum + qty, 0);
+      const isIncreasing = change > 0;
+      
+      // If increasing and would exceed 2 total bottles, don't allow
+      if (isIncreasing && totalBottles >= 2) {
+        return prev;
+      }
+      
+      // Cap individual selection at 2 but prioritize total limit
       const cappedQuantity = Math.min(newQuantity, 2);
       
       if (cappedQuantity === 0) {
@@ -100,22 +109,7 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
         </AlertDescription>
       </Alert>
 
-      {/* Wine by the Glass - Available at venue */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wine className="h-5 w-5" />
-            Wine by the Glass
-            <Badge variant="secondary">Available at venue</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center p-4 text-muted-foreground">
-            <p>Mixed drinks and wine by the glass available at venue</p>
-            <p className="text-sm">Please order directly from our staff at your table</p>
-          </div>
-        </CardContent>
-      </Card>
+
 
       {/* Wine Bottles */}
       <Card>
@@ -159,7 +153,7 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
                       variant="outline"
                       size="icon"
                       onClick={() => updateQuantity(option.id, 1)}
-                      disabled={selections[option.id] >= 2}
+                      disabled={Object.values(selections).reduce((sum, qty) => sum + qty, 0) >= 2}
                     >
                       <Plus className="h-4 w-4" />
                     </Button>

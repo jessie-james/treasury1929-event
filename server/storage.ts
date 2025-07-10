@@ -579,11 +579,23 @@ export class PgStorage implements IStorage {
     const eventFoodOptions = await this.getEventFoodOptions(eventId);
     
     if (eventFoodOptions.length > 0) {
-      return eventFoodOptions;
+      // If event has specific options, limit to 3 per category
+      return this.limitToThreePerCategory(eventFoodOptions);
     }
     
-    // If no specific options configured, return all food options
-    return await db.select().from(schema.foodOptions).orderBy(asc(schema.foodOptions.displayOrder));
+    // If no specific options configured, get all options and limit to 3 per category
+    const allOptions = await db.select().from(schema.foodOptions).orderBy(asc(schema.foodOptions.displayOrder));
+    return this.limitToThreePerCategory(allOptions);
+  }
+
+  private limitToThreePerCategory(options: any[]): any[] {
+    const categorized = {
+      salad: options.filter(opt => opt.type === 'salad').slice(0, 3),
+      entree: options.filter(opt => opt.type === 'entree').slice(0, 3),
+      dessert: options.filter(opt => opt.type === 'dessert').slice(0, 3)
+    };
+    
+    return [...categorized.salad, ...categorized.entree, ...categorized.dessert];
   }
 
   // Event Food Options methods
@@ -776,7 +788,7 @@ export class PgStorage implements IStorage {
             const guestOrder = {
               guestName,
               guestNumber: index + 1,
-              items: [] as Array<{type: string, name: string, allergens: string[], dietary: string[]}>
+              items: [] as Array<{type: string, name: string, dietary: string[]}>
             };
 
             // Process salad
@@ -786,7 +798,6 @@ export class PgStorage implements IStorage {
                 guestOrder.items.push({
                   type: 'Salad',
                   name: foodOption.name,
-                  allergens: foodOption.allergens || [],
                   dietary: foodOption.dietaryRestrictions || []
                 });
               }
@@ -799,7 +810,6 @@ export class PgStorage implements IStorage {
                 guestOrder.items.push({
                   type: 'Entree',
                   name: foodOption.name,
-                  allergens: foodOption.allergens || [],
                   dietary: foodOption.dietaryRestrictions || []
                 });
               }
@@ -812,7 +822,6 @@ export class PgStorage implements IStorage {
                 guestOrder.items.push({
                   type: 'Dessert',
                   name: foodOption.name,
-                  allergens: foodOption.allergens || [],
                   dietary: foodOption.dietaryRestrictions || []
                 });
               }

@@ -2,123 +2,27 @@ import React from "react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-// Define common allergens
-export type Allergen = 
-  | "gluten" 
-  | "dairy" 
-  | "eggs" 
-  | "peanuts" 
-  | "tree_nuts" 
-  | "soy" 
-  | "fish" 
-  | "shellfish" 
-  | "sesame";
+// Define common allergens - REMOVED ALL ALLERGENS
+export type Allergen = never;
 
-// Define dietary restrictions
+// Define dietary restrictions - ONLY 4 TYPES ALLOWED
 export type DietaryRestriction = 
-  | "vegetarian" 
+  | "gluten-free" 
   | "vegan" 
-  | "halal" 
-  | "kosher" 
-  | "low_carb" 
-  | "keto" 
-  | "paleo";
+  | "vegetarian" 
+  | "dairy-free";
 
-export const allergenLabels: Record<Allergen, string> = {
-  gluten: "Gluten",
-  dairy: "Dairy",
-  eggs: "Eggs",
-  peanuts: "Peanuts",
-  tree_nuts: "Tree Nuts",
-  soy: "Soy",
-  fish: "Fish",
-  shellfish: "Shellfish",
-  sesame: "Sesame",
-};
+export const allergenLabels: Record<Allergen, string> = {};
 
 export const dietaryLabels: Record<DietaryRestriction, string> = {
-  vegetarian: "Vegetarian",
-  vegan: "Vegan",
-  halal: "Halal",
-  kosher: "Kosher",
-  low_carb: "Low Carb",
-  keto: "Keto-Friendly",
-  paleo: "Paleo-Friendly",
+  "gluten-free": "GF",
+  "vegan": "V",
+  "vegetarian": "VG", 
+  "dairy-free": "DF",
 };
 
-// SVG icons for allergens
-export const allergenIcons: Record<Allergen, React.ReactNode> = {
-  gluten: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-wheat">
-      <path d="M2 22 16 8" />
-      <path d="M3.47 12.53 5 11l1.53 1.53a3.5 3.5 0 0 1 0 4.94L5 19l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z" />
-      <path d="M7.47 8.53 9 7l1.53 1.53a3.5 3.5 0 0 1 0 4.94L9 15l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z" />
-      <path d="M11.47 4.53 13 3l1.53 1.53a3.5 3.5 0 0 1 0 4.94L13 11l-1.53-1.53a3.5 3.5 0 0 1 0-4.94Z" />
-      <path d="M20 2h2v2a4 4 0 0 1-4 4h-2V6a4 4 0 0 1 4-4Z" />
-      <path d="M11.47 17.47 13 19l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L5 19l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z" />
-      <path d="M15.47 13.47 17 15l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L9 15l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z" />
-      <path d="M19.47 9.47 21 11l-1.53 1.53a3.5 3.5 0 0 1-4.94 0L13 11l1.53-1.53a3.5 3.5 0 0 1 4.94 0Z" />
-    </svg>
-  ),
-  dairy: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-milk">
-      <path d="M8 2h8" />
-      <path d="M9 2v2.789a4 4 0 0 1-.672 2.219l-.656.984A4 4 0 0 0 7 10.212V20a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-9.789a4 4 0 0 0-.672-2.219l-.656-.984A4 4 0 0 1 15 4.788V2" />
-      <path d="M7 15a6.472 6.472 0 0 1 5 0 6.47 6.47 0 0 0 5 0" />
-    </svg>
-  ),
-  eggs: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-egg">
-      <path d="M12 22c6.23-.05 7.87-5.57 7.5-10-.36-4.34-3.95-9.96-7.5-10-3.55.04-7.14 5.66-7.5 10-.37 4.43 1.27 9.95 7.5 10z" />
-    </svg>
-  ),
-  peanuts: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M10.5 9.5c.5-1.5 1.5-2 2.5-2 1.5 0 3 1.5 3 3 0 .5 0 1-1 1-2 0-3 .5-3.5 2-1 2-2.5 1.5-3 1-.5-.5-1-1.5-.5-2.5.5-.5 2-1 2.5-2.5Z" />
-      <path d="M14 7.5c1-1 2-1 3-.5 1.5 1 2 3 1 4.5-.5.5-1 .5-1.5 0-.5-1-1.5-1.5-2.5-1-1.5 1-3-.5-2.5-2 .5-.5 1.5-1 2.5-1Z" />
-      <path d="M18 2c-2.5 2.5-8.5 10-7.5 13.5 1 4 9.5 5.5 11.5 0s-2-3-3-6c-1-3 2-3-1-7.5Z" />
-      <path d="M18 9.5c3.5 4.5-.5 9-3 8.5-2-.5-5.5-1.5-7-3.5-1-1-1.5-2.5-1.5-4 0-1.5.5-2.5 1.5-3 1-.5 3.5 0 4 2s1.5 2.5 3 1.5c1-.5 1.5-1 3-1.5Z" />
-    </svg>
-  ),
-  tree_nuts: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2a3 3 0 0 0-3 3c0 1.6.8 3 2 4l-3 7h8l-3-7c1.2-1 2-2.4 2-4a3 3 0 0 0-3-3z" />
-      <path d="M8 21h8" />
-      <path d="M12 17v4" />
-    </svg>
-  ),
-  soy: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-sprout">
-      <path d="M7 20h10" />
-      <path d="M10 20c5.5-2.5.8-6.4 3-10" />
-      <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z" />
-      <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z" />
-    </svg>
-  ),
-  fish: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-fish">
-      <path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6Z" />
-      <path d="M18 12v.5" />
-      <path d="M16 17.93a9.77 9.77 0 0 1 0-11.86" />
-      <path d="M7.99 8.5A9.77 9.77 0 0 0 16 6.07" />
-      <path d="M7.99 15.5A9.77 9.77 0 0 1 16 17.93" />
-    </svg>
-  ),
-  shellfish: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22c7.5 0 7.5-9 0-9-7.5 0-7.5 9 0 9Z" />
-      <path d="M12 13V2a5 5 0 0 0-5 5c0 2 2 3 2 3" />
-      <path d="M12 13v-3s3 1 3 3" />
-    </svg>
-  ),
-  sesame: (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 2c-.8.8-2 2-2 6v10c0 .7.5 1 1 1h8c.5 0 1-.3 1-1V8c0-4-1.2-5.2-2-6" />
-      <path d="M12 6v6" />
-      <path d="M9 12h6" />
-    </svg>
-  ),
-};
+// SVG icons for allergens - REMOVED ALL ALLERGENS
+export const allergenIcons: Record<Allergen, React.ReactNode> = {};
 
 // SVG icons for dietary restrictions
 export const dietaryIcons: Record<DietaryRestriction, React.ReactNode> = {

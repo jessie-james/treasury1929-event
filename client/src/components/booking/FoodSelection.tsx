@@ -259,11 +259,7 @@ function FoodSelectionInner({ selectedSeats, eventId, onComplete }: Props) {
           <p className="text-xs text-green-600 mt-1">
             Your $130 per person ticket includes salad + entrée + dessert selection
           </p>
-        </div>
-        
-        {/* TAX AND TIP NOTICE */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
-          <p className="text-xs text-blue-600">
+          <p className="text-xs text-green-600 mt-1">
             • Tax and tip are included • NA beverages included
           </p>
         </div>
@@ -388,25 +384,14 @@ function FoodSelectionInner({ selectedSeats, eventId, onComplete }: Props) {
                               
                               {/* Food information section */}
                               <div className="mt-3">
-                                {/* Allergen and dietary information */}
+                                {/* Only dietary information - NO ALLERGENS */}
                                 <div className="space-y-2">
-                                  {option.allergens && option.allergens.length > 0 && (
-                                    <div>
-                                      <p className="text-xs text-muted-foreground font-medium mb-1">
-                                        Allergens: {(option.allergens as Allergen[]).map((allergen) => {
-                                          const label = allergenLabels[allergen] || allergen;
-                                          return label?.match(/\(([^)]+)\)/)?.[1] || label;
-                                        }).join(', ')}
-                                      </p>
-                                    </div>
-                                  )}
                                   {option.dietaryRestrictions && option.dietaryRestrictions.length > 0 && (
                                     <div>
                                       <p className="text-xs text-muted-foreground font-medium mb-1">
-                                        Dietary: {(option.dietaryRestrictions as DietaryRestriction[]).map((restriction) => {
-                                          const label = dietaryLabels[restriction] || restriction;
-                                          return label?.match(/\(([^)]+)\)/)?.[1] || label;
-                                        }).join(', ')}
+                                        {(option.dietaryRestrictions as DietaryRestriction[]).map((restriction) => {
+                                          return dietaryLabels[restriction] || restriction;
+                                        }).join(' • ')}
                                       </p>
                                     </div>
                                   )}

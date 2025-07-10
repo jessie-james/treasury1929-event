@@ -2779,6 +2779,53 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Get orders for an event (kitchen dashboard format)
+  app.get("/api/events/:eventId/orders", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      if (isNaN(eventId)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const orders = await storage.getEventOrdersWithDetails(eventId);
+      
+      // Transform data to match Kitchen Dashboard format
+      const ordersByTable: Record<number, any[]> = {};
+      
+      orders.forEach(order => {
+        if (!ordersByTable[order.tableId]) {
+          ordersByTable[order.tableId] = [];
+        }
+        
+        // Create individual guest orders for each guest
+        order.guestOrders.forEach(guestOrder => {
+          ordersByTable[order.tableId].push({
+            bookingId: order.bookingId,
+            guestName: guestOrder.guestName,
+            orderItems: guestOrder.items,
+            status: 'pending',
+            foodSelections: guestOrder.items,
+            wineSelections: []
+          });
+        });
+      });
+
+      res.json({
+        eventId,
+        ordersByTable,
+        totalTables: Object.keys(ordersByTable).length,
+        totalOrders: Object.values(ordersByTable).flat().length
+      });
+    } catch (error) {
+      console.error("Error fetching event orders:", error);
+      res.status(500).json({ message: "Failed to fetch event orders" });
+    }
+  });
+
   // Get detailed order information for an event (new orders page format)
   app.get("/api/events/:id/orders-detailed", async (req, res) => {
     try {

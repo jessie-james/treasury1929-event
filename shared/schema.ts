@@ -500,9 +500,9 @@ export interface BookingWithDetails extends Booking {
   table: Table;
 }
 
-// Enum-like types for allergies and dietary restrictions
-export type Allergen = 'gluten' | 'dairy' | 'nuts' | 'peanuts' | 'shellfish' | 'eggs' | 'soy' | 'fish';
-export type DietaryRestriction = 'vegetarian' | 'vegan' | 'halal' | 'kosher' | 'gluten-free' | 'dairy-free' | 'nut-free';
+// Enum-like types for allergies and dietary restrictions - SIMPLIFIED TO 4 TYPES ONLY
+export type Allergen = never; // All allergens removed
+export type DietaryRestriction = 'gluten-free' | 'vegan' | 'vegetarian' | 'dairy-free';
 
 // Admin Logs Table
 export const adminLogs = pgTable("admin_logs", {
