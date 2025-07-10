@@ -43,6 +43,16 @@ type Step = typeof STEPS[number];
 
 export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
   const { user } = useAuth();
+  
+  // Early validation
+  if (!selectedSeats || selectedSeats.length === 0) {
+    return (
+      <div className="text-center p-8">
+        <p className="text-red-600">Error: No seats selected. Please go back and select seats.</p>
+      </div>
+    );
+  }
+  
   // Get randomized food options for this event (3 per category)
   const { data: options } = useQuery<FoodOption[]>({
     queryKey: [`/api/events/${eventId}/food-options`]
@@ -50,6 +60,7 @@ export function FoodSelection({ selectedSeats, eventId, onComplete }: Props) {
   
   // Debugging
   console.log("Food options loaded:", options?.length || 0, "options");
+  console.log("Selected seats:", selectedSeats);
 
   const [currentSeat, setCurrentSeat] = useState<number>(selectedSeats[0]);
   const [currentStep, setCurrentStep] = useState<Step>("name");

@@ -161,9 +161,13 @@ export function registerOrderTrackingRoutes(app: Express) {
   // Get all orders for an event (kitchen dashboard)
   app.get("/api/events/:eventId/orders", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || req.user?.role === "customer") {
+      if (!req.isAuthenticated()) {
         return res.status(401).json({ message: "Unauthorized" });
       }
+      
+      // Allow customers to view their own orders
+      const isCustomer = req.user?.role === "customer";
+      const userId = req.user?.id;
 
       const eventId = parseInt(req.params.eventId);
       if (isNaN(eventId)) {

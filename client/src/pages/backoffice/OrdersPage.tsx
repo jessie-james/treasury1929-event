@@ -387,13 +387,13 @@ export default function OrdersPage() {
                                       <div key={itemIndex} className="space-y-1">
                                         <div className="font-medium">{item.type}:</div>
                                         <div className="text-muted-foreground">{item.name}</div>
-                                        {item.allergens.length > 0 && (
+                                        {item.allergens && item.allergens.length > 0 && (
                                           <div className="flex items-center gap-1 text-red-600">
                                             <AlertTriangle className="h-3 w-3" />
                                             <span>Allergens: {item.allergens.join(', ')}</span>
                                           </div>
                                         )}
-                                        {item.dietary.length > 0 && (
+                                        {item.dietary && item.dietary.length > 0 && (
                                           <div className="text-green-600 text-xs">
                                             Dietary: {item.dietary.join(', ')}
                                           </div>
