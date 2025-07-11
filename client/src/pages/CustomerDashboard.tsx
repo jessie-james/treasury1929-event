@@ -261,58 +261,70 @@ export default function CustomerDashboard() {
                   </div>
                 )}
 
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => toggleQRCode(booking.id)}
-                    className="flex items-center gap-2"
-                  >
-                    <QrCode className="w-4 h-4" />
-                    {expandedQRCode === booking.id ? "Hide QR Code" : "Show QR Code"}
-                  </Button>
-                  {qrCodeUrls[booking.id] && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => downloadQRTicket(booking)}
-                      className="flex items-center gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download Ticket
-                    </Button>
-                  )}
-                </div>
-
-                {expandedQRCode === booking.id && (
-                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                {/* Always show ticket with QR code */}
+                <div className="mt-6 p-4 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Ticket className="h-5 w-5 text-primary" />
+                    <h4 className="text-lg font-semibold">Your Ticket</h4>
+                  </div>
+                  
+                  <div className="space-y-4">
                     <div className="text-center">
-                      <h4 className="font-medium mb-2">Entry QR Code</h4>
-                      <div className="flex justify-center">
-                        <div className="p-4 bg-white rounded border">
-                          <div className="text-xs text-center mb-2">Booking #{booking.id}</div>
-                          <div className="flex justify-center">
-                            {qrCodeUrls[booking.id] ? (
-                              <img 
-                                src={qrCodeUrls[booking.id]} 
-                                alt="Entry QR Code" 
-                                className="w-32 h-32"
-                              />
-                            ) : (
-                              <div className="w-32 h-32 bg-gray-100 rounded flex items-center justify-center">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-xs text-center mt-2">{booking.event.title}</div>
+                      <h5 className="text-lg font-bold text-primary mb-2">{booking.event.title}</h5>
+                      <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          Table {booking.tableId}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Users className="h-4 w-4" />
+                          {booking.partySize} guests
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Show this QR code at the venue entrance
-                      </p>
                     </div>
+
+                    {/* QR Code - always visible */}
+                    <div className="flex justify-center">
+                      <div className="p-4 bg-white rounded border-2 border-gray-200">
+                        <div className="text-xs text-center mb-2 font-medium">Booking #{booking.id}</div>
+                        <div className="flex justify-center">
+                          {qrCodeUrls[booking.id] ? (
+                            <img 
+                              src={qrCodeUrls[booking.id]} 
+                              alt="Entry QR Code" 
+                              className="w-32 h-32"
+                            />
+                          ) : (
+                            <div className="w-32 h-32 bg-gray-100 rounded flex items-center justify-center">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-xs text-center mt-2 font-medium">{booking.event.title}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-center">
+                      <Button
+                        variant="default"
+                        size="lg"
+                        onClick={() => downloadQRTicket(booking)}
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download Ticket
+                      </Button>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground text-center">
+                      Show this QR code at the venue entrance
+                    </p>
                   </div>
-                )}
+                </div>
               </CardContent>
             </Card>
           ))}

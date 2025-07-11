@@ -184,21 +184,35 @@ export default function OrdersPage() {
           
           yPosition += 25;
           
-          // Guest orders
+          // Guest orders - improved format
           for (const guestOrder of order.guestOrders) {
             if (yPosition > 260) {
               doc.addPage();
               yPosition = 20;
             }
             
-            doc.text(`${guestOrder.guestName}:`, 30, yPosition);
-            yPosition += 8;
+            doc.setFontSize(11);
+            doc.text(`Guest: ${guestOrder.guestName}`, 30, yPosition);
+            yPosition += 10;
             
             for (const item of guestOrder.items) {
+              doc.setFontSize(10);
               doc.text(`• ${item.type}: ${item.name}`, 40, yPosition);
+              
+              // Add dietary info if available
+              if (item.dietary && item.dietary.length > 0) {
+                const dietaryLabels = item.dietary.map(diet => {
+                  return diet === 'gluten-free' ? 'GF' :
+                         diet === 'vegan' ? 'VG' :
+                         diet === 'vegetarian' ? 'V' :
+                         diet === 'dairy-free' ? 'DF' : diet;
+                }).join(', ');
+                doc.text(`  [${dietaryLabels}]`, 150, yPosition);
+              }
+              
               yPosition += 8;
             }
-            yPosition += 5;
+            yPosition += 8;
           }
           yPosition += 10;
         }
@@ -380,25 +394,30 @@ export default function OrdersPage() {
                               </h5>
                               
                               {order.guestOrders.map((guestOrder, guestIndex) => (
-                                <div key={guestIndex} className="ml-4 p-3 bg-secondary/10 rounded-md">
-                                  <div className="font-medium text-sm mb-2">{guestOrder.guestName}</div>
-                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                <div key={guestIndex} className="ml-4 p-3 bg-secondary/10 rounded-md border border-secondary/20">
+                                  <div className="font-semibold text-sm mb-3 text-primary border-b border-secondary/30 pb-2">
+                                    {guestOrder.guestName}
+                                  </div>
+                                  <div className="space-y-2">
                                     {guestOrder.items.map((item, itemIndex) => (
-                                      <div key={itemIndex} className="space-y-1">
-                                        <div className="font-medium">{item.type}:</div>
-                                        <div className="text-muted-foreground">{item.name}</div>
-
+                                      <div key={itemIndex} className="flex justify-between items-start p-2 bg-white rounded border border-secondary/20">
+                                        <div className="flex-1">
+                                          <div className="font-medium text-sm text-primary">{item.type}:</div>
+                                          <div className="text-sm text-foreground">{item.name}</div>
+                                        </div>
                                         {item.dietary && item.dietary.length > 0 && (
-                                          <div className="text-green-600 text-xs">
+                                          <div className="flex gap-1">
                                             {item.dietary.map(diet => {
-                                              switch(diet) {
-                                                case 'gluten-free': return 'GF';
-                                                case 'vegan': return 'VG';
-                                                case 'vegetarian': return 'V';
-                                                case 'dairy-free': return 'DF';
-                                                default: return diet;
-                                              }
-                                            }).join(', ')}
+                                              const label = diet === 'gluten-free' ? 'GF' :
+                                                          diet === 'vegan' ? 'VG' :
+                                                          diet === 'vegetarian' ? 'V' :
+                                                          diet === 'dairy-free' ? 'DF' : diet;
+                                              return (
+                                                <span key={diet} className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
+                                                  {label}
+                                                </span>
+                                              );
+                                            })}
                                           </div>
                                         )}
                                       </div>

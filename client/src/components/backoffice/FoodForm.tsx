@@ -38,14 +38,14 @@ import { ImagePlus, Loader2, RefreshCw, X } from "lucide-react";
 
 // Define the common allergens and dietary restrictions
 const ALLERGENS: Allergen[] = ["gluten", "dairy", "eggs", "peanuts", "tree_nuts", "soy", "fish", "shellfish", "sesame"];
-const DIETARY_RESTRICTIONS: DietaryRestriction[] = ["vegetarian", "vegan", "halal", "kosher", "low_carb", "keto", "paleo"];
+const DIETARY_RESTRICTIONS: DietaryRestriction[] = ["gluten-free", "vegan", "vegetarian", "dairy-free"];
 
 const foodFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
   // Accept any non-empty string for image (URL or uploaded path)
   image: z.string().min(1, "Image is required"),
-  price: z.number().min(0, "Price must be greater than or equal to 0"),
+  price: z.number().min(0, "Price must be greater than or equal to 0").optional(),
   type: z.enum(["salad", "entree", "dessert"]),
   allergens: z.array(z.string()).optional(),
   dietaryRestrictions: z.array(z.string()).optional(),
@@ -374,25 +374,6 @@ export function FoodForm({ food, onClose }: Props) {
 
             <FormField
               control={form.control}
-              name="price"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Price</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="number"
-                      step="0.01"
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="type"
               render={({ field }) => (
                 <FormItem>
@@ -501,12 +482,12 @@ export function FoodForm({ food, onClose }: Props) {
                           <div className="grid gap-1.5 leading-none">
                             <label
                               htmlFor={`diet-${restriction}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              <div className="inline-flex items-center justify-center rounded-full bg-green-500/20 text-green-600 p-1 w-6 h-6">
-                                <div className="w-4 h-4">{dietaryIcons[restriction as DietaryRestriction]}</div>
-                              </div>
-                              <span className="capitalize">{restriction.replace('_', ' ')}</span>
+                              {restriction === 'gluten-free' ? 'GF' :
+                               restriction === 'vegan' ? 'VG' :
+                               restriction === 'vegetarian' ? 'V' :
+                               restriction === 'dairy-free' ? 'DF' : restriction}
                             </label>
                           </div>
                         </div>
