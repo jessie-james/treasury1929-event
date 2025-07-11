@@ -402,9 +402,6 @@ export function FoodForm({ food, onClose }: Props) {
             
             <div className="space-y-2">
               <h3 className="text-lg font-medium">Dietary Information</h3>
-              <p className="text-sm text-muted-foreground">
-                Add dietary labels to help guests make informed choices.
-              </p>
             </div>
 
             {/* Dietary Restrictions */}

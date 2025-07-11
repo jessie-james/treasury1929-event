@@ -26,17 +26,18 @@ export default function CustomerDashboard() {
     queryKey: ["/api/food-options"],
   });
 
-  const [expandedQRCode, setExpandedQRCode] = useState<number | null>(null);
   const [qrCodeUrls, setQrCodeUrls] = useState<{ [key: number]: string }>({});
   
-  const toggleQRCode = (bookingId: number) => {
-    if (expandedQRCode === bookingId) {
-      setExpandedQRCode(null);
-    } else {
-      setExpandedQRCode(bookingId);
-      generateQRCode(bookingId);
+  // Generate QR codes for all bookings when they load
+  useEffect(() => {
+    if (bookings && bookings.length > 0) {
+      bookings.forEach(booking => {
+        if (!qrCodeUrls[booking.id]) {
+          generateQRCode(booking.id);
+        }
+      });
     }
-  };
+  }, [bookings]);
 
   const generateQRCode = async (bookingId: number) => {
     if (qrCodeUrls[bookingId]) return; // Already generated
