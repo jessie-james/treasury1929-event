@@ -115,8 +115,14 @@ export default function TicketDetailPage() {
 
       let currentY = 200;
 
-      // Guest names
-      if (booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames.length > 0) {
+      // Guest names - handle both object and array formats
+      const guestNamesArray = Array.isArray(booking.guestNames) 
+        ? booking.guestNames 
+        : booking.guestNames && typeof booking.guestNames === 'object' 
+          ? Object.values(booking.guestNames) 
+          : [];
+      
+      if (guestNamesArray.length > 0) {
         ctx.font = 'bold 14px Arial';
         ctx.fillStyle = '#374151';
         ctx.fillText('Guests:', canvas.width / 2, currentY);
@@ -124,7 +130,7 @@ export default function TicketDetailPage() {
 
         ctx.font = '12px Arial';
         ctx.fillStyle = '#6b7280';
-        booking.guestNames.forEach((name) => {
+        guestNamesArray.forEach((name) => {
           ctx.fillText(`${name}`, canvas.width / 2, currentY);
           currentY += 20;
         });
@@ -141,9 +147,17 @@ export default function TicketDetailPage() {
         ctx.font = '11px Arial';
         ctx.fillStyle = '#6b7280';
         booking.wineSelections.forEach((selection, index) => {
-          const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
-            ? booking.guestNames[index] 
-            : `Guest ${index + 1}`;
+          // Handle both object and array formats for guestNames
+          let guestName = `Guest ${index + 1}`;
+          if (booking.guestNames) {
+            if (Array.isArray(booking.guestNames)) {
+              guestName = booking.guestNames[index] || `Guest ${index + 1}`;
+            } else if (typeof booking.guestNames === 'object') {
+              // guestNames is stored as {"1": "NAME1", "2": "NAME2", ...}
+              guestName = booking.guestNames[String(index + 1)] || `Guest ${index + 1}`;
+            }
+          }
+          
           const wineItem = foodOptions?.find(item => item.id === selection.wine);
           
           ctx.fillText(`${guestName}:`, canvas.width / 2, currentY);
@@ -167,9 +181,17 @@ export default function TicketDetailPage() {
         ctx.font = '11px Arial';
         ctx.fillStyle = '#6b7280';
         booking.foodSelections.forEach((selection, index) => {
-          const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
-            ? booking.guestNames[index] 
-            : `Guest ${index + 1}`;
+          // Handle both object and array formats for guestNames
+          let guestName = `Guest ${index + 1}`;
+          if (booking.guestNames) {
+            if (Array.isArray(booking.guestNames)) {
+              guestName = booking.guestNames[index] || `Guest ${index + 1}`;
+            } else if (typeof booking.guestNames === 'object') {
+              // guestNames is stored as {"1": "NAME1", "2": "NAME2", ...}
+              guestName = booking.guestNames[String(index + 1)] || `Guest ${index + 1}`;
+            }
+          }
+          
           const saladItem = foodOptions?.find(item => item.id === selection.salad);
           const entreeItem = foodOptions?.find(item => item.id === selection.entree);
           const dessertItem = foodOptions?.find(item => item.id === selection.dessert);

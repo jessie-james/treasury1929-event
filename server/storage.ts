@@ -781,9 +781,18 @@ export class PgStorage implements IStorage {
       if (booking.foodSelections && Array.isArray(booking.foodSelections)) {
         booking.foodSelections.forEach((selection, index) => {
           if (selection && typeof selection === 'object') {
-            const guestName = booking.guestNames && booking.guestNames[index] 
-              ? booking.guestNames[index] 
-              : `Guest ${index + 1}`;
+            // Handle both object and array formats for guestNames
+            let guestName = `Guest ${index + 1}`;
+            if (booking.guestNames) {
+              if (Array.isArray(booking.guestNames)) {
+                guestName = booking.guestNames[index] || `Guest ${index + 1}`;
+              } else if (typeof booking.guestNames === 'object') {
+                // guestNames is stored as {"1": "NAME1", "2": "NAME2", ...}
+                // Map array index (0, 1, 2...) to object key ("1", "2", "3"...)
+                const guestKey = String(index + 1);
+                guestName = booking.guestNames[guestKey] || `Guest ${index + 1}`;
+              }
+            }
             
             const guestOrder = {
               guestName,
