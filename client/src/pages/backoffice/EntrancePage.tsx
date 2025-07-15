@@ -111,48 +111,46 @@ export default function EntrancePage() {
   // Mutation for checking in a booking
   const checkInMutation = useMutation({
     mutationFn: async (bookingId: number) => {
+      console.log(`Starting check-in mutation for booking ${bookingId}`);
+      
       try {
         const response = await apiRequest({
           method: "POST",
           url: `/api/bookings/${bookingId}/check-in${selectedEventId ? `?eventId=${selectedEventId}` : ''}`
         });
         
-        // Parse the response to check if it's actually successful
-        const data = await response.json();
+        console.log(`Check-in response received:`, response.status);
         
-        // Check if this is a security violation response
-        if (data.error === "cross_event_attempt" || data.error === "duplicate_checkin_attempt" || data.securityViolation) {
-          // This is a security violation, throw an error with the full response data
-          const error = new Error(data.message || "Security violation detected");
-          (error as any).data = data;
-          throw error;
-        }
+        // If we get here, the apiRequest succeeded (status 200)
+        const data = await response.json();
+        console.log(`Check-in success data:`, data);
         
         return data;
       } catch (error: any) {
-        // Enhanced error handling to capture all error details
-        console.error("Check-in mutation error:", error);
+        console.error("Check-in mutation caught error:", error);
+        console.error("Error message:", error.message);
         
-        // If it's already an error with data, rethrow it
-        if (error.data) {
-          throw error;
-        }
+        // Parse the error message to extract the actual error data
+        let errorData: any = {};
         
-        // Try to parse error response for security violations
         if (error.message && error.message.includes("400:")) {
           try {
-            const errorData = JSON.parse(error.message.split("400: ")[1]);
-            if (errorData.error === "cross_event_attempt" || errorData.error === "duplicate_checkin_attempt" || errorData.securityViolation) {
-              const securityError = new Error(errorData.message || "Security violation detected");
-              (securityError as any).data = errorData;
-              throw securityError;
-            }
+            const jsonPart = error.message.split("400: ")[1];
+            errorData = JSON.parse(jsonPart);
+            console.log("Parsed error data:", errorData);
           } catch (parseError) {
-            // If parsing fails, continue with original error
+            console.error("Failed to parse error data:", parseError);
+            errorData = { message: error.message };
           }
+        } else {
+          errorData = { message: error.message || "Unknown error" };
         }
         
-        throw error;
+        // Create a new error with the parsed data
+        const enhancedError = new Error(errorData.message || "Check-in failed");
+        (enhancedError as any).data = errorData;
+        
+        throw enhancedError;
       }
     },
     onSuccess: async (data, bookingId) => {
