@@ -72,9 +72,9 @@ export default function TicketDetailPage() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Set canvas size for ticket format
-      canvas.width = 400;
-      canvas.height = 650;
+      // Set canvas size - optimized for readability
+      canvas.width = 450;
+      canvas.height = 700;
 
       // White background
       ctx.fillStyle = '#ffffff';
@@ -144,7 +144,7 @@ export default function TicketDetailPage() {
         ctx.fillText('Wine Selections:', canvas.width / 2, currentY);
         currentY += 25;
 
-        ctx.font = '11px Arial';
+        ctx.font = '10px Arial';
         ctx.fillStyle = '#6b7280';
         booking.wineSelections.forEach((selection, index) => {
           // Handle both object and array formats for guestNames
@@ -160,13 +160,18 @@ export default function TicketDetailPage() {
           
           const wineItem = foodOptions?.find(item => item.id === selection.wine);
           
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = '#374151';
           ctx.fillText(`${guestName}:`, canvas.width / 2, currentY);
           currentY += 15;
+          
+          ctx.font = '10px Arial';
+          ctx.fillStyle = '#6b7280';
           if (wineItem) {
             ctx.fillText(`Wine: ${wineItem.name}`, canvas.width / 2, currentY);
-            currentY += 15;
+            currentY += 12;
           }
-          currentY += 10;
+          currentY += 8;
         });
         currentY += 10;
       }
@@ -178,7 +183,7 @@ export default function TicketDetailPage() {
         ctx.fillText('Food Selections:', canvas.width / 2, currentY);
         currentY += 25;
 
-        ctx.font = '11px Arial';
+        ctx.font = '10px Arial';
         ctx.fillStyle = '#6b7280';
         booking.foodSelections.forEach((selection, index) => {
           // Handle both object and array formats for guestNames
@@ -196,21 +201,28 @@ export default function TicketDetailPage() {
           const entreeItem = foodOptions?.find(item => item.id === selection.entree);
           const dessertItem = foodOptions?.find(item => item.id === selection.dessert);
           
+          // Guest name header
+          ctx.font = 'bold 11px Arial';
+          ctx.fillStyle = '#374151';
           ctx.fillText(`${guestName}:`, canvas.width / 2, currentY);
           currentY += 15;
+          
+          // Food selections - more compact
+          ctx.font = '10px Arial';
+          ctx.fillStyle = '#6b7280';
           if (saladItem) {
             ctx.fillText(`Salad: ${saladItem.name}`, canvas.width / 2, currentY);
-            currentY += 15;
+            currentY += 12;
           }
           if (entreeItem) {
             ctx.fillText(`Entree: ${entreeItem.name}`, canvas.width / 2, currentY);
-            currentY += 15;
+            currentY += 12;
           }
           if (dessertItem) {
             ctx.fillText(`Dessert: ${dessertItem.name}`, canvas.width / 2, currentY);
-            currentY += 15;
+            currentY += 12;
           }
-          currentY += 10;
+          currentY += 8;
         });
       }
 
