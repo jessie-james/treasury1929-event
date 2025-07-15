@@ -1563,10 +1563,16 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid booking ID" });
       }
 
-      // Check if an event ID was provided to validate booking
+      // SECURITY: Event ID is now REQUIRED for check-in
       const eventId = req.query.eventId ? parseInt(req.query.eventId as string) : null;
+      
+      if (!eventId) {
+        return res.status(400).json({ 
+          message: "Event ID is required for check-in" 
+        });
+      }
 
-      console.log(`Processing check-in for booking ${bookingId} by staff ${req.user.id}${eventId ? ` for event ${eventId}` : ''}`);
+      console.log(`Processing check-in for booking ${bookingId} by staff ${req.user.id} for event ${eventId}`);
 
       // Get booking first to determine if it's already checked in
       const existingBooking = await storage.getBooking(bookingId);
@@ -1574,12 +1580,38 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "Booking not found" });
       }
 
-      // Verify that the booking belongs to the specified event (if an event ID was provided)
-      if (eventId !== null && existingBooking.eventId !== eventId) {
+      // SECURITY: Verify that the booking belongs to the specified event
+      if (existingBooking.eventId !== eventId) {
         return res.status(400).json({ 
           message: "Booking is for a different event",
           booking: existingBooking,
           eventId: existingBooking.eventId
+        });
+      }
+
+      // SECURITY: Get event details to check if event date is valid
+      const event = await storage.getEvent(existingBooking.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      // SECURITY: Check if event date has passed (more than 1 day ago)
+      const eventDate = new Date(event.date);
+      const now = new Date();
+      const oneDayAfterEvent = new Date(eventDate.getTime() + 24 * 60 * 60 * 1000);
+      
+      if (now > oneDayAfterEvent) {
+        return res.status(400).json({ 
+          message: "This ticket is for a past event and is no longer valid",
+          eventDate: event.date
+        });
+      }
+
+      // SECURITY: Check if booking status is valid
+      if (existingBooking.status !== "confirmed") {
+        return res.status(400).json({ 
+          message: `Booking status is "${existingBooking.status}" and cannot be checked in`,
+          booking: existingBooking
         });
       }
 
