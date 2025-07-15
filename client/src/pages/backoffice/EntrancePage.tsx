@@ -171,7 +171,7 @@ export default function EntrancePage() {
         const wrongEventId = error.data.booking.eventId as number;
         const eventName = events?.find(e => e.id === wrongEventId)?.title || `Event #${wrongEventId}`;
         const selectedEventName = events?.find(e => e.id === selectedEventId)?.title || `Event #${selectedEventId}`;
-        errorMessage = `SECURITY ALERT: This ticket is for "${eventName}", but you have "${selectedEventName}" selected. Please select the correct event first.`;
+        errorMessage = `🚫 SECURITY BLOCKED: This ticket is for "${eventName}", but you have "${selectedEventName}" selected. Check-in was PREVENTED for security reasons.`;
       }
       
       // Handle missing event ID error
@@ -181,7 +181,7 @@ export default function EntrancePage() {
       
       // Show toast notification
       toast({
-        title: "Security Check Failed",
+        title: "❌ CHECK-IN BLOCKED",
         description: errorMessage,
         variant: "destructive"
       });
