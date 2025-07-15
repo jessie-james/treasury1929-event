@@ -401,7 +401,7 @@ export default function FoodPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                              ${(beverage.price / 100).toFixed(2)}
+                              ${(beverage.price / 100).toFixed(0)}
                             </Badge>
                             <Button
                               variant="outline"
@@ -470,7 +470,7 @@ export default function FoodPage() {
                                   </div>
                                 </div>
                                 <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                                  ${(beverage.price / 100).toFixed(2)}
+                                  ${(beverage.price / 100).toFixed(0)}
                                 </Badge>
                               </div>
                             </div>

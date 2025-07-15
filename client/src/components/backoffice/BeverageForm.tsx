@@ -51,7 +51,7 @@ export function BeverageForm({ beverage, onClose }: Props) {
       ? {
           name: beverage.name,
           description: beverage.description,
-          price: beverage.price ?? 0,
+          price: (beverage.price ?? 0) / 100, // Convert cents to dollars for display
           type: "wine_bottle",
           isAvailable: beverage.isAvailable ?? true,
         }
