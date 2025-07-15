@@ -163,16 +163,25 @@ export default function EntrancePage() {
       // Get error response data if available
       let errorMessage = error.message || "Failed to check in ticket. It may have been already checked in.";
       
+      console.log('CHECK-IN ERROR:', error);
+      console.log('ERROR DATA:', error.data);
+      
       // Handle 'booking is for a different event' error specifically
       if (error.data?.booking?.eventId) {
         const wrongEventId = error.data.booking.eventId as number;
         const eventName = events?.find(e => e.id === wrongEventId)?.title || `Event #${wrongEventId}`;
-        errorMessage = `This ticket is for ${eventName}, not the selected event`;
+        const selectedEventName = events?.find(e => e.id === selectedEventId)?.title || `Event #${selectedEventId}`;
+        errorMessage = `SECURITY ALERT: This ticket is for "${eventName}", but you have "${selectedEventName}" selected. Please select the correct event first.`;
+      }
+      
+      // Handle missing event ID error
+      if (error.message?.includes("Event ID is required")) {
+        errorMessage = "SECURITY ERROR: No event selected. Please select an event before checking in tickets.";
       }
       
       // Show toast notification
       toast({
-        title: "Error",
+        title: "Security Check Failed",
         description: errorMessage,
         variant: "destructive"
       });

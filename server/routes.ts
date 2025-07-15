@@ -1567,12 +1567,13 @@ export async function registerRoutes(app: Express) {
       const eventId = req.query.eventId ? parseInt(req.query.eventId as string) : null;
       
       if (!eventId) {
+        console.log(`SECURITY VIOLATION: Check-in attempted for booking ${bookingId} without event ID`);
         return res.status(400).json({ 
           message: "Event ID is required for check-in" 
         });
       }
 
-      console.log(`Processing check-in for booking ${bookingId} by staff ${req.user.id} for event ${eventId}`);
+      console.log(`SECURITY CHECK: Processing check-in for booking ${bookingId} by staff ${req.user.id} for event ${eventId}`);
 
       // Get booking first to determine if it's already checked in
       const existingBooking = await storage.getBooking(bookingId);
@@ -1580,8 +1581,11 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "Booking not found" });
       }
 
+      console.log(`SECURITY CHECK: Booking ${bookingId} belongs to event ${existingBooking.eventId}, requested event ${eventId}`);
+
       // SECURITY: Verify that the booking belongs to the specified event
       if (existingBooking.eventId !== eventId) {
+        console.log(`SECURITY VIOLATION: Booking ${bookingId} is for event ${existingBooking.eventId}, but check-in attempted for event ${eventId}`);
         return res.status(400).json({ 
           message: "Booking is for a different event",
           booking: existingBooking,
@@ -1609,6 +1613,7 @@ export async function registerRoutes(app: Express) {
 
       // SECURITY: Check if booking status is valid
       if (existingBooking.status !== "confirmed") {
+        console.log(`SECURITY VIOLATION: Booking ${bookingId} has status "${existingBooking.status}" and cannot be checked in`);
         return res.status(400).json({ 
           message: `Booking status is "${existingBooking.status}" and cannot be checked in`,
           booking: existingBooking
