@@ -1558,23 +1558,28 @@ export async function registerRoutes(app: Express) {
       console.log(`Authentication status: ${req.isAuthenticated()}`);
       console.log(`User role: ${req.user?.role}`);
       console.log(`Query parameters:`, req.query);
+      console.log(`Booking ID: ${req.params.id}`);
       
+      // SECURITY: Authentication check
       if (!req.isAuthenticated() || !["admin", "venue_manager", "staff", "hostess"].includes(req.user?.role)) {
+        console.log(`SECURITY VIOLATION: Unauthorized check-in attempt - auth: ${req.isAuthenticated()}, role: ${req.user?.role}`);
         return res.status(401).json({ message: "Unauthorized" });
       }
 
       const bookingId = parseInt(req.params.id);
       if (isNaN(bookingId)) {
+        console.log(`SECURITY VIOLATION: Invalid booking ID: ${req.params.id}`);
         return res.status(400).json({ message: "Invalid booking ID" });
       }
 
       // SECURITY: Event ID is now REQUIRED for check-in
       const eventId = req.query.eventId ? parseInt(req.query.eventId as string) : null;
       
-      if (!eventId) {
-        console.log(`SECURITY VIOLATION: Check-in attempted for booking ${bookingId} without event ID`);
+      if (!eventId || isNaN(eventId)) {
+        console.log(`SECURITY VIOLATION: Check-in attempted for booking ${bookingId} without valid event ID: ${req.query.eventId}`);
         return res.status(400).json({ 
-          message: "Event ID is required for check-in" 
+          message: "Event ID is required for check-in",
+          error: "missing_event_id"
         });
       }
 
@@ -1583,24 +1588,43 @@ export async function registerRoutes(app: Express) {
       // Get booking first to determine if it's already checked in
       const existingBooking = await storage.getBooking(bookingId);
       if (!existingBooking) {
+        console.log(`SECURITY CHECK: Booking ${bookingId} not found in database`);
         return res.status(404).json({ message: "Booking not found" });
       }
 
       console.log(`SECURITY CHECK: Booking ${bookingId} belongs to event ${existingBooking.eventId}, requested event ${eventId}`);
 
-      // SECURITY: Verify that the booking belongs to the specified event
+      // SECURITY: CRITICAL - Verify that the booking belongs to the specified event
       if (existingBooking.eventId !== eventId) {
         console.log(`SECURITY VIOLATION: Booking ${bookingId} is for event ${existingBooking.eventId}, but check-in attempted for event ${eventId}`);
+        console.error(`CRITICAL SECURITY BREACH: Cross-event check-in detected!`);
+        console.error(`BLOCKING UNAUTHORIZED ACCESS: Booking event ${existingBooking.eventId} != Selected event ${eventId}`);
         return res.status(400).json({ 
-          message: "Booking is for a different event",
-          booking: existingBooking,
-          eventId: existingBooking.eventId
+          message: "SECURITY ALERT: This ticket is for a different event",
+          booking: { id: existingBooking.id, eventId: existingBooking.eventId },
+          requestedEventId: eventId,
+          error: "cross_event_attempt",
+          securityViolation: true
+        });
+      }
+
+      // SECURITY: Check if already checked in (prevent duplicate check-ins)
+      if (existingBooking.checkedIn) {
+        console.log(`SECURITY VIOLATION: Duplicate check-in attempted for booking ${bookingId}`);
+        console.error(`CRITICAL SECURITY BREACH: Duplicate check-in detected!`);
+        console.error(`BLOCKING DUPLICATE ACCESS: Booking ${bookingId} already checked in at ${existingBooking.checkedInAt}`);
+        return res.status(400).json({ 
+          message: "SECURITY ALERT: This ticket has already been checked in",
+          booking: { id: existingBooking.id, checkedInAt: existingBooking.checkedInAt },
+          error: "duplicate_checkin_attempt",
+          securityViolation: true
         });
       }
 
       // SECURITY: Get event details to check if event date is valid
       const event = await storage.getEvent(existingBooking.eventId);
       if (!event) {
+        console.log(`SECURITY CHECK: Event ${existingBooking.eventId} not found`);
         return res.status(404).json({ message: "Event not found" });
       }
 
@@ -1610,9 +1634,11 @@ export async function registerRoutes(app: Express) {
       const oneDayAfterEvent = new Date(eventDate.getTime() + 24 * 60 * 60 * 1000);
       
       if (now > oneDayAfterEvent) {
+        console.log(`SECURITY VIOLATION: Check-in attempted for past event ${existingBooking.eventId}`);
         return res.status(400).json({ 
           message: "This ticket is for a past event and is no longer valid",
-          eventDate: event.date
+          eventDate: event.date,
+          error: "expired_event"
         });
       }
 
@@ -1621,14 +1647,8 @@ export async function registerRoutes(app: Express) {
         console.log(`SECURITY VIOLATION: Booking ${bookingId} has status "${existingBooking.status}" and cannot be checked in`);
         return res.status(400).json({ 
           message: `Booking status is "${existingBooking.status}" and cannot be checked in`,
-          booking: existingBooking
-        });
-      }
-
-      if (existingBooking.checkedIn) {
-        return res.status(400).json({ 
-          message: "Booking already checked in",
-          booking: existingBooking
+          booking: { id: existingBooking.id, status: existingBooking.status },
+          error: "invalid_status"
         });
       }
 
