@@ -1554,6 +1554,11 @@ export async function registerRoutes(app: Express) {
   // Check-in API endpoints
   app.post("/api/bookings/:id/check-in", async (req, res) => {
     try {
+      console.log(`=== CHECK-IN REQUEST START ===`);
+      console.log(`Authentication status: ${req.isAuthenticated()}`);
+      console.log(`User role: ${req.user?.role}`);
+      console.log(`Query parameters:`, req.query);
+      
       if (!req.isAuthenticated() || !["admin", "venue_manager", "staff", "hostess"].includes(req.user?.role)) {
         return res.status(401).json({ message: "Unauthorized" });
       }
@@ -1628,10 +1633,14 @@ export async function registerRoutes(app: Express) {
       }
 
       // Process the check-in
+      console.log(`SECURITY PASSED: Proceeding with check-in for booking ${bookingId} in event ${eventId}`);
       const updatedBooking = await storage.checkInBooking(bookingId, req.user.id);
       if (!updatedBooking) {
+        console.log(`CRITICAL ERROR: Failed to update booking ${bookingId} in database`);
         return res.status(500).json({ message: "Failed to check in booking" });
       }
+
+      console.log(`CHECK-IN SUCCESS: Booking ${bookingId} checked in at ${updatedBooking.checkedInAt}`);
 
       // Broadcast check-in update to subscribed clients
       await broadcastCheckInUpdate(updatedBooking.eventId);
