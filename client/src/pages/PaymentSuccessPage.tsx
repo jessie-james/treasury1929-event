@@ -114,60 +114,154 @@ export default function PaymentSuccessPage() {
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      // Set canvas size
+      // Set canvas size - larger to accommodate food selections
       canvas.width = 400;
-      canvas.height = 600;
+      canvas.height = 900;
 
       // White background
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+      // Border
+      ctx.strokeStyle = '#e5e7eb';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
       // Title
       ctx.fillStyle = '#000000';
       ctx.font = 'bold 24px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText('Event Ticket', canvas.width / 2, 40);
+      ctx.fillText('Event Ticket', canvas.width / 2, 50);
+
+      // Event title
+      ctx.font = 'bold 20px Arial';
+      ctx.fillStyle = '#7c3aed'; // Primary color
+      ctx.fillText(booking.event.title, canvas.width / 2, 90);
 
       // Event details
-      ctx.font = '18px Arial';
-      ctx.fillText(booking.event.title, canvas.width / 2, 80);
-      
       ctx.font = '14px Arial';
-      ctx.fillText(`Date: ${format(new Date(booking.event.date), 'PPP')}`, canvas.width / 2, 110);
-      ctx.fillText(`Booking #${booking.id}`, canvas.width / 2, 130);
-      ctx.fillText(`Table ${booking.tableId}`, canvas.width / 2, 150);
-      ctx.fillText(`Party Size: ${booking.partySize}`, canvas.width / 2, 170);
+      ctx.fillStyle = '#374151'; // Gray-700
+      ctx.fillText(`${format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")}`, canvas.width / 2, 120);
 
-      // Guest names
-      if (booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames.length > 0) {
-        ctx.fillText('Guests:', canvas.width / 2, 200);
-        booking.guestNames.forEach((name, index) => {
-          ctx.fillText(`${name}`, canvas.width / 2, 220 + (index * 20));
+      // Booking details
+      ctx.font = '12px Arial';
+      ctx.fillStyle = '#6b7280'; // Gray-500
+      ctx.fillText(`Booking #${booking.id}`, canvas.width / 2, 150);
+
+      // Table and party info
+      if (booking.table?.tableNumber) {
+        ctx.fillText(`Table ${booking.table.tableNumber} • ${booking.partySize} guests`, canvas.width / 2, 170);
+      } else {
+        ctx.fillText(`${booking.partySize} guests`, canvas.width / 2, 170);
+      }
+
+      let currentY = 200;
+
+      // Food selections with comprehensive display
+      if (booking.foodSelections && booking.foodSelections.length > 0) {
+        ctx.font = 'bold 14px Arial';
+        ctx.fillStyle = '#374151';
+        ctx.fillText('Food Selections:', canvas.width / 2, currentY);
+        currentY += 25;
+
+        ctx.font = '11px Arial';
+        ctx.fillStyle = '#6b7280';
+        booking.foodSelections.forEach((selection, index) => {
+          // Handle both object and array formats for guestNames
+          let guestName = `Guest ${index + 1}`;
+          if (booking.guestNames) {
+            if (Array.isArray(booking.guestNames)) {
+              guestName = booking.guestNames[index] || `Guest ${index + 1}`;
+            } else if (typeof booking.guestNames === 'object') {
+              // guestNames is stored as {"1": "NAME1", "2": "NAME2", ...}
+              guestName = booking.guestNames[String(index + 1)] || `Guest ${index + 1}`;
+            }
+          }
+          
+          const saladItem = foodOptions?.find(item => item.id === selection.salad);
+          const entreeItem = foodOptions?.find(item => item.id === selection.entree);
+          const dessertItem = foodOptions?.find(item => item.id === selection.dessert);
+          
+          // Guest name header
+          ctx.font = 'bold 12px Arial';
+          ctx.fillStyle = '#374151';
+          ctx.fillText(`${guestName}:`, canvas.width / 2, currentY);
+          currentY += 18;
+          
+          // Food selections
+          ctx.font = '11px Arial';
+          ctx.fillStyle = '#6b7280';
+          if (saladItem) {
+            ctx.fillText(`Salad: ${saladItem.name}`, canvas.width / 2, currentY);
+            currentY += 15;
+          }
+          if (entreeItem) {
+            ctx.fillText(`Entree: ${entreeItem.name}`, canvas.width / 2, currentY);
+            currentY += 15;
+          }
+          if (dessertItem) {
+            ctx.fillText(`Dessert: ${dessertItem.name}`, canvas.width / 2, currentY);
+            currentY += 15;
+          }
+          currentY += 10;
         });
+        currentY += 10;
       }
 
       // Wine selections
       if (booking.wineSelections && booking.wineSelections.length > 0) {
-        ctx.fillText('Wine Selections:', canvas.width / 2, 280);
+        ctx.font = 'bold 14px Arial';
+        ctx.fillStyle = '#374151';
+        ctx.fillText('Wine Selections:', canvas.width / 2, currentY);
+        currentY += 25;
+
+        ctx.font = '11px Arial';
+        ctx.fillStyle = '#6b7280';
         booking.wineSelections.forEach((selection, index) => {
-          const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
-            ? booking.guestNames[index] 
-            : `Guest ${index + 1}`;
+          // Handle both object and array formats for guestNames
+          let guestName = `Guest ${index + 1}`;
+          if (booking.guestNames) {
+            if (Array.isArray(booking.guestNames)) {
+              guestName = booking.guestNames[index] || `Guest ${index + 1}`;
+            } else if (typeof booking.guestNames === 'object') {
+              // guestNames is stored as {"1": "NAME1", "2": "NAME2", ...}
+              guestName = booking.guestNames[String(index + 1)] || `Guest ${index + 1}`;
+            }
+          }
+          
           const wineItem = foodOptions?.find(item => item.id === selection.wine);
-          ctx.fillText(`${guestName}: ${wineItem?.name || 'Wine Selection'}`, canvas.width / 2, 300 + (index * 20));
+          
+          ctx.font = 'bold 12px Arial';
+          ctx.fillStyle = '#374151';
+          ctx.fillText(`${guestName}:`, canvas.width / 2, currentY);
+          currentY += 18;
+          
+          ctx.font = '11px Arial';
+          ctx.fillStyle = '#6b7280';
+          if (wineItem) {
+            ctx.fillText(`Wine: ${wineItem.name}`, canvas.width / 2, currentY);
+            currentY += 15;
+          }
+          currentY += 10;
         });
+        currentY += 10;
       }
 
       // QR Code
       if (qrCodeUrl) {
         const qrImg = new Image();
         qrImg.onload = () => {
-          // Draw QR code
-          ctx.drawImage(qrImg, (canvas.width - 150) / 2, 280, 150, 150);
+          // Position QR code
+          const qrSize = 150;
+          const qrX = (canvas.width - qrSize) / 2;
+          const qrY = Math.max(currentY + 20, canvas.height - 220);
+          
+          ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
           
           // Instructions
           ctx.font = '12px Arial';
-          ctx.fillText('Show this QR code at venue entrance', canvas.width / 2, 460);
+          ctx.fillStyle = '#374151';
+          ctx.fillText('Show this QR code at venue entrance', canvas.width / 2, qrY + qrSize + 30);
           
           // Download the ticket
           const link = document.createElement('a');
