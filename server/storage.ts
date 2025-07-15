@@ -827,7 +827,24 @@ export class PgStorage implements IStorage {
               }
             }
 
-            if (guestOrder.items.length > 0) {
+            // Process wine selections if they exist
+            const wineItems: Array<{name: string, type: string}> = [];
+            if (booking.wineSelections && Array.isArray(booking.wineSelections) && booking.wineSelections[index]) {
+              const wineSelection = booking.wineSelections[index];
+              if (wineSelection.wine && typeof wineSelection.wine === 'number') {
+                const wineOption = foodOptionsMap.get(wineSelection.wine);
+                if (wineOption) {
+                  wineItems.push({
+                    name: wineOption.name,
+                    type: 'wine'
+                  });
+                }
+              }
+            }
+            
+            guestOrder.wineItems = wineItems;
+
+            if (guestOrder.items.length > 0 || wineItems.length > 0) {
               processedFoodSelections.push(guestOrder);
             }
           }

@@ -131,6 +131,32 @@ export default function TicketDetailPage() {
         currentY += 10;
       }
 
+      // Wine selections
+      if (booking.wineSelections && booking.wineSelections.length > 0) {
+        ctx.font = 'bold 14px Arial';
+        ctx.fillStyle = '#374151';
+        ctx.fillText('Wine Selections:', canvas.width / 2, currentY);
+        currentY += 25;
+
+        ctx.font = '11px Arial';
+        ctx.fillStyle = '#6b7280';
+        booking.wineSelections.forEach((selection, index) => {
+          const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
+            ? booking.guestNames[index] 
+            : `Guest ${index + 1}`;
+          const wineItem = foodOptions?.find(item => item.id === selection.wine);
+          
+          ctx.fillText(`${guestName}:`, canvas.width / 2, currentY);
+          currentY += 15;
+          if (wineItem) {
+            ctx.fillText(`Wine: ${wineItem.name}`, canvas.width / 2, currentY);
+            currentY += 15;
+          }
+          currentY += 10;
+        });
+        currentY += 10;
+      }
+
       // Food selections
       if (booking.foodSelections && booking.foodSelections.length > 0) {
         ctx.font = 'bold 14px Arial';
@@ -290,6 +316,28 @@ export default function TicketDetailPage() {
                     <span className="font-medium">{name}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Wine Selections */}
+          {booking.wineSelections && booking.wineSelections.length > 0 && (
+            <div>
+              <h4 className="font-medium mb-2">Wine Selections:</h4>
+              <div className="text-sm space-y-1">
+                {booking.wineSelections.map((selection, index) => {
+                  const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
+                    ? booking.guestNames[index] 
+                    : `Guest ${index + 1}`;
+                  const wineItem = foodOptions?.find(item => item.id === selection.wine);
+                  
+                  return (
+                    <div key={index} className="p-2 bg-purple-50 rounded">
+                      <span className="font-medium">{guestName}:</span>
+                      {wineItem && <span className="ml-2 block">Wine: {wineItem.name}</span>}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

@@ -264,6 +264,27 @@ export default function CustomerDashboard() {
                   </div>
                 )}
 
+                {booking.wineSelections && booking.wineSelections.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Wine Selections:</h4>
+                    <div className="text-sm space-y-1">
+                      {booking.wineSelections.map((selection, index) => {
+                        const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
+                          ? booking.guestNames[index] 
+                          : `Guest ${index + 1}`;
+                        const wineItem = foodOptions?.find(item => item.id === selection.wine);
+                        
+                        return (
+                          <div key={index} className="p-2 bg-purple-50 rounded">
+                            <span className="font-medium">{guestName}:</span>
+                            {wineItem && <span className="ml-2 block">Wine: {wineItem.name}</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Always show ticket with QR code */}
                 <div className="mt-6 p-4 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
                   <div className="flex items-center gap-2 mb-4">

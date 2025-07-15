@@ -33,6 +33,10 @@ interface EventOrder {
       name: string;
       dietary?: string[];
     }>;
+    wineItems?: Array<{
+      name: string;
+      type: string;
+    }>;
   }>;
   totalGuests: number;
   hasOrders: boolean;
@@ -157,7 +161,8 @@ export default function OrdersPage() {
               type: item.type,
               name: item.name,
               dietary: item.dietary || []
-            }))
+            })),
+            wineItems: guestOrder.wineItems || []
           })),
           totalGuests: order.guestOrders.length,
           hasOrders: order.guestOrders.some((guestOrder: any) => guestOrder.items && guestOrder.items.length > 0)
@@ -255,6 +260,16 @@ export default function OrdersPage() {
               
               yPosition += 8;
             }
+            
+            // Wine selections
+            if (guestOrder.wineItems && guestOrder.wineItems.length > 0) {
+              guestOrder.wineItems.forEach((wineItem: any) => {
+                doc.setFontSize(10);
+                doc.text(`• Wine: ${wineItem.name}`, 40, yPosition);
+                yPosition += 8;
+              });
+            }
+            
             yPosition += 8;
           }
           yPosition += 10;
@@ -465,6 +480,20 @@ export default function OrdersPage() {
                                         )}
                                       </div>
                                     ))}
+                                    
+                                    {/* Wine Selections */}
+                                    {guestOrder.wineItems && guestOrder.wineItems.length > 0 && (
+                                      <div className="mt-2 space-y-2">
+                                        {guestOrder.wineItems.map((wineItem: any, wineIndex: number) => (
+                                          <div key={wineIndex} className="flex justify-between items-start p-2 bg-purple-50 rounded border border-purple-200">
+                                            <div className="flex-1">
+                                              <div className="font-medium text-sm text-purple-700">Wine:</div>
+                                              <div className="text-sm text-foreground">{wineItem.name}</div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               ))}

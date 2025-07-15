@@ -171,6 +171,15 @@ This is a sophisticated mobile-first event venue booking platform designed for l
     - ✅ Removed price sorting from FoodPage (price-asc/price-desc options)
     - ✅ Fixed ticket-only checkout route to use AvailabilitySync.getRealTimeAvailability
     - ✅ All systems now working with bottle-only wine pricing model
+- **July 15, 2025. WINE SELECTIONS INTEGRATION COMPLETE**
+  - ✅ Added wine selections display to CustomerDashboard with purple-themed styling
+  - ✅ Enhanced PaymentSuccessPage to show individual guest wine selections
+  - ✅ Updated TicketDetailPage to include wine selections in both UI and PDF downloads
+  - ✅ Enhanced OrdersPage to display wine selections with proper guest mapping
+  - ✅ Updated backend storage to process wine selections in detailed orders API
+  - ✅ Fixed guest name data structure consistency (arrays vs objects) across all components
+  - ✅ Wine selections now appear alongside food selections in all tickets, orders, and payment confirmations
+  - ✅ PDF generation includes wine selections for complete booking documentation
 
 ## User Preferences
 

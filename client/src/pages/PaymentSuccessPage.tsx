@@ -128,6 +128,18 @@ export default function PaymentSuccessPage() {
         });
       }
 
+      // Wine selections
+      if (booking.wineSelections && booking.wineSelections.length > 0) {
+        ctx.fillText('Wine Selections:', canvas.width / 2, 280);
+        booking.wineSelections.forEach((selection, index) => {
+          const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
+            ? booking.guestNames[index] 
+            : `Guest ${index + 1}`;
+          const wineItem = foodOptions?.find(item => item.id === selection.wine);
+          ctx.fillText(`${guestName}: ${wineItem?.name || 'Wine Selection'}`, canvas.width / 2, 300 + (index * 20));
+        });
+      }
+
       // QR Code
       if (qrCodeUrl) {
         const qrImg = new Image();
@@ -235,6 +247,27 @@ export default function PaymentSuccessPage() {
                           {saladItem && <span className="ml-2 block">Salad: {saladItem.name}</span>}
                           {entreeItem && <span className="ml-2 block">Entree: {entreeItem.name}</span>}
                           {dessertItem && <span className="ml-2 block">Dessert: {dessertItem.name}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {booking.wineSelections && booking.wineSelections.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Wine Selections:</h4>
+                  <div className="text-sm space-y-1">
+                    {booking.wineSelections.map((selection, index) => {
+                      const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
+                        ? booking.guestNames[index] 
+                        : `Guest ${index + 1}`;
+                      const wineItem = foodOptions?.find(item => item.id === selection.wine);
+                      
+                      return (
+                        <div key={index} className="p-2 bg-purple-50 rounded">
+                          <span className="font-medium">{guestName}:</span>
+                          {wineItem && <span className="ml-2 block">Wine: {wineItem.name}</span>}
                         </div>
                       );
                     })}
