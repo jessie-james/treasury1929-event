@@ -134,11 +134,25 @@ export default function EntrancePage() {
         // CRITICAL: Check if this is actually an error response disguised as success
         if (data.error === "Network error" && data.message && data.message.includes("400:")) {
           addDebugLog("DETECTED: Network error contains 400 security violation - converting to error");
+          
+          // Parse the error message to determine the type of security violation
+          const errorMessage = data.message.replace("400: ", "");
+          let errorType = "security_violation";
+          
+          if (errorMessage.includes("different event")) {
+            errorType = "cross_event_attempt";
+          } else if (errorMessage.includes("already been checked in")) {
+            errorType = "duplicate_checkin_attempt";
+          } else if (errorMessage.includes("Event ID is required")) {
+            errorType = "missing_event_id";
+          }
+          
           const errorData = {
-            error: "cross_event_attempt",
-            message: data.message.replace("400: ", ""),
+            error: errorType,
+            message: errorMessage,
             securityViolation: true
           };
+          
           const securityError = new Error(errorData.message);
           (securityError as any).data = errorData;
           throw securityError;
