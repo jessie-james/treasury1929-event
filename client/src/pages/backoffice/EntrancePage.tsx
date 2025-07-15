@@ -44,6 +44,7 @@ export default function EntrancePage() {
   const [manualBookingId, setManualBookingId] = useState("");
   const [activeTab, setActiveTab] = useState<"scanner" | "manual">("scanner");
   const [scanLog, setScanLog] = useState<ScanLogEntry[]>([]);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
   
   // Get all events
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
@@ -111,7 +112,12 @@ export default function EntrancePage() {
   // Mutation for checking in a booking
   const checkInMutation = useMutation({
     mutationFn: async (bookingId: number) => {
-      console.log(`Starting check-in mutation for booking ${bookingId}`);
+      const addDebugLog = (message: string) => {
+        setDebugLog(prev => [`${new Date().toLocaleTimeString()}: ${message}`, ...prev.slice(0, 9)]);
+        console.log(message);
+      };
+      
+      addDebugLog(`Starting check-in mutation for booking ${bookingId}`);
       
       try {
         const response = await apiRequest({
@@ -119,16 +125,15 @@ export default function EntrancePage() {
           url: `/api/bookings/${bookingId}/check-in${selectedEventId ? `?eventId=${selectedEventId}` : ''}`
         });
         
-        console.log(`Check-in response received:`, response.status);
+        addDebugLog(`Check-in response received: ${response.status}`);
         
         // If we get here, the apiRequest succeeded (status 200)
         const data = await response.json();
-        console.log(`Check-in success data:`, data);
+        addDebugLog(`Check-in success data: ${JSON.stringify(data)}`);
         
         return data;
       } catch (error: any) {
-        console.error("Check-in mutation caught error:", error);
-        console.error("Error message:", error.message);
+        addDebugLog(`Check-in mutation caught error: ${error.message}`);
         
         // Parse the error message to extract the actual error data
         let errorData: any = {};
@@ -137,9 +142,9 @@ export default function EntrancePage() {
           try {
             const jsonPart = error.message.split("400: ")[1];
             errorData = JSON.parse(jsonPart);
-            console.log("Parsed error data:", errorData);
+            addDebugLog(`Parsed error data: ${JSON.stringify(errorData)}`);
           } catch (parseError) {
-            console.error("Failed to parse error data:", parseError);
+            addDebugLog(`Failed to parse error data: ${parseError}`);
             errorData = { message: error.message };
           }
         } else {
@@ -485,6 +490,24 @@ export default function EntrancePage() {
                       </AlertDescription>
                     </Alert>
                   )}
+                  
+                  {/* Debug Log */}
+                  <div className="mt-6 w-full max-w-md">
+                    <h3 className="text-lg font-semibold mb-2">Debug Log</h3>
+                    {debugLog.length === 0 ? (
+                      <p className="text-muted-foreground text-sm italic">No debug logs yet</p>
+                    ) : (
+                      <ScrollArea className="h-32 w-full border rounded-md">
+                        <div className="p-4 space-y-2">
+                          {debugLog.map((entry, index) => (
+                            <div key={index} className="p-2 rounded-md bg-gray-50 text-xs font-mono">
+                              {entry}
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    )}
+                  </div>
                   
                   {/* Scan Log */}
                   <div className="mt-6 w-full max-w-md">
