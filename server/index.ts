@@ -130,46 +130,12 @@ app.get('/booking-success', async (req, res) => {
     }
     
     if (session.payment_status === 'paid') {
-      res.send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Payment Success</title>
-          <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; max-width: 600px; margin: 0 auto; }
-            .success { color: green; font-size: 2.5em; margin-bottom: 20px; }
-            .details { background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; }
-            .session-id { font-family: monospace; font-size: 0.8em; word-break: break-all; }
-            .button { background: #0070f3; color: white; padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; text-decoration: none; display: inline-block; margin: 10px; }
-          </style>
-        </head>
-        <body>
-          <h1 class="success">🎉 Payment Successful!</h1>
-          <p><strong>Your booking has been confirmed!</strong></p>
-          
-          <div class="details">
-            <h3>Booking Details:</h3>
-            <p><strong>Event ID:</strong> ${session.metadata?.eventId || 'N/A'}</p>
-            <p><strong>Table:</strong> ${session.metadata?.tableId || 'N/A'}</p>
-            <p><strong>Seats:</strong> ${session.metadata?.seats || 'N/A'}</p>
-            <p><strong>Amount:</strong> $${((session.amount_total || 0) / 100).toFixed(2)}</p>
-            <p><strong>Email:</strong> ${session.customer_details?.email || 'N/A'}</p>
-          </div>
-          
-          <div class="details">
-            <p><strong>Payment Reference:</strong></p>
-            <p class="session-id">${session.id}</p>
-          </div>
-          
-          <a href="/" class="button">Back to Home</a>
-          <a href="/events" class="button">View More Events</a>
-          
-          <p style="margin-top: 30px; font-size: 0.9em; color: #666;">
-            A confirmation email will be sent to ${session.customer_details?.email || 'your email address'}.
-          </p>
-        </body>
-        </html>
-      `);
+      // Redirect to React app payment success page with booking info
+      const redirectUrl = bookingId 
+        ? `/payment-success?session_id=${session.id}&booking_id=${bookingId}`
+        : `/payment-success?session_id=${session.id}`;
+      
+      res.redirect(redirectUrl);
     } else {
       res.send(`
         <!DOCTYPE html>

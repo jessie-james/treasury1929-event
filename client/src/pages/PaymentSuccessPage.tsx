@@ -11,7 +11,7 @@ import type { Booking, Event, FoodOption } from "@/../../shared/schema";
 type EnrichedBooking = Booking & {
   event: Event;
   foodItems: FoodOption[];
-  guestNames?: { [seatNumber: number]: string };
+  guestNames?: { [seatNumber: number]: string } | string[];
 };
 
 export default function PaymentSuccessPage() {
@@ -22,26 +22,30 @@ export default function PaymentSuccessPage() {
 
   // On component mount, check URL parameters for information
   useEffect(() => {
-    // Get payment intent from URL if present
     const urlParams = new URLSearchParams(window.location.search);
-    const paymentIntent = urlParams.get('payment_intent');
-    const paymentReference = urlParams.get('reference');
     const sessionId = urlParams.get('session_id');
+    const bookingIdParam = urlParams.get('booking_id');
     
-    // Set booking reference if available
-    if (paymentReference) {
-      setBookingReference(paymentReference);
-      // Try to parse as booking ID if it's a number
-      const parsedId = parseInt(paymentReference);
-      if (!isNaN(parsedId)) {
-        setBookingId(parsedId);
-      }
-    } else if (paymentIntent) {
-      // Use payment intent ID as fallback reference
-      setBookingReference(paymentIntent);
+    if (bookingIdParam) {
+      // We have the booking ID from the URL
+      setBookingId(parseInt(bookingIdParam));
+      setBookingReference(bookingIdParam);
+    } else if (sessionId) {
+      // Fallback: fetch from my-bookings API if no booking ID in URL
+      fetch('/api/my-bookings', { credentials: 'include' })
+        .then(response => response.json())
+        .then(bookings => {
+          if (bookings && bookings.length > 0) {
+            // Get the most recent booking (should be the one just created)
+            const recentBooking = bookings[0];
+            setBookingId(recentBooking.id);
+            setBookingReference(recentBooking.id.toString());
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching bookings:', error);
+        });
     }
-    
-    // Note: Payment verification now happens through the standard booking flow
   }, []);
 
   // Fetch booking details if we have a booking ID
@@ -197,6 +201,30 @@ export default function PaymentSuccessPage() {
             </div>
           </div>
 
+          {/* Show loading state */}
+          {isLoading && bookingId && (
+            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+              <p className="mt-2 text-sm text-gray-600">Loading your booking details...</p>
+            </div>
+          )}
+
+          {/* Fallback booking confirmed message if booking data fails to load */}
+          {!booking && !isLoading && bookingId && (
+            <div className="border border-green-200 rounded-lg p-4 bg-green-50 text-center">
+              <h3 className="text-lg font-semibold mb-2 text-green-800">Booking Confirmed!</h3>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="font-medium">Booking ID:</span>
+                  <div className="bg-white p-2 rounded border mt-1 font-mono text-xs">
+                    #{bookingId}
+                  </div>
+                </div>
+                <p className="text-green-700">Your booking has been confirmed. You can view full details in your dashboard.</p>
+              </div>
+            </div>
+          )}
+
           {/* Full Ticket Display - Matching Customer Dashboard Format */}
           {booking && !isLoading && (
             <div className="space-y-4">
@@ -215,16 +243,25 @@ export default function PaymentSuccessPage() {
                 </div>
               </div>
 
-              {booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames.length > 0 && (
+              {booking.guestNames && (
                 <div>
                   <h4 className="font-medium mb-2">Guest Names:</h4>
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    {booking.guestNames.map((name, index) => (
-                      <div key={index} className="flex justify-between">
-                        <span>Guest {index + 1}:</span>
-                        <span className="font-medium">{name}</span>
-                      </div>
-                    ))}
+                    {Array.isArray(booking.guestNames) ? (
+                      booking.guestNames.map((name, index) => (
+                        <div key={index} className="flex justify-between">
+                          <span>Guest {index + 1}:</span>
+                          <span className="font-medium">{name}</span>
+                        </div>
+                      ))
+                    ) : (
+                      Object.entries(booking.guestNames).map(([seatNumber, name]) => (
+                        <div key={seatNumber} className="flex justify-between">
+                          <span>Guest {seatNumber}:</span>
+                          <span className="font-medium">{name}</span>
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -234,8 +271,10 @@ export default function PaymentSuccessPage() {
                   <h4 className="font-medium mb-2">Food Selections:</h4>
                   <div className="text-sm space-y-1">
                     {booking.foodSelections.map((selection, index) => {
-                      const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
-                        ? booking.guestNames[index] 
+                      const guestName = booking.guestNames 
+                        ? Array.isArray(booking.guestNames) 
+                          ? booking.guestNames[index] || `Guest ${index + 1}`
+                          : booking.guestNames[index + 1] || `Guest ${index + 1}`
                         : `Guest ${index + 1}`;
                       const saladItem = foodOptions?.find(item => item.id === selection.salad);
                       const entreeItem = foodOptions?.find(item => item.id === selection.entree);
@@ -259,8 +298,10 @@ export default function PaymentSuccessPage() {
                   <h4 className="font-medium mb-2">Wine Selections:</h4>
                   <div className="text-sm space-y-1">
                     {booking.wineSelections.map((selection, index) => {
-                      const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
-                        ? booking.guestNames[index] 
+                      const guestName = booking.guestNames 
+                        ? Array.isArray(booking.guestNames) 
+                          ? booking.guestNames[index] || `Guest ${index + 1}`
+                          : booking.guestNames[index + 1] || `Guest ${index + 1}`
                         : `Guest ${index + 1}`;
                       const wineItem = foodOptions?.find(item => item.id === selection.wine);
                       
