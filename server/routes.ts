@@ -1622,7 +1622,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // SECURITY: Get event details to check if event date is valid
-      const event = await storage.getEvent(existingBooking.eventId);
+      const event = await storage.getEventById(existingBooking.eventId);
       if (!event) {
         console.log(`SECURITY CHECK: Event ${existingBooking.eventId} not found`);
         return res.status(404).json({ message: "Event not found" });

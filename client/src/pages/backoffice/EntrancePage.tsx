@@ -132,7 +132,8 @@ export default function EntrancePage() {
         addDebugLog(`Check-in success data: ${JSON.stringify(data)}`);
         
         // CRITICAL: Check if this is actually an error response disguised as success
-        if (data.error === "Network error" && data.message && data.message.includes("400:")) {
+        if ((data.error === "Network error" && data.message && data.message.includes("400:")) || 
+            (data.error && data.message && data.message.includes("500:"))) {
           addDebugLog("DETECTED: Network error contains 400 security violation - converting to error");
           
           // Parse the error message to determine the type of security violation
