@@ -96,9 +96,9 @@ export default function CustomerDashboard() {
       ctx.fillText(`Party Size: ${booking.partySize}`, canvas.width / 2, 170);
 
       // Guest names
-      if (booking.guestNames) {
+      if (booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames.length > 0) {
         ctx.fillText('Guests:', canvas.width / 2, 200);
-        Object.entries(booking.guestNames).forEach(([seat, name], index) => {
+        booking.guestNames.forEach((name, index) => {
           ctx.fillText(`${name}`, canvas.width / 2, 220 + (index * 20));
         });
       }
@@ -225,13 +225,13 @@ export default function CustomerDashboard() {
                   </div>
                 </div>
 
-                {booking.guestNames && (
+                {booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames.length > 0 && (
                   <div>
                     <h4 className="font-medium mb-2">Guest Names:</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      {Object.entries(booking.guestNames).map(([seat, name]) => (
-                        <div key={seat} className="flex justify-between">
-                          <span>Seat {seat}:</span>
+                      {booking.guestNames.map((name, index) => (
+                        <div key={index} className="flex justify-between">
+                          <span>Guest {index + 1}:</span>
                           <span className="font-medium">{name}</span>
                         </div>
                       ))}
@@ -244,7 +244,9 @@ export default function CustomerDashboard() {
                     <h4 className="font-medium mb-2">Food Selections:</h4>
                     <div className="text-sm space-y-1">
                       {booking.foodSelections.map((selection, index) => {
-                        const guestName = booking.guestNames ? booking.guestNames[index + 1] : `Guest ${index + 1}`;
+                        const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
+                          ? booking.guestNames[index] 
+                          : `Guest ${index + 1}`;
                         const saladItem = foodOptions?.find(item => item.id === selection.salad);
                         const entreeItem = foodOptions?.find(item => item.id === selection.entree);
                         const dessertItem = foodOptions?.find(item => item.id === selection.dessert);

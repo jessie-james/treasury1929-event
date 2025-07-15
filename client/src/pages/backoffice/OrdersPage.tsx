@@ -31,6 +31,7 @@ interface EventOrder {
     items: Array<{
       type: string;
       name: string;
+      dietary?: string[];
     }>;
   }>;
   totalGuests: number;
@@ -118,6 +119,48 @@ export default function OrdersPage() {
           })),
           totalGuests: tableOrders.length,
           hasOrders: tableOrders.some((order: any) => order.foodSelections && order.foodSelections.length > 0)
+        };
+        
+        transformedOrders.push(eventOrder);
+      }
+    });
+
+    return transformedOrders;
+  };
+
+  // Helper function to transform detailed orders data format to orders page format
+  const transformDetailedOrdersData = (ordersResponse: any): EventOrder[] => {
+    if (!ordersResponse || !Array.isArray(ordersResponse)) {
+      return [];
+    }
+
+    const transformedOrders: EventOrder[] = [];
+    
+    ordersResponse.forEach((order: any) => {
+      if (order.guestOrders && order.guestOrders.length > 0) {
+        const eventOrder: EventOrder = {
+          bookingId: order.bookingId,
+          tableNumber: order.tableNumber,
+          tableId: order.tableId,
+          tableZone: order.tableZone || "General",
+          tablePriceCategory: order.tablePriceCategory || "Standard",
+          partySize: order.partySize,
+          customerEmail: order.customerEmail,
+          status: order.status,
+          createdAt: order.createdAt,
+          checkedIn: order.checkedIn,
+          checkedInAt: order.checkedInAt,
+          guestOrders: order.guestOrders.map((guestOrder: any) => ({
+            guestName: guestOrder.guestName,
+            guestNumber: guestOrder.guestNumber,
+            items: guestOrder.items.map((item: any) => ({
+              type: item.type,
+              name: item.name,
+              dietary: item.dietary || []
+            }))
+          })),
+          totalGuests: order.guestOrders.length,
+          hasOrders: order.guestOrders.some((guestOrder: any) => guestOrder.items && guestOrder.items.length > 0)
         };
         
         transformedOrders.push(eventOrder);
@@ -252,12 +295,12 @@ export default function OrdersPage() {
   // Component to render individual event orders
   const EventOrdersCard = ({ event }: { event: Event }) => {
     const { data: ordersResponse, isLoading } = useQuery({
-      queryKey: [`/api/events/${event.id}/orders`],
+      queryKey: [`/api/events/${event.id}/orders-detailed`],
       enabled: !!event.id,
     });
 
-    // Transform the kitchen dashboard format to the orders page format
-    const orders: EventOrder[] = ordersResponse ? transformOrdersData(ordersResponse) : [];
+    // Transform the detailed orders format to the orders page format
+    const orders: EventOrder[] = ordersResponse ? transformDetailedOrdersData(ordersResponse) : [];
     const tablesWithOrders = Array.isArray(orders) ? orders.filter(order => order.hasOrders) : [];
     const totalGuests = Array.isArray(orders) ? orders.reduce((sum, order) => sum + order.totalGuests, 0) : 0;
 

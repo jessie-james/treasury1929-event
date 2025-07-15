@@ -116,7 +116,7 @@ export default function TicketDetailPage() {
       let currentY = 200;
 
       // Guest names
-      if (booking.guestNames && Object.keys(booking.guestNames).length > 0) {
+      if (booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames.length > 0) {
         ctx.font = 'bold 14px Arial';
         ctx.fillStyle = '#374151';
         ctx.fillText('Guests:', canvas.width / 2, currentY);
@@ -124,7 +124,7 @@ export default function TicketDetailPage() {
 
         ctx.font = '12px Arial';
         ctx.fillStyle = '#6b7280';
-        Object.entries(booking.guestNames).forEach(([seat, name]) => {
+        booking.guestNames.forEach((name) => {
           ctx.fillText(`${name}`, canvas.width / 2, currentY);
           currentY += 20;
         });
@@ -141,7 +141,9 @@ export default function TicketDetailPage() {
         ctx.font = '11px Arial';
         ctx.fillStyle = '#6b7280';
         booking.foodSelections.forEach((selection, index) => {
-          const guestName = booking.guestNames ? booking.guestNames[index + 1] : `Guest ${index + 1}`;
+          const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
+            ? booking.guestNames[index] 
+            : `Guest ${index + 1}`;
           const saladItem = foodOptions?.find(item => item.id === selection.salad);
           const entreeItem = foodOptions?.find(item => item.id === selection.entree);
           const dessertItem = foodOptions?.find(item => item.id === selection.dessert);
@@ -278,13 +280,13 @@ export default function TicketDetailPage() {
           </div>
 
           {/* Guest Names */}
-          {booking.guestNames && Object.keys(booking.guestNames).length > 0 && (
+          {booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames.length > 0 && (
             <div>
               <h4 className="font-medium mb-2">Guest Names:</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                {Object.entries(booking.guestNames).map(([seat, name]) => (
-                  <div key={seat} className="flex justify-between">
-                    <span>Seat {seat}:</span>
+                {booking.guestNames.map((name, index) => (
+                  <div key={index} className="flex justify-between">
+                    <span>Guest {index + 1}:</span>
                     <span className="font-medium">{name}</span>
                   </div>
                 ))}
@@ -298,7 +300,9 @@ export default function TicketDetailPage() {
               <h4 className="font-medium mb-2">Food Selections:</h4>
               <div className="text-sm space-y-1">
                 {booking.foodSelections.map((selection, index) => {
-                  const guestName = booking.guestNames ? booking.guestNames[index + 1] : `Guest ${index + 1}`;
+                  const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
+                    ? booking.guestNames[index] 
+                    : `Guest ${index + 1}`;
                   const saladItem = foodOptions?.find(item => item.id === selection.salad);
                   const entreeItem = foodOptions?.find(item => item.id === selection.entree);
                   const dessertItem = foodOptions?.find(item => item.id === selection.dessert);
