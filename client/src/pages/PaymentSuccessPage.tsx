@@ -31,12 +31,27 @@ export default function PaymentSuccessPage() {
       setBookingId(parseInt(bookingIdParam));
       setBookingReference(bookingIdParam);
     } else if (sessionId) {
-      // Fallback: fetch from my-bookings API if no booking ID in URL
-      fetch('/api/my-bookings', { credentials: 'include' })
+      // Fallback: fetch from user bookings API if no booking ID in URL
+      fetch('/api/user/bookings', { credentials: 'include' })
         .then(response => response.json())
         .then(bookings => {
           if (bookings && bookings.length > 0) {
             // Get the most recent booking (should be the one just created)
+            const recentBooking = bookings[0];
+            setBookingId(recentBooking.id);
+            setBookingReference(recentBooking.id.toString());
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching bookings:', error);
+        });
+    } else {
+      // Last resort: if no session ID and no booking ID, try to get the most recent booking
+      fetch('/api/user/bookings', { credentials: 'include' })
+        .then(response => response.json())
+        .then(bookings => {
+          if (bookings && bookings.length > 0) {
+            // Get the most recent booking
             const recentBooking = bookings[0];
             setBookingId(recentBooking.id);
             setBookingReference(recentBooking.id.toString());
@@ -50,13 +65,12 @@ export default function PaymentSuccessPage() {
 
   // Fetch booking details if we have a booking ID
   const { data: booking, isLoading } = useQuery({
-    queryKey: ['/api/my-bookings', bookingId],
+    queryKey: ['/api/bookings', bookingId],
     queryFn: async () => {
       if (!bookingId) return null;
-      const response = await fetch('/api/my-bookings', { credentials: 'include' });
+      const response = await fetch(`/api/bookings/${bookingId}`, { credentials: 'include' });
       if (!response.ok) return null;
-      const bookings = await response.json();
-      return bookings.find((b: any) => b.id === bookingId) || null;
+      return await response.json();
     },
     enabled: !!bookingId,
   });
