@@ -131,6 +131,19 @@ export default function EntrancePage() {
         const data = await response.json();
         addDebugLog(`Check-in success data: ${JSON.stringify(data)}`);
         
+        // CRITICAL: Check if this is actually an error response disguised as success
+        if (data.error === "Network error" && data.message && data.message.includes("400:")) {
+          addDebugLog("DETECTED: Network error contains 400 security violation - converting to error");
+          const errorData = {
+            error: "cross_event_attempt",
+            message: data.message.replace("400: ", ""),
+            securityViolation: true
+          };
+          const securityError = new Error(errorData.message);
+          (securityError as any).data = errorData;
+          throw securityError;
+        }
+        
         return data;
       } catch (error: any) {
         addDebugLog(`Check-in mutation caught error: ${error.message}`);
