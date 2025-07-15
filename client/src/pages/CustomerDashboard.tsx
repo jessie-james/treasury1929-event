@@ -309,12 +309,21 @@ export default function CustomerDashboard() {
                       </div>
                     </div>
                     
-                    <div className="text-center">
+                    <div className="text-center space-y-3">
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        onClick={() => setLocation(`/ticket/${booking.id}`)}
+                        className="flex items-center gap-2 w-full"
+                      >
+                        <Ticket className="w-4 h-4" />
+                        View Full Ticket
+                      </Button>
                       <Button
                         variant="default"
                         size="lg"
                         onClick={() => downloadQRTicket(booking)}
-                        className="flex items-center gap-2"
+                        className="flex items-center gap-2 w-full"
                       >
                         <Download className="w-4 h-4" />
                         Download Ticket

@@ -32,6 +32,7 @@ import BookingSuccessSimple from "@/pages/BookingSuccessSimple";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import TicketOnlyBookingPage from "@/pages/TicketOnlyBookingPage";
 import KitchenDashboard from "@/pages/backoffice/KitchenDashboard";
+import TicketDetailPage from "@/pages/TicketDetailPage";
 
 import { BookingCancel } from "@/pages/BookingCancel";
 import { Header } from "./components/Header";
@@ -76,6 +77,7 @@ function Router() {
 
         <ProtectedRoute path="/dashboard" component={CustomerDashboard} />
         <Route path="/profile" component={ProfilePage} />
+        <ProtectedRoute path="/ticket/:bookingId" component={TicketDetailPage} />
 
         <Route path="/payment-success" component={PaymentSuccessPage} />
         <Route path="/booking-success" component={BookingSuccessSimple} />
