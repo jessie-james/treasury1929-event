@@ -110,11 +110,50 @@ export default function EntrancePage() {
 
   // Mutation for checking in a booking
   const checkInMutation = useMutation({
-    mutationFn: (bookingId: number) => {
-      return apiRequest({
-        method: "POST",
-        url: `/api/bookings/${bookingId}/check-in${selectedEventId ? `?eventId=${selectedEventId}` : ''}`
-      });
+    mutationFn: async (bookingId: number) => {
+      try {
+        const response = await apiRequest({
+          method: "POST",
+          url: `/api/bookings/${bookingId}/check-in${selectedEventId ? `?eventId=${selectedEventId}` : ''}`
+        });
+        
+        // Parse the response to check if it's actually successful
+        const data = await response.json();
+        
+        // Check if this is a security violation response
+        if (data.error === "cross_event_attempt" || data.error === "duplicate_checkin_attempt" || data.securityViolation) {
+          // This is a security violation, throw an error with the full response data
+          const error = new Error(data.message || "Security violation detected");
+          (error as any).data = data;
+          throw error;
+        }
+        
+        return data;
+      } catch (error: any) {
+        // Enhanced error handling to capture all error details
+        console.error("Check-in mutation error:", error);
+        
+        // If it's already an error with data, rethrow it
+        if (error.data) {
+          throw error;
+        }
+        
+        // Try to parse error response for security violations
+        if (error.message && error.message.includes("400:")) {
+          try {
+            const errorData = JSON.parse(error.message.split("400: ")[1]);
+            if (errorData.error === "cross_event_attempt" || errorData.error === "duplicate_checkin_attempt" || errorData.securityViolation) {
+              const securityError = new Error(errorData.message || "Security violation detected");
+              (securityError as any).data = errorData;
+              throw securityError;
+            }
+          } catch (parseError) {
+            // If parsing fails, continue with original error
+          }
+        }
+        
+        throw error;
+      }
     },
     onSuccess: async (data, bookingId) => {
       // Show toast notification
