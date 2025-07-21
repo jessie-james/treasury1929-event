@@ -74,10 +74,29 @@ export function registerVenueRoutes(app: Express): void {
       const stages = await storage.getStagesByVenue(venueId);
       const tables = await storage.getTablesByVenue(venueId);
 
+      // Add tableSize calculation for consistent rendering across venue designer and booking sections
+      const enhancedTables = tables.map(table => {
+        // Calculate tableSize based on width and height (same logic as events API)
+        let calculatedTableSize = 4; // Default to size 4
+        if (table.width && table.height) {
+          const avgSize = (table.width + table.height) / 2;
+          if (avgSize <= 45) calculatedTableSize = 1;       // Small
+          else if (avgSize <= 65) calculatedTableSize = 2;   // Medium  
+          else if (avgSize <= 75) calculatedTableSize = 3;   // Large
+          else if (avgSize <= 90) calculatedTableSize = 4;   // Extra Large
+          else calculatedTableSize = 5;                      // XXL
+        }
+        
+        return {
+          ...table,
+          tableSize: calculatedTableSize
+        };
+      });
+
       res.json({
         venue,
         stages,
-        tables
+        tables: enhancedTables
       });
     } catch (error) {
       console.error("Error fetching venue layout:", error);

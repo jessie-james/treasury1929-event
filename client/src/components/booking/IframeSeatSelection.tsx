@@ -336,22 +336,12 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
           ) : currentVenueLayout ? (
             <div className="w-full overflow-x-auto">
               <TableLayoutCanvas
-                tables={currentVenueLayout.tables.map(table => {
-                  const mappedTable = {
-                    ...table,
-                    status: bookedTableIds.includes(table.id) ? 'sold' : 'available',
-                    // Ensure tableSize is included from the API response
-                    tableSize: table.tableSize || 2 // Fallback to size 2 if not provided
-                  };
-                  console.log(`🎯 TABLE MAPPING DEBUG - Table ${table.tableNumber}:`, {
-                    id: table.id,
-                    width: table.width,
-                    height: table.height,
-                    originalTableSize: table.tableSize,
-                    finalTableSize: mappedTable.tableSize
-                  });
-                  return mappedTable;
-                })}
+                tables={currentVenueLayout.tables.map(table => ({
+                  ...table,
+                  status: bookedTableIds.includes(table.id) ? 'sold' : 'available',
+                  // Ensure tableSize is included from the API response
+                  tableSize: table.tableSize || 2 // Fallback to size 2 if not provided
+                }))}
                 stages={currentVenueLayout.stages}
                 isEditorMode={false}
                 onTableSelect={(table) => {

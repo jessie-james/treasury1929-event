@@ -75,7 +75,7 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
     const isSold = table.status === 'sold';
     const isHalf = table.shape === 'half';
 
-    // CRITICAL FIX: Use actual tableSize field from database (now included in API)
+    // Use tableSize from API response for consistent sizing
     const actualTableSize = table.tableSize || 4; // Default to size 4 if not provided
     const dimensions = getTableDimensions(actualTableSize);
     const { tableRadius, seatRadius } = dimensions;
