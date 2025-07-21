@@ -28,7 +28,7 @@ interface Props {
   stages: VenueStage[];
   isEditorMode?: boolean;
   onTableSelect?: (table: VenueTable) => void;
-  selectedTable?: VenueTable | null;
+  selectedTables?: number[];
   className?: string;
 }
 
@@ -37,7 +37,7 @@ export function TableLayoutCanvas({
   stages, 
   isEditorMode = false, 
   onTableSelect,
-  selectedTable,
+  selectedTables,
   className 
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -82,11 +82,13 @@ export function TableLayoutCanvas({
 
   // EXACT same drawTable function as VenueLayoutDesigner
   const drawTable = useCallback((ctx: CanvasRenderingContext2D, table: VenueTable) => {
-    const isSelected = selectedTable?.id === table.id;
+    const isSelected = selectedTables && selectedTables.includes(table.id);
     const isAvailable = table.status === 'available';
     const isOnHold = table.status === 'hold';
     const isSold = table.status === 'sold';
     const isHalf = table.shape === 'half';
+    
+    console.log(`🎨 Drawing table ${table.tableNumber}:`, { isSelected, selectedTables, tableId: table.id });
     
     // Use tableSize from database or calculate from width/height as fallback
     let tableSize = table.tableSize || 4;
@@ -121,11 +123,12 @@ export function TableLayoutCanvas({
       ctx.fillStyle = '#f59e0b'; // Orange for on hold
       ctx.strokeStyle = '#d97706';
     } else if (isSelected) {
-      ctx.fillStyle = '#22c55e'; // Green for selected
-      ctx.strokeStyle = '#16a34a';
+      ctx.fillStyle = '#3b82f6'; // Blue for selected - more visible
+      ctx.strokeStyle = '#1d4ed8';
+      ctx.lineWidth = 4; // Thick border for selected
     } else {
-      ctx.fillStyle = '#28a745'; // Default green for available
-      ctx.strokeStyle = '#1e7e34';
+      ctx.fillStyle = '#22c55e'; // Green for available
+      ctx.strokeStyle = '#16a34a';
     }
     
     ctx.lineWidth = 2;
@@ -277,7 +280,7 @@ export function TableLayoutCanvas({
     // Draw tables
     tables.forEach(table => drawTable(ctx, table));
     
-  }, [tables, stages, drawTable, drawStage]);
+  }, [tables, stages, drawTable, drawStage, selectedTables]);
 
   // Handle canvas click for table selection - FIXED click detection
   const handleCanvasClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -323,7 +326,7 @@ export function TableLayoutCanvas({
         break;
       }
     }
-  }, [tables, onTableSelect, isEditorMode, getTableDimensions]);
+  }, [tables, onTableSelect, isEditorMode, getTableDimensions, selectedTables]);
 
   // Draw when data changes
   useEffect(() => {

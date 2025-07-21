@@ -312,26 +312,26 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
         </CardContent>
       </Card>
 
-      {/* COMPLETELY REDESIGNED - NO NESTED CONTAINERS */}
-      <div className="space-y-6">
+      {/* Select Your Table - Full Width, No Nesting */}
+      <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h3 className="text-2xl font-bold text-gray-900">
-            {currentVenueLayout?.venue?.name || "Venue Layout"}
+          <h3 className="text-xl font-bold">
+            Select Your Table - {currentVenueLayout?.venue?.name || "Venue Layout"}
             {Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 1 && selectedVenueIndex < eventVenueLayouts.length ? (
-              <span className="text-lg text-gray-600 ml-3 font-medium">
+              <span className="text-base text-gray-500 ml-2 font-normal">
                 ({(eventVenueLayouts as any[])[selectedVenueIndex]?.displayName || 'Venue'})
               </span>
             ) : null}
           </h3>
-          <Badge variant="outline" className="text-base px-4 py-2">
+          <Badge variant="outline" className="text-sm">
             {availableTables.length} of {currentVenueLayout?.tables?.length || 0} tables available
           </Badge>
         </div>
         
         {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-16 w-16 animate-spin text-blue-600" />
-            <span className="ml-6 text-xl text-gray-700">Loading venue layout...</span>
+          <div className="flex items-center justify-center p-12 bg-gray-50 rounded-lg">
+            <Loader2 className="h-12 w-12 animate-spin" />
+            <span className="ml-4 text-lg">Loading venue layout...</span>
           </div>
         ) : currentVenueLayout ? (
           <TableLayoutCanvas
@@ -343,6 +343,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
             stages={currentVenueLayout.stages}
             isEditorMode={false}
             onTableSelect={(table) => {
+              console.log('🎯 Table selected:', table);
               const validation = isValidTableSelection(table, desiredGuestCount);
               if (!validation.valid) {
                 alert(validation.reason);
@@ -354,8 +355,8 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
             className="w-full"
           />
         ) : (
-          <div className="text-center py-20">
-            <p className="text-gray-600 text-xl">
+          <div className="text-center p-12 bg-gray-50 rounded-lg">
+            <p className="text-gray-600 text-lg">
               Unable to load venue layout. Please try again.
             </p>
           </div>
