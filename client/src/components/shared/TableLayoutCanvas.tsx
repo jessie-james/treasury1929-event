@@ -11,6 +11,7 @@ interface VenueTable {
   shape: 'full' | 'half';
   rotation: number;
   status: 'available' | 'sold' | 'hold';
+  tableSize?: number; // Added to match venue designer
 }
 
 interface Stage {
@@ -53,6 +54,18 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
     gridSize: 20, // For consistent positioning
   };
 
+  // EXACT same table dimension calculation as VenueLayoutDesigner
+  const getTableDimensions = (tableSize: number) => {
+    const sizeConfig = {
+      1: { tableRadius: 18, seatRadius: 6,  gap: 6  }, // Small
+      2: { tableRadius: 22, seatRadius: 7,  gap: 7  }, // Medium  
+      3: { tableRadius: 26, seatRadius: 9,  gap: 9  }, // Large
+      4: { tableRadius: 30, seatRadius: 10, gap: 10 }  // Extra Large
+    };
+    
+    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[4];
+  };
+
   // Unified table rendering function - USE THIS IN BOTH VIEWS
   const renderTable = (table: VenueTable, index: number) => {
     const isSelected = selectedTables.includes(table.id);
@@ -61,15 +74,17 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
     const isSold = table.status === 'sold';
     const isHalf = table.shape === 'half';
 
-    // IDENTICAL positioning calculation - use exact coordinates from venue editor
-    const x = table.x * CANVAS_CONFIG.tableScale;
-    const y = table.y * CANVAS_CONFIG.tableScale;
-    const width = table.width * CANVAS_CONFIG.tableScale;
-    const height = table.height * CANVAS_CONFIG.tableScale;
-    const tableRadius = Math.min(width, height) / 2;
+    // CRITICAL FIX: Use same dimension calculation as VenueLayoutDesigner
+    // Extract tableSize from table dimensions to match designer proportions
+    const estimatedTableSize = table.tableSize || Math.max(1, Math.min(4, Math.round((table.width || 60) / 20)));
+    const dimensions = getTableDimensions(estimatedTableSize);
+    const { tableRadius, seatRadius } = dimensions;
+    
+    // Use exact coordinates from venue editor (no scaling needed)
+    const x = table.x;
+    const y = table.y;
     const centerX = x + tableRadius;
     const centerY = y + tableRadius;
-    const seatRadius = Math.max(6, tableRadius * 0.25);
 
     return (
       <g key={`table-${table.id}`}>
@@ -82,19 +97,19 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
             fill={
               isSold ? '#ef4444' : 
               isOnHold ? '#fbbf24' : 
-              isSelected ? '#3b82f6' : 
-              isAvailable ? '#10b981' : '#6b7280'
+              isSelected ? '#22c55e' : 
+              isAvailable ? '#28a745' : '#6b7280'
             }
             stroke={
               isSold ? '#dc2626' : 
               isOnHold ? '#f59e0b' : 
-              isSelected ? '#2563eb' : 
-              isAvailable ? '#059669' : '#4b5563'
+              isSelected ? '#16a34a' : 
+              isAvailable ? '#1e7e34' : '#4b5563'
             }
             strokeWidth="2"
             style={{ 
               cursor: isEditorMode ? 'move' : (isAvailable ? 'pointer' : 'not-allowed'),
-              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+              filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))'
             }}
             onClick={() => {
               if (!isEditorMode && isAvailable && onTableSelect) {
@@ -116,37 +131,47 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
           {/* Table number - IDENTICAL text positioning */}
           <text
             x={0}
-            y={isHalf ? -tableRadius * 0.3 : 0}
+            y={isHalf ? -tableRadius * 0.5 : 0}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize={Math.max(10, Math.min(20, tableRadius * 0.4))}
+            fontSize={Math.max(12, Math.min(24, 10 + estimatedTableSize * 1.5))}
             fontWeight="bold"
-            fill={isSelected ? '#ffffff' : '#374151'}
+            fill="#333"
             pointerEvents="none"
           >
             {table.tableNumber}
           </text>
           
-          {/* Draw seats around table */}
+          {/* Draw seats around table - EXACT same logic as VenueLayoutDesigner */}
           {table.capacity > 0 && (
             <g>
               {Array.from({ length: table.capacity }, (_, i) => {
                 let angle;
+                const count = Math.max(1, Math.min(8, table.capacity)); // 1-8 seats allowed
                 
                 if (isHalf) {
-                  if (table.capacity === 1) {
-                    angle = 270;
+                  // Half Circle Tables - Smart positioning (matching VenueLayoutDesigner exactly)
+                  if (count === 1) {
+                    angle = 270; // Single seat at the back center
+                  } else if (count === 2) {
+                    const angles = [225, 315]; // 90° total spread
+                    angle = angles[i];
+                  } else if (count === 3) {
+                    const angles = [220, 270, 320]; // 100° total spread
+                    angle = angles[i];
                   } else {
-                    const span = Math.min(180, table.capacity * 30);
-                    const startAngle = 270 - span / 2;
-                    angle = startAngle + (i * span) / (table.capacity - 1);
+                    // 4+ seats: use 40° spacing method
+                    const totalSpan = (count - 1) * 40;
+                    const startAngle = 270 - (totalSpan / 2);
+                    angle = startAngle + (i * 40);
                   }
                 } else {
-                  angle = (i * 360) / table.capacity;
+                  // Full Circle Tables - Even distribution
+                  angle = i * (360 / count); // Evenly spaced around 360°
                 }
                 
                 const rad = (angle * Math.PI) / 180;
-                const seatOffset = tableRadius + seatRadius + 2;
+                const seatOffset = tableRadius + seatRadius; // Seats touch table edge
                 const seatX = seatOffset * Math.cos(rad);
                 const seatY = seatOffset * Math.sin(rad);
                 
@@ -156,19 +181,19 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
                       cx={seatX}
                       cy={seatY}
                       r={seatRadius}
-                      fill="#6b7280"
-                      stroke="#4b5563"
+                      fill="#6B7280"
+                      stroke="#4B5563"
                       strokeWidth="1"
-                      style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}
+                      style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }}
                     />
                     <text
                       x={seatX}
                       y={seatY}
                       textAnchor="middle"
                       dominantBaseline="middle"
-                      fontSize={Math.max(6, Math.min(12, seatRadius * 0.8))}
+                      fontSize={Math.max(8, Math.min(16, seatRadius - 4))}
                       fontWeight="bold"
-                      fill="#ffffff"
+                      fill="white"
                       pointerEvents="none"
                     >
                       {i + 1}
