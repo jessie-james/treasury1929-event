@@ -334,25 +334,27 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
             <span className="ml-6 text-xl text-gray-700">Loading venue layout...</span>
           </div>
         ) : currentVenueLayout ? (
-          <TableLayoutCanvas
-            tables={currentVenueLayout.tables.map(table => ({
-              ...table,
-              status: bookedTableIds.includes(table.id) ? 'sold' : 'available',
-              tableSize: table.tableSize || 2
-            }))}
-            stages={currentVenueLayout.stages}
-            isEditorMode={false}
-            onTableSelect={(table) => {
-              const validation = isValidTableSelection(table, desiredGuestCount);
-              if (!validation.valid) {
-                alert(validation.reason);
-                return;
-              }
-              setSelectedTable(table);
-            }}
-            selectedTables={selectedTable ? [selectedTable.id] : []}
-            className="w-full"
-          />
+          <div className="w-full flex justify-center">
+            <TableLayoutCanvas
+              tables={currentVenueLayout.tables.map(table => ({
+                ...table,
+                status: bookedTableIds.includes(table.id) ? 'sold' : 'available',
+                tableSize: table.tableSize || 2
+              }))}
+              stages={currentVenueLayout.stages}
+              isEditorMode={false}
+              onTableSelect={(table) => {
+                const validation = isValidTableSelection(table, desiredGuestCount);
+                if (!validation.valid) {
+                  alert(validation.reason);
+                  return;
+                }
+                setSelectedTable(table);
+              }}
+              selectedTables={selectedTable ? [selectedTable.id] : []}
+              className=""
+            />
+          </div>
         ) : (
           <div className="text-center py-20">
             <p className="text-gray-600 text-xl">

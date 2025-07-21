@@ -42,10 +42,10 @@ export function TableLayoutCanvas({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // MASSIVE Canvas for booking interface - no more tiny tables
+  // Reasonable Canvas size for booking interface
   const venueDimensions = useMemo(() => {
     if (!tables || tables.length === 0) {
-      return { width: 1600, height: 1000 };
+      return { width: 1200, height: 800 };
     }
 
     const positions = tables.map(table => ({
@@ -60,21 +60,21 @@ export function TableLayoutCanvas({
     const maxX = Math.max(...positions.map(p => p.x + p.width));
     const maxY = Math.max(...positions.map(p => p.y + p.height));
 
-    // MASSIVE Canvas - 2x larger than before
+    // Reasonable Canvas size - larger than venue designer but usable
     return {
-      width: Math.max(maxX - minX + 400, 1600),
-      height: Math.max(maxY - minY + 300, 1000),
+      width: Math.max(maxX - minX + 200, 1200),
+      height: Math.max(maxY - minY + 150, 800),
     };
   }, [tables]);
 
-  // DRAMATICALLY enhanced table dimensions - 3x larger than venue designer
+  // Reasonably enhanced table dimensions - 50% larger than venue designer
   const getTableDimensions = useCallback((tableSize: number) => {
     const sizeConfig = {
-      1: { tableRadius: 35, seatRadius: 12,  gap: 12  }, // Small but VERY visible
-      2: { tableRadius: 45, seatRadius: 15,  gap: 15  }, // Medium - LARGE
-      3: { tableRadius: 55, seatRadius: 18,  gap: 18  }, // Large - HUGE
-      4: { tableRadius: 65, seatRadius: 22, gap: 22 }, // Extra Large - MASSIVE
-      5: { tableRadius: 75, seatRadius: 25, gap: 25 }  // XXL - ENORMOUS
+      1: { tableRadius: 27, seatRadius: 9,  gap: 9  }, // Small but visible
+      2: { tableRadius: 33, seatRadius: 11, gap: 11 }, // Medium - enhanced  
+      3: { tableRadius: 39, seatRadius: 13, gap: 13 }, // Large - enhanced
+      4: { tableRadius: 45, seatRadius: 15, gap: 15 }, // Extra Large - enhanced
+      5: { tableRadius: 51, seatRadius: 17, gap: 17 }  // XXL - enhanced
     };
     
     return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[3];
@@ -151,17 +151,17 @@ export function TableLayoutCanvas({
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
     
-    // MASSIVE table number text for booking interface
-    const fontSize = Math.max(24, Math.min(48, 16 + tableSize * 4));
+    // Enhanced but reasonable table number text
+    const fontSize = Math.max(18, Math.min(28, 12 + tableSize * 2.5));
     ctx.fillStyle = '#000';
     ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const textY = isHalf ? -tableRadius * 0.5 : 0;
     
-    // THICK text outline for maximum visibility
+    // Text outline for visibility
     ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3;
     ctx.strokeText(table.tableNumber.toString(), 0, textY);
     ctx.fillText(table.tableNumber.toString(), 0, textY);
     
@@ -328,22 +328,21 @@ export function TableLayoutCanvas({
   }, [draw]);
 
   return (
-    <div className={className} style={{ overflow: 'auto', maxHeight: '80vh' }}>
-      <canvas
-        ref={canvasRef}
-        width={venueDimensions.width}
-        height={venueDimensions.height}
-        onClick={handleCanvasClick}
-        style={{
-          border: '2px solid #d1d5db',
-          borderRadius: '8px',
-          cursor: isEditorMode ? 'default' : 'pointer',
-          minWidth: `${venueDimensions.width}px`,
-          minHeight: `${venueDimensions.height}px`,
-          display: 'block',
-          backgroundColor: 'white'
-        }}
-      />
-    </div>
+    <canvas
+      ref={canvasRef}
+      width={venueDimensions.width}
+      height={venueDimensions.height}
+      onClick={handleCanvasClick}
+      className={className}
+      style={{
+        border: '1px solid #d1d5db',
+        borderRadius: '8px',
+        cursor: isEditorMode ? 'default' : 'pointer',
+        maxWidth: '100%',
+        height: 'auto',
+        display: 'block',
+        backgroundColor: 'white'
+      }}
+    />
   );
 }
