@@ -66,12 +66,17 @@ export function TableLayoutCanvas({
     };
   }, [tables]);
 
-  // Use actual table dimensions from database - EXACT match to venue designer
-  const getActualTableRadius = useCallback((table: VenueTable) => {
-    // Use the actual width/height from database, just like venue designer does
-    const tableRadius = Math.max(table.width, table.height) / 2;
-    const seatRadius = Math.max(6, Math.min(11, tableRadius * 0.3));
-    return { tableRadius, seatRadius };
+  // EXACT same table dimension calculation as VenueLayoutDesigner
+  const getTableDimensions = useCallback((tableSize: number) => {
+    const sizeConfig = {
+      1: { tableRadius: 18, seatRadius: 6,  gap: 6  }, // Small - 40px
+      2: { tableRadius: 22, seatRadius: 7,  gap: 7  }, // Medium - 60px  
+      3: { tableRadius: 26, seatRadius: 9,  gap: 9  }, // Large - 72px
+      4: { tableRadius: 30, seatRadius: 10, gap: 10 }, // Extra Large - 88px
+      5: { tableRadius: 34, seatRadius: 11, gap: 11 }  // XXL - for very large tables
+    };
+    
+    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[4];
   }, []);
 
   // EXACT same drawTable function as VenueLayoutDesigner
@@ -82,8 +87,19 @@ export function TableLayoutCanvas({
     const isSold = table.status === 'sold';
     const isHalf = table.shape === 'half';
     
-    // Use actual table dimensions from database - EXACT match to venue designer
-    const { tableRadius, seatRadius } = getActualTableRadius(table);
+    // Use tableSize from database or calculate from width/height as fallback
+    let tableSize = table.tableSize || 4;
+    if (!table.tableSize && table.width && table.height) {
+      const avgSize = (table.width + table.height) / 2;
+      if (avgSize <= 45) tableSize = 1;
+      else if (avgSize <= 65) tableSize = 2;
+      else if (avgSize <= 75) tableSize = 3;
+      else if (avgSize <= 90) tableSize = 4;
+      else tableSize = 5;
+    }
+    
+    const dimensions = getTableDimensions(tableSize);
+    const { tableRadius, seatRadius } = dimensions;
     const count = Math.max(1, Math.min(8, table.capacity));
     
     ctx.save();
@@ -134,8 +150,8 @@ export function TableLayoutCanvas({
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
     
-    // Table number (scale with actual table radius)
-    const fontSize = Math.max(12, Math.min(24, 10 + (tableRadius / 5)));
+    // Table number (scale with table size)
+    const fontSize = Math.max(12, Math.min(24, 10 + tableSize * 1.5));
     ctx.fillStyle = '#333';
     ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = 'center';
@@ -218,7 +234,7 @@ export function TableLayoutCanvas({
     }
     
     ctx.restore();
-  }, [selectedTable, getActualTableRadius]);
+  }, [selectedTable, getTableDimensions]);
 
   // Draw stage function
   const drawStage = useCallback((ctx: CanvasRenderingContext2D, stage: VenueStage) => {
@@ -273,9 +289,20 @@ export function TableLayoutCanvas({
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     
-    // Find clicked table using actual dimensions
+    // Find clicked table
     for (const table of tables) {
-      const { tableRadius } = getActualTableRadius(table);
+      let tableSize = table.tableSize || 4;
+      if (!table.tableSize && table.width && table.height) {
+        const avgSize = (table.width + table.height) / 2;
+        if (avgSize <= 45) tableSize = 1;
+        else if (avgSize <= 65) tableSize = 2;
+        else if (avgSize <= 75) tableSize = 3;
+        else if (avgSize <= 90) tableSize = 4;
+        else tableSize = 5;
+      }
+      
+      const dimensions = getTableDimensions(tableSize);
+      const tableRadius = dimensions.tableRadius;
       const centerX = table.x + tableRadius;
       const centerY = table.y + tableRadius;
       
@@ -287,7 +314,7 @@ export function TableLayoutCanvas({
         break;
       }
     }
-  }, [tables, onTableSelect, isEditorMode, getActualTableRadius]);
+  }, [tables, onTableSelect, isEditorMode, getTableDimensions]);
 
   // Draw when data changes
   useEffect(() => {
