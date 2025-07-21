@@ -67,17 +67,17 @@ export function TableLayoutCanvas({
     };
   }, [tables]);
 
-  // Reasonably enhanced table dimensions - 50% larger than venue designer
+  // EXACT same table dimension calculation as VenueLayoutDesigner - DO NOT CHANGE
   const getTableDimensions = useCallback((tableSize: number) => {
     const sizeConfig = {
-      1: { tableRadius: 27, seatRadius: 9,  gap: 9  }, // Small but visible
-      2: { tableRadius: 33, seatRadius: 11, gap: 11 }, // Medium - enhanced  
-      3: { tableRadius: 39, seatRadius: 13, gap: 13 }, // Large - enhanced
-      4: { tableRadius: 45, seatRadius: 15, gap: 15 }, // Extra Large - enhanced
-      5: { tableRadius: 51, seatRadius: 17, gap: 17 }  // XXL - enhanced
+      1: { tableRadius: 18, seatRadius: 6,  gap: 6  }, // Small - 40px
+      2: { tableRadius: 22, seatRadius: 7,  gap: 7  }, // Medium - 60px  
+      3: { tableRadius: 26, seatRadius: 9,  gap: 9  }, // Large - 72px
+      4: { tableRadius: 30, seatRadius: 10, gap: 10 }, // Extra Large - 88px
+      5: { tableRadius: 34, seatRadius: 11, gap: 11 }  // XXL - for very large tables
     };
     
-    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[3];
+    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[4];
   }, []);
 
   // EXACT same drawTable function as VenueLayoutDesigner
@@ -151,18 +151,13 @@ export function TableLayoutCanvas({
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
     
-    // Enhanced but reasonable table number text
-    const fontSize = Math.max(18, Math.min(28, 12 + tableSize * 2.5));
-    ctx.fillStyle = '#000';
+    // Table number (scale with table size) - EXACT same as VenueLayoutDesigner
+    const fontSize = Math.max(12, Math.min(24, 10 + tableSize * 1.5));
+    ctx.fillStyle = '#333';
     ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const textY = isHalf ? -tableRadius * 0.5 : 0;
-    
-    // Text outline for visibility
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 3;
-    ctx.strokeText(table.tableNumber.toString(), 0, textY);
     ctx.fillText(table.tableNumber.toString(), 0, textY);
     
     // Draw seats around the table
@@ -219,8 +214,8 @@ export function TableLayoutCanvas({
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
         
-        // LARGE seat numbers for booking interface
-        const seatFontSize = Math.max(16, Math.min(28, seatRadius - 4));
+        // Seat number - EXACT same as VenueLayoutDesigner
+        const seatFontSize = Math.max(8, Math.min(16, seatRadius - 4));
         ctx.fillStyle = 'white';
         ctx.font = `bold ${seatFontSize}px Arial`;
         ctx.textAlign = 'center';
@@ -284,7 +279,7 @@ export function TableLayoutCanvas({
     
   }, [tables, stages, drawTable, drawStage]);
 
-  // Handle canvas click for table selection
+  // Handle canvas click for table selection - FIXED click detection
   const handleCanvasClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!onTableSelect || isEditorMode) return;
     
@@ -292,8 +287,13 @@ export function TableLayoutCanvas({
     if (!canvas) return;
     
     const rect = canvas.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const x = (event.clientX - rect.left) * scaleX;
+    const y = (event.clientY - rect.top) * scaleY;
+    
+    console.log('🖱️ Click detected:', { x, y, canvasWidth: canvas.width, canvasHeight: canvas.height });
     
     // Find clicked table
     for (const table of tables) {
@@ -313,7 +313,10 @@ export function TableLayoutCanvas({
       const centerY = table.y + tableRadius;
       
       const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-      if (distance <= tableRadius + 10) { // Add some tolerance
+      console.log(`📍 Table ${table.tableNumber}: center(${centerX}, ${centerY}), radius: ${tableRadius}, distance: ${distance}`);
+      
+      if (distance <= tableRadius + 15) { // Add tolerance
+        console.log(`✅ Table ${table.tableNumber} clicked!`, table);
         if (table.status === 'available') {
           onTableSelect(table);
         }
