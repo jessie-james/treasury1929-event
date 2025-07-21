@@ -42,10 +42,10 @@ export function TableLayoutCanvas({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Calculate venue dimensions
+  // Calculate venue dimensions - MUCH LARGER for booking interface
   const venueDimensions = useMemo(() => {
     if (!tables || tables.length === 0) {
-      return { width: 1000, height: 700 };
+      return { width: 1400, height: 900 };
     }
 
     const positions = tables.map(table => ({
@@ -60,23 +60,24 @@ export function TableLayoutCanvas({
     const maxX = Math.max(...positions.map(p => p.x + p.width));
     const maxY = Math.max(...positions.map(p => p.y + p.height));
 
+    // Make Canvas MUCH larger for better visibility in booking interface
     return {
-      width: Math.max(maxX - minX + 100, 1000),
-      height: Math.max(maxY - minY + 100, 700),
+      width: Math.max(maxX - minX + 300, 1400),
+      height: Math.max(maxY - minY + 200, 900),
     };
   }, [tables]);
 
-  // EXACT same table dimension calculation as VenueLayoutDesigner
+  // Enhanced table dimensions for booking interface - scaled up for visibility
   const getTableDimensions = useCallback((tableSize: number) => {
     const sizeConfig = {
-      1: { tableRadius: 18, seatRadius: 6,  gap: 6  }, // Small - 40px
-      2: { tableRadius: 22, seatRadius: 7,  gap: 7  }, // Medium - 60px  
-      3: { tableRadius: 26, seatRadius: 9,  gap: 9  }, // Large - 72px
-      4: { tableRadius: 30, seatRadius: 10, gap: 10 }, // Extra Large - 88px
-      5: { tableRadius: 34, seatRadius: 11, gap: 11 }  // XXL - for very large tables
+      1: { tableRadius: 22, seatRadius: 8,  gap: 8  }, // Small but more visible
+      2: { tableRadius: 28, seatRadius: 10,  gap: 10  }, // Medium - enhanced  
+      3: { tableRadius: 34, seatRadius: 12,  gap: 12  }, // Large - enhanced
+      4: { tableRadius: 40, seatRadius: 14, gap: 14 }, // Extra Large - enhanced
+      5: { tableRadius: 46, seatRadius: 16, gap: 16 }  // XXL - enhanced
     };
     
-    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[4];
+    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[3];
   }, []);
 
   // EXACT same drawTable function as VenueLayoutDesigner
@@ -150,13 +151,18 @@ export function TableLayoutCanvas({
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
     
-    // Table number (scale with table size)
-    const fontSize = Math.max(12, Math.min(24, 10 + tableSize * 1.5));
-    ctx.fillStyle = '#333';
+    // Enhanced table number text for booking interface
+    const fontSize = Math.max(16, Math.min(32, 14 + tableSize * 2.5));
+    ctx.fillStyle = '#000';
     ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const textY = isHalf ? -tableRadius * 0.5 : 0;
+    
+    // Add text outline for better visibility
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 3;
+    ctx.strokeText(table.tableNumber.toString(), 0, textY);
     ctx.fillText(table.tableNumber.toString(), 0, textY);
     
     // Draw seats around the table
@@ -213,8 +219,8 @@ export function TableLayoutCanvas({
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
         
-        // Seat number
-        const seatFontSize = Math.max(8, Math.min(16, seatRadius - 4));
+        // Enhanced seat number for booking interface
+        const seatFontSize = Math.max(12, Math.min(20, seatRadius - 2));
         ctx.fillStyle = 'white';
         ctx.font = `bold ${seatFontSize}px Arial`;
         ctx.textAlign = 'center';
@@ -331,8 +337,10 @@ export function TableLayoutCanvas({
         style={{
           border: '1px solid #e5e7eb',
           cursor: isEditorMode ? 'default' : 'pointer',
-          maxWidth: '100%',
-          height: 'auto'
+          width: '100%',
+          maxWidth: `${venueDimensions.width}px`,
+          height: 'auto',
+          display: 'block'
         }}
       />
     </div>

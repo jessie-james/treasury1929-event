@@ -312,100 +312,99 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-medium">
-              {currentVenueLayout?.venue?.name || "Venue Layout"}
-              {Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 1 && selectedVenueIndex < eventVenueLayouts.length ? (
-                <span className="text-sm text-gray-500 ml-2">
-                  ({(eventVenueLayouts as any[])[selectedVenueIndex]?.displayName || 'Venue'})
-                </span>
-              ) : null}
-            </h3>
-            <Badge variant="outline">
-              {availableTables.length} of {currentVenueLayout?.tables?.length || 0} tables available
-            </Badge>
+      {/* Enhanced Venue Layout Display - Remove nested containers */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-xl font-bold">
+            {currentVenueLayout?.venue?.name || "Venue Layout"}
+            {Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 1 && selectedVenueIndex < eventVenueLayouts.length ? (
+              <span className="text-base text-gray-500 ml-2 font-normal">
+                ({(eventVenueLayouts as any[])[selectedVenueIndex]?.displayName || 'Venue'})
+              </span>
+            ) : null}
+          </h3>
+          <Badge variant="outline" className="text-sm">
+            {availableTables.length} of {currentVenueLayout?.tables?.length || 0} tables available
+          </Badge>
+        </div>
+        
+        {isLoading ? (
+          <div className="flex items-center justify-center p-12 bg-gray-50 rounded-lg">
+            <Loader2 className="h-12 w-12 animate-spin" />
+            <span className="ml-4 text-lg">Loading venue layout...</span>
           </div>
-          
-          {isLoading ? (
-            <div className="flex items-center justify-center p-8">
-              <Loader2 className="h-8 w-8 animate-spin" />
-              <span className="ml-2">Loading venue layout...</span>
+        ) : currentVenueLayout ? (
+          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+            <TableLayoutCanvas
+              tables={currentVenueLayout.tables.map(table => ({
+                ...table,
+                status: bookedTableIds.includes(table.id) ? 'sold' : 'available',
+                tableSize: table.tableSize || 2
+              }))}
+              stages={currentVenueLayout.stages}
+              isEditorMode={false}
+              onTableSelect={(table) => {
+                const validation = isValidTableSelection(table, desiredGuestCount);
+                if (!validation.valid) {
+                  alert(validation.reason);
+                  return;
+                }
+                setSelectedTable(table);
+              }}
+              selectedTables={selectedTable ? [selectedTable.id] : []}
+              className="w-full flex justify-center"
+            />
+          </div>
+        ) : (
+          <div className="text-center p-12 bg-gray-50 rounded-lg">
+            <p className="text-gray-600 text-lg">
+              Unable to load venue layout. Please try again.
+            </p>
+          </div>
+        )}
+        
+        {/* Selection Summary and Confirmation */}
+        {selectedTable && (
+          <div className="space-y-4 mt-6">
+            <div className="p-6 bg-green-50 rounded-lg border border-green-200">
+              <h3 className="font-bold mb-3 text-green-900 text-lg">Table Selected!</h3>
+              <div className="text-green-800 space-y-2">
+                <p className="text-base"><strong>Table {selectedTable.tableNumber}</strong> ({selectedTable.capacity} seats)</p>
+                <p className="text-base">Guests: {desiredGuestCount}</p>
+                {selectedTable.capacity > desiredGuestCount && (
+                  <p className="text-green-600">
+                    {selectedTable.capacity - desiredGuestCount} seat{selectedTable.capacity - desiredGuestCount > 1 ? 's' : ''} will remain empty
+                  </p>
+                )}
+              </div>
             </div>
-          ) : currentVenueLayout ? (
-            <div className="w-full overflow-x-auto">
-              <TableLayoutCanvas
-                tables={currentVenueLayout.tables.map(table => ({
-                  ...table,
-                  status: bookedTableIds.includes(table.id) ? 'sold' : 'available',
-                  // Ensure tableSize is included from the API response
-                  tableSize: table.tableSize || 2 // Fallback to size 2 if not provided
-                }))}
-                stages={currentVenueLayout.stages}
-                isEditorMode={false}
-                onTableSelect={(table) => {
-                  const validation = isValidTableSelection(table, desiredGuestCount);
-                  if (!validation.valid) {
-                    alert(validation.reason);
-                    return;
-                  }
-                  setSelectedTable(table);
+            
+            <div className="flex gap-4">
+              <Button
+                onClick={() => {
+                  const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
+                  onComplete({
+                    tableId: selectedTable.id,
+                    seatNumbers: seatNumbers
+                  });
                 }}
-                selectedTables={selectedTable ? [selectedTable.id] : []}
-                className=""
-              />
+                className="flex-1 bg-green-600 hover:bg-green-700 text-lg py-3"
+                size="lg"
+              >
+                Confirm Table Selection
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setSelectedTable(null)}
+                className="px-8 text-lg py-3"
+                size="lg"
+              >
+                Change Table
+              </Button>
             </div>
-          ) : (
-            <div className="text-center p-8">
-              <p className="text-gray-600">
-                Unable to load venue layout. Please try again.
-              </p>
-            </div>
-          )}
-          
-          {/* Selection Summary and Confirmation */}
-          {selectedTable && (
-            <div className="mt-6 space-y-4">
-              <div className="p-4 bg-green-50 rounded-md border border-green-200">
-                <h3 className="font-medium mb-2 text-green-900">Table Selected!</h3>
-                <div className="text-sm text-green-800 space-y-1">
-                  <p><strong>Table {selectedTable.tableNumber}</strong> ({selectedTable.capacity} seats)</p>
-                  <p>Guests: {desiredGuestCount}</p>
-                  {selectedTable.capacity > desiredGuestCount && (
-                    <p className="text-green-600">
-                      {selectedTable.capacity - desiredGuestCount} seat{selectedTable.capacity - desiredGuestCount > 1 ? 's' : ''} will remain empty
-                    </p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => {
-                    // Generate seat numbers based on guest count
-                    const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
-                    onComplete({
-                      tableId: selectedTable.id,
-                      seatNumbers: seatNumbers
-                    });
-                  }}
-                  className="flex-1 bg-green-600 hover:bg-green-700"
-                >
-                  Confirm Table Selection
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedTable(null)}
-                  className="px-6"
-                >
-                  Change Table
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
