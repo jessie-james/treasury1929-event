@@ -234,10 +234,11 @@ export function VenueLayoutDesigner({
   // Get table dimensions based on your exact size configuration
   const getTableDimensions = useCallback((tableSize: number) => {
     const sizeConfig = {
-      1: { tableRadius: 18, seatRadius: 6,  gap: 6  }, // Small
-      2: { tableRadius: 22, seatRadius: 7,  gap: 7  }, // Medium  
-      3: { tableRadius: 26, seatRadius: 9,  gap: 9  }, // Large
-      4: { tableRadius: 30, seatRadius: 10, gap: 10 }  // Extra Large
+      1: { tableRadius: 18, seatRadius: 6,  gap: 6  }, // Small - 40px
+      2: { tableRadius: 22, seatRadius: 7,  gap: 7  }, // Medium - 60px  
+      3: { tableRadius: 26, seatRadius: 9,  gap: 9  }, // Large - 72px
+      4: { tableRadius: 30, seatRadius: 10, gap: 10 }, // Extra Large - 88px
+      5: { tableRadius: 34, seatRadius: 11, gap: 11 }  // XXL - for very large tables
     };
     
     return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[4];

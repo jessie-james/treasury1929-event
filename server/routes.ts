@@ -4097,18 +4097,36 @@ export async function registerRoutes(app: Express) {
               width: eventVenue.venue.width || 1000,
               height: eventVenue.venue.height || 700
             },
-            tables: venueTables.map(table => ({
-              id: table.id,
-              tableNumber: table.tableNumber,
-              x: table.x,
-              y: table.y,
-              width: table.width,
-              height: table.height,
-              capacity: table.capacity,
-              shape: table.shape,
-              rotation: table.rotation || 0,
-              status: 'available'
-            })),
+            tables: venueTables.map(table => {
+              // Calculate tableSize to match frontend sizing system (1-5)
+              const size = Math.max(table.width || 80, table.height || 80);
+              let calculatedTableSize;
+              if (size <= 40) {
+                calculatedTableSize = 1; // Small - 18px radius  
+              } else if (size <= 60) {
+                calculatedTableSize = 2; // Medium - 22px radius
+              } else if (size <= 72) {
+                calculatedTableSize = 3; // Large - 26px radius
+              } else if (size <= 88) {
+                calculatedTableSize = 4; // Extra Large - 30px radius  
+              } else {
+                calculatedTableSize = 5; // XXL - 34px radius for very large tables
+              }
+              
+              return {
+                id: table.id,
+                tableNumber: table.tableNumber,
+                x: table.x,
+                y: table.y,
+                width: table.width,
+                height: table.height,
+                capacity: table.capacity,
+                shape: table.shape,
+                rotation: table.rotation || 0,
+                tableSize: calculatedTableSize,
+                status: 'available'
+              };
+            }),
             stages: venueStages.map(stage => ({
               id: stage.id,
               x: stage.x,
