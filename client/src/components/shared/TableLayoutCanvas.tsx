@@ -54,17 +54,14 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
     gridSize: 20, // For consistent positioning
   };
 
-  // EXACT same table dimension calculation as VenueLayoutDesigner
-  const getTableDimensions = (tableSize: number) => {
-    const sizeConfig = {
-      1: { tableRadius: 18, seatRadius: 6,  gap: 6  }, // Small - 40px
-      2: { tableRadius: 22, seatRadius: 7,  gap: 7  }, // Medium - 60px  
-      3: { tableRadius: 26, seatRadius: 9,  gap: 9  }, // Large - 72px
-      4: { tableRadius: 30, seatRadius: 10, gap: 10 }, // Extra Large - 88px
-      5: { tableRadius: 34, seatRadius: 11, gap: 11 }  // XXL - for very large tables
-    };
+  // Match VenueLayoutDesigner Canvas rendering exactly - use width/height from database
+  const getTableDimensions = (width: number, height: number) => {
+    // Use the actual table radius from the database dimensions (width/height are diameter)
+    const tableRadius = Math.max(width, height) / 2;
+    // Calculate seat radius proportionally (venue designer uses this logic)
+    const seatRadius = Math.max(6, Math.min(11, tableRadius * 0.3));
     
-    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[4];
+    return { tableRadius, seatRadius };
   };
 
   // Unified table rendering function - USE THIS IN BOTH VIEWS
@@ -75,10 +72,8 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
     const isSold = table.status === 'sold';
     const isHalf = table.shape === 'half';
 
-    // Use tableSize from API response for consistent sizing
-    const actualTableSize = table.tableSize || 4; // Default to size 4 if not provided
-    const dimensions = getTableDimensions(actualTableSize);
-    const { tableRadius, seatRadius } = dimensions;
+    // Use actual width/height from database like venue designer does
+    const { tableRadius, seatRadius } = getTableDimensions(table.width, table.height);
     
     // Use exact coordinates from venue editor (no scaling needed)
     const x = table.x;
@@ -134,7 +129,7 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
             y={isHalf ? -tableRadius * 0.5 : 0}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize={Math.max(12, Math.min(24, 10 + actualTableSize * 1.5))}
+            fontSize={Math.max(12, Math.min(24, 10 + (tableRadius / 5)))}
             fontWeight="bold"
             fill="#333"
             pointerEvents="none"

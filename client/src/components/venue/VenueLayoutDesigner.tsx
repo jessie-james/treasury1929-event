@@ -169,7 +169,7 @@ export function VenueLayoutDesigner({
       width: table.width,
       height: table.height,
       rotation: table.rotation || 0,
-      data: { ...table, tableSize: table.tableSize || 4, shape: table.shape || 'full' }
+      data: { ...table, tableSize: table.tableSize || 8, shape: table.shape || 'full' }
     }));
     setTables(tableObjects);
   }, [initialStages, initialTables]);
