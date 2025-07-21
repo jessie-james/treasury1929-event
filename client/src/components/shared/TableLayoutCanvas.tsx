@@ -74,10 +74,22 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
     const isSold = table.status === 'sold';
     const isHalf = table.shape === 'half';
 
-    // CRITICAL FIX: Use same dimension calculation as VenueLayoutDesigner
-    // Extract tableSize from table dimensions to match designer proportions
-    const estimatedTableSize = table.tableSize || Math.max(1, Math.min(4, Math.round((table.width || 60) / 20)));
-    const dimensions = getTableDimensions(estimatedTableSize);
+    // CRITICAL FIX: Map database dimensions to VenueLayoutDesigner tableSize system
+    // The database stores width/height, but we need to convert to tableSize (1-4)
+    let mappedTableSize;
+    const dbWidth = table.width || 60;
+    
+    if (dbWidth <= 50) {
+      mappedTableSize = 1; // Small tables (40-50px width)
+    } else if (dbWidth <= 70) {
+      mappedTableSize = 2; // Medium tables (60-70px width) 
+    } else if (dbWidth <= 90) {
+      mappedTableSize = 3; // Large tables (72-88px width)
+    } else {
+      mappedTableSize = 4; // Extra large tables (>90px width)
+    }
+    
+    const dimensions = getTableDimensions(mappedTableSize);
     const { tableRadius, seatRadius } = dimensions;
     
     // Use exact coordinates from venue editor (no scaling needed)
@@ -134,7 +146,7 @@ export const TableLayoutCanvas: React.FC<TableLayoutCanvasProps> = ({
             y={isHalf ? -tableRadius * 0.5 : 0}
             textAnchor="middle"
             dominantBaseline="middle"
-            fontSize={Math.max(12, Math.min(24, 10 + estimatedTableSize * 1.5))}
+            fontSize={Math.max(12, Math.min(24, 10 + mappedTableSize * 1.5))}
             fontWeight="bold"
             fill="#333"
             pointerEvents="none"
