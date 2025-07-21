@@ -312,52 +312,50 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
         </CardContent>
       </Card>
 
-      {/* Enhanced Venue Layout Display - Remove nested containers */}
-      <div className="space-y-4">
+      {/* COMPLETELY REDESIGNED - NO NESTED CONTAINERS */}
+      <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h3 className="text-xl font-bold">
+          <h3 className="text-2xl font-bold text-gray-900">
             {currentVenueLayout?.venue?.name || "Venue Layout"}
             {Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 1 && selectedVenueIndex < eventVenueLayouts.length ? (
-              <span className="text-base text-gray-500 ml-2 font-normal">
+              <span className="text-lg text-gray-600 ml-3 font-medium">
                 ({(eventVenueLayouts as any[])[selectedVenueIndex]?.displayName || 'Venue'})
               </span>
             ) : null}
           </h3>
-          <Badge variant="outline" className="text-sm">
+          <Badge variant="outline" className="text-base px-4 py-2">
             {availableTables.length} of {currentVenueLayout?.tables?.length || 0} tables available
           </Badge>
         </div>
         
         {isLoading ? (
-          <div className="flex items-center justify-center p-12 bg-gray-50 rounded-lg">
-            <Loader2 className="h-12 w-12 animate-spin" />
-            <span className="ml-4 text-lg">Loading venue layout...</span>
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-16 w-16 animate-spin text-blue-600" />
+            <span className="ml-6 text-xl text-gray-700">Loading venue layout...</span>
           </div>
         ) : currentVenueLayout ? (
-          <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-            <TableLayoutCanvas
-              tables={currentVenueLayout.tables.map(table => ({
-                ...table,
-                status: bookedTableIds.includes(table.id) ? 'sold' : 'available',
-                tableSize: table.tableSize || 2
-              }))}
-              stages={currentVenueLayout.stages}
-              isEditorMode={false}
-              onTableSelect={(table) => {
-                const validation = isValidTableSelection(table, desiredGuestCount);
-                if (!validation.valid) {
-                  alert(validation.reason);
-                  return;
-                }
-                setSelectedTable(table);
-              }}
-              selectedTables={selectedTable ? [selectedTable.id] : []}
-              className="w-full flex justify-center"
-            />
-          </div>
+          <TableLayoutCanvas
+            tables={currentVenueLayout.tables.map(table => ({
+              ...table,
+              status: bookedTableIds.includes(table.id) ? 'sold' : 'available',
+              tableSize: table.tableSize || 2
+            }))}
+            stages={currentVenueLayout.stages}
+            isEditorMode={false}
+            onTableSelect={(table) => {
+              const validation = isValidTableSelection(table, desiredGuestCount);
+              if (!validation.valid) {
+                alert(validation.reason);
+                return;
+              }
+              setSelectedTable(table);
+            }}
+            selectedTables={selectedTable ? [selectedTable.id] : []}
+            className="w-full"
+          />
         ) : (
-          <div className="text-center p-12 bg-gray-50 rounded-lg">
-            <p className="text-gray-600 text-lg">
+          <div className="text-center py-20">
+            <p className="text-gray-600 text-xl">
               Unable to load venue layout. Please try again.
             </p>
           </div>
@@ -365,12 +363,12 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
         
         {/* Selection Summary and Confirmation */}
         {selectedTable && (
-          <div className="space-y-4 mt-6">
-            <div className="p-6 bg-green-50 rounded-lg border border-green-200">
-              <h3 className="font-bold mb-3 text-green-900 text-lg">Table Selected!</h3>
-              <div className="text-green-800 space-y-2">
-                <p className="text-base"><strong>Table {selectedTable.tableNumber}</strong> ({selectedTable.capacity} seats)</p>
-                <p className="text-base">Guests: {desiredGuestCount}</p>
+          <div className="mt-8 space-y-6">
+            <div className="p-8 bg-green-50 rounded-xl border-2 border-green-200">
+              <h3 className="font-bold mb-4 text-green-900 text-2xl">Table Selected!</h3>
+              <div className="text-green-800 space-y-3 text-lg">
+                <p><strong>Table {selectedTable.tableNumber}</strong> ({selectedTable.capacity} seats)</p>
+                <p>Guests: {desiredGuestCount}</p>
                 {selectedTable.capacity > desiredGuestCount && (
                   <p className="text-green-600">
                     {selectedTable.capacity - desiredGuestCount} seat{selectedTable.capacity - desiredGuestCount > 1 ? 's' : ''} will remain empty
@@ -379,7 +377,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
               </div>
             </div>
             
-            <div className="flex gap-4">
+            <div className="flex gap-6">
               <Button
                 onClick={() => {
                   const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
@@ -388,7 +386,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
                     seatNumbers: seatNumbers
                   });
                 }}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-lg py-3"
+                className="flex-1 bg-green-600 hover:bg-green-700 text-xl py-4"
                 size="lg"
               >
                 Confirm Table Selection
@@ -396,7 +394,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
               <Button
                 variant="outline"
                 onClick={() => setSelectedTable(null)}
-                className="px-8 text-lg py-3"
+                className="px-12 text-xl py-4"
                 size="lg"
               >
                 Change Table
