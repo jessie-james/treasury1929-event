@@ -315,13 +315,14 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
           <span className="ml-4 text-lg">Loading venue layout...</span>
         </div>
       ) : currentVenueLayout ? (
-        /* Mobile-friendly scrollable canvas container */
+        /* Desktop & Mobile scrollable canvas container */
         <div 
           className="w-full border-2 border-gray-200 rounded-lg overflow-auto bg-white shadow-lg"
           style={{ 
             maxHeight: '70vh', 
             minHeight: '500px',
-            /* Smooth scrolling for mobile */
+            /* Smooth scrolling for both desktop and mobile */
+            scrollBehavior: 'smooth',
             WebkitOverflowScrolling: 'touch',
             overscrollBehavior: 'contain'
           }}
@@ -348,9 +349,9 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
               className="w-full"
             />
           </div>
-          {/* Mobile scroll indicator */}
+          {/* Desktop and Mobile scroll indicator */}
           <div className="text-center text-sm text-gray-500 py-2 bg-gray-50 border-t">
-            📱 Scroll and zoom to explore • Tap tables to select
+            🖱️ Use scroll bars or drag to explore • Click/tap tables to select
           </div>
         </div>
       ) : (

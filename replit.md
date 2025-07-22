@@ -218,6 +218,19 @@ This is a sophisticated mobile-first event venue booking platform designed for l
     - ✅ Fixed price display formatting to show whole dollars without decimals
     - ✅ Enhanced price handling: form accepts dollars, stores as cents, displays as dollars
     - ✅ All beverage management functionality working: add, edit, delete, reorder, toggle availability
+- **July 22, 2025. MOBILE ACCESSIBILITY OVERHAUL - ELDERLY USER OPTIMIZATION**
+  - ✅ **CRITICAL: Fixed table proportions between venue designer and booking sections**
+    - ✅ Maintained exact spacing relationships from venue designer (reference implementation)
+    - ✅ Scaled entire venue layout proportionally (1.5x) for mobile accessibility
+    - ✅ Increased table visual size (2.2x) while preserving venue proportions and spacing
+    - ✅ Tables now 88-194px diameter for easy tapping by 70+ year olds on phones
+  - ✅ **ENHANCED MOBILE INTERFACE FOR ELDERLY USERS**
+    - ✅ Created scrollable canvas container working on desktop (scroll bars) and mobile (touch)
+    - ✅ Added mobile-friendly touch scrolling with proper momentum and containment
+    - ✅ Implemented large, high-contrast table numbers (24-48px) with white text and dark outlines
+    - ✅ Updated click detection to match scaled positions for accurate touch targeting
+    - ✅ Balanced interface width (max-6xl) - avoiding both full-screen and overly narrow layouts
+    - ✅ All accessibility requirements met for elderly users on small phone screens
 
 ## User Preferences
 
