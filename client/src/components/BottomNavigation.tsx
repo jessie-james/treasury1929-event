@@ -35,8 +35,8 @@ export function BottomNavigation() {
 
   return (
     <div className="fixed bottom-0 w-full border-t bg-background z-50">
-      {/* ELDERLY-FRIENDLY: Much taller navigation with larger icons and text */}
-      <div className="container flex justify-around items-center h-24 px-2">
+      {/* RESPONSIVE: Mobile-friendly (elderly) vs Desktop proportions */}
+      <div className="container flex justify-around items-center h-24 md:h-16 px-2">
         {navigationItems.map((item) => {
           if ((item.requireAuth && !user) || (item.requireAdmin && user?.role !== 'admin') || (item.hideForAdmin && user?.role === 'admin')) return null;
           
@@ -46,15 +46,15 @@ export function BottomNavigation() {
             <Link 
               key={item.title} 
               href={item.href}
-              className="flex flex-col items-center justify-center w-full py-2"
+              className="flex flex-col items-center justify-center w-full py-2 md:py-1"
             >
               <div 
                 className={cn(
-                  "flex flex-col items-center justify-center gap-2 text-lg font-semibold",
+                  "flex flex-col items-center justify-center gap-2 md:gap-1 text-lg md:text-xs font-semibold md:font-medium",
                   isActive ? "text-primary" : "text-muted-foreground"
                 )}
               >
-                <item.icon className="h-8 w-8" />
+                <item.icon className="h-8 w-8 md:h-5 md:w-5" />
                 <span className="text-center leading-tight">{item.title}</span>
               </div>
             </Link>

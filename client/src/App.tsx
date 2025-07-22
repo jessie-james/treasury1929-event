@@ -51,7 +51,7 @@ function Router() {
   const showNavigation = !isBackoffice;
 
   return (
-    <div className="pb-24">
+    <div className="pb-24 md:pb-16">
       {showNavigation && <Header />}
 
       <Switch>
