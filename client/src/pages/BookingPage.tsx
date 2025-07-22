@@ -100,46 +100,49 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="container py-8 space-y-6">
-      <div className="space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">
-            {step === "venue" 
-              ? "Select Floor Level" 
-              : step === "seats" 
-                ? "Select Your Seats" 
+    <div className="min-h-screen w-full">
+      {/* Header section with constrained width */}
+      <div className="container py-8 space-y-6">
+        <div className="space-y-6">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold mb-2">
+              {step === "venue" 
+                ? "Select Floor Level" 
+                : step === "seats" 
+                  ? "Select Your Seats" 
+                  : step === "food" 
+                    ? "Choose Food Options" 
+                    : step === "wine"
+                      ? "Select Wine & Beverages"
+                      : "Complete Your Booking"
+              }
+            </h1>
+            <p className="text-muted-foreground max-w-lg mx-auto">
+              {step === "venue"
+                ? "Choose your preferred seating area"
+                : step === "seats"
+                ? "Pick the best seats for your experience" 
                 : step === "food" 
-                  ? "Choose Food Options" 
+                  ? "Customize your dining experience for each guest"
                   : step === "wine"
-                    ? "Select Wine & Beverages"
-                    : "Complete Your Booking"
-            }
-          </h1>
-          <p className="text-muted-foreground max-w-lg mx-auto">
-            {step === "venue"
-              ? "Choose your preferred seating area"
-              : step === "seats"
-              ? "Pick the best seats for your experience" 
-              : step === "food" 
-                ? "Customize your dining experience for each guest"
-                : step === "wine"
-                  ? "Add wine and beverages to your order"
-                  : "Review and finalize your booking details"
-            }
-          </p>
-        </div>
-        
-        <div className="space-y-2">
-          <Progress value={progress} className="w-full" />
-          <p className="text-center text-sm text-muted-foreground">
-            Step {step === "venue" ? "1" : step === "seats" ? "2" : step === "food" ? "3" : step === "wine" ? "4" : "5"} of 5
-          </p>
+                    ? "Add wine and beverages to your order"
+                    : "Review and finalize your booking details"
+              }
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Progress value={progress} className="w-full" />
+            <p className="text-center text-sm text-muted-foreground">
+              Step {step === "venue" ? "1" : step === "seats" ? "2" : step === "food" ? "3" : step === "wine" ? "4" : "5"} of 5
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Booking Timer */}
       {holdStartTime && (
-        <div className="max-w-4xl mx-auto">
+        <div className="container mx-auto px-4">
           <BookingTimer
             startTime={holdStartTime}
             onTimeout={() => {
@@ -152,8 +155,8 @@ export default function BookingPage() {
         </div>
       )}
 
-      <Card className="max-w-4xl mx-auto">
-        <div className="p-6">
+      {/* Main content area - Full width for seats step, contained for others */}
+      <div className={step === "seats" ? "w-full" : "max-w-4xl mx-auto px-6"}>
           {step === "venue" && (
             <div>
               {venueLayouts && venueLayouts.length > 0 ? (
@@ -236,8 +239,7 @@ export default function BookingPage() {
               }}
             />
           )}
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }
