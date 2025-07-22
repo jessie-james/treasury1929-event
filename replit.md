@@ -219,11 +219,12 @@ This is a sophisticated mobile-first event venue booking platform designed for l
     - ✅ Enhanced price handling: form accepts dollars, stores as cents, displays as dollars
     - ✅ All beverage management functionality working: add, edit, delete, reorder, toggle availability
 - **July 22, 2025. COMPREHENSIVE ELDERLY ACCESSIBILITY OVERHAUL - COMPLETE CUSTOMER APP OPTIMIZATION**
-  - ✅ **CRITICAL: Fixed table proportions between venue designer and booking sections**
-    - ✅ Maintained exact spacing relationships from venue designer (reference implementation)
-    - ✅ Scaled entire venue layout proportionally (1.5x) for mobile accessibility
-    - ✅ Increased table visual size (2.2x) while preserving venue proportions and spacing
+  - ✅ **CRITICAL: Fixed table proportions and spacing between venue designer and booking sections**
+    - ✅ Maintained exact spacing relationships from venue designer (reference implementation)  
+    - ✅ Used original database table positions to preserve VenueMaster spacing exactly
+    - ✅ Increased table visual size (2.2x) for mobile accessibility without affecting positioning
     - ✅ Tables now 88-194px diameter for easy tapping by 70+ year olds on phones
+    - ✅ Canvas dimensions match original venue size to maintain proper spacing ratios
   - ✅ **VENUE LAYOUT DESKTOP ENHANCEMENTS**
     - ✅ Added zoom controls with +/- buttons and percentage display (50%-300% range)
     - ✅ Reset button for quick return to 100% zoom level

@@ -60,14 +60,13 @@ export function TableLayoutCanvas({
     const maxX = Math.max(...positions.map(p => p.x + p.width));
     const maxY = Math.max(...positions.map(p => p.y + p.height));
 
-    // Scale up the venue proportionally for mobile - preserve spacing ratios
+    // CRITICAL: Keep venue dimensions at original size to preserve table spacing
     const baseWidth = maxX - minX + 200;
     const baseHeight = maxY - minY + 150;
-    const mobileScale = 1.5; // Scale everything up by 1.5x for mobile
     
     return {
-      width: Math.max(baseWidth * mobileScale, 1500),
-      height: Math.max(baseHeight * mobileScale, 1000),
+      width: Math.max(baseWidth, 1000),
+      height: Math.max(baseHeight, 700),
     };
   }, [tables]);
 
@@ -118,10 +117,9 @@ export function TableLayoutCanvas({
     const { tableRadius, seatRadius } = dimensions;
     const count = Math.max(1, Math.min(8, table.capacity));
     
-    // Scale positions proportionally for mobile (same scale as canvas)
-    const mobileScale = 1.5;
-    const scaledX = table.x * mobileScale;
-    const scaledY = table.y * mobileScale;
+    // CRITICAL: Use original database positions to maintain VenueMaster spacing
+    const scaledX = table.x;
+    const scaledY = table.y;
     
     ctx.save();
     ctx.translate(scaledX + tableRadius, scaledY + tableRadius);
@@ -263,13 +261,13 @@ export function TableLayoutCanvas({
     ctx.restore();
   }, [selectedTables, getTableDimensions]);
 
-  // Draw stage function with scaled positions
+  // Draw stage function with original positions
   const drawStage = useCallback((ctx: CanvasRenderingContext2D, stage: VenueStage) => {
-    const mobileScale = 1.5;
-    const scaledX = stage.x * mobileScale;
-    const scaledY = stage.y * mobileScale;
-    const scaledWidth = stage.width * mobileScale;
-    const scaledHeight = stage.height * mobileScale;
+    // CRITICAL: Use original database positions to match VenueMaster
+    const scaledX = stage.x;
+    const scaledY = stage.y;
+    const scaledWidth = stage.width;
+    const scaledHeight = stage.height;
     
     ctx.save();
     ctx.translate(scaledX + scaledWidth / 2, scaledY + scaledHeight / 2);
@@ -279,11 +277,11 @@ export function TableLayoutCanvas({
     ctx.fillStyle = '#333';
     ctx.fillRect(-scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
     
-    // Stage label (larger for mobile)
+    // Stage label
     ctx.fillStyle = 'white';
-    ctx.font = '21px Arial'; // Scaled up from 14px
+    ctx.font = '14px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('STAGE', 0, 8);
+    ctx.fillText('STAGE', 0, 5);
     
     ctx.restore();
   }, []);
@@ -327,8 +325,7 @@ export function TableLayoutCanvas({
     
     console.log('🖱️ Click detected:', { x, y, canvasWidth: canvas.width, canvasHeight: canvas.height });
     
-    // Find clicked table using scaled positions
-    const mobileScale = 1.5;
+    // Find clicked table using original positions (matching drawing function)
     for (const table of tables) {
       let tableSize = table.tableSize || 4;
       if (!table.tableSize && table.width && table.height) {
@@ -343,9 +340,9 @@ export function TableLayoutCanvas({
       const dimensions = getTableDimensions(tableSize);
       const tableRadius = dimensions.tableRadius;
       
-      // Use scaled positions (same as drawing function)
-      const scaledX = table.x * mobileScale;
-      const scaledY = table.y * mobileScale;
+      // CRITICAL: Use original database positions (same as drawing function)
+      const scaledX = table.x;
+      const scaledY = table.y;
       const centerX = scaledX + tableRadius;
       const centerY = scaledY + tableRadius;
       
