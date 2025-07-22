@@ -315,26 +315,44 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
           <span className="ml-4 text-lg">Loading venue layout...</span>
         </div>
       ) : currentVenueLayout ? (
-        <TableLayoutCanvas
-          tables={currentVenueLayout.tables.map(table => ({
-            ...table,
-            status: bookedTableIds.includes(table.id) ? ('sold' as const) : ('available' as const),
-            shape: table.shape as 'half' | 'full'
-          }))}
-          stages={currentVenueLayout.stages}
-          isEditorMode={false}
-          onTableSelect={(table) => {
-            console.log('🎯 Table selected:', table);
-            const validation = isValidTableSelection(table, desiredGuestCount);
-            if (!validation.valid) {
-              alert(validation.reason);
-              return;
-            }
-            setSelectedTable(table);
+        /* Mobile-friendly scrollable canvas container */
+        <div 
+          className="w-full border-2 border-gray-200 rounded-lg overflow-auto bg-white shadow-lg"
+          style={{ 
+            maxHeight: '70vh', 
+            minHeight: '500px',
+            /* Smooth scrolling for mobile */
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain'
           }}
-          selectedTables={selectedTable ? [selectedTable.id] : []}
-          className="w-full"
-        />
+        >
+          <div className="p-4">
+            <TableLayoutCanvas
+              tables={currentVenueLayout.tables.map(table => ({
+                ...table,
+                status: bookedTableIds.includes(table.id) ? ('sold' as const) : ('available' as const),
+                shape: table.shape as 'half' | 'full'
+              }))}
+              stages={currentVenueLayout.stages}
+              isEditorMode={false}
+              onTableSelect={(table) => {
+                console.log('🎯 Table selected:', table);
+                const validation = isValidTableSelection(table, desiredGuestCount);
+                if (!validation.valid) {
+                  alert(validation.reason);
+                  return;
+                }
+                setSelectedTable(table);
+              }}
+              selectedTables={selectedTable ? [selectedTable.id] : []}
+              className="w-full"
+            />
+          </div>
+          {/* Mobile scroll indicator */}
+          <div className="text-center text-sm text-gray-500 py-2 bg-gray-50 border-t">
+            📱 Scroll and zoom to explore • Tap tables to select
+          </div>
+        </div>
       ) : (
         <div className="text-center py-20">
           <p className="text-gray-600 text-lg">

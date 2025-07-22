@@ -42,10 +42,10 @@ export function TableLayoutCanvas({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Reasonable Canvas size for booking interface
+  // Mobile-friendly Canvas size - LARGE for accessibility
   const venueDimensions = useMemo(() => {
     if (!tables || tables.length === 0) {
-      return { width: 1200, height: 800 };
+      return { width: 1400, height: 1000 };
     }
 
     const positions = tables.map(table => ({
@@ -60,21 +60,21 @@ export function TableLayoutCanvas({
     const maxX = Math.max(...positions.map(p => p.x + p.width));
     const maxY = Math.max(...positions.map(p => p.y + p.height));
 
-    // Reasonable Canvas size - larger than venue designer but usable
+    // MOBILE-FRIENDLY: Large canvas for easy touch interaction
     return {
-      width: Math.max(maxX - minX + 200, 1200),
-      height: Math.max(maxY - minY + 150, 800),
+      width: Math.max(maxX - minX + 300, 1400), // Bigger with more padding
+      height: Math.max(maxY - minY + 250, 1000), // Taller for better visibility
     };
   }, [tables]);
 
-  // EXACT same table dimension calculation as VenueLayoutDesigner - DO NOT CHANGE
+  // MOBILE-FRIENDLY: Larger table sizes for easier touch on phones (70+ users)
   const getTableDimensions = useCallback((tableSize: number) => {
     const sizeConfig = {
-      1: { tableRadius: 18, seatRadius: 6,  gap: 6  }, // Small - 40px
-      2: { tableRadius: 22, seatRadius: 7,  gap: 7  }, // Medium - 60px  
-      3: { tableRadius: 26, seatRadius: 9,  gap: 9  }, // Large - 72px
-      4: { tableRadius: 30, seatRadius: 10, gap: 10 }, // Extra Large - 88px
-      5: { tableRadius: 34, seatRadius: 11, gap: 11 }  // XXL - for very large tables
+      1: { tableRadius: 25, seatRadius: 8,  gap: 8  }, // Small - increased from 18 to 25
+      2: { tableRadius: 32, seatRadius: 10, gap: 10 }, // Medium - increased from 22 to 32  
+      3: { tableRadius: 38, seatRadius: 12, gap: 12 }, // Large - increased from 26 to 38
+      4: { tableRadius: 45, seatRadius: 14, gap: 14 }, // Extra Large - increased from 30 to 45
+      5: { tableRadius: 52, seatRadius: 16, gap: 16 }  // XXL - increased from 34 to 52
     };
     
     return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[4];

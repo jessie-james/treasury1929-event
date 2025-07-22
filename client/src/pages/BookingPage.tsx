@@ -155,8 +155,8 @@ export default function BookingPage() {
         </div>
       )}
 
-      {/* Main content area - Full width for seats step, contained for others */}
-      <div className={step === "seats" ? "w-full" : "max-w-4xl mx-auto px-6"}>
+      {/* Main content area - Reasonable width for all steps */}
+      <div className="max-w-6xl mx-auto px-6">
           {step === "venue" && (
             <div>
               {venueLayouts && venueLayouts.length > 0 ? (
