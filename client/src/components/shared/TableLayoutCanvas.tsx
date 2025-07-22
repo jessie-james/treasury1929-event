@@ -42,10 +42,10 @@ export function TableLayoutCanvas({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // ELDERLY-FRIENDLY: EXTRA large canvas with huge tables for 70+ users on phones
+  // ELDERLY-FRIENDLY: Scale up the entire venue layout for mobile accessibility
   const venueDimensions = useMemo(() => {
     if (!tables || tables.length === 0) {
-      return { width: 2000, height: 1400 };
+      return { width: 1500, height: 1000 };
     }
 
     const positions = tables.map(table => ({
@@ -60,27 +60,40 @@ export function TableLayoutCanvas({
     const maxX = Math.max(...positions.map(p => p.x + p.width));
     const maxY = Math.max(...positions.map(p => p.y + p.height));
 
-    // ELDERLY-FRIENDLY: Much larger canvas with huge spacing for big tables
+    // Scale up the venue proportionally for mobile - preserve spacing ratios
+    const baseWidth = maxX - minX + 200;
+    const baseHeight = maxY - minY + 150;
+    const mobileScale = 1.5; // Scale everything up by 1.5x for mobile
+    
     return {
-      width: Math.max(maxX - minX + 600, 2000), // Much bigger with massive padding
-      height: Math.max(maxY - minY + 500, 1400), // Much taller for huge tables
+      width: Math.max(baseWidth * mobileScale, 1500),
+      height: Math.max(baseHeight * mobileScale, 1000),
     };
   }, [tables]);
 
-  // ELDERLY-FRIENDLY: MUCH larger table sizes for 70+ users on phones (44px minimum touch target)
+  // ELDERLY-FRIENDLY: Larger table visuals while preserving venue spacing
   const getTableDimensions = useCallback((tableSize: number) => {
-    const sizeConfig = {
-      1: { tableRadius: 50, seatRadius: 12, gap: 12 }, // Small - 100px diameter (was 25)
-      2: { tableRadius: 65, seatRadius: 15, gap: 15 }, // Medium - 130px diameter (was 32)  
-      3: { tableRadius: 80, seatRadius: 18, gap: 18 }, // Large - 160px diameter (was 38)
-      4: { tableRadius: 95, seatRadius: 20, gap: 20 }, // Extra Large - 190px diameter (was 45)
-      5: { tableRadius: 110, seatRadius: 22, gap: 22 } // XXL - 220px diameter (was 52)
+    // Base sizes that match venue designer proportions
+    const baseSizeConfig = {
+      1: { tableRadius: 18, seatRadius: 6,  gap: 6  }, // Small - 40px
+      2: { tableRadius: 22, seatRadius: 7,  gap: 7  }, // Medium - 60px  
+      3: { tableRadius: 26, seatRadius: 9,  gap: 9  }, // Large - 72px
+      4: { tableRadius: 30, seatRadius: 10, gap: 10 }, // Extra Large - 88px
+      5: { tableRadius: 34, seatRadius: 11, gap: 11 }  // XXL - for very large tables
     };
     
-    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[4];
+    // Scale up for mobile accessibility (2.2x for easy tapping)
+    const mobileScale = 2.2;
+    const baseConfig = baseSizeConfig[tableSize as keyof typeof baseSizeConfig] || baseSizeConfig[4];
+    
+    return {
+      tableRadius: baseConfig.tableRadius * mobileScale,
+      seatRadius: baseConfig.seatRadius * mobileScale,
+      gap: baseConfig.gap * mobileScale
+    };
   }, []);
 
-  // EXACT same drawTable function as VenueLayoutDesigner
+  // MOBILE-FRIENDLY: Scale table positions while preserving venue spacing
   const drawTable = useCallback((ctx: CanvasRenderingContext2D, table: VenueTable) => {
     const isSelected = selectedTables && selectedTables.includes(table.id);
     const isAvailable = table.status === 'available';
@@ -105,8 +118,13 @@ export function TableLayoutCanvas({
     const { tableRadius, seatRadius } = dimensions;
     const count = Math.max(1, Math.min(8, table.capacity));
     
+    // Scale positions proportionally for mobile (same scale as canvas)
+    const mobileScale = 1.5;
+    const scaledX = table.x * mobileScale;
+    const scaledY = table.y * mobileScale;
+    
     ctx.save();
-    ctx.translate(table.x + tableRadius, table.y + tableRadius);
+    ctx.translate(scaledX + tableRadius, scaledY + tableRadius);
     ctx.rotate((table.rotation * Math.PI) / 180);
     
     // Add shadow
@@ -245,21 +263,27 @@ export function TableLayoutCanvas({
     ctx.restore();
   }, [selectedTables, getTableDimensions]);
 
-  // Draw stage function
+  // Draw stage function with scaled positions
   const drawStage = useCallback((ctx: CanvasRenderingContext2D, stage: VenueStage) => {
+    const mobileScale = 1.5;
+    const scaledX = stage.x * mobileScale;
+    const scaledY = stage.y * mobileScale;
+    const scaledWidth = stage.width * mobileScale;
+    const scaledHeight = stage.height * mobileScale;
+    
     ctx.save();
-    ctx.translate(stage.x + stage.width / 2, stage.y + stage.height / 2);
+    ctx.translate(scaledX + scaledWidth / 2, scaledY + scaledHeight / 2);
     ctx.rotate((stage.rotation * Math.PI) / 180);
     
     // Stage
     ctx.fillStyle = '#333';
-    ctx.fillRect(-stage.width / 2, -stage.height / 2, stage.width, stage.height);
+    ctx.fillRect(-scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
     
-    // Stage label
+    // Stage label (larger for mobile)
     ctx.fillStyle = 'white';
-    ctx.font = '14px Arial';
+    ctx.font = '21px Arial'; // Scaled up from 14px
     ctx.textAlign = 'center';
-    ctx.fillText('STAGE', 0, 5);
+    ctx.fillText('STAGE', 0, 8);
     
     ctx.restore();
   }, []);
@@ -303,7 +327,8 @@ export function TableLayoutCanvas({
     
     console.log('🖱️ Click detected:', { x, y, canvasWidth: canvas.width, canvasHeight: canvas.height });
     
-    // Find clicked table
+    // Find clicked table using scaled positions
+    const mobileScale = 1.5;
     for (const table of tables) {
       let tableSize = table.tableSize || 4;
       if (!table.tableSize && table.width && table.height) {
@@ -317,8 +342,12 @@ export function TableLayoutCanvas({
       
       const dimensions = getTableDimensions(tableSize);
       const tableRadius = dimensions.tableRadius;
-      const centerX = table.x + tableRadius;
-      const centerY = table.y + tableRadius;
+      
+      // Use scaled positions (same as drawing function)
+      const scaledX = table.x * mobileScale;
+      const scaledY = table.y * mobileScale;
+      const centerX = scaledX + tableRadius;
+      const centerY = scaledY + tableRadius;
       
       const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
       console.log(`📍 Table ${table.tableNumber}: center(${centerX}, ${centerY}), radius: ${tableRadius}, distance: ${distance}`);
