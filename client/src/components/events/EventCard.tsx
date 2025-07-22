@@ -48,34 +48,36 @@ export function EventCard({ event }: { event: Event }) {
           className="object-cover w-full h-full"
         />
       </div>
-      <CardContent className="p-4 space-y-4">
-        <div className="space-y-2">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="event-card-title flex-1">{event.title}</h3>
+      {/* ELDERLY-FRIENDLY: Much larger text, bigger touch targets, clear contrast */}
+      <CardContent className="p-6 space-y-6">
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-2xl md:text-3xl font-bold flex-1 leading-snug">{event.title}</h3>
             <EventTypeIndicator 
               eventType={event.eventType || 'full'} 
               isPrivate={event.isPrivate}
             />
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed">
             {format(new Date(event.date), "PPP 'at' p")}
           </p>
-          <Badge variant={availability.color as any}>
+          <Badge variant={availability.color as any} className="text-lg px-4 py-2">
             {availability.text}
           </Badge>
         </div>
         
-        <div className="flex gap-2">
+        {/* ELDERLY-FRIENDLY: Much larger buttons, easier to tap */}
+        <div className="flex flex-col gap-4">
           <Button 
             variant="outline" 
-            size="sm"
+            size="lg"
             onClick={() => setLocation(`/events/${event.id}`)}
-            className="flex-1"
+            className="w-full py-4 text-xl font-semibold"
           >
             View Details
           </Button>
           <Button 
-            size="sm"
+            size="lg"
             onClick={() => {
               if (isTicketOnly) {
                 setLocation(`/events/${event.id}/tickets`);
@@ -83,7 +85,7 @@ export function EventCard({ event }: { event: Event }) {
                 setLocation(`/events/${event.id}/book`);
               }
             }}
-            className="flex-1"
+            className="w-full py-4 text-xl font-semibold"
             disabled={isSoldOut || event.isPrivate}
           >
             {isSoldOut

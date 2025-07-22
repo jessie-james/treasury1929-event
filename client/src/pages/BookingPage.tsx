@@ -104,8 +104,9 @@ export default function BookingPage() {
       {/* Header section with constrained width */}
       <div className="container py-8 space-y-6">
         <div className="space-y-6">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold mb-2">
+          {/* ELDERLY-FRIENDLY: Much larger step titles and descriptions */}
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl md:text-5xl font-bold leading-tight">
               {step === "venue" 
                 ? "Select Floor Level" 
                 : step === "seats" 
@@ -117,7 +118,7 @@ export default function BookingPage() {
                       : "Complete Your Booking"
               }
             </h1>
-            <p className="text-muted-foreground max-w-lg mx-auto">
+            <p className="text-2xl md:text-3xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               {step === "venue"
                 ? "Choose your preferred seating area"
                 : step === "seats"
@@ -131,9 +132,10 @@ export default function BookingPage() {
             </p>
           </div>
           
-          <div className="space-y-2">
-            <Progress value={progress} className="w-full" />
-            <p className="text-center text-sm text-muted-foreground">
+          {/* ELDERLY-FRIENDLY: Larger progress indicator */}
+          <div className="space-y-4">
+            <Progress value={progress} className="w-full h-3" />
+            <p className="text-center text-xl text-muted-foreground font-semibold">
               Step {step === "venue" ? "1" : step === "seats" ? "2" : step === "food" ? "3" : step === "wine" ? "4" : "5"} of 5
             </p>
           </div>

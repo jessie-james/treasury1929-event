@@ -69,25 +69,27 @@ export function EventList() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-        <Label htmlFor="event-sort" className="text-sm font-medium">Sort events by:</Label>
+    <div className="space-y-8">
+      {/* ELDERLY-FRIENDLY: Larger sorting controls and better card layout */}
+      <div className="flex flex-col gap-4 max-w-2xl mx-auto">
+        <Label htmlFor="event-sort" className="text-2xl font-semibold text-center">Sort events by:</Label>
         <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-          <SelectTrigger id="event-sort" className="w-full sm:w-[220px]">
+          <SelectTrigger id="event-sort" className="w-full h-14 text-xl">
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="date-asc">Date (Earliest first)</SelectItem>
-            <SelectItem value="date-desc">Date (Latest first)</SelectItem>
-            <SelectItem value="title-asc">Name (A-Z)</SelectItem>
-            <SelectItem value="title-desc">Name (Z-A)</SelectItem>
-            <SelectItem value="availability-asc">Availability (Least first)</SelectItem>
-            <SelectItem value="availability-desc">Availability (Most first)</SelectItem>
+            <SelectItem value="date-asc" className="text-xl py-3">Date (Earliest first)</SelectItem>
+            <SelectItem value="date-desc" className="text-xl py-3">Date (Latest first)</SelectItem>
+            <SelectItem value="title-asc" className="text-xl py-3">Name (A-Z)</SelectItem>
+            <SelectItem value="title-desc" className="text-xl py-3">Name (Z-A)</SelectItem>
+            <SelectItem value="availability-asc" className="text-xl py-3">Availability (Least first)</SelectItem>
+            <SelectItem value="availability-desc" className="text-xl py-3">Availability (Most first)</SelectItem>
           </SelectContent>
         </Select>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {/* ELDERLY-FRIENDLY: Single column on mobile for easier reading, larger cards */}
+      <div className="grid gap-8 max-w-2xl mx-auto lg:max-w-6xl lg:grid-cols-2 xl:grid-cols-3">
         {sortedEvents.map((event) => (
           <EventCard key={event.id} event={event} />
         ))}

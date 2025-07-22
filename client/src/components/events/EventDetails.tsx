@@ -87,55 +87,59 @@ export function EventDetails({
       </div>
 
       <div className="space-y-4">
-        <h1 className="text-3xl font-bold font-serif">{event.title}</h1>
+        {/* ELDERLY-FRIENDLY: Much larger text for easy reading */}
+        <h1 className="text-4xl md:text-5xl font-bold font-serif leading-tight">{event.title}</h1>
 
-        <div className="flex flex-wrap gap-4 text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            {format(new Date(event.date), "PPP 'at' p")}
+        <div className="flex flex-col gap-6 text-muted-foreground">
+          <div className="flex items-center gap-4">
+            <Calendar className="h-8 w-8 flex-shrink-0" />
+            <span className="text-2xl md:text-3xl leading-relaxed">
+              {format(new Date(event.date), "PPP 'at' p")}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Elegant Events Venue
+          <div className="flex items-center gap-4">
+            <MapPin className="h-8 w-8 flex-shrink-0" />
+            <span className="text-2xl md:text-3xl">Elegant Events Venue</span>
           </div>
         </div>
 
-        <p className="text-lg">{event.description}</p>
+        <p className="text-2xl md:text-3xl leading-relaxed">{event.description}</p>
 
         {hasBooking && (
-          <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <AlertTitle className="text-yellow-800">You have tickets for this event</AlertTitle>
-            <AlertDescription className="text-yellow-700">
-              <Link href="/dashboard" className="underline">
+          <Alert variant="warning" className="bg-yellow-50 border-yellow-200 p-6">
+            <AlertTriangle className="h-8 w-8 text-yellow-600" />
+            <AlertTitle className="text-yellow-800 text-2xl font-semibold">You have tickets for this event</AlertTitle>
+            <AlertDescription className="text-yellow-700 text-xl">
+              <Link href="/dashboard" className="underline font-semibold text-2xl">
                 View your tickets
               </Link>
             </AlertDescription>
           </Alert>
         )}
 
-        <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
-          <div className="flex gap-6">
+        {/* ELDERLY-FRIENDLY: Much larger booking area with bigger buttons */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 p-8 bg-muted rounded-xl">
+          <div className="flex flex-col sm:flex-row gap-8">
             {event.eventType === 'ticket-only' ? (
               <>
-                <div>
-                  <p className="text-sm text-muted-foreground">Available Tickets</p>
-                  <p className="text-2xl font-bold">{realTimeAvailability?.availableSeats || 0}</p>
+                <div className="text-center">
+                  <p className="text-xl text-muted-foreground">Available Tickets</p>
+                  <p className="text-4xl font-bold">{realTimeAvailability?.availableSeats || 0}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Tickets</p>
-                  <p className="text-2xl font-bold">{event.ticketCapacity || 0}</p>
+                <div className="text-center">
+                  <p className="text-xl text-muted-foreground">Total Tickets</p>
+                  <p className="text-4xl font-bold">{event.ticketCapacity || 0}</p>
                 </div>
               </>
             ) : (
               <>
-                <div>
-                  <p className="text-sm text-muted-foreground">Available Tables</p>
-                  <p className="text-2xl font-bold">{event.availableTables || 0}</p>
+                <div className="text-center">
+                  <p className="text-xl text-muted-foreground">Available Tables</p>
+                  <p className="text-4xl font-bold">{event.availableTables || 0}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Seats</p>
-                  <p className="text-2xl font-bold">
+                <div className="text-center">
+                  <p className="text-xl text-muted-foreground">Total Seats</p>
+                  <p className="text-4xl font-bold">
                     {event.venueLayout ? 
                       event.venueLayout.tables.reduce((total: number, table: any) => total + table.capacity, 0) : 
                       event.totalSeats || 0
@@ -145,6 +149,7 @@ export function EventDetails({
               </>
             )}
           </div>
+          {/* ELDERLY-FRIENDLY: Extra large booking button */}
           <Button 
             size="lg"
             onClick={() => {
@@ -159,6 +164,7 @@ export function EventDetails({
               }
             }}
             disabled={realTimeAvailability?.isSoldOut ?? event.availableTables === 0}
+            className="w-full lg:w-auto py-6 px-12 text-2xl font-semibold"
           >
             {(realTimeAvailability?.isSoldOut ?? event.availableTables === 0) 
               ? "Sold Out" 

@@ -254,30 +254,31 @@ export default function CustomerDashboard() {
   const getStatusBadge = (status?: string) => {
     if (!status) return null;
     
+    // ELDERLY-FRIENDLY: Much larger status badges
     switch (status) {
       case "confirmed":
         return (
-          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 flex items-center gap-1">
-            <Check className="w-3 h-3" />
+          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200 flex items-center gap-3 text-xl px-6 py-3">
+            <Check className="w-6 h-6" />
             Confirmed
           </Badge>
         );
       case "pending":
         return (
-          <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+          <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-200 flex items-center gap-3 text-xl px-6 py-3">
+            <Clock className="w-6 h-6" />
             Pending
           </Badge>
         );
       case "cancelled":
         return (
-          <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 flex items-center gap-1">
-            <X className="w-3 h-3" />
+          <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 flex items-center gap-3 text-xl px-6 py-3">
+            <X className="w-6 h-6" />
             Cancelled
           </Badge>
         );
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline" className="text-xl px-6 py-3">{status}</Badge>;
     }
   };
 
@@ -292,38 +293,43 @@ export default function CustomerDashboard() {
   return (
     <div>
       <div className="container py-8 space-y-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Button variant="ghost" size="sm" onClick={() => setLocation('/')}>
-            <ArrowLeft className="h-4 w-4 mr-1" />
+        {/* ELDERLY-FRIENDLY: Much larger navigation and title */}
+        <div className="flex flex-col sm:flex-row items-start gap-6 mb-8">
+          <Button variant="ghost" size="lg" onClick={() => setLocation('/')} className="text-2xl py-4 px-6">
+            <ArrowLeft className="h-8 w-8 mr-3" />
             Back to Home
           </Button>
-          <h1 className="text-3xl font-bold">My Tickets</h1>
+          <h1 className="text-5xl md:text-6xl font-bold">My Tickets</h1>
         </div>
 
         <div className="space-y-4">
           {sortedBookings.map((booking) => (
             <Card key={booking.id} className="overflow-hidden">
-              <CardHeader className="pb-4">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1">
-                    <CardTitle className="text-xl">{booking.event.title}</CardTitle>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      {format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")}
+              {/* ELDERLY-FRIENDLY: Much larger card header with better spacing */}
+              <CardHeader className="pb-6">
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
+                  <div className="space-y-3">
+                    <CardTitle className="text-3xl md:text-4xl leading-tight">{booking.event.title}</CardTitle>
+                    <div className="flex items-center gap-3 text-xl text-muted-foreground">
+                      <Calendar className="w-8 h-8" />
+                      <span className="leading-relaxed">
+                        {format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")}
+                      </span>
                     </div>
                   </div>
                   {getStatusBadge(booking.status)}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-muted-foreground" />
-                    <span>Table {booking.tableId}</span>
+              {/* ELDERLY-FRIENDLY: Much larger card content and icons */}
+              <CardContent className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xl">
+                  <div className="flex items-center gap-4">
+                    <MapPin className="w-8 h-8 text-muted-foreground" />
+                    <span className="font-semibold">Table {booking.tableId}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    <span>{booking.partySize} guests</span>
+                  <div className="flex items-center gap-4">
+                    <Users className="w-8 h-8 text-muted-foreground" />
+                    <span className="font-semibold">{booking.partySize} guests</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Ticket className="w-4 h-4 text-muted-foreground" />
@@ -438,23 +444,24 @@ export default function CustomerDashboard() {
                       </div>
                     </div>
                     
-                    <div className="text-center space-y-3">
+                    {/* ELDERLY-FRIENDLY: Much larger buttons for easier tapping */}
+                    <div className="text-center space-y-6">
                       <Button
                         variant="outline"
                         size="lg"
                         onClick={() => setLocation(`/ticket/${booking.id}`)}
-                        className="flex items-center gap-2 w-full"
+                        className="flex items-center gap-4 w-full py-6 text-2xl font-semibold"
                       >
-                        <Ticket className="w-4 h-4" />
+                        <Ticket className="w-8 h-8" />
                         View Full Ticket
                       </Button>
                       <Button
                         variant="default"
                         size="lg"
                         onClick={() => downloadQRTicket(booking)}
-                        className="flex items-center gap-2 w-full"
+                        className="flex items-center gap-4 w-full py-6 text-2xl font-semibold"
                       >
-                        <Download className="w-4 h-4" />
+                        <Download className="w-8 h-8" />
                         Download Ticket
                       </Button>
                     </div>
