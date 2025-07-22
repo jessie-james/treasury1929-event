@@ -236,174 +236,154 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="text-2xl font-bold">Select Your Table</h2>
-        <p className="text-muted-foreground">
-          Click on an available table in the venue layout below. Use mouse wheel to zoom and drag to pan around.
+    <div className="min-h-screen">
+      {/* Simple header - no nesting */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold mb-2">Select Your Table</h2>
+        <p className="text-gray-600 mb-4">
+          Click on an available table in the venue layout below.
         </p>
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-          <h4 className="font-medium text-blue-900 mb-1">Table Selection Info:</h4>
-          <ul className="text-blue-800 space-y-1 text-sm">
-            <li>• Choose any table that fits your group size</li>
-            <li>• You can book any number of guests up to the table capacity</li>
-            <li>• Click a table to immediately proceed to guest details</li>
-          </ul>
-        </div>
-
       </div>
 
-      {/* Venue Selection */}
+      {/* Venue Selection - No card wrapper */}
       {Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 1 && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-4">
-              <Label htmlFor="venue-select" className="font-medium">Select Venue:</Label>
-              <Select
-                value={selectedVenueIndex.toString()}
-                onValueChange={(value) => {
-                  setSelectedVenueIndex(parseInt(value));
-                  setSelectedTable(null); // Clear table selection when changing venues
-                }}
-              >
-                <SelectTrigger className="w-64">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {eventVenueLayouts.map((layout: EventVenueLayout, index: number) => (
-                    <SelectItem key={layout.eventVenueId} value={index.toString()}>
-                      {layout.displayName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center gap-4 mb-4">
+          <Label htmlFor="venue-select" className="font-medium text-lg">Select Venue:</Label>
+          <Select
+            value={selectedVenueIndex.toString()}
+            onValueChange={(value) => {
+              setSelectedVenueIndex(parseInt(value));
+              setSelectedTable(null);
+            }}
+          >
+            <SelectTrigger className="w-64">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {eventVenueLayouts.map((layout: EventVenueLayout, index: number) => (
+                <SelectItem key={layout.eventVenueId} value={index.toString()}>
+                  {layout.displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       )}
 
-      {/* Guest Count Selection */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <Label htmlFor="guest-count" className="font-medium">Number of Guests:</Label>
-            <Select
-              value={desiredGuestCount.toString()}
-              onValueChange={(value) => {
-                setDesiredGuestCount(parseInt(value));
-                setSelectedTable(null); // Clear table selection when changing guest count
-              }}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2, 3, 4].map((count) => (
-                  <SelectItem key={count} value={count.toString()}>
-                    {count} {count === 1 ? 'guest' : 'guests'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="text-sm text-muted-foreground">
-              Select number of guests for your reservation
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Select Your Table - Full Width, No Nesting */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <h3 className="text-xl font-bold">
-            Select Your Table - {currentVenueLayout?.venue?.name || "Venue Layout"}
-            {Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 1 && selectedVenueIndex < eventVenueLayouts.length ? (
-              <span className="text-base text-gray-500 ml-2 font-normal">
-                ({(eventVenueLayouts as any[])[selectedVenueIndex]?.displayName || 'Venue'})
-              </span>
-            ) : null}
-          </h3>
-          <Badge variant="outline" className="text-sm">
-            {availableTables.length} of {currentVenueLayout?.tables?.length || 0} tables available
-          </Badge>
-        </div>
-        
-        {isLoading ? (
-          <div className="flex items-center justify-center p-12 bg-gray-50 rounded-lg">
-            <Loader2 className="h-12 w-12 animate-spin" />
-            <span className="ml-4 text-lg">Loading venue layout...</span>
-          </div>
-        ) : currentVenueLayout ? (
-          <TableLayoutCanvas
-            tables={currentVenueLayout.tables.map(table => ({
-              ...table,
-              status: bookedTableIds.includes(table.id) ? ('sold' as const) : ('available' as const),
-              shape: table.shape as 'half' | 'full'
-            }))}
-            stages={currentVenueLayout.stages}
-            isEditorMode={false}
-            onTableSelect={(table) => {
-              console.log('🎯 Table selected:', table);
-              const validation = isValidTableSelection(table, desiredGuestCount);
-              if (!validation.valid) {
-                alert(validation.reason);
-                return;
-              }
-              setSelectedTable(table);
-            }}
-            selectedTables={selectedTable ? [selectedTable.id] : []}
-            className="w-full"
-          />
-        ) : (
-          <div className="text-center p-12 bg-gray-50 rounded-lg">
-            <p className="text-gray-600 text-lg">
-              Unable to load venue layout. Please try again.
-            </p>
-          </div>
-        )}
-        
-        {/* Selection Summary and Confirmation */}
-        {selectedTable && (
-          <div className="mt-8 space-y-6">
-            <div className="p-8 bg-green-50 rounded-xl border-2 border-green-200">
-              <h3 className="font-bold mb-4 text-green-900 text-2xl">Table Selected!</h3>
-              <div className="text-green-800 space-y-3 text-lg">
-                <p><strong>Table {selectedTable.tableNumber}</strong> ({selectedTable.capacity} seats)</p>
-                <p>Guests: {desiredGuestCount}</p>
-                {selectedTable.capacity > desiredGuestCount && (
-                  <p className="text-green-600">
-                    {selectedTable.capacity - desiredGuestCount} seat{selectedTable.capacity - desiredGuestCount > 1 ? 's' : ''} will remain empty
-                  </p>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex gap-6">
-              <Button
-                onClick={() => {
-                  const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
-                  onComplete({
-                    tableId: selectedTable.id,
-                    seatNumbers: seatNumbers
-                  });
-                }}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-xl py-4"
-                size="lg"
-              >
-                Confirm Table Selection
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setSelectedTable(null)}
-                className="px-12 text-xl py-4"
-                size="lg"
-              >
-                Change Table
-              </Button>
-            </div>
-          </div>
-        )}
+      {/* Guest Count Selection - No card wrapper */}
+      <div className="flex items-center gap-4 mb-6">
+        <Label htmlFor="guest-count" className="font-medium text-lg">Number of Guests:</Label>
+        <Select
+          value={desiredGuestCount.toString()}
+          onValueChange={(value) => {
+            setDesiredGuestCount(parseInt(value));
+            setSelectedTable(null);
+          }}
+        >
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[1, 2, 3, 4].map((count) => (
+              <SelectItem key={count} value={count.toString()}>
+                {count} {count === 1 ? 'guest' : 'guests'}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="text-gray-600">Select number of guests for your reservation</span>
       </div>
+
+      {/* Table Canvas - Full Width, No Containers */}
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-xl font-bold">
+          {currentVenueLayout?.venue?.name || "Venue Layout"}
+          {Array.isArray(eventVenueLayouts) && eventVenueLayouts.length > 1 && selectedVenueIndex < eventVenueLayouts.length ? (
+            <span className="text-base text-gray-500 ml-2 font-normal">
+              ({(eventVenueLayouts as any[])[selectedVenueIndex]?.displayName || 'Venue'})
+            </span>
+          ) : null}
+        </h3>
+        <Badge variant="outline" className="text-sm">
+          {availableTables.length} of {currentVenueLayout?.tables?.length || 0} tables available
+        </Badge>
+      </div>
+      
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-12 w-12 animate-spin" />
+          <span className="ml-4 text-lg">Loading venue layout...</span>
+        </div>
+      ) : currentVenueLayout ? (
+        <TableLayoutCanvas
+          tables={currentVenueLayout.tables.map(table => ({
+            ...table,
+            status: bookedTableIds.includes(table.id) ? ('sold' as const) : ('available' as const),
+            shape: table.shape as 'half' | 'full'
+          }))}
+          stages={currentVenueLayout.stages}
+          isEditorMode={false}
+          onTableSelect={(table) => {
+            console.log('🎯 Table selected:', table);
+            const validation = isValidTableSelection(table, desiredGuestCount);
+            if (!validation.valid) {
+              alert(validation.reason);
+              return;
+            }
+            setSelectedTable(table);
+          }}
+          selectedTables={selectedTable ? [selectedTable.id] : []}
+          className="w-full"
+        />
+      ) : (
+        <div className="text-center py-20">
+          <p className="text-gray-600 text-lg">
+            Unable to load venue layout. Please try again.
+          </p>
+        </div>
+      )}
+        
+      {/* Selection Summary and Confirmation - No nesting */}
+      {selectedTable && (
+        <div className="mt-8 space-y-6">
+          <div className="p-8 bg-green-50 rounded-xl border-2 border-green-200">
+            <h3 className="font-bold mb-4 text-green-900 text-2xl">Table Selected!</h3>
+            <div className="text-green-800 space-y-3 text-lg">
+              <p><strong>Table {selectedTable.tableNumber}</strong> ({selectedTable.capacity} seats)</p>
+              <p>Guests: {desiredGuestCount}</p>
+              {selectedTable.capacity > desiredGuestCount && (
+                <p className="text-green-600">
+                  {selectedTable.capacity - desiredGuestCount} seat{selectedTable.capacity - desiredGuestCount > 1 ? 's' : ''} will remain empty
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex gap-6">
+            <Button
+              onClick={() => {
+                const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
+                onComplete({
+                  tableId: selectedTable.id,
+                  seatNumbers: seatNumbers
+                });
+              }}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-xl py-4"
+              size="lg"
+            >
+              Confirm Table Selection
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setSelectedTable(null)}
+              className="px-12 text-xl py-4"
+              size="lg"
+            >
+              Change Table
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
