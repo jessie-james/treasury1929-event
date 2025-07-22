@@ -42,10 +42,10 @@ export function TableLayoutCanvas({
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Mobile-friendly Canvas size - LARGE for accessibility
+  // ELDERLY-FRIENDLY: EXTRA large canvas with huge tables for 70+ users on phones
   const venueDimensions = useMemo(() => {
     if (!tables || tables.length === 0) {
-      return { width: 1400, height: 1000 };
+      return { width: 2000, height: 1400 };
     }
 
     const positions = tables.map(table => ({
@@ -60,21 +60,21 @@ export function TableLayoutCanvas({
     const maxX = Math.max(...positions.map(p => p.x + p.width));
     const maxY = Math.max(...positions.map(p => p.y + p.height));
 
-    // MOBILE-FRIENDLY: Large canvas for easy touch interaction
+    // ELDERLY-FRIENDLY: Much larger canvas with huge spacing for big tables
     return {
-      width: Math.max(maxX - minX + 300, 1400), // Bigger with more padding
-      height: Math.max(maxY - minY + 250, 1000), // Taller for better visibility
+      width: Math.max(maxX - minX + 600, 2000), // Much bigger with massive padding
+      height: Math.max(maxY - minY + 500, 1400), // Much taller for huge tables
     };
   }, [tables]);
 
-  // MOBILE-FRIENDLY: Larger table sizes for easier touch on phones (70+ users)
+  // ELDERLY-FRIENDLY: MUCH larger table sizes for 70+ users on phones (44px minimum touch target)
   const getTableDimensions = useCallback((tableSize: number) => {
     const sizeConfig = {
-      1: { tableRadius: 25, seatRadius: 8,  gap: 8  }, // Small - increased from 18 to 25
-      2: { tableRadius: 32, seatRadius: 10, gap: 10 }, // Medium - increased from 22 to 32  
-      3: { tableRadius: 38, seatRadius: 12, gap: 12 }, // Large - increased from 26 to 38
-      4: { tableRadius: 45, seatRadius: 14, gap: 14 }, // Extra Large - increased from 30 to 45
-      5: { tableRadius: 52, seatRadius: 16, gap: 16 }  // XXL - increased from 34 to 52
+      1: { tableRadius: 50, seatRadius: 12, gap: 12 }, // Small - 100px diameter (was 25)
+      2: { tableRadius: 65, seatRadius: 15, gap: 15 }, // Medium - 130px diameter (was 32)  
+      3: { tableRadius: 80, seatRadius: 18, gap: 18 }, // Large - 160px diameter (was 38)
+      4: { tableRadius: 95, seatRadius: 20, gap: 20 }, // Extra Large - 190px diameter (was 45)
+      5: { tableRadius: 110, seatRadius: 22, gap: 22 } // XXL - 220px diameter (was 52)
     };
     
     return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[4];
@@ -154,13 +154,18 @@ export function TableLayoutCanvas({
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
     
-    // Table number (scale with table size) - EXACT same as VenueLayoutDesigner
-    const fontSize = Math.max(12, Math.min(24, 10 + tableSize * 1.5));
-    ctx.fillStyle = '#333';
+    // ELDERLY-FRIENDLY: Much larger, more visible table numbers for 70+ users
+    const fontSize = Math.max(24, Math.min(48, 15 + tableSize * 3)); // Doubled font size
+    ctx.fillStyle = 'white'; // White text for better contrast
+    ctx.strokeStyle = '#333'; // Dark outline for readability
+    ctx.lineWidth = 3;
     ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const textY = isHalf ? -tableRadius * 0.5 : 0;
+    
+    // Draw text with outline for maximum visibility
+    ctx.strokeText(table.tableNumber.toString(), 0, textY);
     ctx.fillText(table.tableNumber.toString(), 0, textY);
     
     // Draw seats around the table
