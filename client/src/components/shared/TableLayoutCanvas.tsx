@@ -378,8 +378,6 @@ export function TableLayoutCanvas({
         border: '1px solid #d1d5db',
         borderRadius: '8px',
         cursor: isEditorMode ? 'default' : 'pointer',
-        maxWidth: '100%',
-        height: 'auto',
         display: 'block',
         backgroundColor: 'white'
       }}
