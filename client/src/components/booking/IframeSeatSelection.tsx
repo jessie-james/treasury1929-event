@@ -71,6 +71,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
   const [selectedTable, setSelectedTable] = useState<VenueTable | null>(null);
   const [selectedVenueIndex, setSelectedVenueIndex] = useState<number>(propSelectedVenueIndex ?? 0);
   const [desiredGuestCount, setDesiredGuestCount] = useState(2); // Number of guests the user wants to bring
+  const [zoomLevel, setZoomLevel] = useState(1.0); // Zoom level for desktop users
 
   console.log('🎯 IframeSeatSelection props:', { eventId, propSelectedVenueIndex, selectedVenueIndex });
 
@@ -315,43 +316,81 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
           <span className="ml-4 text-lg">Loading venue layout...</span>
         </div>
       ) : currentVenueLayout ? (
-        /* Desktop & Mobile scrollable canvas container */
-        <div 
-          className="w-full border-2 border-gray-200 rounded-lg overflow-auto bg-white shadow-lg"
-          style={{ 
-            maxHeight: '70vh', 
-            minHeight: '500px',
-            /* Smooth scrolling for both desktop and mobile */
-            scrollBehavior: 'smooth',
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'contain'
-          }}
-        >
-          <div className="p-4">
-            <TableLayoutCanvas
-              tables={currentVenueLayout.tables.map(table => ({
-                ...table,
-                status: bookedTableIds.includes(table.id) ? ('sold' as const) : ('available' as const),
-                shape: table.shape as 'half' | 'full'
-              }))}
-              stages={currentVenueLayout.stages}
-              isEditorMode={false}
-              onTableSelect={(table) => {
-                console.log('🎯 Table selected:', table);
-                const validation = isValidTableSelection(table, desiredGuestCount);
-                if (!validation.valid) {
-                  alert(validation.reason);
-                  return;
-                }
-                setSelectedTable(table);
-              }}
-              selectedTables={selectedTable ? [selectedTable.id] : []}
-              className="w-full"
-            />
+        <div className="space-y-4">
+          {/* Zoom Controls for Desktop Users */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Zoom:</span>
+              <button
+                onClick={() => setZoomLevel(Math.max(0.5, zoomLevel - 0.25))}
+                className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 border rounded-md"
+                disabled={zoomLevel <= 0.5}
+              >
+                −
+              </button>
+              <span className="px-3 py-1 text-sm bg-gray-50 border rounded-md min-w-[60px] text-center">
+                {Math.round(zoomLevel * 100)}%
+              </span>
+              <button
+                onClick={() => setZoomLevel(Math.min(3.0, zoomLevel + 0.25))}
+                className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 border rounded-md"
+                disabled={zoomLevel >= 3.0}
+              >
+                +
+              </button>
+              <button
+                onClick={() => setZoomLevel(1.0)}
+                className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 border border-blue-300 rounded-md"
+              >
+                Reset
+              </button>
+            </div>
+            <div className="text-sm text-gray-500">
+              Use scroll bars or mouse wheel to navigate
+            </div>
           </div>
-          {/* Desktop and Mobile scroll indicator */}
-          <div className="text-center text-sm text-gray-500 py-2 bg-gray-50 border-t">
-            🖱️ Use scroll bars or drag to explore • Click/tap tables to select
+
+          {/* Desktop & Mobile scrollable canvas container */}
+          <div 
+            className="w-full border-2 border-gray-200 rounded-lg overflow-auto bg-white shadow-lg"
+            style={{ 
+              maxHeight: '70vh', 
+              minHeight: '500px',
+              scrollBehavior: 'smooth',
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain'
+            }}
+          >
+            <div className="p-4">
+              <div 
+                style={{ 
+                  transform: `scale(${zoomLevel})`,
+                  transformOrigin: 'top left',
+                  transition: 'transform 0.2s ease-in-out'
+                }}
+              >
+                <TableLayoutCanvas
+                  tables={currentVenueLayout.tables.map(table => ({
+                    ...table,
+                    status: bookedTableIds.includes(table.id) ? ('sold' as const) : ('available' as const),
+                    shape: table.shape as 'half' | 'full'
+                  }))}
+                  stages={currentVenueLayout.stages}
+                  isEditorMode={false}
+                  onTableSelect={(table) => {
+                    console.log('🎯 Table selected:', table);
+                    const validation = isValidTableSelection(table, desiredGuestCount);
+                    if (!validation.valid) {
+                      alert(validation.reason);
+                      return;
+                    }
+                    setSelectedTable(table);
+                  }}
+                  selectedTables={selectedTable ? [selectedTable.id] : []}
+                  className="w-full"
+                />
+              </div>
+            </div>
           </div>
         </div>
       ) : (
