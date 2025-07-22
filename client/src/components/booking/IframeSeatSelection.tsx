@@ -119,8 +119,8 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     console.log('🔍 VENUE SELECTION DEBUG:', {
       eventVenueLayouts: eventVenueLayouts,
       selectedVenueIndex,
-      layoutsLength: eventVenueLayouts?.length,
-      layouts: eventVenueLayouts?.map(l => ({ 
+      layoutsLength: (eventVenueLayouts as any[])?.length,
+      layouts: (eventVenueLayouts as any[])?.map(l => ({ 
         eventVenueId: l.eventVenueId, 
         displayName: l.displayName, 
         venueName: l.venue.name,
@@ -216,7 +216,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
 
 
   // Check if event is sold out based on real-time availability
-  if (realTimeAvailability?.isSoldOut) {
+  if ((realTimeAvailability as any)?.isSoldOut) {
     return (
       <div className="space-y-6">
         <div className="text-center py-8">
@@ -337,8 +337,8 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
           <TableLayoutCanvas
             tables={currentVenueLayout.tables.map(table => ({
               ...table,
-              status: bookedTableIds.includes(table.id) ? 'sold' : 'available',
-              tableSize: table.tableSize || 2
+              status: bookedTableIds.includes(table.id) ? ('sold' as const) : ('available' as const),
+              shape: table.shape as 'half' | 'full'
             }))}
             stages={currentVenueLayout.stages}
             isEditorMode={false}

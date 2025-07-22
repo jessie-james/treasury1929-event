@@ -238,7 +238,7 @@ export function TableLayoutCanvas({
     }
     
     ctx.restore();
-  }, [selectedTable, getTableDimensions]);
+  }, [selectedTables, getTableDimensions]);
 
   // Draw stage function
   const drawStage = useCallback((ctx: CanvasRenderingContext2D, stage: VenueStage) => {
