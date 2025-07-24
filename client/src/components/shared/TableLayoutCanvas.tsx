@@ -162,8 +162,8 @@ export function TableLayoutCanvas({
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
     
-    // ELDERLY-FRIENDLY: Much larger, more visible table numbers for 70+ users
-    const fontSize = Math.max(24, Math.min(48, 15 + tableSize * 3)); // Doubled font size
+    // Table numbers - smaller size as requested
+    const fontSize = Math.max(12, Math.min(20, 8 + tableSize * 2)); // Reduced font size
     ctx.fillStyle = 'white'; // White text for better contrast
     ctx.strokeStyle = '#333'; // Dark outline for readability
     ctx.lineWidth = 3;

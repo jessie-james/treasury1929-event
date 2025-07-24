@@ -225,6 +225,7 @@ This is a sophisticated mobile-first event venue booking platform designed for l
     - ✅ Increased table visual size (2.2x) for mobile accessibility without affecting positioning
     - ✅ Tables now 88-194px diameter for easy tapping by 70+ year olds on phones
     - ✅ Canvas dimensions match original venue size to maintain proper spacing ratios
+    - ✅ Table numbers sized appropriately for readability without being too large
   - ✅ **VENUE LAYOUT DESKTOP ENHANCEMENTS**
     - ✅ Added zoom controls with +/- buttons and percentage display (50%-300% range)
     - ✅ Reset button for quick return to 100% zoom level
