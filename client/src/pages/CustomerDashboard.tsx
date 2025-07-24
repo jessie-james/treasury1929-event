@@ -290,24 +290,15 @@ export default function CustomerDashboard() {
                       </div>
                     </div>
                     
-                    {/* ELDERLY-FRIENDLY: Much larger buttons for easier tapping */}
-                    <div className="text-center space-y-6">
-                      <Button
-                        variant="outline"
-                        size="lg"
-                        onClick={() => setLocation(`/ticket/${booking.id}`)}
-                        className="flex items-center gap-4 w-full py-6 text-2xl font-semibold"
-                      >
-                        <Ticket className="w-8 h-8" />
-                        View Full Ticket
-                      </Button>
+                    {/* Single Download Ticket button below QR code */}
+                    <div className="text-center">
                       <Button
                         variant="default"
-                        size="lg"
+                        size="default"
                         onClick={() => downloadQRTicket(booking)}
-                        className="flex items-center gap-4 w-full py-6 text-2xl font-semibold"
+                        className="flex items-center gap-2"
                       >
-                        <Download className="w-8 h-8" />
+                        <Download className="w-4 h-4" />
                         Download Ticket
                       </Button>
                     </div>
