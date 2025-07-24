@@ -7,6 +7,7 @@ import { Download, ArrowLeft, Calendar, MapPin, Users, Ticket } from 'lucide-rea
 import { format } from 'date-fns';
 import QRCode from 'qrcode';
 import type { Booking, Event, FoodOption } from "@/../../shared/schema";
+import { downloadTicket as downloadTicketWithLogo } from "@/utils/ticketGenerator";
 
 type EnrichedBooking = Booking & {
   event: Event;
@@ -66,193 +67,16 @@ export default function TicketDetailPage() {
   };
 
   const downloadTicket = async (booking: EnrichedBooking) => {
-    try {
-      // Create a canvas to compose the ticket
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      // Set canvas size - optimized for readability
-      canvas.width = 450;
-      canvas.height = 700;
-
-      // White background
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Border
-      ctx.strokeStyle = '#e5e7eb';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
-
-      // Title
-      ctx.fillStyle = '#000000';
-      ctx.font = 'bold 24px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('Event Ticket', canvas.width / 2, 50);
-
-      // Event title
-      ctx.font = 'bold 20px Arial';
-      ctx.fillStyle = '#7c3aed'; // Primary color
-      ctx.fillText(booking.event.title, canvas.width / 2, 90);
-
-      // Event details
-      ctx.font = '14px Arial';
-      ctx.fillStyle = '#374151'; // Gray-700
-      ctx.fillText(`${format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")}`, canvas.width / 2, 120);
-
-      // Booking details
-      ctx.font = '12px Arial';
-      ctx.fillStyle = '#6b7280'; // Gray-500
-      ctx.fillText(`Booking #${booking.id}`, canvas.width / 2, 150);
-
-      // Table and party info
-      if (booking.tableId) {
-        ctx.fillText(`Table ${booking.tableId} • ${booking.partySize} guests`, canvas.width / 2, 170);
-      } else {
-        ctx.fillText(`${booking.partySize} tickets`, canvas.width / 2, 170);
-      }
-
-      let currentY = 200;
-
-      // Guest names - handle both object and array formats
-      const guestNamesArray = Array.isArray(booking.guestNames) 
-        ? booking.guestNames 
-        : booking.guestNames && typeof booking.guestNames === 'object' 
-          ? Object.values(booking.guestNames) 
-          : [];
-      
-      if (guestNamesArray.length > 0) {
-        ctx.font = 'bold 14px Arial';
-        ctx.fillStyle = '#374151';
-        ctx.fillText('Guests:', canvas.width / 2, currentY);
-        currentY += 25;
-
-        ctx.font = '12px Arial';
-        ctx.fillStyle = '#6b7280';
-        guestNamesArray.forEach((name) => {
-          ctx.fillText(`${name}`, canvas.width / 2, currentY);
-          currentY += 20;
-        });
-        currentY += 10;
-      }
-
-      // Wine selections
-      if (booking.wineSelections && booking.wineSelections.length > 0) {
-        ctx.font = 'bold 14px Arial';
-        ctx.fillStyle = '#374151';
-        ctx.fillText('Wine Selections:', canvas.width / 2, currentY);
-        currentY += 25;
-
-        ctx.font = '10px Arial';
-        ctx.fillStyle = '#6b7280';
-        booking.wineSelections.forEach((selection, index) => {
-          // Handle both object and array formats for guestNames
-          let guestName = `Guest ${index + 1}`;
-          if (booking.guestNames) {
-            if (Array.isArray(booking.guestNames)) {
-              guestName = booking.guestNames[index] || `Guest ${index + 1}`;
-            } else if (typeof booking.guestNames === 'object') {
-              // guestNames is stored as {"1": "NAME1", "2": "NAME2", ...}
-              guestName = booking.guestNames[String(index + 1)] || `Guest ${index + 1}`;
-            }
-          }
-          
-          const wineItem = foodOptions?.find(item => item.id === selection.wine);
-          
-          ctx.font = 'bold 11px Arial';
-          ctx.fillStyle = '#374151';
-          ctx.fillText(`${guestName}:`, canvas.width / 2, currentY);
-          currentY += 15;
-          
-          ctx.font = '10px Arial';
-          ctx.fillStyle = '#6b7280';
-          if (wineItem) {
-            ctx.fillText(`Wine: ${wineItem.name}`, canvas.width / 2, currentY);
-            currentY += 12;
-          }
-          currentY += 8;
-        });
-        currentY += 10;
-      }
-
-      // Food selections
-      if (booking.foodSelections && booking.foodSelections.length > 0) {
-        ctx.font = 'bold 14px Arial';
-        ctx.fillStyle = '#374151';
-        ctx.fillText('Food Selections:', canvas.width / 2, currentY);
-        currentY += 25;
-
-        ctx.font = '10px Arial';
-        ctx.fillStyle = '#6b7280';
-        booking.foodSelections.forEach((selection, index) => {
-          // Handle both object and array formats for guestNames
-          let guestName = `Guest ${index + 1}`;
-          if (booking.guestNames) {
-            if (Array.isArray(booking.guestNames)) {
-              guestName = booking.guestNames[index] || `Guest ${index + 1}`;
-            } else if (typeof booking.guestNames === 'object') {
-              // guestNames is stored as {"1": "NAME1", "2": "NAME2", ...}
-              guestName = booking.guestNames[String(index + 1)] || `Guest ${index + 1}`;
-            }
-          }
-          
-          const saladItem = foodOptions?.find(item => item.id === selection.salad);
-          const entreeItem = foodOptions?.find(item => item.id === selection.entree);
-          const dessertItem = foodOptions?.find(item => item.id === selection.dessert);
-          
-          // Guest name header
-          ctx.font = 'bold 11px Arial';
-          ctx.fillStyle = '#374151';
-          ctx.fillText(`${guestName}:`, canvas.width / 2, currentY);
-          currentY += 15;
-          
-          // Food selections - more compact
-          ctx.font = '10px Arial';
-          ctx.fillStyle = '#6b7280';
-          if (saladItem) {
-            ctx.fillText(`Salad: ${saladItem.name}`, canvas.width / 2, currentY);
-            currentY += 12;
-          }
-          if (entreeItem) {
-            ctx.fillText(`Entree: ${entreeItem.name}`, canvas.width / 2, currentY);
-            currentY += 12;
-          }
-          if (dessertItem) {
-            ctx.fillText(`Dessert: ${dessertItem.name}`, canvas.width / 2, currentY);
-            currentY += 12;
-          }
-          currentY += 8;
-        });
-      }
-
-      // QR Code
-      if (qrCodeUrl) {
-        const qrImg = new Image();
-        qrImg.onload = () => {
-          // Position QR code
-          const qrSize = 150;
-          const qrX = (canvas.width - qrSize) / 2;
-          const qrY = Math.max(currentY + 20, canvas.height - 220);
-          
-          ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-          
-          // Instructions
-          ctx.font = '12px Arial';
-          ctx.fillStyle = '#374151';
-          ctx.fillText('Show this QR code at venue entrance', canvas.width / 2, qrY + qrSize + 30);
-          
-          // Download the ticket
-          const link = document.createElement('a');
-          link.download = `ticket-${booking.id}-${booking.event.title.replace(/[^a-zA-Z0-9]/g, '-')}.png`;
-          link.href = canvas.toDataURL();
-          link.click();
-        };
-        qrImg.src = qrCodeUrl;
-      }
-    } catch (error) {
-      console.error('Error downloading ticket:', error);
+    if (!qrCodeUrl) {
+      console.error('QR code not available for download');
+      return;
     }
+
+    await downloadTicketWithLogo({
+      booking,
+      qrCodeUrl,
+      foodOptions
+    });
   };
 
   if (isLoading) {
