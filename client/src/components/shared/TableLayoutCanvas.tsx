@@ -70,10 +70,10 @@ export function TableLayoutCanvas({
     };
   }, [tables]);
 
-  // ELDERLY-FRIENDLY: Larger table visuals while preserving venue spacing
+  // EXACT VENUEMASTER DIMENSIONS: Match the reference implementation exactly
   const getTableDimensions = useCallback((tableSize: number) => {
-    // Base sizes that match venue designer proportions
-    const baseSizeConfig = {
+    // CRITICAL: Exact same config as VenueMaster to ensure identical spacing
+    const sizeConfig = {
       1: { tableRadius: 18, seatRadius: 6,  gap: 6  }, // Small - 40px
       2: { tableRadius: 22, seatRadius: 7,  gap: 7  }, // Medium - 60px  
       3: { tableRadius: 26, seatRadius: 9,  gap: 9  }, // Large - 72px
@@ -81,15 +81,7 @@ export function TableLayoutCanvas({
       5: { tableRadius: 34, seatRadius: 11, gap: 11 }  // XXL - for very large tables
     };
     
-    // Scale up for mobile accessibility (2.2x for easy tapping)
-    const mobileScale = 2.2;
-    const baseConfig = baseSizeConfig[tableSize as keyof typeof baseSizeConfig] || baseSizeConfig[4];
-    
-    return {
-      tableRadius: baseConfig.tableRadius * mobileScale,
-      seatRadius: baseConfig.seatRadius * mobileScale,
-      gap: baseConfig.gap * mobileScale
-    };
+    return sizeConfig[tableSize as keyof typeof sizeConfig] || sizeConfig[4];
   }, []);
 
   // MOBILE-FRIENDLY: Scale table positions while preserving venue spacing
