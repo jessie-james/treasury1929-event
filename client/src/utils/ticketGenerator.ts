@@ -60,7 +60,7 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
         console.warn('Could not load Treasury 1929 logo');
         resolve(null);
       };
-      logoImg.src = '/treasury-1929-logo.svg';
+      logoImg.src = '/assets/treasury-logo.png';
     });
   } catch (error) {
     console.warn('Error loading logo:', error);
@@ -175,7 +175,7 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
   const bottomY = canvas.height - 60;
   ctx.font = 'bold 12px Arial';
   ctx.fillStyle = '#1a1a1a';
-  ctx.fillText('TREASURY 1929', canvas.width / 2, bottomY);
+  ctx.fillText('The Treasury 1929', canvas.width / 2, bottomY);
   
   ctx.font = '10px Arial';
   ctx.fillStyle = '#6b7280';
