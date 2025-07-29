@@ -5,15 +5,19 @@ import { Booking, Event, User, Table, Venue } from '@shared/schema';
 let emailInitialized = false;
 
 function initializeEmail() {
-  if (!process.env.SENDGRID_API_KEY) {
-    console.error('⚠️  SENDGRID_API_KEY not found. Email service disabled.');
+  // Prioritize new SendGrid API key over legacy key
+  const sendgridApiKey = process.env.SENDGRID_API_KEY_NEW || process.env.SENDGRID_API_KEY;
+  
+  if (!sendgridApiKey) {
+    console.error('⚠️  SENDGRID_API_KEY_NEW or SENDGRID_API_KEY not found. Email service disabled.');
     return false;
   }
 
   try {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    sgMail.setApiKey(sendgridApiKey);
     emailInitialized = true;
-    console.log('✓ SendGrid email service initialized');
+    const keySource = process.env.SENDGRID_API_KEY_NEW ? "NEW" : "OLD";
+    console.log(`✓ SendGrid email service initialized (${keySource})`);
     return true;
   } catch (error) {
     console.error('✗ Failed to initialize SendGrid:', error);
