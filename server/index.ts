@@ -285,6 +285,62 @@ app.post("/api/test-email", async (req, res) => {
   }
 });
 
+// Test booking confirmation email endpoint
+app.post("/api/test-booking-confirmation", async (req, res) => {
+  try {
+    const { EmailService } = await import("./email-service");
+    
+    // Create mock booking data for testing
+    const mockBookingData = {
+      booking: {
+        id: 999,
+        customerEmail: "info@thetreasury1929.com", // Send to admin for testing
+        partySize: 2,
+        guestNames: ["John Smith", "Jane Doe"],
+        notes: "Test booking confirmation email",
+        status: "confirmed",
+        createdAt: new Date().toISOString(),
+        stripePaymentId: "test_pi_123456789"
+      },
+      event: {
+        id: 1,
+        title: "Candlelight Jazz: Tribute to Ella Fitzgerald",
+        date: "2025-08-11T19:00:00Z"
+      },
+      table: {
+        id: 1,
+        tableNumber: 5,
+        floor: "main"
+      },
+      venue: {
+        id: 1,
+        name: "Main Floor"
+      }
+    };
+    
+    console.log("Testing booking confirmation email to admin...");
+    const success = await EmailService.sendBookingConfirmation(mockBookingData);
+    
+    if (success) {
+      res.json({ 
+        success: true, 
+        message: "Booking confirmation email sent successfully to info@thetreasury1929.com! Check your inbox." 
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to send booking confirmation email." 
+      });
+    }
+  } catch (error) {
+    console.error("Booking confirmation email test failed:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Booking confirmation email test failed: " + error.message
+    });
+  }
+});
+
 // Add DELETE event route early to bypass authentication middleware
 console.log("🔧 Registering DELETE event route BEFORE authentication middleware...");
 app.delete("/api/events/:id", async (req, res) => {
