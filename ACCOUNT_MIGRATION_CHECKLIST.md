@@ -15,8 +15,11 @@
 
 #### 2. SendGrid Email System
 - **Status**: ⚠️ NEEDS NEW API KEY - Current key has permission issues
-- **Current Issue**: 403 Forbidden error - API key lacks proper permissions
-- **Required Action**: Create new SendGrid API key with "Full Access" or minimum "Mail Send" permissions
+- **Current Issue**: Sender Identity not verified - emails cannot be sent from unverified addresses
+- **Required Action**: 
+  1. Verify sender identity in SendGrid dashboard
+  2. Add verified sender email address (e.g., noreply@yourdomain.com)
+  3. Update FROM_EMAIL environment variable to match verified sender
 - **Key Format**: Should start with "SG." and have full sending permissions
 - **Usage**: Booking confirmations, payment notifications, admin alerts
 
@@ -69,10 +72,11 @@
 ## IMMEDIATE NEXT STEPS
 
 ### For You (Before Client Handover):
-1. **Fix SendGrid**: Create new API key with proper permissions
-2. **Test Email System**: Verify booking confirmations work
-3. **Document Admin Access**: Create admin user guide
-4. **Prepare Transfer**: Gather all account credentials
+1. **Fix SendGrid Sender Identity**: Client needs to verify sender email in SendGrid dashboard
+2. **Set FROM_EMAIL**: Add environment variable with verified sender email
+3. **Test Email System**: Verify booking confirmations work
+4. **Document Admin Access**: Create admin user guide
+5. **Prepare Transfer**: Gather all account credentials
 
 ### For Client (After Handover):
 1. **Change All Passwords**: Stripe, SendGrid, Replit accounts
