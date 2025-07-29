@@ -218,6 +218,17 @@ This is a sophisticated mobile-first event venue booking platform designed for l
     - ✅ Fixed price display formatting to show whole dollars without decimals
     - ✅ Enhanced price handling: form accepts dollars, stores as cents, displays as dollars
     - ✅ All beverage management functionality working: add, edit, delete, reorder, toggle availability
+- **July 29, 2025. STRIPE ACCOUNT MIGRATION - NEW LIVE KEYS IMPLEMENTATION**
+  - ✅ **STRIPE ACCOUNT TRANSITION COMPLETE**: Successfully migrated from test keys to new live Stripe account
+    - ✅ Updated backend Stripe initialization to prioritize STRIPE_SECRET_KEY_NEW over legacy keys
+    - ✅ Enhanced server logging to show key source (NEW vs OLD) for verification
+    - ✅ Added Stripe configuration API endpoint `/api/stripe/config` for frontend key access
+    - ✅ Updated environment variable handling to use new live keys (sk_live_... prefix)
+    - ✅ Verified full Stripe functionality: initialization, connectivity, authentication all working
+    - ✅ Confirmed payment processing ready with new live account credentials
+    - ✅ Server diagnostics show "ready: true" status with new key configuration
+    - ✅ Live keys now active: backend uses sk_live...NEW, frontend gets pk_live...NEW
+    - ✅ Legacy key fallback system maintained for safety during transition period
 - **July 22, 2025. COMPREHENSIVE ELDERLY ACCESSIBILITY OVERHAUL - COMPLETE CUSTOMER APP OPTIMIZATION**
   - ✅ **CRITICAL: Fixed table proportions and spacing between venue designer and booking sections**
     - ✅ Maintained exact spacing relationships from venue designer (reference implementation)  

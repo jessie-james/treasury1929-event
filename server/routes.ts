@@ -40,9 +40,10 @@ import { registerPrivateEventRoutes } from "./routes-private-events";
 import { registerOrderTrackingRoutes } from "./routes-order-tracking";
 import { EmailService } from "./email-service";
 
-// Initialize Stripe with the secret key
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.error("STRIPE_SECRET_KEY environment variable not set. Stripe payments will not work.");
+// Initialize Stripe with the secret key - prioritize new key
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY;
+if (!stripeSecretKey) {
+  console.error("STRIPE_SECRET_KEY_NEW or STRIPE_SECRET_KEY environment variable not set. Stripe payments will not work.");
 }
 
 // Explicitly define API version for type safety
@@ -57,15 +58,16 @@ const MAX_INIT_ATTEMPTS = 3;
 function initializeStripe() {
   stripeInitAttempt++;
   try {
-    if (process.env.STRIPE_SECRET_KEY) {
+    if (stripeSecretKey) {
       console.log(`Initializing Stripe (attempt ${stripeInitAttempt})...`);
 
       // Additional logging for deployment debugging
-      const keyPrefix = process.env.STRIPE_SECRET_KEY.substring(0, 7);
-      console.log(`Using Stripe key with prefix: ${keyPrefix}...`);
+      const keyPrefix = stripeSecretKey.substring(0, 7);
+      const keySource = process.env.STRIPE_SECRET_KEY_NEW ? "NEW" : "OLD";
+      console.log(`Using Stripe key with prefix: ${keyPrefix}... (${keySource})`);
 
       // Create Stripe instance with more resilient settings for deployment
-      stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      stripe = new Stripe(stripeSecretKey, {
         apiVersion: stripeApiVersion,
         timeout: 20000, // 20 second timeout for API requests in deployment
         maxNetworkRetries: 3, // Retry network requests up to 3 times
@@ -75,7 +77,7 @@ function initializeStripe() {
       console.log("✓ Stripe initialized successfully");
       return true;
     } else {
-      console.error("× Cannot initialize Stripe: STRIPE_SECRET_KEY is missing");
+      console.error("× Cannot initialize Stripe: STRIPE_SECRET_KEY_NEW or STRIPE_SECRET_KEY is missing");
       return false;
     }
   } catch (error) {
@@ -683,6 +685,8 @@ export async function registerRoutes(app: Express) {
       });
     }
   });
+
+
 
   // Broadcast updates to all connected clients
   const broadcastAvailability = async (eventId: number) => {

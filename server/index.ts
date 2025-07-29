@@ -234,6 +234,29 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "healthy" });
 });
 
+// Stripe configuration endpoint for frontend
+app.get("/api/stripe/config", (_req, res) => {
+  try {
+    const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY_NEW || process.env.STRIPE_PUBLISHABLE_KEY;
+    
+    if (!publishableKey) {
+      return res.status(500).json({ 
+        error: "Stripe configuration not available" 
+      });
+    }
+
+    res.json({
+      publishableKey,
+      keySource: process.env.STRIPE_PUBLISHABLE_KEY_NEW ? "NEW" : "OLD"
+    });
+  } catch (error) {
+    console.error("Error getting Stripe config:", error);
+    res.status(500).json({ 
+      error: "Failed to load Stripe configuration" 
+    });
+  }
+});
+
 // Email test endpoint for production verification
 app.post("/api/test-email", async (req, res) => {
   try {
