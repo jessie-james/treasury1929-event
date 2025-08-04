@@ -104,7 +104,7 @@ export function EventDetails({
           </div>
           <div className="flex items-center gap-4">
             <MapPin className="h-8 w-8 flex-shrink-0" />
-            <span className="text-2xl md:text-3xl">Elegant Events Venue</span>
+            <span className="text-2xl md:text-3xl">The Treasury 1929, 2 E Congress St, Tucson, AZ 85701</span>
           </div>
         </div>
 
