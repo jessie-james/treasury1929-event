@@ -93,9 +93,14 @@ export function EventDetails({
         <div className="flex flex-col gap-6 text-muted-foreground">
           <div className="flex items-center gap-4">
             <Calendar className="h-8 w-8 flex-shrink-0" />
-            <span className="text-2xl md:text-3xl leading-relaxed">
-              {format(new Date(event.date), "PPP 'at' p")}
-            </span>
+            <div className="flex flex-col">
+              <span className="text-2xl md:text-3xl leading-relaxed font-semibold">
+                Event Date: {format(new Date(event.date), "MMM d")}
+              </span>
+              <span className="text-xl md:text-2xl leading-relaxed text-muted-foreground">
+                Time: Guest Arrival 5:45 PM, show starts 6:30 PM
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <MapPin className="h-8 w-8 flex-shrink-0" />
