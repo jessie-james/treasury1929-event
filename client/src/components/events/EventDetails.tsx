@@ -108,7 +108,7 @@ export function EventDetails({
           </div>
         </div>
 
-        <p className="text-2xl md:text-3xl leading-relaxed">{event.description}</p>
+        <div className="text-2xl md:text-3xl leading-relaxed whitespace-pre-line">{event.description}</div>
 
         {hasBooking && (
           <Alert variant="warning" className="bg-yellow-50 border-yellow-200 p-6">
