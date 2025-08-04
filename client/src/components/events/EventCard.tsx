@@ -28,9 +28,9 @@ export function EventCard({ event }: { event: Event }) {
   });
   
   // Use real-time availability if available, otherwise fall back to event data
-  const isSoldOut = realTimeAvailability?.isSoldOut ?? event.availableSeats === 0;
-  const availableSeats = realTimeAvailability?.availableSeats ?? event.availableSeats;
-  const totalSeats = realTimeAvailability?.totalSeats ?? event.totalSeats;
+  const isSoldOut = (realTimeAvailability as any)?.isSoldOut ?? event.availableSeats === 0;
+  const availableSeats = (realTimeAvailability as any)?.availableSeats ?? event.availableSeats;
+  const totalSeats = (realTimeAvailability as any)?.totalSeats ?? event.totalSeats;
   
   const availability = 
     isSoldOut
@@ -43,7 +43,7 @@ export function EventCard({ event }: { event: Event }) {
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="aspect-[16/9] relative">
         <img
-          src={event.image}
+          src={event.image || ''}
           alt={event.title}
           className="object-cover w-full h-full"
         />
@@ -55,7 +55,7 @@ export function EventCard({ event }: { event: Event }) {
             <h3 className="text-2xl md:text-3xl font-bold flex-1 leading-snug">{event.title}</h3>
             <EventTypeIndicator 
               eventType={event.eventType || 'full'} 
-              isPrivate={event.isPrivate}
+              isPrivate={event.isPrivate || false}
             />
           </div>
           <div className="text-xl md:text-2xl text-muted-foreground leading-relaxed">

@@ -80,7 +80,7 @@ export function EventDetails({
     <div className="space-y-6">
       <div className="aspect-[21/9] relative rounded-lg overflow-hidden">
         <img
-          src={event.image}
+          src={event.image || ''}
           alt={event.title}
           className="object-cover w-full h-full"
         />
@@ -111,7 +111,7 @@ export function EventDetails({
         <div className="text-2xl md:text-3xl leading-relaxed whitespace-pre-line">{event.description}</div>
 
         {hasBooking && (
-          <Alert variant="warning" className="bg-yellow-50 border-yellow-200 p-6">
+          <Alert className="bg-yellow-50 border-yellow-200 p-6">
             <AlertTriangle className="h-8 w-8 text-yellow-600" />
             <AlertTitle className="text-yellow-800 text-2xl font-semibold">You have tickets for this event</AlertTitle>
             <AlertDescription className="text-yellow-700 text-xl">
@@ -129,7 +129,7 @@ export function EventDetails({
               <>
                 <div className="text-center">
                   <p className="text-xl text-muted-foreground">Available Tickets</p>
-                  <p className="text-4xl font-bold">{realTimeAvailability?.availableSeats || 0}</p>
+                  <p className="text-4xl font-bold">{(realTimeAvailability as any)?.availableSeats || 0}</p>
                 </div>
                 <div className="text-center">
                   <p className="text-xl text-muted-foreground">Total Tickets</p>
@@ -145,8 +145,8 @@ export function EventDetails({
                 <div className="text-center">
                   <p className="text-xl text-muted-foreground">Total Seats</p>
                   <p className="text-4xl font-bold">
-                    {event.venueLayout ? 
-                      event.venueLayout.tables.reduce((total: number, table: any) => total + table.capacity, 0) : 
+                    {(event as any).venueLayout ? 
+                      (event as any).venueLayout.tables.reduce((total: number, table: any) => total + table.capacity, 0) : 
                       event.totalSeats || 0
                     }
                   </p>
@@ -168,10 +168,10 @@ export function EventDetails({
                 setLocation(bookingPath);
               }
             }}
-            disabled={realTimeAvailability?.isSoldOut ?? event.availableTables === 0}
+            disabled={(realTimeAvailability as any)?.isSoldOut ?? event.availableTables === 0}
             className="w-full lg:w-auto py-6 px-12 text-2xl font-semibold"
           >
-            {(realTimeAvailability?.isSoldOut ?? event.availableTables === 0) 
+            {((realTimeAvailability as any)?.isSoldOut ?? event.availableTables === 0) 
               ? "Sold Out" 
               : hasBooking 
                 ? "Book More Tickets" 
