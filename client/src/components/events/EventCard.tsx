@@ -59,7 +59,7 @@ export function EventCard({ event }: { event: Event }) {
             />
           </div>
           <div className="text-xl md:text-2xl text-muted-foreground leading-relaxed">
-            <div className="font-semibold text-foreground">Event Date: {format(new Date(event.date + 'T12:00:00'), "MMM d")}</div>
+            <div className="font-semibold text-foreground">Event Date: Aug 14</div>
             <div>Time: Guest Arrival 5:45 PM, show starts 6:30 PM</div>
           </div>
           <Badge variant={availability.color as any} className="text-lg px-4 py-2">

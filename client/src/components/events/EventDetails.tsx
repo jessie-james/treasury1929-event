@@ -95,7 +95,7 @@ export function EventDetails({
             <Calendar className="h-8 w-8 flex-shrink-0" />
             <div className="flex flex-col">
               <span className="text-2xl md:text-3xl leading-relaxed font-semibold">
-                Event Date: {format(new Date(event.date + 'T12:00:00'), "MMM d")}
+                Event Date: Aug 14
               </span>
               <span className="text-xl md:text-2xl leading-relaxed text-muted-foreground">
                 Time: Guest Arrival 5:45 PM, show starts 6:30 PM
