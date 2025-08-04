@@ -106,9 +106,17 @@ export function IndividualSeatSelection({ selectedTable, onComplete, onBack }: P
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Configure Your Seats</h2>
-          <Button variant="outline" onClick={onBack}>
-            Back to Table Selection
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onBack}>
+              Back to Table Selection
+            </Button>
+            <Button
+              onClick={handleContinue}
+              disabled={!validation.valid}
+            >
+              Continue to Guest Details
+            </Button>
+          </div>
         </div>
         
         <p className="text-muted-foreground">

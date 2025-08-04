@@ -97,6 +97,16 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
         <p className="text-muted-foreground">
           Enhance your evening with our curated wine selection
         </p>
+        
+        {/* Top Action Buttons */}
+        <div className="flex justify-center gap-3 pt-2">
+          <Button variant="outline" onClick={onSkip}>
+            Skip Wine Selection
+          </Button>
+          <Button onClick={handleComplete}>
+            {hasSelections ? "Continue with Wine" : "Continue without Wine"}
+          </Button>
+        </div>
       </div>
 
       {/* ENHANCED ALCOHOL NOTICES */}

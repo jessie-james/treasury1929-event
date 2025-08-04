@@ -240,10 +240,39 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
     <div className="min-h-screen">
       {/* Simple header - no nesting */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2">Select Your Table</h2>
-        <p className="text-gray-600 mb-4">
-          Click on an available table in the venue layout below.
-        </p>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Select Your Table</h2>
+            <p className="text-gray-600">
+              Click on an available table in the venue layout below.
+            </p>
+          </div>
+          
+          {/* Top Action Buttons */}
+          {selectedTable && (
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedTable(null)}
+                className="px-6"
+              >
+                Change Table
+              </Button>
+              <Button
+                onClick={() => {
+                  const seatNumbers = Array.from({length: desiredGuestCount}, (_, i) => i + 1);
+                  onComplete({
+                    tableId: selectedTable.id,
+                    seatNumbers: seatNumbers
+                  });
+                }}
+                className="bg-green-600 hover:bg-green-700 px-6"
+              >
+                Confirm Table Selection
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Venue Selection - No card wrapper */}

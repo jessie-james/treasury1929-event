@@ -263,6 +263,29 @@ function FoodSelectionInner({ selectedSeats, eventId, onComplete }: Props) {
             • Tax and tip are included • NA beverages included
           </p>
         </div>
+        
+        {/* Top Action Buttons */}
+        <div className="flex justify-center gap-3 pt-2">
+          <Button
+            variant="outline"
+            onClick={moveToPreviousStep}
+            disabled={currentStepIndex === 0 && currentSeat === selectedSeats[0]}
+          >
+            Previous
+          </Button>
+          <Button
+            onClick={moveToNextStep}
+            disabled={
+              (currentStep === "name" && !selections[currentSeat]?.name.trim()) ||
+              (currentStep !== "name" && selections[currentSeat]?.[currentStep] === undefined)
+            }
+          >
+            {currentStepIndex === STEPS.length - 1 && currentSeat === selectedSeats[selectedSeats.length - 1]
+              ? "Complete Selection"
+              : "Next"
+            }
+          </Button>
+        </div>
       </div>
 
       {/* Progress indicator */}
