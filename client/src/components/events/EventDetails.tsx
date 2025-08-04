@@ -110,6 +110,33 @@ export function EventDetails({
 
         <div className="text-2xl md:text-3xl leading-relaxed whitespace-pre-line">{event.description}</div>
 
+        {/* Top Book Now Button */}
+        <div className="flex justify-center">
+          <Button 
+            size="lg"
+            onClick={() => {
+              if (onBookNow) {
+                onBookNow();
+              } else {
+                // Smart routing based on venue layout availability
+                const bookingPath = hasVenueLayouts 
+                  ? `/events/${eventId}/book`
+                  : `/events/${eventId}/tickets`;
+                setLocation(bookingPath);
+              }
+            }}
+            disabled={(realTimeAvailability as any)?.isSoldOut ?? event.availableTables === 0}
+            className="py-6 px-12 text-2xl font-semibold"
+          >
+            {((realTimeAvailability as any)?.isSoldOut ?? event.availableTables === 0) 
+              ? "Sold Out" 
+              : hasBooking 
+                ? "Book More Tickets" 
+                : "Book Now"
+            }
+          </Button>
+        </div>
+
         {hasBooking && (
           <Alert className="bg-yellow-50 border-yellow-200 p-6">
             <AlertTriangle className="h-8 w-8 text-yellow-600" />
