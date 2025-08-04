@@ -29,7 +29,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { randomUUID } from "crypto";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql, ne } from "drizzle-orm";
 import { db } from "./db";
 import crypto from 'crypto';
 import { registerAdminRoutes } from "./routes-admin";
@@ -350,7 +350,7 @@ export async function registerRoutes(app: Express) {
       const tablesWithBookings = await db
         .select({
           tableId: bookings.tableId,
-          bookingCount: db.select().from(bookings).where(eq(bookings.tableId, bookings.tableId))
+          bookingCount: sql<number>`count(*)`
         })
         .from(bookings)
         .where(inArray(bookings.tableId, allTables.map(t => t.id)));
@@ -379,8 +379,8 @@ export async function registerRoutes(app: Express) {
           const bookedDuplicates = duplicates.filter(t => bookedTableIds.has(t.id));
           const unbookedDuplicates = duplicates.filter(t => !bookedTableIds.has(t.id));
           
-          let tableToKeep;
-          let toDelete;
+          let tableToKeep: typeof allTables[0];
+          let toDelete: typeof allTables;
           
           if (bookedDuplicates.length > 0) {
             // Keep the oldest booked table
@@ -466,18 +466,18 @@ export async function registerRoutes(app: Express) {
 
       console.log('🟢 CREATING BOOKING (FINAL ATTEMPT):', JSON.stringify(bookingData, null, 2));
       const newBooking = await storage.createBooking(bookingData);
-      console.log('🟢 FINAL BOOKING SUCCESS:', newBooking.id);
+      console.log('🟢 FINAL BOOKING SUCCESS:', (newBooking as any)?.id || 'booking created');
       
       // Send booking confirmation email
       try {
         const event = await storage.getEventById(bookingData.eventId);
         const table = await storage.getTableById(bookingData.tableId);
-        const venue = await storage.getVenueById(event.venueId);
+        const venue = event ? await storage.getVenueById(event.venueId) : null;
         
         if (event && table && venue) {
           // Send customer confirmation email
           await EmailService.sendBookingConfirmation({
-            booking: newBooking,
+            booking: newBooking as any,
             event,
             table,
             venue
@@ -485,7 +485,7 @@ export async function registerRoutes(app: Express) {
           
           // Send admin notification email
           await EmailService.sendAdminBookingNotification({
-            booking: newBooking,
+            booking: newBooking as any,
             event,
             table,
             venue
@@ -714,7 +714,7 @@ export async function registerRoutes(app: Express) {
   const broadcastCheckInUpdate = async (eventId: number) => {
     try {
       // Get updated check-in stats
-      const checkInStats = await storage.getEventCheckInStats(eventId);
+      const checkInStats = await (storage as any).getEventCheckInStats(eventId);
 
       const message = JSON.stringify({
         type: 'checkin_update',
@@ -853,7 +853,7 @@ export async function registerRoutes(app: Express) {
       // If venue is being changed, calculate seats from venue layout
       if (updateData.venueId) {
         try {
-          const venueLayout = await storage.getVenueLayout(updateData.venueId);
+          const venueLayout = await (storage as any).getVenueLayout(updateData.venueId);
           if (venueLayout?.tables) {
             const totalSeats = venueLayout.tables.reduce((sum: number, table: any) => sum + (table.capacity || 0), 0);
             const totalTables = venueLayout.tables.length;
@@ -1178,10 +1178,10 @@ export async function registerRoutes(app: Express) {
         action: "add_event_venue",
         entityType: "event",
         entityId: eventId,
-        details: {
+        details: JSON.stringify({
           venueId: venueData.venueId,
           displayName: venueData.displayName
-        }
+        })
       });
 
       res.status(201).json(newEventVenue);
@@ -1232,7 +1232,7 @@ export async function registerRoutes(app: Express) {
           .where(and(
             eq(eventVenues.eventId, eventId),
             eq(eventVenues.displayName, displayName),
-            eq(eventVenues.venueId, venueId).not()
+            ne(eventVenues.venueId, venueId)
           ));
 
         if (nameExists.length > 0) {
@@ -1506,9 +1506,9 @@ export async function registerRoutes(app: Express) {
         action: "update_event_food_options",
         entityType: "event",
         entityId: eventId,
-        details: {
+        details: JSON.stringify({
           foodOptionIds: foodOptionIds || []
-        }
+        })
       });
 
       res.json({ success: true });
@@ -1693,7 +1693,7 @@ export async function registerRoutes(app: Express) {
       console.log(`QR scan lookup for booking ${bookingId}`);
 
       // Get detailed booking information 
-      const booking = await storage.getBookingByQRCode(bookingId);
+      const booking = await (storage as any).getBookingByQRCode(bookingId);
       if (!booking) {
         return res.status(404).json({ message: "Booking not found" });
       }
@@ -1722,7 +1722,7 @@ export async function registerRoutes(app: Express) {
       console.log(`Getting check-in stats for event ${eventId}`);
 
       // Get statistics
-      const stats = await storage.getEventCheckInStats(eventId);
+      const stats = await (storage as any).getEventCheckInStats(eventId);
       res.json(stats);
     } catch (error) {
       console.error("Error fetching check-in stats:", error);
@@ -2841,7 +2841,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid event ID" });
       }
 
-      const totals = await storage.getEventFoodTotals(eventId);
+      const totals = await (storage as any).getEventFoodTotals(eventId);
       res.json(totals);
     } catch (error) {
       console.error("Error fetching event food totals:", error);
@@ -2861,7 +2861,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid event ID" });
       }
 
-      const orders = await storage.getEventOrdersWithDetails(eventId);
+      const orders = await (storage as any).getEventOrdersWithDetails(eventId);
       
       // Transform data to match Kitchen Dashboard format
       const ordersByTable: Record<number, any[]> = {};
@@ -2908,7 +2908,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid event ID" });
       }
 
-      const orders = await storage.getEventOrdersWithDetails(eventId);
+      const orders = await (storage as any).getEventOrdersWithDetails(eventId);
       res.json(orders);
     } catch (error) {
       console.error("Error fetching event orders:", error);
@@ -2930,7 +2930,7 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid booking ID" });
       }
 
-      const booking = await storage.getBookingWithDetails(bookingId);
+      const booking = await (storage as any).getBookingWithDetails(bookingId);
       if (!booking) {
         return res.status(404).json({ message: "Booking not found" });
       }
