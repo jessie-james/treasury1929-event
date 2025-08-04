@@ -108,10 +108,38 @@ export function EventDetails({
           </div>
         </div>
 
-        <div className="text-2xl md:text-3xl leading-relaxed whitespace-pre-line">{event.description}</div>
-
-        {/* Top Book Now Button */}
-        <div className="flex justify-center">
+        {/* Top Booking Section with Tables Info */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 p-8 bg-muted rounded-xl">
+          <div className="flex flex-col sm:flex-row gap-8">
+            {event.eventType === 'ticket-only' ? (
+              <>
+                <div className="text-center">
+                  <p className="text-xl text-muted-foreground">Available Tickets</p>
+                  <p className="text-4xl font-bold">{(realTimeAvailability as any)?.availableSeats || 0}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl text-muted-foreground">Total Tickets</p>
+                  <p className="text-4xl font-bold">{event.ticketCapacity || 0}</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-center">
+                  <p className="text-xl text-muted-foreground">Available Tables</p>
+                  <p className="text-4xl font-bold">{event.availableTables || 0}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl text-muted-foreground">Total Seats</p>
+                  <p className="text-4xl font-bold">
+                    {(event as any).venueLayout ? 
+                      (event as any).venueLayout.tables.reduce((total: number, table: any) => total + table.capacity, 0) : 
+                      event.totalSeats || 0
+                    }
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
           <Button 
             size="lg"
             onClick={() => {
@@ -126,7 +154,7 @@ export function EventDetails({
               }
             }}
             disabled={(realTimeAvailability as any)?.isSoldOut ?? event.availableTables === 0}
-            className="py-6 px-12 text-2xl font-semibold"
+            className="w-full lg:w-auto py-6 px-12 text-2xl font-semibold"
           >
             {((realTimeAvailability as any)?.isSoldOut ?? event.availableTables === 0) 
               ? "Sold Out" 
@@ -136,6 +164,8 @@ export function EventDetails({
             }
           </Button>
         </div>
+
+        <div className="text-2xl md:text-3xl leading-relaxed whitespace-pre-line">{event.description}</div>
 
         {hasBooking && (
           <Alert className="bg-yellow-50 border-yellow-200 p-6">
