@@ -3342,21 +3342,25 @@ export async function registerRoutes(app: Express) {
       //   return res.status(401).json({ message: "Unauthorized" });
       // }
 
-      // Get payment data from payments table joined with booking info
+      // Get payment data - exclude refunded bookings from monthly sales entirely
       const paymentsData = await db.execute(sql`
-        -- Get payments and cancelled bookings (union to show both paid and cancelled orders)
+        -- Show only live confirmed payments for monthly sales calculation
+        -- Refunded bookings should not appear in sales data at all
         SELECT 
           p.id,
           p.booking_id,
           p.stripe_payment_id,
-          p.amount,
+          CASE 
+            WHEN p.status = 'test_payment' THEN 0 
+            ELSE p.amount 
+          END as amount,
           p.currency,
           p.status,
           p.created_at as payment_date,
           b.customer_email,
           b.guest_names,
           b.party_size,
-          b.refund_amount,
+          0 as refund_amount,  -- Don't include refund amounts in sales data
           b.status as booking_status,
           t.table_number,
           e.title as event_title,
@@ -3365,31 +3369,7 @@ export async function registerRoutes(app: Express) {
         LEFT JOIN bookings b ON p.booking_id = b.id
         LEFT JOIN tables t ON b.table_id = t.id  
         LEFT JOIN events e ON b.event_id = e.id
-        
-        UNION ALL
-        
-        -- Add cancelled bookings without payments
-        SELECT 
-          NULL as id,
-          b.id as booking_id,
-          NULL as stripe_payment_id,
-          0 as amount,
-          'usd' as currency,
-          'cancelled' as status,
-          b.created_at as payment_date,
-          b.customer_email,
-          b.guest_names,
-          b.party_size,
-          b.refund_amount,
-          b.status as booking_status,
-          t.table_number,
-          e.title as event_title,
-          e.date as event_date
-        FROM bookings b
-        LEFT JOIN tables t ON b.table_id = t.id  
-        LEFT JOIN events e ON b.event_id = e.id
-        WHERE b.status IN ('cancelled', 'refunded') 
-        AND NOT EXISTS (SELECT 1 FROM payments p WHERE p.booking_id = b.id)
+        WHERE b.status = 'confirmed'  -- Only confirmed bookings count toward sales
         
         ORDER BY payment_date DESC
       `);
