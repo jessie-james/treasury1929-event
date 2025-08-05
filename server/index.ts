@@ -285,6 +285,105 @@ app.post("/api/test-email", async (req, res) => {
   }
 });
 
+// Demo emails endpoint for Jose - sends all email templates
+app.post("/api/demo-emails", async (req, res) => {
+  try {
+    const { EmailService } = await import("./email-service");
+    const targetEmail = req.body.email || "jose@sahuaroworks.com";
+    
+    // Mock data for demo
+    const mockBookingData = {
+      booking: {
+        id: 12345,
+        customerEmail: targetEmail,
+        partySize: 2,
+        guestNames: ["Jose"],
+        notes: "Celebrating anniversary",
+        status: "confirmed",
+        createdAt: new Date().toISOString(),
+        stripePaymentId: "pi_demo123456"
+      },
+      event: {
+        id: 35,
+        title: "Pianist Sophia Su in Concert with Clarinetist",
+        date: new Date('2025-08-14T19:00:00').toISOString()
+      },
+      table: {
+        id: 286,
+        tableNumber: 1,
+        floor: "main"
+      },
+      venue: {
+        id: 4,
+        name: "Main Floor"
+      }
+    };
+
+    const results = [];
+    
+    // 1. Booking Confirmation
+    try {
+      await EmailService.sendBookingConfirmation(mockBookingData as any);
+      results.push("✅ Booking Confirmation sent");
+    } catch (error) {
+      results.push("❌ Booking Confirmation failed");
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Delay
+    
+    // 2. Customer Cancellation
+    try {
+      await EmailService.sendCancellationEmail(mockBookingData as any, 8500);
+      results.push("✅ Customer Cancellation sent");
+    } catch (error) {
+      results.push("❌ Customer Cancellation failed");
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Delay
+    
+    // 3. Venue Cancellation
+    try {
+      await EmailService.sendVenueCancellationEmail(mockBookingData as any, 8500);
+      results.push("✅ Venue Cancellation sent");
+    } catch (error) {
+      results.push("❌ Venue Cancellation failed");
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Delay
+    
+    // 4. Event Reminder
+    try {
+      await EmailService.sendEventReminder(mockBookingData as any);
+      results.push("✅ Event Reminder sent");
+    } catch (error) {
+      results.push("❌ Event Reminder failed");
+    }
+    
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Delay
+    
+    // 5. Password Reset/Welcome
+    try {
+      await EmailService.sendPasswordResetEmail(targetEmail, "demo_token_12345");
+      results.push("✅ Password Reset/Welcome sent");
+    } catch (error) {
+      results.push("❌ Password Reset/Welcome failed");
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `All demo emails sent to ${targetEmail}!`,
+      results: results
+    });
+    
+  } catch (error) {
+    console.error("Demo emails failed:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Demo emails failed. Please check your configuration." 
+    });
+  }
+});
+
 // Test booking confirmation email endpoint
 app.post("/api/test-booking-confirmation", async (req, res) => {
   try {
@@ -338,6 +437,143 @@ app.post("/api/test-booking-confirmation", async (req, res) => {
       success: false, 
       message: "Booking confirmation email test failed: " + error.message
     });
+  }
+});
+
+// Test individual email templates - Jose demo endpoints
+app.post("/api/test-jose-booking-confirmation", async (req, res) => {
+  try {
+    const { EmailService } = await import("./email-service");
+    const mockBookingData = {
+      booking: {
+        id: 12345,
+        customerEmail: "jose@sahuaroworks.com",
+        partySize: 2,
+        guestNames: ["Jose"],
+        notes: "Demo booking confirmation email",
+        status: "confirmed",
+        createdAt: new Date().toISOString(),
+        stripePaymentId: "pi_demo123456"
+      },
+      event: {
+        id: 35,
+        title: "Pianist Sophia Su in Concert with Clarinetist",
+        date: new Date('2025-08-14T19:00:00').toISOString()
+      },
+      table: { id: 286, tableNumber: 1, floor: "main" },
+      venue: { id: 4, name: "Main Floor" }
+    };
+    
+    await EmailService.sendBookingConfirmation(mockBookingData);
+    res.json({ success: true, message: "Booking confirmation sent to jose@sahuaroworks.com" });
+  } catch (error) {
+    console.error("Jose booking confirmation failed:", error);
+    res.status(500).json({ success: false, message: "Failed: " + error.message });
+  }
+});
+
+app.post("/api/test-jose-cancellation", async (req, res) => {
+  try {
+    const { EmailService } = await import("./email-service");
+    const mockBookingData = {
+      booking: {
+        id: 12345,
+        customerEmail: "jose@sahuaroworks.com",
+        partySize: 2,
+        guestNames: ["Jose"],
+        notes: "Demo cancellation email",
+        status: "confirmed",
+        createdAt: new Date().toISOString(),
+        stripePaymentId: "pi_demo123456"
+      },
+      event: {
+        id: 35,
+        title: "Pianist Sophia Su in Concert with Clarinetist",
+        date: new Date('2025-08-14T19:00:00').toISOString()
+      },
+      table: { id: 286, tableNumber: 1, floor: "main" },
+      venue: { id: 4, name: "Main Floor" }
+    };
+    
+    await EmailService.sendCancellationEmail(mockBookingData, 8500);
+    res.json({ success: true, message: "Customer cancellation sent to jose@sahuaroworks.com" });
+  } catch (error) {
+    console.error("Jose cancellation failed:", error);
+    res.status(500).json({ success: false, message: "Failed: " + error.message });
+  }
+});
+
+app.post("/api/test-jose-venue-cancellation", async (req, res) => {
+  try {
+    const { EmailService } = await import("./email-service");
+    const mockBookingData = {
+      booking: {
+        id: 12345,
+        customerEmail: "jose@sahuaroworks.com",
+        partySize: 2,
+        guestNames: ["Jose"],
+        notes: "Demo venue cancellation email",
+        status: "confirmed",
+        createdAt: new Date().toISOString(),
+        stripePaymentId: "pi_demo123456"
+      },
+      event: {
+        id: 35,
+        title: "Pianist Sophia Su in Concert with Clarinetist",
+        date: new Date('2025-08-14T19:00:00').toISOString()
+      },
+      table: { id: 286, tableNumber: 1, floor: "main" },
+      venue: { id: 4, name: "Main Floor" }
+    };
+    
+    await EmailService.sendVenueCancellationEmail(mockBookingData, 8500);
+    res.json({ success: true, message: "Venue cancellation sent to jose@sahuaroworks.com" });
+  } catch (error) {
+    console.error("Jose venue cancellation failed:", error);
+    res.status(500).json({ success: false, message: "Failed: " + error.message });
+  }
+});
+
+app.post("/api/test-jose-reminder", async (req, res) => {
+  try {
+    const { EmailService } = await import("./email-service");
+    const mockBookingData = {
+      booking: {
+        id: 12345,
+        customerEmail: "jose@sahuaroworks.com",
+        partySize: 2,
+        guestNames: ["Jose"],
+        notes: "Demo reminder email",
+        status: "confirmed",
+        createdAt: new Date().toISOString(),
+        stripePaymentId: "pi_demo123456"
+      },
+      event: {
+        id: 35,
+        title: "Pianist Sophia Su in Concert with Clarinetist",
+        date: new Date('2025-08-14T19:00:00').toISOString()
+      },
+      table: { id: 286, tableNumber: 1, floor: "main" },
+      venue: { id: 4, name: "Main Floor" }
+    };
+    
+    await EmailService.sendEventReminder(mockBookingData);
+    res.json({ success: true, message: "Event reminder sent to jose@sahuaroworks.com" });
+  } catch (error) {
+    console.error("Jose reminder failed:", error);
+    res.status(500).json({ success: false, message: "Failed: " + error.message });
+  }
+});
+
+app.post("/api/test-jose-welcome", async (req, res) => {
+  try {
+    const { EmailService } = await import("./email-service");
+    
+    await EmailService.sendPasswordResetEmail("jose@sahuaroworks.com", "demo_token_12345");
+    res.json({ success: true, message: "Welcome/password reset sent to jose@sahuaroworks.com" });
+  } catch (error) {
+    console.error("Jose welcome failed:", error);
+    res.status(500).json({ success: false, message: "Failed: " + error.message });
   }
 });
 
