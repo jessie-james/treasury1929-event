@@ -77,7 +77,7 @@ export class EmailService {
         day: 'numeric'
       });
       
-      // Create time display: Guest Arrival 5:45 PM, show starts 6:30 PM
+      // The event date contains the show start time
       const showTime = eventDateObj.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
@@ -212,7 +212,7 @@ export class EmailService {
         day: 'numeric'
       });
       
-      // Create time display: Guest Arrival 5:45 PM, show starts 6:30 PM
+      // The event date contains the show start time  
       const showTime = eventDateObj.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
