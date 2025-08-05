@@ -39,6 +39,8 @@ import { registerBookingValidationRoutes } from "./routes-booking-validation";
 import { registerPrivateEventRoutes } from "./routes-private-events";
 import { registerOrderTrackingRoutes } from "./routes-order-tracking";
 import { EmailService } from "./email-service";
+import PDFDocument from "pdfkit";
+import QRCode from "qrcode";
 
 // Initialize Stripe with the secret key - prioritize new key
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY;
@@ -4146,6 +4148,149 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching event bookings:", error);
       res.status(500).json({ message: "Failed to fetch event bookings" });
+    }
+  });
+
+  // PDF Ticket Download Route - Public access via booking ID
+  app.get("/api/download-ticket/:bookingId", async (req, res) => {
+    try {
+      const bookingId = req.params.bookingId;
+      
+      // Get booking with all details
+      const booking = await (storage as any).getBookingWithDetails(bookingId);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // Get event details
+      const event = await storage.getEventById(booking.eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      // Get table details
+      const table = await storage.getTableById(booking.tableId);
+      if (!table) {
+        return res.status(404).json({ message: "Table not found" });
+      }
+
+      // Format event date and time
+      const eventDateObj = new Date(event.date);
+      const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      const showTime = eventDateObj.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
+      const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
+
+      // Generate QR code
+      const qrData = `BOOKING:${booking.id}:${event.id}:${booking.customerEmail}`;
+      const qrCodeBuffer = await QRCode.toBuffer(qrData, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#2c3e50',
+          light: '#ffffff'
+        }
+      });
+
+      // Create PDF document
+      const doc = new PDFDocument({ size: 'A4', margin: 50 });
+      
+      // Set response headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="ticket-${booking.id}-${event.title.replace(/[^a-zA-Z0-9]/g, '-')}.pdf"`);
+      
+      // Pipe PDF to response
+      doc.pipe(res);
+
+      // Header
+      doc.fontSize(24).fillColor('#2c3e50').text('The Treasury 1929', { align: 'center' });
+      doc.fontSize(18).fillColor('#27ae60').text('Digital Ticket', { align: 'center' });
+      doc.moveDown(1);
+
+      // Event Information
+      doc.fontSize(20).fillColor('#2c3e50').text(event.title, { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fontSize(14).fillColor('#495057').text(eventDateFormatted, { align: 'center' });
+      doc.fontSize(12).fillColor('#6c757d').text(timeDisplay, { align: 'center' });
+      doc.moveDown(1);
+
+      // Booking Details Box
+      const boxY = doc.y;
+      doc.rect(50, boxY, 495, 120).stroke('#6c757d');
+      doc.fontSize(14).fillColor('#2c3e50');
+      
+      const leftColumn = 70;
+      const rightColumn = 300;
+      let currentY = boxY + 20;
+
+      doc.text('Booking ID:', leftColumn, currentY);
+      doc.text(`#${booking.id}`, rightColumn, currentY);
+      currentY += 20;
+
+      doc.text('Table:', leftColumn, currentY);
+      doc.text(`Table ${table.tableNumber}`, rightColumn, currentY);
+      currentY += 20;
+
+      doc.text('Party Size:', leftColumn, currentY);
+      doc.text(`${booking.partySize} guests`, rightColumn, currentY);
+      currentY += 20;
+
+      doc.text('Guest Email:', leftColumn, currentY);
+      doc.text(booking.customerEmail, rightColumn, currentY);
+      currentY += 20;
+
+      if (booking.guestNames && booking.guestNames.length > 0) {
+        doc.text('Guests:', leftColumn, currentY);
+        doc.text(booking.guestNames.join(', '), rightColumn, currentY);
+      }
+
+      doc.moveDown(3);
+
+      // QR Code Section
+      const qrY = doc.y;
+      doc.fontSize(16).fillColor('#27ae60').text('QR Code Check-in', { align: 'center' });
+      doc.moveDown(0.5);
+      
+      // Center the QR code
+      const qrX = (doc.page.width - 150) / 2;
+      doc.image(qrCodeBuffer, qrX, doc.y, { width: 150, height: 150 });
+      doc.moveDown(8);
+
+      doc.fontSize(12).fillColor('#666').text('Scan this QR code at the venue for quick check-in', { align: 'center' });
+      doc.moveDown(1);
+
+      // Footer
+      doc.fontSize(10).fillColor('#666');
+      doc.text('The Treasury 1929', { align: 'center' });
+      doc.text('2 E Congress St, Ste 100', { align: 'center' });
+      doc.text('(520) 734-3937', { align: 'center' });
+      doc.text('www.thetreasury1929.com/dinnerconcerts', { align: 'center' });
+
+      // Finalize PDF
+      doc.end();
+      
+      console.log(`✓ PDF ticket downloaded for booking #${booking.id}`);
+
+    } catch (error) {
+      console.error('Error generating PDF ticket:', error);
+      res.status(500).json({ message: "Failed to generate PDF ticket" });
     }
   });
 

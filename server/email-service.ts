@@ -150,7 +150,7 @@ export class EmailService {
               
               <!-- DOWNLOAD BUTTON -->
               <div style="text-align: center; margin: 20px 0;">
-                <a href="https://www.thetreasury1929.com/dinnerconcerts/download-ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/api/download-ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
                   📥 Download PDF Ticket
                 </a>
                 <p style="color: #666; font-size: 12px; margin-top: 10px;">Save to your phone for easy access</p>
@@ -287,7 +287,7 @@ export class EmailService {
               
               <!-- DOWNLOAD BUTTON -->
               <div style="text-align: center; margin: 20px 0;">
-                <a href="https://www.thetreasury1929.com/dinnerconcerts/download-ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/api/download-ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
                   📥 Download PDF Ticket
                 </a>
                 <p style="color: #666; font-size: 12px; margin-top: 10px;">Save to your phone for easy access</p>
