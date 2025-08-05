@@ -423,6 +423,60 @@ export class PgStorage implements IStorage {
     return result[0] || null;
   }
 
+  async updateTableStatus(tableId: number, status: string): Promise<boolean> {
+    const result = await db.update(schema.tables)
+      .set({ status })
+      .where(eq(schema.tables.id, tableId));
+    return result.rowCount > 0;
+  }
+
+  async cancelBooking(bookingId: number, modifiedBy: number): Promise<Booking | null> {
+    // First get the booking to find the table ID
+    const booking = await this.getBooking(bookingId);
+    if (!booking) {
+      throw new Error("Booking not found");
+    }
+
+    // Update booking status to cancelled
+    const result = await db.update(schema.bookings)
+      .set({ 
+        status: 'cancelled',
+        lastModified: new Date(), 
+        modifiedBy 
+      })
+      .where(eq(schema.bookings.id, bookingId))
+      .returning();
+
+    if (result[0]) {
+      // Release the table by updating its status to available
+      await this.updateTableStatus(booking.tableId, 'available');
+      
+      // Send cancellation email
+      try {
+        const { EmailService } = require('./email-service');
+        
+        // Get event and table details for the email
+        const event = await this.getEventById(booking.eventId);
+        const table = await this.getTable(booking.tableId);
+        
+        await EmailService.sendBookingCancellation({
+          customerEmail: booking.customerEmail,
+          eventTitle: event?.title || 'Event',
+          eventDate: event?.date ? new Date(event.date).toLocaleDateString() : 'TBD',
+          eventTime: event?.time || 'TBD',
+          bookingId: booking.id,
+          tableNumber: table?.tableNumber || booking.tableId,
+          partySize: booking.partySize
+        });
+      } catch (emailError) {
+        console.error("Failed to send cancellation email:", emailError);
+        // Don't fail the cancellation if email fails
+      }
+    }
+
+    return result[0] || null;
+  }
+
   // Table methods
   async getVenues(): Promise<{ id: number, name: string }[]> {
     const venues = await db.select({ id: schema.venues.id, name: schema.venues.name })

@@ -378,4 +378,71 @@ export class EmailService {
       return false;
     }
   }
+
+  static async sendBookingCancellation(data: {
+    customerEmail: string;
+    eventTitle: string;
+    eventDate: string;
+    eventTime: string;
+    bookingId: number;
+    tableNumber: number;
+    partySize: number;
+  }): Promise<boolean> {
+    if (!emailInitialized) {
+      console.log('📧 Email service not initialized - skipping booking cancellation');
+      return false;
+    }
+
+    try {
+      const { customerEmail, eventTitle, eventDate, eventTime, bookingId, tableNumber, partySize } = data;
+
+      const emailContent = {
+        to: customerEmail,
+        from: this.FROM_EMAIL,
+        subject: 'Booking Cancellation Confirmation - The Treasury 1929',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Guest,</p>
+            
+            <p>We are writing to confirm that your booking at The Treasury 1929 has been successfully cancelled.</p>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+              <h3 style="color: #dc3545; margin-top: 0;">Cancelled Booking Details</h3>
+              <p><strong>Event:</strong> ${eventTitle}</p>
+              <p><strong>Date:</strong> ${eventDate}</p>
+              <p><strong>Time:</strong> ${eventTime}</p>
+              <p><strong>Table:</strong> ${tableNumber}</p>
+              <p><strong>Party Size:</strong> ${partySize} people</p>
+              <p><strong>Booking Reference:</strong> #${bookingId}</p>
+            </div>
+            
+            <div style="background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="color: #155724; margin: 0;">If this cancellation was unexpected or if you have any questions, please contact us immediately at (520) 734-3937.</p>
+            </div>
+            
+            <p>If you're interested in rebooking for another date or have any questions about future events, please don't hesitate to reach out to us.</p>
+            
+            <p>Thank you for your understanding.</p>
+            
+            <p>Best regards,<br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3937<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
+            </div>
+          </div>
+        `
+      };
+
+      await sgMail.send(emailContent);
+      console.log(`✓ Booking cancellation email sent to ${customerEmail}`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ Failed to send booking cancellation email:', error);
+      return false;
+    }
+  }
 }
