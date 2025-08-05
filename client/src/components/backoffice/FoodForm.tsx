@@ -184,12 +184,26 @@ export function FoodForm({ food, onClose }: Props) {
 
   const { mutate: saveFood, isPending } = useMutation({
     mutationFn: async (data: FoodFormData) => {
-      console.log("Submitting food data:", data);
+      console.log("=== FOOD FORM SUBMISSION ===");
+      console.log("Food data being submitted:", data);
+      console.log("Food object:", food);
       const endpoint = food ? `/api/food-options/${food.id}` : "/api/food-options";
       const method = food ? "PATCH" : "POST";
-      return apiRequest(method, endpoint, data);
+      console.log("API endpoint:", endpoint);
+      console.log("HTTP method:", method);
+      
+      try {
+        const result = await apiRequest(method, endpoint, data);
+        console.log("API request successful:", result);
+        return result;
+      } catch (error) {
+        console.error("API request failed:", error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("=== MUTATION SUCCESS ===");
+      console.log("Response data:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/food-options"] });
       toast({
         title: `Food item ${food ? "updated" : "created"} successfully`,
@@ -197,10 +211,12 @@ export function FoodForm({ food, onClose }: Props) {
       onClose();
     },
     onError: (error) => {
-      console.error("Food save error:", error);
+      console.error("=== MUTATION ERROR ===");
+      console.error("Full error object:", error);
+      console.error("Error message:", error instanceof Error ? error.message : String(error));
       toast({
         title: "Error",
-        description: `Failed to ${food ? "update" : "create"} food item`,
+        description: `Failed to ${food ? "update" : "create"} food item: ${error instanceof Error ? error.message : String(error)}`,
         variant: "destructive",
       });
     },
@@ -235,10 +251,24 @@ export function FoodForm({ food, onClose }: Props) {
       <CardContent>
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit((data) => {
-              console.log("Form data:", data);
-              saveFood(data);
-            })}
+            onSubmit={form.handleSubmit(
+              (data) => {
+                console.log("=== FORM SUBMIT SUCCESS ===");
+                console.log("Form data:", data);
+                console.log("Form state:", form.formState);
+                saveFood(data);
+              },
+              (errors) => {
+                console.log("=== FORM VALIDATION ERRORS ===");
+                console.log("Validation errors:", errors);
+                console.log("Form state:", form.formState);
+                toast({
+                  title: "Form validation failed",
+                  description: "Please check all required fields are filled correctly",
+                  variant: "destructive",
+                });
+              }
+            )}
             className="space-y-4"
           >
             <FormField
