@@ -37,7 +37,7 @@ export interface BookingEmailData {
 }
 
 export class EmailService {
-  private static FROM_EMAIL = 'info@thetreasury1929.com';
+  private static FROM_EMAIL = 'The Treasury 1929 <info@thetreasury1929.com>';
   private static ADMIN_EMAIL = 'info@thetreasury1929.com';
 
   static async sendBookingConfirmation(data: BookingEmailData): Promise<boolean> {
