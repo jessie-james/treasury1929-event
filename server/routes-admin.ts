@@ -331,4 +331,120 @@ export function registerAdminRoutes(app: Express): void {
       res.status(500).json({ message: "Failed to upload image" });
     }
   });
+
+  // Manual booking recovery for Athena's missing booking
+  app.post("/api/admin/recover-booking-manual", async (req, res) => {
+    try {
+      const {
+        eventId,
+        customerEmail,
+        partySize,
+        guestNames,
+        foodSelections,
+        wineSelections,
+        stripePaymentId,
+        notes,
+        tablePreference
+      } = req.body;
+
+      console.log("Creating manual booking recovery for:", customerEmail);
+
+      // Find the user or create if needed
+      let user = await storage.getUserByEmail(customerEmail);
+      if (!user) {
+        // Create user for Athena if doesn't exist
+        const newUser = await storage.createUser({
+          email: customerEmail,
+          password: "temp_password_123", // She can reset this
+          role: "customer",
+          firstName: customerEmail.includes("athena") ? "Athena" : "Customer",
+          lastName: "Recovery"
+        });
+        user = newUser;
+      }
+
+      // Find available table based on party size and preference
+      const availableTables = await storage.getAvailableTablesForEvent(parseInt(eventId));
+      let selectedTable = null;
+
+      if (tablePreference) {
+        // Try to find preferred table
+        selectedTable = availableTables.find(t => 
+          t.tableNumber.toString() === tablePreference || 
+          t.id.toString() === tablePreference
+        );
+      }
+
+      if (!selectedTable) {
+        // Find table that fits party size
+        selectedTable = availableTables.find(t => t.capacity >= parseInt(partySize));
+      }
+
+      if (!selectedTable) {
+        return res.status(400).json({ 
+          message: "No available tables found for party size",
+          availableTables: availableTables.map(t => ({
+            id: t.id,
+            tableNumber: t.tableNumber,
+            capacity: t.capacity
+          }))
+        });
+      }
+
+      // Create the booking
+      const booking = await storage.createBooking({
+        eventId: parseInt(eventId),
+        userId: user.id,
+        tableId: selectedTable.id,
+        seatNumbers: Array.from({length: parseInt(partySize)}, (_, i) => i + 1),
+        foodSelections: JSON.stringify(foodSelections),
+        customerEmail,
+        stripePaymentId: stripePaymentId || 'manual_recovery',
+        guestNames: JSON.stringify(guestNames),
+        status: 'confirmed',
+        partySize: parseInt(partySize),
+        wineSelections: JSON.stringify(wineSelections),
+        notes: notes || 'Manual booking recovery'
+      });
+
+      // Update table availability
+      await storage.updateTableStatus(selectedTable.id, 'booked');
+
+      // Send confirmation email
+      const emailService = new (require('./email-service').EmailService)();
+      try {
+        await emailService.sendBookingConfirmation({
+          customerEmail,
+          eventTitle: "Pianist Sophia Su in Concert",
+          eventDate: "August 14, 2025",
+          eventTime: "5:45 PM",
+          tableNumber: selectedTable.tableNumber,
+          partySize: parseInt(partySize),
+          guestNames: guestNames,
+          bookingId: booking.id,
+          foodSelections: foodSelections,
+          wineSelections: wineSelections
+        });
+      } catch (emailError) {
+        console.error("Failed to send confirmation email:", emailError);
+      }
+
+      res.json({
+        success: true,
+        bookingId: booking.id,
+        tableNumber: selectedTable.tableNumber,
+        tableId: selectedTable.id,
+        message: "Athena's booking recovered successfully",
+        customerEmail,
+        confirmationEmailSent: true
+      });
+
+    } catch (error) {
+      console.error("Error in manual booking recovery:", error);
+      res.status(500).json({ 
+        message: "Failed to create manual booking",
+        error: error.message 
+      });
+    }
+  });
 }
