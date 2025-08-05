@@ -71,8 +71,8 @@ export class PgStorage implements IStorage {
     return result[0] || null;
   }
 
-  async updateUserPassword(userId: number, newPassword: string): Promise<boolean> {
-    const hashedPassword = await hashPassword(newPassword);
+  async updateUserPassword(userId: number, hashedPassword: string): Promise<boolean> {
+    // Password should already be hashed by the caller
     const result = await db.update(schema.users).set({ password: hashedPassword }).where(eq(schema.users.id, userId));
     return result.rowCount > 0;
   }

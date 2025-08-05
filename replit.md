@@ -134,3 +134,12 @@ Preferred communication style: Simple, everyday language.
 - All email templates include consistent contact information (📍 2 E Congress St, Ste 100, 📞 (520) 734-3937)
 - Website references corrected to www.thetreasury1929.com/dinnerconcerts for the official dinner concert app domain
 - Password reset functionality fully implemented with secure token generation and validation routes
+
+### Password Reset Bug Fix (August 5, 2025)
+- **RESOLVED: Double Password Hashing**: Fixed critical issue where passwords were being hashed twice during reset process
+  - Root Cause: `storage.updateUserPassword` was hashing password again after `auth.ts` already hashed it
+  - Fix: Modified `updateUserPassword` to accept pre-hashed passwords, preventing double hashing
+  - Impact: Users can now successfully log in after password reset
+- **RESOLVED: Duplicate Email Functions**: Removed duplicate `sendPasswordResetEmail` functions causing compilation errors
+- **RESOLVED: Authentication Type Errors**: Fixed TypeScript errors in auth system that could cause validation failures
+- **Verified**: Password reset system now working end-to-end with proper token validation and email delivery

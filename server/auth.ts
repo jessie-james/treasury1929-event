@@ -154,6 +154,13 @@ export function setupAuth(app: Express) {
           }
 
           console.log("Found user:", { id: user.id, email: user.email, role: user.role });
+          
+          // Check if user has a password set
+          if (!user.password) {
+            console.log("User has no password set");
+            return done(null, false);
+          }
+          
           const isValid = await comparePasswords(password, user.password);
           console.log("Password validation result:", isValid);
 
@@ -421,8 +428,12 @@ export function setupAuth(app: Express) {
       console.log(`Successfully updated profile for user ${req.user!.id}`);
       
       // Don't send the password hash to the client
-      const { password, ...userWithoutPassword } = updatedUser;
-      res.json(userWithoutPassword);
+      if (updatedUser) {
+        const { password, ...userWithoutPassword } = updatedUser;
+        res.json(userWithoutPassword);
+      } else {
+        res.status(404).json({ error: "User not found" });
+      }
     } catch (error: any) {
       console.error("Error updating user profile:", error);
       const errorMessage = error.message || "Failed to update profile";
