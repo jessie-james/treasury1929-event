@@ -1,4 +1,5 @@
 import sgMail from '@sendgrid/mail';
+import QRCode from 'qrcode';
 import { Booking, Event, User, Table, Venue } from '@shared/schema';
 
 // Initialize SendGrid
