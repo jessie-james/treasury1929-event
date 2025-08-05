@@ -64,25 +64,30 @@ export class EmailService {
       const emailContent = {
         to: booking.customerEmail,
         from: this.FROM_EMAIL,
-        subject: `Booking Confirmation - ${event.title}`,
+        subject: `Your Dinner Concert Ticket Confirmation – The Treasury 1929`,
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #2c3e50; text-align: center;">Booking Confirmed! 🎉</h1>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Guest,</p>
             
-            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h2 style="color: #34495e; margin-top: 0;">Event Details</h2>
-              <p><strong>Event:</strong> ${event.title}</p>
-              <p><strong>Date & Time:</strong> ${eventDate}</p>
-              <p><strong>Venue:</strong> ${venue.name}</p>
-              <p><strong>Table:</strong> ${table.tableNumber} (${table.floor} floor)</p>
-              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
-              <p><strong>Guests:</strong> ${guestList}</p>
+            <p>Thank you for your purchase! We're excited to welcome you to an intimate evening of live music and dining at The Treasury 1929.</p>
+            
+            <p>Your ticket is confirmed for the upcoming Dinner Concert. Please be sure to bring and show the QR code below at the door on the day of the event for entry:</p>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+              <h3 style="color: #2c3e50; margin-top: 0;">Digital Check-in Code</h3>
+              <div style="background-color: white; padding: 15px; border-radius: 8px; display: inline-block;">
+                <p style="font-family: monospace; font-size: 16px; margin: 0; color: #2c3e50;">BOOKING:${booking.id}:${event.id}:${booking.customerEmail}</p>
+              </div>
+              <p style="color: #666; margin-top: 15px; font-size: 14px;">Show this code at the venue for quick check-in</p>
             </div>
 
             <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #27ae60; margin-top: 0;">Booking Reference</h3>
-              <p style="font-size: 18px; font-weight: bold; color: #2c3e50;">#{booking.id}</p>
-              <p style="font-size: 14px; color: #666;">Please keep this reference number for your records.</p>
+              <h3 style="color: #27ae60; margin-top: 0;">Event Details</h3>
+              <p><strong>Event:</strong> ${event.title}</p>
+              <p><strong>Date & Time:</strong> ${eventDate}</p>
+              <p><strong>Table:</strong> ${table.tableNumber}</p>
+              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
+              <p><strong>Booking Reference:</strong> #${booking.id}</p>
             </div>
 
             ${booking.notes ? `
@@ -92,18 +97,17 @@ export class EmailService {
             </div>
             ` : ''}
 
-            <div style="background-color: #d1ecf1; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #0c5460; margin-top: 0;">Important Information</h3>
-              <ul style="color: #0c5460;">
-                <li>Please arrive 15 minutes before the event start time</li>
-                <li>Bring a photo ID for check-in</li>
-                <li>Contact us if you need to make any changes</li>
-              </ul>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
-              <p style="color: #666;">Need help? Contact us at ${this.ADMIN_EMAIL}</p>
-              <p style="color: #666; font-size: 14px;">Thank you for choosing ${venue.name}!</p>
+            <p>We look forward to sharing a memorable evening with you.</p>
+            
+            <p>If you'd like to receive updates about future Dinner Concert Series dates and exclusive invites, just reply to this email and let us know you'd like to be added to our mailing list.</p>
+            
+            <p>Warm regards,<br><br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3937<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com</p>
             </div>
           </div>
         `
@@ -245,27 +249,41 @@ export class EmailService {
       const emailContent = {
         to: email,
         from: this.FROM_EMAIL,
-        subject: 'Password Reset Request',
+        subject: 'Welcome to The Treasury 1929 – Set Your Password to Get Started',
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #2c3e50;">Password Reset Request 🔐</h1>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Guest,</p>
             
-            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <p>You requested to reset your password. Click the button below to create a new password:</p>
-            </div>
+            <p>Welcome to The Treasury 1929! We're excited to have you as part of our Dinner Concert community.</p>
+            
+            <p>To complete the setup of your account and access your profile, please take a moment to set your password by clicking the link below:</p>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetUrl}" style="background-color: #3498db; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
-                Reset Password
+              <a href="${resetUrl}" style="background-color: #2c3e50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                🔐 Reset/Set Your Password
               </a>
             </div>
 
-            <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <p style="color: #856404; margin: 0;"><strong>Security Note:</strong> This link will expire in 1 hour. If you didn't request this reset, please ignore this email.</p>
-            </div>
+            <p>Once your password is set, you'll be able to:</p>
+            <ul>
+              <li>View and manage your upcoming reservations</li>
+              <li>Receive exclusive updates on new concert dates</li>
+              <li>Customize your preferences for future events</li>
+            </ul>
 
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
-              <p style="color: #666;">Need help? Contact us at ${this.ADMIN_EMAIL}</p>
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="color: #856404; margin: 0;">If you didn't request this setup or have any questions, feel free to reach out to us anytime.</p>
+            </div>
+            
+            <p>We look forward to hosting you soon!</p>
+            
+            <p>Warm regards,<br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3979<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com</p>
             </div>
           </div>
         `
@@ -376,30 +394,34 @@ export class EmailService {
       const emailContent = {
         to: booking.customerEmail,
         from: this.FROM_EMAIL,
-        subject: `Booking Cancelled - ${event.title}`,
+        subject: `Your Dinner Concert Ticket Cancellation & Refund Confirmation`,
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #e74c3c; text-align: center;">Booking Cancelled</h1>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Guest,</p>
             
-            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h2 style="color: #34495e; margin-top: 0;">Cancelled Booking Details</h2>
-              <p><strong>Event:</strong> ${event.title}</p>
-              <p><strong>Date:</strong> ${eventDate}</p>
-              <p><strong>Booking ID:</strong> #${booking.id}</p>
-              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
-            </div>
-
+            <p>We've processed your cancellation request for the Dinner Concert at The Treasury 1929, and your refund is now underway.</p>
+            
             ${refundAmount ? `
-            <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #155724; margin-top: 0;">Refund Information</h3>
-              <p style="color: #155724;"><strong>Refund Amount:</strong> $${(refundAmount / 100).toFixed(2)}</p>
-              <p style="color: #155724;">Your refund will be processed within 5-7 business days to your original payment method.</p>
+            <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #27ae60; margin-top: 0;">Refund Information</h3>
+              <p><strong>Refund Amount:</strong> $${(refundAmount / 100).toFixed(2)}</p>
+              <p><strong>Booking Reference:</strong> #${booking.id}</p>
             </div>
             ` : ''}
-
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
-              <p style="color: #666;">We're sorry to see you go. We hope to welcome you at a future event!</p>
-              <p style="color: #666;">Questions? Contact ${this.ADMIN_EMAIL}</p>
+            
+            <p>Please note: Refund timing may vary depending on your bank or card issuer, but it can typically be expected within 7–10 business days.</p>
+            
+            <p>While we're sorry you won't be joining us this time, we hope you'll consider choosing a future date that better fits your schedule. We'd love to welcome you to a performance soon and share the unique experience our Dinner Concert Series offers.</p>
+            
+            <p>If you'd like to be notified of upcoming concert dates, feel free to reply to this email and ask to be added to our mailing list.</p>
+            
+            <p>Warm regards,<br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3937<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com</p>
             </div>
           </div>
         `
