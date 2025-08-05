@@ -50,7 +50,14 @@ async function createBookingFromStripeSession(session: any) {
   };
 
   console.log('Creating booking with validated data:', bookingData);
-  return await storage.createBooking(bookingData);
+  const bookingId = await storage.createBooking(bookingData);
+  
+  // Immediately sync availability after booking creation
+  const { AvailabilitySync } = await import('./availability-sync.js');
+  await AvailabilitySync.syncEventAvailability(eventId);
+  console.log(`✅ Availability synced for event ${eventId} after booking creation`);
+  
+  return bookingId;
 }
 
 export function registerPaymentRoutes(app: Express) {
@@ -280,6 +287,11 @@ export function registerPaymentRoutes(app: Express) {
         // Insert booking into database
         const booking = await storage.createBooking(bookingData);
         
+        // Sync availability after booking creation
+        const { AvailabilitySync } = await import('./availability-sync.js');
+        await AvailabilitySync.syncEventAvailability(parseInt(session.metadata!.eventId));
+        console.log(`✅ Availability synced for event ${session.metadata!.eventId} after direct booking creation`);
+        
         res.json({ success: true, booking });
       } else {
         res.status(400).json({ error: 'Payment not completed' });
@@ -471,6 +483,8 @@ export function registerPaymentRoutes(app: Express) {
       // Create the missing booking
       const booking = await createBookingFromStripeSession(session);
       
+      // The createBookingFromStripeSession function now automatically syncs availability
+      
       // Send confirmation email
       const { EmailService } = await import('./email-service.js');
       
@@ -524,6 +538,43 @@ export function registerPaymentRoutes(app: Express) {
       res.status(500).json({ 
         error: error instanceof Error ? error.message : 'Recovery failed',
         status: 'error'
+      });
+    }
+  });
+
+  // Emergency system sync endpoint to fix availability after missing bookings
+  app.post("/api/admin/sync-all-availability", async (req, res) => {
+    try {
+      console.log('🔄 Starting emergency availability sync for all events...');
+      
+      const { AvailabilitySync } = await import('./availability-sync.js');
+      await AvailabilitySync.syncAllEventsAvailability();
+      
+      // Get updated availability for verification
+      const events = await storage.getAllEvents();
+      const availabilityReport = [];
+      
+      for (const event of events) {
+        const realTimeData = await AvailabilitySync.getRealTimeAvailability(event.id);
+        availabilityReport.push({
+          eventId: event.id,
+          title: event.title,
+          ...realTimeData
+        });
+      }
+      
+      res.json({
+        message: 'All event availability synchronized successfully',
+        syncedEvents: events.length,
+        availabilityReport,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error("Error during emergency availability sync:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Sync failed',
+        timestamp: new Date().toISOString()
       });
     }
   });
@@ -594,6 +645,8 @@ export function registerPaymentRoutes(app: Express) {
           // Create booking from session metadata
           console.log('Creating booking from webhook for session:', session.id);
           const booking = await createBookingFromStripeSession(session);
+          
+          // The createBookingFromStripeSession function now automatically syncs availability
           
           // Send confirmation email
           const { EmailService } = await import('./email-service.js');
