@@ -85,7 +85,7 @@ export default function PaymentsPage() {
     const matchesSearch = 
       searchTerm === "" || 
       booking.customerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.stripePaymentId.toLowerCase().includes(searchTerm.toLowerCase());
+      (booking.stripePaymentId && booking.stripePaymentId.toLowerCase().includes(searchTerm.toLowerCase()));
     
     // Filter by status
     const matchesStatus = 
@@ -357,7 +357,7 @@ export default function PaymentsPage() {
                       <div key={event.id} className="flex items-center gap-4">
                         <div className="h-12 w-12 rounded overflow-hidden">
                           <img 
-                            src={event.image} 
+                            src={event.image || "/placeholder-event.jpg"} 
                             alt={event.title} 
                             className="h-full w-full object-cover"
                           />
@@ -371,12 +371,12 @@ export default function PaymentsPage() {
                         <div className="text-right">
                           <p className="font-medium">${revenue.toFixed(2)}</p>
                           <Badge variant={
-                            event.availableSeats === 0 ? "destructive" : 
-                            event.availableSeats < event.totalSeats * 0.2 ? "default" : 
+                            (event.availableSeats || 0) === 0 ? "destructive" : 
+                            (event.availableSeats || 0) < (event.totalSeats || 1) * 0.2 ? "default" : 
                             "secondary"
                           }>
-                            {event.availableSeats === 0 ? "Sold out" : 
-                             event.availableSeats < event.totalSeats * 0.2 ? "Selling fast" : 
+                            {(event.availableSeats || 0) === 0 ? "Sold out" : 
+                             (event.availableSeats || 0) < (event.totalSeats || 1) * 0.2 ? "Selling fast" : 
                              "Available"}
                           </Badge>
                         </div>
@@ -446,7 +446,7 @@ export default function PaymentsPage() {
                                   {booking.customerEmail}
                                 </p>
                                 <p className="text-sm text-muted-foreground">
-                                  Transaction ID: {booking.stripePaymentId.substring(0, 12)}...
+                                  Transaction ID: {booking.stripePaymentId ? booking.stripePaymentId.substring(0, 12) + '...' : 'N/A'}
                                 </p>
                                 {booking.createdAt && (
                                   <p className="text-sm text-muted-foreground">
