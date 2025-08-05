@@ -527,4 +527,53 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // TEMPORARY: Direct login test bypass for jose@sahuaroworks.com
+  app.post("/api/test-login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (email !== "jose@sahuaroworks.com") {
+        return res.status(403).json({ message: "This endpoint is only for testing jose@sahuaroworks.com" });
+      }
+
+      console.log(`🧪 TEST LOGIN: Attempting login for ${email} with password length: ${password?.length}`);
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        console.log("🧪 TEST LOGIN: User not found");
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      console.log(`🧪 TEST LOGIN: Found user, has password: ${!!user.password}`);
+      
+      if (!user.password) {
+        console.log("🧪 TEST LOGIN: User has no password set");
+        return res.status(401).json({ message: "No password set" });
+      }
+
+      const isValid = await comparePasswords(password, user.password);
+      console.log(`🧪 TEST LOGIN: Password validation result: ${isValid}`);
+      
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid password" });
+      }
+
+      console.log(`🧪 TEST LOGIN: Success! Logging in user ${user.email}`);
+      
+      // Create session manually
+      req.login(user, (err) => {
+        if (err) {
+          console.error("🧪 TEST LOGIN: Session error:", err);
+          return res.status(500).json({ message: "Session error" });
+        }
+        console.log(`🧪 TEST LOGIN: Session created successfully for ${user.email}`);
+        res.json(user);
+      });
+
+    } catch (error) {
+      console.error("🧪 TEST LOGIN: Error:", error);
+      res.status(500).json({ message: "Test login error" });
+    }
+  });
+
 }

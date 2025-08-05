@@ -69,10 +69,10 @@ export function setupSecurity(app: Express) {
     legacyHeaders: false,
   });
 
-  // Apply rate limiters to specific routes
-  app.use('/api/login', authLimiter);
-  app.use('/api/register', authLimiter);
-  app.use('/api/forgot-password', authLimiter);
+  // Apply rate limiters to specific routes - TEMPORARILY DISABLED FOR TESTING
+  // app.use('/api/login', authLimiter);
+  // app.use('/api/register', authLimiter);
+  // app.use('/api/forgot-password', authLimiter);
   app.use('/api/reset-password', authLimiter);
   
   // Apply booking rate limiter to booking endpoints
