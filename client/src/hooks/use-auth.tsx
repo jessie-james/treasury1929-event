@@ -172,6 +172,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (error: Error) => {
       console.error('Registration error:', error);
+      
+      // Check if it's an email already exists error
+      if (error.message.includes("Email already exists")) {
+        // Don't show a generic error, let the form handle this
+        return;
+      }
+      
       toast({
         title: "Registration failed",
         description: error.message || "Could not create your account. Please try again.",

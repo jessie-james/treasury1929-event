@@ -54,6 +54,11 @@ async function comparePasswords(supplied: string, stored: string) {
 const PostgresSessionStore = connectPg(session);
 
 export function setupAuth(app: Express) {
+  // Initialize email service first
+  EmailService.initialize().catch(error => {
+    console.error('Failed to initialize email service:', error);
+  });
+
   // Detect environment - if process.env.NODE_ENV is not set, assume development
   const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === 'true';
   const isDevelopment = !isProduction;
@@ -443,14 +448,15 @@ export function setupAuth(app: Express) {
         return res.json({ message: "If an account with that email exists, a password reset link has been sent." });
       }
 
-      // Generate a simple reset token (in production, use crypto.randomBytes)
+      // Generate a secure reset token
       const resetToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       
-      // Store the reset token (in a real app, store in database with expiration)
-      // For now, we'll store it in memory with a 1-hour expiration
-      const resetTokens = new Map();
+      // Store the reset token with 1-hour expiration
+      if (!app.locals.resetTokens) {
+        app.locals.resetTokens = new Map();
+      }
+      const resetTokens = app.locals.resetTokens;
       resetTokens.set(resetToken, { email, expires: Date.now() + 3600000 }); // 1 hour
-      app.locals.resetTokens = resetTokens;
 
       // Send password reset email
       const emailSent = await EmailService.sendPasswordResetEmail(email, resetToken);
@@ -509,4 +515,5 @@ export function setupAuth(app: Express) {
       res.status(500).json({ message: "Internal server error" });
     }
   });
+
 }
