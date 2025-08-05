@@ -379,50 +379,77 @@ export class EmailService {
     }
   }
 
-  static async sendBookingCancellation(data: {
-    customerEmail: string;
-    eventTitle: string;
-    eventDate: string;
-    eventTime: string;
-    bookingId: number;
-    tableNumber: number;
-    partySize: number;
-  }): Promise<boolean> {
+  static async sendCancellationEmail(data: BookingEmailData, refundAmountCents: number): Promise<boolean> {
     if (!emailInitialized) {
-      console.log('📧 Email service not initialized - skipping booking cancellation');
+      console.log('📧 Email service not initialized - skipping customer cancellation');
       return false;
     }
 
     try {
-      const { customerEmail, eventTitle, eventDate, eventTime, bookingId, tableNumber, partySize } = data;
+      const { booking, event, table, venue } = data;
+      
+      // Format event date and time correctly
+      const eventDateObj = new Date(event.date);
+      const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      // The event date contains the show start time
+      const showTime = eventDateObj.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      // Calculate arrival time (45 minutes before show)
+      const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
+      const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
+      const refundAmount = (refundAmountCents / 100).toFixed(2);
 
       const emailContent = {
-        to: customerEmail,
+        to: booking.customerEmail,
         from: this.FROM_EMAIL,
-        subject: 'Booking Cancellation Confirmation - The Treasury 1929',
+        subject: 'Your Dinner Concert Ticket Cancellation & Refund Confirmation',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
             <p>Dear Guest,</p>
             
-            <p>We are writing to confirm that your booking at The Treasury 1929 has been successfully cancelled.</p>
+            <p>We have successfully processed your cancellation request for your dinner concert reservation at The Treasury 1929.</p>
             
-            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
-              <h3 style="color: #dc3545; margin-top: 0;">Cancelled Booking Details</h3>
-              <p><strong>Event:</strong> ${eventTitle}</p>
-              <p><strong>Date:</strong> ${eventDate}</p>
-              <p><strong>Time:</strong> ${eventTime}</p>
-              <p><strong>Table:</strong> ${tableNumber}</p>
-              <p><strong>Party Size:</strong> ${partySize} people</p>
-              <p><strong>Booking Reference:</strong> #${bookingId}</p>
+            <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+              <h3 style="color: #856404; margin-top: 0;">📋 Cancelled Reservation Details</h3>
+              <p><strong>Event:</strong> ${event.title}</p>
+              <p><strong>Date:</strong> ${eventDateFormatted}</p>
+              <p><strong>Time:</strong> ${timeDisplay}</p>
+              <p><strong>Table:</strong> ${table.tableNumber}</p>
+              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
+              <p><strong>Booking Reference:</strong> #${booking.id}</p>
+            </div>
+            
+            <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+              <h3 style="color: #155724; margin-top: 0;">💰 Refund Information</h3>
+              <p><strong>Refund Amount:</strong> $${refundAmount}</p>
+              <p><strong>Processing Time:</strong> 7-10 business days</p>
+              <p><strong>Refund Method:</strong> Original payment method</p>
+              <p style="margin-top: 15px; color: #155724;">Your refund is being processed and will appear on your statement within 7-10 business days. You'll receive a separate confirmation from your bank or credit card company once the refund is complete.</p>
             </div>
             
             <div style="background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <p style="color: #155724; margin: 0;">If this cancellation was unexpected or if you have any questions, please contact us immediately at (520) 734-3937.</p>
+              <p style="color: #155724; margin: 0;"><strong>Have Questions?</strong> If you have any questions about your cancellation or refund, please contact us at (520) 734-3937 or reply to this email.</p>
             </div>
             
-            <p>If you're interested in rebooking for another date or have any questions about future events, please don't hesitate to reach out to us.</p>
+            <p>We're sorry we won't see you for this event, but we hope to welcome you to The Treasury 1929 in the future. Keep an eye on our upcoming dinner concerts at <a href="https://www.thetreasury1929.com/dinnerconcerts" style="color: #2c3e50;">www.thetreasury1929.com/dinnerconcerts</a>.</p>
             
-            <p>Thank you for your understanding.</p>
+            <p>Thank you for choosing The Treasury 1929.</p>
             
             <p>Best regards,<br>The Treasury 1929 Team</p>
             
@@ -437,11 +464,111 @@ export class EmailService {
       };
 
       await sgMail.send(emailContent);
-      console.log(`✓ Booking cancellation email sent to ${customerEmail}`);
+      console.log(`✓ Customer cancellation email sent to ${booking.customerEmail}`);
       return true;
 
     } catch (error) {
-      console.error('✗ Failed to send booking cancellation email:', error);
+      console.error('✗ Failed to send customer cancellation email:', error);
+      return false;
+    }
+  }
+
+  static async sendVenueCancellationEmail(data: BookingEmailData, refundAmountCents: number): Promise<boolean> {
+    if (!emailInitialized) {
+      console.log('📧 Email service not initialized - skipping venue cancellation');
+      return false;
+    }
+
+    try {
+      const { booking, event, table, venue } = data;
+      
+      // Format event date and time correctly
+      const eventDateObj = new Date(event.date);
+      const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      // The event date contains the show start time
+      const showTime = eventDateObj.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      // Calculate arrival time (45 minutes before show)
+      const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
+      const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
+      const refundAmount = (refundAmountCents / 100).toFixed(2);
+
+      const emailContent = {
+        to: booking.customerEmail,
+        from: this.FROM_EMAIL,
+        subject: 'Important Update: Dinner Concert Cancellation & Full Refund',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Valued Guest,</p>
+            
+            <p>We regret to inform you that due to unforeseen circumstances, we must cancel the following dinner concert event at The Treasury 1929:</p>
+            
+            <div style="background-color: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+              <h3 style="color: #721c24; margin-top: 0;">🎭 Cancelled Event Details</h3>
+              <p><strong>Event:</strong> ${event.title}</p>
+              <p><strong>Date:</strong> ${eventDateFormatted}</p>
+              <p><strong>Time:</strong> ${timeDisplay}</p>
+              <p><strong>Table:</strong> ${table.tableNumber}</p>
+              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
+              <p><strong>Booking Reference:</strong> #${booking.id}</p>
+            </div>
+            
+            <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+              <h3 style="color: #155724; margin-top: 0;">💰 Full Refund Guaranteed</h3>
+              <p><strong>Refund Amount:</strong> $${refundAmount} (Full Amount)</p>
+              <p><strong>Processing Time:</strong> 7-10 business days</p>
+              <p><strong>Refund Method:</strong> Original payment method</p>
+              <p style="margin-top: 15px; color: #155724;">We will process your full refund immediately. You'll receive a separate confirmation from your bank or credit card company once the refund is complete.</p>
+            </div>
+            
+            <p>We sincerely apologize for this inconvenience and any disappointment this may cause. We understand how much you were looking forward to this evening, and we share in that disappointment.</p>
+            
+            <div style="background-color: #e8f4fd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2c3e50;">
+              <h3 style="color: #2c3e50; margin-top: 0;">🎵 Future Events</h3>
+              <p>We'd love to welcome you to a future dinner concert! We have several exciting performances planned throughout the year. Please visit <a href="https://www.thetreasury1929.com/dinnerconcerts" style="color: #2c3e50;">www.thetreasury1929.com/dinnerconcerts</a> to see our upcoming events.</p>
+              <p>As an apology for this inconvenience, please mention "RAINCHECK2025" when booking your next dinner concert, and we'll ensure you receive priority seating selection.</p>
+            </div>
+            
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="color: #856404; margin: 0;"><strong>Questions or Concerns?</strong> Please don't hesitate to contact us at (520) 734-3937. Our team is standing by to assist you with any questions about your refund or future bookings.</p>
+            </div>
+            
+            <p>Thank you for your understanding and continued support of The Treasury 1929. We look forward to providing you with an exceptional dining and entertainment experience in the near future.</p>
+            
+            <p>With sincere apologies,<br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3937<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
+            </div>
+          </div>
+        `
+      };
+
+      await sgMail.send(emailContent);
+      console.log(`✓ Venue cancellation email sent to ${booking.customerEmail}`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ Failed to send venue cancellation email:', error);
       return false;
     }
   }
