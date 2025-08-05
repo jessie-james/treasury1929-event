@@ -136,7 +136,18 @@ export function TicketQRCode({
           className="max-w-full h-auto"
         />
       </CardContent>
-      {/* Download button removed as requested */}
+      <CardFooter className="flex justify-center p-2 pt-0">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex items-center gap-1 download-ticket-btn"
+          onClick={handleDownload}
+          disabled={isDownloading}
+        >
+          <Download className="h-4 w-4" />
+          {isDownloading ? "Downloading..." : "Download Ticket"}
+        </Button>
+      </CardFooter>
     </Card>
   );
 }
