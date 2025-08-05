@@ -124,7 +124,7 @@ Preferred communication style: Simple, everyday language.
   - **Venue Cancellation**: Treasury-initiated event cancellation with full refund notifications
   - **Event Reminders**: Full digital ticket with actual QR code image and day-before notifications
   - **Password Reset/Welcome**: Functional password reset system with secure token validation
-- **QR Code Standardization**: QR codes now use consistent format (`BOOKING:${booking.id}:${event.id}:${booking.customerEmail}`) matching PDF ticket component throughout all emails and app interfaces
+- **QR Code Standardization**: QR codes now use consistent format (`booking.id.toString()`) matching scanner expectations throughout all emails and app interfaces
 - **QR Code Enhancement**: QR codes sent as email attachments using SendGrid's inline content feature (cid:) for maximum email client compatibility, eliminating data URL blocking issues
 - **Time Format Standardization**: Corrected time display to show "Guest Arrival 5:45 PM, show starts 6:30 PM" format (arrival time calculated as 45 minutes before show time)
 - **Email Template Cleanup**: Removed PDF download buttons from all email templates while preserving download functionality in the app interface
