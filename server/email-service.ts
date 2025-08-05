@@ -49,13 +49,42 @@ export class EmailService {
 
     try {
       const { booking, event, table, venue } = data;
-      const eventDate = new Date(event.date).toLocaleDateString('en-US', {
+      
+      // Format event date and time correctly
+      const eventDateObj = new Date(event.date);
+      const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: 'numeric'
+      });
+      
+      // Create time display: Guest Arrival 5:45 PM, show starts 6:30 PM
+      const showTime = eventDateObj.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      // Calculate arrival time (45 minutes before show)
+      const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
+      const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
+      
+      // Generate QR code for the booking
+      const qrData = `BOOKING:${booking.id}:${event.id}:${booking.customerEmail}`;
+      const qrCodeUrl = await QRCode.toDataURL(qrData, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#2c3e50',
+          light: '#ffffff'
+        }
       });
 
       const guestList = booking.guestNames && booking.guestNames.length > 0 
@@ -79,23 +108,23 @@ export class EmailService {
               <h2 style="color: #2c3e50; margin-top: 0; text-align: center;">🎫 YOUR DIGITAL TICKET</h2>
               <div style="text-align: center; margin: 20px 0;">
                 <p style="font-size: 18px; font-weight: bold; color: #2c3e50; margin: 5px 0;">${event.title}</p>
-                <p style="font-size: 16px; color: #495057; margin: 5px 0;">${eventDate}</p>
+                <p style="font-size: 16px; color: #495057; margin: 5px 0;">${eventDateFormatted}</p>
+                <p style="font-size: 14px; color: #6c757d; margin: 5px 0;">${timeDisplay}</p>
                 <p style="font-size: 14px; color: #6c757d; margin: 5px 0;">Table ${table.tableNumber} • ${booking.partySize} Guests</p>
               </div>
               
               <!-- QR CODE SECTION -->
               <div style="background-color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 15px 0;">
-                <h3 style="color: #27ae60; margin-top: 0;">Digital Check-in Code</h3>
-                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; display: inline-block; border: 1px solid #dee2e6;">
-                  <p style="font-family: monospace; font-size: 16px; margin: 0; color: #2c3e50; font-weight: bold;">BOOKING:${booking.id}:${event.id}:${booking.customerEmail}</p>
-                </div>
-                <p style="color: #666; margin-top: 15px; font-size: 14px;">Show this code at the venue for quick check-in</p>
+                <h3 style="color: #27ae60; margin-top: 0;">QR Code Check-in</h3>
+                <img src="${qrCodeUrl}" alt="QR Code for Booking ${booking.id}" style="width: 150px; height: 150px; border: 1px solid #dee2e6; border-radius: 8px;" />
+                <p style="color: #666; margin-top: 15px; font-size: 14px;">Scan this QR code at the venue for quick check-in</p>
+                <p style="font-family: monospace; font-size: 12px; margin: 10px 0; color: #666;">Booking ID: ${booking.id}</p>
               </div>
               
               <!-- DOWNLOAD BUTTON -->
               <div style="text-align: center; margin: 20px 0;">
-                <a href="https://www.thetreasury1929.com/dinnerconcerts/ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
-                  📥 Download Digital Ticket
+                <a href="https://www.thetreasury1929.com/dinnerconcerts/download-ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
+                  📥 Download PDF Ticket
                 </a>
                 <p style="color: #666; font-size: 12px; margin-top: 10px;">Save to your phone for easy access</p>
               </div>
@@ -104,7 +133,8 @@ export class EmailService {
             <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="color: #27ae60; margin-top: 0;">Event Details</h3>
               <p><strong>Event:</strong> ${event.title}</p>
-              <p><strong>Date & Time:</strong> ${eventDate}</p>
+              <p><strong>Date:</strong> ${eventDateFormatted}</p>
+              <p><strong>Time:</strong> ${timeDisplay}</p>
               <p><strong>Table:</strong> ${table.tableNumber}</p>
               <p><strong>Party Size:</strong> ${booking.partySize} people</p>
               <p><strong>Booking Reference:</strong> #${booking.id}</p>
@@ -466,13 +496,42 @@ export class EmailService {
 
     try {
       const { booking, event, table, venue } = data;
-      const eventDate = new Date(event.date).toLocaleDateString('en-US', {
+      
+      // Format event date and time correctly (same as booking confirmation)
+      const eventDateObj = new Date(event.date);
+      const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: 'numeric'
+      });
+      
+      // Create time display: Guest Arrival 5:45 PM, show starts 6:30 PM
+      const showTime = eventDateObj.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      // Calculate arrival time (45 minutes before show)
+      const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
+      const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
+      
+      // Generate QR code for the booking
+      const qrData = `BOOKING:${booking.id}:${event.id}:${booking.customerEmail}`;
+      const qrCodeUrl = await QRCode.toDataURL(qrData, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#2c3e50',
+          light: '#ffffff'
+        }
       });
 
       const emailContent = {
@@ -490,23 +549,23 @@ export class EmailService {
               <h2 style="color: #2c3e50; margin-top: 0; text-align: center;">🎫 YOUR DIGITAL TICKET</h2>
               <div style="text-align: center; margin: 20px 0;">
                 <p style="font-size: 18px; font-weight: bold; color: #2c3e50; margin: 5px 0;">${event.title}</p>
-                <p style="font-size: 16px; color: #495057; margin: 5px 0;">${eventDate}</p>
+                <p style="font-size: 16px; color: #495057; margin: 5px 0;">${eventDateFormatted}</p>
+                <p style="font-size: 14px; color: #6c757d; margin: 5px 0;">${timeDisplay}</p>
                 <p style="font-size: 14px; color: #6c757d; margin: 5px 0;">Table ${table.tableNumber} • ${booking.partySize} Guests</p>
               </div>
               
               <!-- QR CODE SECTION -->
               <div style="background-color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 15px 0;">
-                <h3 style="color: #27ae60; margin-top: 0;">Digital Check-in Code</h3>
-                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; display: inline-block; border: 1px solid #dee2e6;">
-                  <p style="font-family: monospace; font-size: 16px; margin: 0; color: #2c3e50; font-weight: bold;">BOOKING:${booking.id}:${event.id}:${booking.customerEmail}</p>
-                </div>
-                <p style="color: #666; margin-top: 15px; font-size: 14px;">Show this code at the venue for quick check-in</p>
+                <h3 style="color: #27ae60; margin-top: 0;">QR Code Check-in</h3>
+                <img src="${qrCodeUrl}" alt="QR Code for Booking ${booking.id}" style="width: 150px; height: 150px; border: 1px solid #dee2e6; border-radius: 8px;" />
+                <p style="color: #666; margin-top: 15px; font-size: 14px;">Scan this QR code at the venue for quick check-in</p>
+                <p style="font-family: monospace; font-size: 12px; margin: 10px 0; color: #666;">Booking ID: ${booking.id}</p>
               </div>
               
               <!-- DOWNLOAD BUTTON -->
               <div style="text-align: center; margin: 20px 0;">
-                <a href="https://www.thetreasury1929.com/dinnerconcerts/ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
-                  📥 Download Digital Ticket
+                <a href="https://www.thetreasury1929.com/dinnerconcerts/download-ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
+                  📥 Download PDF Ticket
                 </a>
                 <p style="color: #666; font-size: 12px; margin-top: 10px;">Save to your phone for easy access</p>
               </div>
