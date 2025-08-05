@@ -47,9 +47,12 @@ function Router() {
 
   // Check if current path is in backoffice 
   const isBackoffice = location.startsWith("/backoffice");
+  
+  // Check if current path is an auth-related page (should not show navigation)
+  const isAuthPage = location === "/auth" || location === "/admin-login" || location.startsWith("/reset-password");
 
-  // Only show header and bottom navigation on non-backoffice pages
-  const showNavigation = !isBackoffice;
+  // Only show header and bottom navigation on non-backoffice and non-auth pages
+  const showNavigation = !isBackoffice && !isAuthPage;
 
   return (
     <div className="pb-24 md:pb-16">
@@ -87,7 +90,7 @@ function Router() {
         <Route component={NotFound} />
       </Switch>
 
-      <BottomNavigation />
+      {showNavigation && <BottomNavigation />}
     </div>
   );
 }

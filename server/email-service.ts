@@ -335,7 +335,12 @@ export class EmailService {
     }
 
     try {
-      const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${resetToken}`;
+      // Use Replit URL in production or localhost in development
+      const baseUrl = process.env.REPLIT_URL || 
+                      (process.env.REPL_SLUG && process.env.REPL_OWNER 
+                        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.app` 
+                        : 'http://localhost:5000');
+      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
       const emailContent = {
         to: email,
