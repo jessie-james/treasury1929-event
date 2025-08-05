@@ -3381,6 +3381,84 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Test endpoint to resend confirmation email
+  app.post("/api/resend-confirmation", async (req, res) => {
+    try {
+      const { bookingId } = req.body;
+      
+      if (!bookingId) {
+        return res.status(400).json({ message: "Booking ID is required" });
+      }
+
+      // Get booking details with all related info
+      const bookingData = await db.execute(sql`
+        SELECT 
+          b.*,
+          e.title as event_title,
+          e.date as event_date,
+          e.description as event_description,
+          t.table_number,
+          v.name as venue_name
+        FROM bookings b
+        JOIN events e ON b.event_id = e.id
+        JOIN tables t ON b.table_id = t.id
+        JOIN venues v ON t.venue_id = v.id
+        WHERE b.id = ${bookingId} AND b.status = 'confirmed'
+      `);
+
+      if (!bookingData.rows || bookingData.rows.length === 0) {
+        return res.status(404).json({ message: "Confirmed booking not found" });
+      }
+
+      const booking = bookingData.rows[0];
+      
+      // Send confirmation email using the email service
+      const emailSent = await EmailService.sendBookingConfirmation({
+        booking: {
+          id: booking.id,
+          customerEmail: booking.customer_email,
+          guestNames: booking.guest_names,
+          partySize: booking.party_size,
+          foodSelections: booking.food_selections,
+          wineSelections: booking.wine_selections
+        },
+        event: {
+          id: booking.event_id,
+          title: booking.event_title,
+          date: booking.event_date,
+          description: booking.event_description
+        },
+        table: {
+          id: booking.table_id,
+          tableNumber: booking.table_number
+        },
+        venue: {
+          name: booking.venue_name
+        }
+      });
+
+      if (emailSent) {
+        res.json({ 
+          success: true, 
+          message: `Confirmation email resent successfully to ${booking.customer_email}`,
+          bookingId: booking.id
+        });
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: "Email service not available or failed to send" 
+        });
+      }
+    } catch (error) {
+      console.error("Error resending confirmation email:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to resend confirmation email",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Admin orders endpoint with food selections
   app.get("/api/admin/orders", async (req, res) => {
     try {
