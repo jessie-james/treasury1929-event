@@ -453,7 +453,6 @@ export function setupAuth(app: Express) {
       app.locals.resetTokens = resetTokens;
 
       // Send password reset email
-      const { EmailService } = require('./email-service');
       const emailSent = await EmailService.sendPasswordResetEmail(email, resetToken);
       
       if (emailSent) {
