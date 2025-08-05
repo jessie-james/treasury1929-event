@@ -35,6 +35,7 @@ import { Allergen, DietaryRestriction, FoodIconSet, allergenIcons, dietaryIcons 
 import { Separator } from "@/components/ui/separator";
 import { useState, useRef, useEffect } from "react";
 import { ImagePlus, Loader2, RefreshCw, X } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 // Define the common allergens and dietary restrictions
 const ALLERGENS: string[] = ["gluten", "dairy", "eggs", "peanuts", "tree_nuts", "soy", "fish", "shellfish", "sesame"];
@@ -61,6 +62,7 @@ interface Props {
 export function FoodForm({ food, onClose }: Props) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [uploading, setUploading] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<string | null>(food?.image || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -187,6 +189,25 @@ export function FoodForm({ food, onClose }: Props) {
       console.log("=== FOOD FORM SUBMISSION ===");
       console.log("Food data being submitted:", data);
       console.log("Food object:", food);
+      
+      // Check authentication status first
+      try {
+        const authCheck = await fetch('/api/user', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Accept': 'application/json' }
+        });
+        const authUser = authCheck.ok ? await authCheck.json() : null;
+        console.log("Current authenticated user:", authUser);
+        
+        if (!authUser || authUser.role !== 'admin') {
+          throw new Error("You must be logged in as an admin to save food items");
+        }
+      } catch (authError) {
+        console.error("Authentication check failed:", authError);
+        throw new Error("Authentication required. Please log in as admin.");
+      }
+      
       const endpoint = food ? `/api/food-options/${food.id}` : "/api/food-options";
       const method = food ? "PATCH" : "POST";
       console.log("API endpoint:", endpoint);
@@ -247,6 +268,15 @@ export function FoodForm({ food, onClose }: Props) {
     <Card>
       <CardHeader>
         <CardTitle>{food ? "Edit Food Item" : "Add Food Item"}</CardTitle>
+        {user ? (
+          <div className="text-sm text-green-600">
+            Logged in as: {user.email} ({user.role})
+          </div>
+        ) : (
+          <div className="text-sm text-red-600">
+            Not logged in - You must log in as admin to save changes
+          </div>
+        )}
       </CardHeader>
       <CardContent>
         <Form {...form}>
