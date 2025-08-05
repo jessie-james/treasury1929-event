@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { Mail, KeyRound, EyeIcon, EyeOffIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -25,7 +24,6 @@ const loginSchema = z.object({
 export function LoginForm() {
   const { loginMutation } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof loginSchema>>({
@@ -36,34 +34,7 @@ export function LoginForm() {
     setShowPassword(!showPassword);
   };
 
-  const handleForgotPassword = async () => {
-    const email = form.getValues('email');
-    if (!email) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address first",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    setIsResettingPassword(true);
-    try {
-      await apiRequest("POST", "/api/forgot-password", { email });
-      toast({
-        title: "Password reset sent",
-        description: "If an account with that email exists, we've sent you a password reset link.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send password reset email",
-        variant: "destructive",
-      });
-    } finally {
-      setIsResettingPassword(false);
-    }
-  };
 
   return (
     <Form {...form}>
@@ -131,15 +102,9 @@ export function LoginForm() {
         </Button>
 
         <div className="text-center">
-          <Button
-            type="button"
-            variant="link"
-            className="text-sm text-muted-foreground p-0 h-auto"
-            onClick={handleForgotPassword}
-            disabled={isResettingPassword}
-          >
-            {isResettingPassword ? "Sending reset link..." : "Forgot your password?"}
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            Having trouble logging in? Please contact our team for assistance.
+          </p>
         </div>
       </form>
     </Form>
