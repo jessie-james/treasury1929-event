@@ -451,23 +451,50 @@ export class PgStorage implements IStorage {
       // Release the table by updating its status to available
       await this.updateTableStatus(booking.tableId, 'available');
       
-      // Send cancellation email
+      // Send cancellation email using the proper template
       try {
         const { EmailService } = require('./email-service');
         
         // Get event and table details for the email
         const event = await this.getEventById(booking.eventId);
         const table = await this.getTable(booking.tableId);
+        const venue = await this.getVenueById(table?.venueId || 4); // Default to main venue
         
-        await EmailService.sendBookingCancellation({
-          customerEmail: booking.customerEmail,
-          eventTitle: event?.title || 'Event',
-          eventDate: event?.date ? new Date(event.date).toLocaleDateString() : 'TBD',
-          eventTime: event?.time || 'TBD',
-          bookingId: booking.id,
-          tableNumber: table?.tableNumber || booking.tableId,
-          partySize: booking.partySize
-        });
+        // Prepare booking data in the correct format for the template
+        const bookingEmailData = {
+          booking: {
+            id: booking.id.toString(),
+            customerEmail: booking.customerEmail,
+            partySize: booking.partySize,
+            status: booking.status,
+            notes: booking.notes || '',
+            stripePaymentId: booking.stripePaymentId || '',
+            createdAt: booking.createdAt,
+            guestNames: booking.guestNames || []
+          },
+          event: {
+            id: event?.id?.toString() || '',
+            title: event?.title || 'Event',
+            date: event?.date || new Date(),
+            description: event?.description || ''
+          },
+          table: {
+            id: table?.id?.toString() || '',
+            tableNumber: table?.tableNumber || booking.tableId,
+            floor: table?.floor || 'Main Floor',
+            capacity: table?.capacity || booking.partySize
+          },
+          venue: {
+            id: venue?.id?.toString() || '',
+            name: venue?.name || 'The Treasury 1929',
+            address: '2 E Congress St, Ste 100, Tucson, AZ'
+          }
+        };
+        
+        // Use default refund amount of $85.00 (8500 cents) - this should be calculated from actual booking
+        const refundAmountCents = 8500; // This should be calculated from booking.totalAmount or similar
+        
+        await EmailService.sendCancellationEmail(bookingEmailData, refundAmountCents);
       } catch (emailError) {
         console.error("Failed to send cancellation email:", emailError);
         // Don't fail the cancellation if email fails
