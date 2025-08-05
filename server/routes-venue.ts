@@ -72,7 +72,9 @@ export function registerVenueRoutes(app: Express): void {
       }
 
       const stages = await storage.getStagesByVenue(venueId);
-      const tables = await storage.getTablesByVenue(venueId);
+      // Get eventId from query params for real-time table status calculation
+      const eventId = req.query.eventId ? parseInt(req.query.eventId as string) : undefined;
+      const tables = await storage.getTablesByVenue(venueId, eventId);
 
       res.json({
         venue,

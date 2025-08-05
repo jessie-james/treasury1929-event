@@ -454,8 +454,23 @@ export class PgStorage implements IStorage {
         priceCategory: schema.tables.priceCategory,
         isLocked: schema.tables.isLocked,
         rotation: schema.tables.rotation,
-        // Use stored table status (which is kept updated by booking system)
-        status: schema.tables.status
+        // Calculate real-time status based on both confirmed bookings AND active seat holds
+        status: sql`CASE 
+          WHEN EXISTS (
+            SELECT 1 FROM bookings 
+            WHERE bookings.table_id = ${schema.tables.id} 
+            AND bookings.event_id = ${eventId}
+            AND bookings.status = 'confirmed'
+          ) THEN 'booked'
+          WHEN EXISTS (
+            SELECT 1 FROM seat_holds
+            WHERE seat_holds.table_id = ${schema.tables.id}
+            AND seat_holds.event_id = ${eventId}
+            AND seat_holds.status = 'active'
+            AND seat_holds.hold_expiry > NOW()
+          ) THEN 'hold'
+          ELSE 'available' 
+        END`.as('status')
       })
       .from(schema.tables)
       .where(eq(schema.tables.venueId, venueId));

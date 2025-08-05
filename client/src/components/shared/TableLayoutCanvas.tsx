@@ -89,7 +89,7 @@ export function TableLayoutCanvas({
     const isSelected = selectedTables && selectedTables.includes(table.id);
     const isAvailable = table.status === 'available';
     const isOnHold = table.status === 'hold';
-    const isSold = table.status === 'sold';
+    const isSold = table.status === 'sold' || table.status === 'booked';
     const isHalf = table.shape === 'half';
     
     console.log(`🎨 Drawing table ${table.tableNumber}:`, { isSelected, selectedTables, tableId: table.id });
