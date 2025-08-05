@@ -4154,7 +4154,12 @@ export async function registerRoutes(app: Express) {
   // PDF Ticket Download Route - Public access via booking ID
   app.get("/api/download-ticket/:bookingId", async (req, res) => {
     try {
-      const bookingId = req.params.bookingId;
+      const bookingId = parseInt(req.params.bookingId);
+      
+      // Validate booking ID is a number
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID format" });
+      }
       
       // Get booking with all details
       const booking = await (storage as any).getBookingWithDetails(bookingId);
