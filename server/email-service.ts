@@ -572,4 +572,100 @@ export class EmailService {
       return false;
     }
   }
+
+  // Send refund notification email for automatic Stripe refunds
+  static async sendRefundNotification(data: any): Promise<boolean> {
+    if (!emailInitialized) {
+      console.log('📧 Email service not initialized - skipping refund notification');
+      return false;
+    }
+
+    try {
+      const { booking, event, table, venue, refund } = data;
+      
+      // Format event date and time correctly
+      const eventDateObj = new Date(event.date);
+      const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      // The event date contains the show start time
+      const showTime = eventDateObj.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      // Calculate arrival time (45 minutes before show)
+      const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
+      const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
+      const refundAmount = ((refund.amount || 0) / 100).toFixed(2);
+
+      const emailContent = {
+        to: booking.customerEmail,
+        from: this.FROM_EMAIL,
+        subject: 'Refund Processed - Your Dinner Concert Reservation',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Guest,</p>
+            
+            <p>We are writing to inform you that a refund has been processed for your dinner concert reservation at The Treasury 1929.</p>
+            
+            <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+              <h3 style="color: #856404; margin-top: 0;">📋 Original Reservation Details</h3>
+              <p><strong>Event:</strong> ${event.title}</p>
+              <p><strong>Date:</strong> ${eventDateFormatted}</p>
+              <p><strong>Time:</strong> ${timeDisplay}</p>
+              <p><strong>Table:</strong> ${table.tableNumber}</p>
+              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
+              <p><strong>Booking Reference:</strong> #${booking.id}</p>
+            </div>
+            
+            <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+              <h3 style="color: #155724; margin-top: 0;">💰 Refund Information</h3>
+              <p><strong>Refund Amount:</strong> $${refundAmount}</p>
+              <p><strong>Reason:</strong> ${refund.reason}</p>
+              <p><strong>Processing Time:</strong> 7-10 business days</p>
+              <p><strong>Refund Method:</strong> Original payment method</p>
+              <p><strong>Reference ID:</strong> ${refund.refundId}</p>
+            </div>
+            
+            <div style="background-color: #d1ecf1; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="color: #0c5460; margin: 0;">Your table has been released and is now available for other guests. If you would like to make a new reservation for this or another event, please visit our booking page.</p>
+            </div>
+            
+            <p>If you have any questions about this refund or need assistance with future bookings, please don't hesitate to contact us at (520) 734-3937.</p>
+            
+            <p>We hope to welcome you to The Treasury 1929 again soon for another unforgettable evening of music and dining.</p>
+            
+            <p>Best regards,<br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3937<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
+            </div>
+          </div>
+        `
+      };
+
+      await sgMail.send(emailContent);
+      console.log(`✓ Refund notification email sent to ${booking.customerEmail}`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ Failed to send refund notification email:', error);
+      return false;
+    }
+  }
 }

@@ -898,7 +898,220 @@ export function registerPaymentRoutes(app: Express) {
       }
     }
     
+    // Handle charge disputes and refunds
+    if (event.type === 'charge.dispute.created' || 
+        event.type === 'payment_intent.amount_capturable_updated' ||
+        event.type === 'payment_intent.refunded' ||
+        event.type === 'charge.refunded') {
+      
+      try {
+        const chargeOrIntent = event.data.object;
+        console.log(`Refund/dispute event received: ${event.type} for ${chargeOrIntent.id}`);
+        
+        // Find the booking associated with this payment
+        let paymentId = '';
+        if (event.type.includes('payment_intent')) {
+          paymentId = chargeOrIntent.id;
+        } else if (event.type.includes('charge')) {
+          paymentId = chargeOrIntent.payment_intent || chargeOrIntent.id;
+        }
+        
+        if (paymentId) {
+          const allBookings = await storage.getBookings();
+          const booking = allBookings.find(b => 
+            b.stripePaymentId === paymentId || 
+            b.stripePaymentId === chargeOrIntent.id
+          );
+          
+          if (booking && booking.status === 'confirmed') {
+            console.log(`Processing automatic refund for booking #${booking.id}`);
+            
+            // Update booking status to refunded
+            await storage.updateBookingStatus(booking.id, 'refunded');
+            
+            // Sync availability - table becomes available again
+            const { AvailabilitySync } = await import('./availability-sync.js');
+            await AvailabilitySync.syncEventAvailability(booking.eventId);
+            console.log(`✅ Table ${booking.tableId} released for event ${booking.eventId} after refund`);
+            
+            // Send refund notification email
+            const { EmailService } = await import('./email-service.js');
+            
+            // Get event, table, and venue details for email
+            const event = await storage.getEventById(booking.eventId);
+            const table = await storage.getTableById(booking.tableId);
+            const venue = table ? await storage.getVenueById(table.venueId) : null;
+            
+            if (event && table && venue) {
+              const emailData = {
+                booking: {
+                  id: booking.id.toString(),
+                  customerEmail: booking.customerEmail,
+                  partySize: booking.partySize || 1,
+                  status: 'refunded',
+                  stripePaymentId: booking.stripePaymentId,
+                  createdAt: booking.createdAt,
+                  guestNames: booking.guestNames || []
+                },
+                event: {
+                  id: event.id.toString(),
+                  title: event.title,
+                  date: event.date,
+                  description: event.description || ''
+                },
+                table: {
+                  id: table.id.toString(),
+                  tableNumber: table.tableNumber,
+                  floor: booking.selectedVenue || 'Main Floor',
+                  capacity: table.capacity
+                },
+                venue: {
+                  id: venue.id.toString(),
+                  name: venue.name,
+                  address: '2 E Congress St, Ste 100'
+                },
+                refund: {
+                  amount: chargeOrIntent.amount_refunded || chargeOrIntent.amount || 0,
+                  reason: event.type.includes('dispute') ? 'Payment dispute filed' : 'Refund processed',
+                  processedAt: new Date(),
+                  refundId: chargeOrIntent.id
+                }
+              };
+              
+              const emailSent = await EmailService.sendRefundNotification(emailData);
+              console.log(`Refund notification email ${emailSent ? 'sent' : 'failed'} for booking #${booking.id}`);
+            }
+            
+            // Log the automatic refund processing
+            await storage.createAdminLog({
+              userId: booking.userId || 0,
+              action: "automatic_refund_processed",
+              entityType: "booking",
+              entityId: booking.id,
+              details: JSON.stringify({
+                eventType: event.type,
+                paymentId: paymentId,
+                bookingId: booking.id,
+                customerEmail: booking.customerEmail,
+                refundAmount: chargeOrIntent.amount_refunded || chargeOrIntent.amount || 0,
+                processedAt: new Date().toISOString(),
+                tableReleased: true
+              })
+            });
+            
+          } else if (booking) {
+            console.log(`Booking #${booking.id} already has status: ${booking.status}, skipping refund processing`);
+          } else {
+            console.log(`No booking found for payment ID: ${paymentId}`);
+          }
+        }
+        
+      } catch (error) {
+        console.error("Error processing refund webhook:", error);
+        // Don't throw - we don't want to fail the webhook
+      }
+    }
+    
     res.json({ received: true });
+  });
+
+  // Test endpoint to simulate Stripe refund webhook (for testing)
+  app.post("/api/test-refund-webhook", async (req, res) => {
+    try {
+      const { bookingId, refundAmount, reason } = req.body;
+      
+      if (!bookingId) {
+        return res.status(400).json({ error: 'Booking ID is required' });
+      }
+      
+      // Get the booking
+      const allBookings = await storage.getBookings();
+      const booking = allBookings.find(b => b.id === parseInt(bookingId));
+      
+      if (!booking) {
+        return res.status(404).json({ error: 'Booking not found' });
+      }
+      
+      if (booking.status !== 'confirmed') {
+        return res.status(400).json({ error: `Booking status is ${booking.status}, can only refund confirmed bookings` });
+      }
+      
+      console.log(`TEST: Processing refund for booking #${booking.id}`);
+      
+      // Update booking status to refunded
+      await storage.updateBookingStatus(booking.id, 'refunded');
+      
+      // Sync availability - table becomes available again
+      const { AvailabilitySync } = await import('./availability-sync.js');
+      await AvailabilitySync.syncEventAvailability(booking.eventId);
+      console.log(`✅ TEST: Table ${booking.tableId} released for event ${booking.eventId} after refund`);
+      
+      // Send refund notification email
+      const { EmailService } = await import('./email-service.js');
+      
+      // Get event, table, and venue details for email
+      const event = await storage.getEventById(booking.eventId);
+      const table = await storage.getTableById(booking.tableId);
+      const venue = table ? await storage.getVenueById(table.venueId) : null;
+      
+      let emailSent = false;
+      if (event && table && venue) {
+        const emailData = {
+          booking: {
+            id: booking.id.toString(),
+            customerEmail: booking.customerEmail,
+            partySize: booking.partySize || 1,
+            status: 'refunded',
+            stripePaymentId: booking.stripePaymentId,
+            createdAt: booking.createdAt,
+            guestNames: booking.guestNames || []
+          },
+          event: {
+            id: event.id.toString(),
+            title: event.title,
+            date: event.date,
+            description: event.description || ''
+          },
+          table: {
+            id: table.id.toString(),
+            tableNumber: table.tableNumber,
+            floor: booking.selectedVenue || 'Main Floor',
+            capacity: table.capacity
+          },
+          venue: {
+            id: venue.id.toString(),
+            name: venue.name,
+            address: '2 E Congress St, Ste 100'
+          },
+          refund: {
+            amount: (refundAmount || 13000), // Default $130 if not specified
+            reason: reason || 'Test refund',
+            processedAt: new Date(),
+            refundId: `test_refund_${Date.now()}`
+          }
+        };
+        
+        emailSent = await EmailService.sendRefundNotification(emailData);
+        console.log(`TEST: Refund notification email ${emailSent ? 'sent' : 'failed'} for booking #${booking.id}`);
+      }
+      
+      res.json({
+        message: 'Test refund processed successfully',
+        bookingId: booking.id,
+        previousStatus: 'confirmed',
+        newStatus: 'refunded',
+        tableReleased: true,
+        emailSent: emailSent,
+        refundAmount: (refundAmount || 13000) / 100,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error("Error in test refund webhook:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Test refund failed'
+      });
+    }
   });
 
   // Ticket-only checkout route

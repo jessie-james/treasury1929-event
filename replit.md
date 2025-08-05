@@ -43,6 +43,27 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (August 2025)
 
+### Automatic Stripe Refund Integration (August 5, 2025)
+
+#### COMPLETED: Comprehensive Webhook-Based Refund System
+- **Automatic Refund Detection**: Enhanced Stripe webhook handler to process all refund-related events automatically
+- **Supported Webhook Events**: 
+  - `charge.dispute.created` - Payment disputes filed by customers
+  - `payment_intent.amount_capturable_updated` - Payment status changes
+  - `payment_intent.refunded` - Direct payment intent refunds
+  - `charge.refunded` - Charge-level refunds
+- **Automatic Status Updates**: Booking status automatically changes from "confirmed" to "refunded" when Stripe processes refunds
+- **Table Availability Sync**: Tables are automatically released and become available for new bookings when refunds are processed
+- **Professional Email Notifications**: New `sendRefundNotification` method sends branded emails to customers including:
+  - Original reservation details
+  - Refund amount and processing timeline
+  - Professional Treasury 1929 branding
+  - Table release confirmation
+  - Customer support contact information
+- **Admin Logging**: Complete audit trail of automatic refund processing with timestamps and customer details
+- **Payment ID Matching**: Robust logic to match Stripe payment IDs with internal booking records
+- **Error Resilience**: Webhook handling includes comprehensive error handling to prevent webhook failures
+
 ### CRITICAL Double-Booking Vulnerability RESOLVED (August 5, 2025)
 
 #### MAJOR SECURITY ISSUE: Frontend Override Bypassing Real-Time Status (RESOLVED)
