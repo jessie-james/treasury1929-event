@@ -4369,7 +4369,7 @@ export async function registerRoutes(app: Express) {
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
 
       // Generate QR code
-      const qrData = `BOOKING:${booking.id}:${event.id}:${booking.customerEmail}`;
+      const qrData = booking.id.toString();
       const qrCodeBuffer = await QRCode.toBuffer(qrData, {
         width: 200,
         margin: 2,

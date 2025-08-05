@@ -94,7 +94,7 @@ export class EmailService {
       
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
       
-      // Generate QR code using SAME format as PDF ticket for consistency
+      // Generate QR code using simple booking ID format expected by scanner
       const qrData = booking.id.toString();
       const qrCodeBuffer = await QRCode.toBuffer(qrData, {
         width: 200,
@@ -229,7 +229,7 @@ export class EmailService {
       
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
       
-      // Generate QR code using SAME format as PDF ticket for consistency
+      // Generate QR code using simple booking ID format expected by scanner
       const qrData = booking.id.toString();
       const qrCodeBuffer = await QRCode.toBuffer(qrData, {
         width: 200,
