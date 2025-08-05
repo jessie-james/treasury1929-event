@@ -43,17 +43,24 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (August 2025)
 
-### Critical Payment Bug Resolution (August 5, 2025)
-- **CRITICAL ISSUE RESOLVED**: Fixed payment calculation bug causing customer overcharges
-- **Customer Impact**: vivacedan@comcast.net was overcharged $46 ($176 charged instead of $130 expected)
-- **Root Cause**: Payment calculation in checkout session incorrectly divided total amount by seat count, then multiplied by quantity again
+### Critical Payment and Booking Flow Bug Resolution (August 5, 2025)
+
+#### MAJOR ISSUE: Missing Booking Records After Payment
+- **CRITICAL DISCOVERY**: Customers being charged via Stripe but no booking records created and no confirmation emails sent
+- **Root Cause**: Stripe webhook handling `payment_intent.succeeded` events but NOT `checkout.session.completed` events
+- **System Impact**: Payment processed successfully but booking creation and email confirmation skipped entirely
 - **Resolution Actions**:
-  - Processed $46 refund successfully (Refund ID: re_3RsfBuEOOtiAoFkb1oa0MNHk)
-  - Fixed payment calculation to use total amount with quantity=1 instead of per-seat calculation
-  - Updated booking record with refund documentation
-  - Tested payment system with multiple scenarios (1, 2, 4, 8 seats) - all calculations now correct
-- **Payment Details**: Stripe Charge ch_3RsfBuEOOtiAoFkb1ZRCy2s1, Payment Intent pi_3RsfBuEOOtiAoFkb1uMPg8Yv
-- **Prevention**: Comprehensive testing implemented to verify payment accuracy before processing
+  - Enhanced webhook handler to process `checkout.session.completed` events
+  - Added automatic booking creation from webhook with full metadata recovery
+  - Integrated email confirmation service into webhook flow
+  - Created recovery endpoint `/api/admin/recover-booking` for manual session processing
+  - Fixed field mapping errors for event dates and venue addresses
+
+#### Previous Payment Calculation Bug (August 5, 2025) 
+- **RESOLVED**: Payment calculation bug causing customer overcharges
+- **Customer Impact**: vivacedan@comcast.net was overcharged $46 ($176 charged instead of $130 expected)
+- **Resolution**: Fixed payment calculation to use total amount with quantity=1
+- **Payment Details**: Stripe Charge ch_3RsfBuEOOtiAoFkb1ZRCy2s1, Refund ID: re_3RsfBuEOOtiAoFkb1oa0MNHk
 
 ### Complete End-to-End Testing (August 5, 2025)
 - Completed comprehensive test of the entire booking system from account creation to email confirmation

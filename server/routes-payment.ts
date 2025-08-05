@@ -423,6 +423,111 @@ export function registerPaymentRoutes(app: Express) {
     }
   });
   
+  // Recovery endpoint to manually process a Stripe session
+  app.post("/api/admin/recover-booking", async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: 'Session ID is required' });
+      }
+
+      const stripe = getStripe();
+      if (!stripe) {
+        return res.status(500).json({ error: "Stripe not initialized" });
+      }
+
+      console.log(`Attempting to recover booking for session: ${sessionId}`);
+      
+      // Retrieve the session from Stripe
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      
+      if (session.payment_status !== 'paid') {
+        return res.status(400).json({ 
+          error: 'Session payment is not completed',
+          paymentStatus: session.payment_status 
+        });
+      }
+
+      if (!session.metadata) {
+        return res.status(400).json({ error: 'Session has no metadata' });
+      }
+
+      // Check if booking already exists
+      const existingBookings = await storage.getBookingsByEventId(parseInt(session.metadata.eventId));
+      const existingBooking = existingBookings.find(booking => 
+        booking.stripePaymentId === session.payment_intent ||
+        booking.tableId === parseInt(session.metadata.tableId)
+      );
+
+      if (existingBooking) {
+        return res.json({ 
+          message: 'Booking already exists',
+          bookingId: existingBooking.id,
+          status: 'already_exists'
+        });
+      }
+
+      // Create the missing booking
+      const booking = await createBookingFromStripeSession(session);
+      
+      // Send confirmation email
+      const { EmailService } = await import('./email-service.js');
+      
+      const event = await storage.getEventById(parseInt(session.metadata.eventId));
+      const table = await storage.getTableById(parseInt(session.metadata.tableId));
+      const venue = await storage.getVenueById(table?.venueId || 0);
+      
+      let emailSent = false;
+      if (event && table && venue) {
+        const emailData = {
+          booking: {
+            id: booking.toString(),
+            customerEmail: session.customer_details?.email || session.metadata.customerEmail || '',
+            partySize: session.metadata.seats ? session.metadata.seats.split(',').length : 1,
+            status: 'confirmed',
+            stripePaymentId: session.payment_intent,
+            createdAt: new Date(),
+            guestNames: session.metadata.guestNames ? JSON.parse(session.metadata.guestNames) : []
+          },
+          event: {
+            id: event.id.toString(),
+            title: event.title,
+            date: event.date,
+            description: event.description || ''
+          },
+          table: {
+            id: table.id.toString(),
+            tableNumber: table.tableNumber,
+            floor: session.metadata.selectedVenue || 'Main Floor',
+            capacity: table.capacity
+          },
+          venue: {
+            id: venue.id.toString(),
+            name: venue.name,
+            address: '2 E Congress St, Ste 100'
+          }
+        };
+        
+        emailSent = await EmailService.sendBookingConfirmation(emailData);
+      }
+
+      res.json({ 
+        message: 'Booking recovered successfully',
+        bookingId: booking,
+        emailSent,
+        status: 'recovered'
+      });
+
+    } catch (error) {
+      console.error("Error recovering booking:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Recovery failed',
+        status: 'error'
+      });
+    }
+  });
+
   // Add a webhook endpoint for Stripe events
   app.post("/api/stripe-webhook", async (req, res) => {
     const stripe = getStripe();
@@ -476,6 +581,65 @@ export function registerPaymentRoutes(app: Express) {
         } catch (logError) {
           console.error("Error logging payment success:", logError);
         }
+      }
+    }
+    
+    // Handle checkout session completion - THIS IS THE CRITICAL MISSING PIECE
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      console.log(`Checkout session completed: ${session.id}`);
+      
+      try {
+        if (session.payment_status === 'paid' && session.metadata) {
+          // Create booking from session metadata
+          console.log('Creating booking from webhook for session:', session.id);
+          const booking = await createBookingFromStripeSession(session);
+          
+          // Send confirmation email
+          const { EmailService } = await import('./email-service.js');
+          
+          // Get event, table, and venue details for email
+          const event = await storage.getEventById(parseInt(session.metadata.eventId));
+          const table = await storage.getTableById(parseInt(session.metadata.tableId));
+          const venue = await storage.getVenueById(table?.venueId || 0);
+          
+          if (event && table && venue) {
+            const emailData = {
+              booking: {
+                id: booking.toString(),
+                customerEmail: session.customer_details?.email || session.metadata.customerEmail || '',
+                partySize: session.metadata.seats ? session.metadata.seats.split(',').length : 1,
+                status: 'confirmed',
+                stripePaymentId: session.payment_intent,
+                createdAt: new Date(),
+                guestNames: session.metadata.guestNames ? JSON.parse(session.metadata.guestNames) : []
+              },
+              event: {
+                id: event.id.toString(),
+                title: event.title,
+                date: event.date,
+                description: event.description || ''
+              },
+              table: {
+                id: table.id.toString(),
+                tableNumber: table.tableNumber,
+                floor: session.metadata.selectedVenue || 'Main Floor',
+                capacity: table.capacity
+              },
+              venue: {
+                id: venue.id.toString(),
+                name: venue.name,
+                address: '2 E Congress St, Ste 100' // Treasury 1929 address
+              }
+            };
+            
+            const emailSent = await EmailService.sendBookingConfirmation(emailData);
+            console.log(`Booking confirmation email ${emailSent ? 'sent' : 'failed'} for booking #${booking}`);
+          }
+        }
+      } catch (error) {
+        console.error("Error processing checkout session completion:", error);
+        // Don't throw - we don't want to fail the webhook
       }
     }
     
@@ -647,7 +811,7 @@ export function registerPaymentRoutes(app: Express) {
             
             <div class="ticket-details">
               <h3>Ticket Details</h3>
-              <p><strong>Quantity:</strong> ${metadata?.quantity || 1} ticket${(metadata?.quantity || 1) > 1 ? 's' : ''}</p>
+              <p><strong>Quantity:</strong> ${metadata?.quantity || 1} ticket${Number(metadata?.quantity || 1) > 1 ? 's' : ''}</p>
               <p><strong>Amount:</strong> $${((session.amount_total || 0) / 100).toFixed(2)}</p>
             </div>
             
