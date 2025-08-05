@@ -43,7 +43,25 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (August 2025)
 
-### Critical Payment and Booking Flow Bug Resolution (August 5, 2025)
+### CRITICAL Double-Booking Vulnerability RESOLVED (August 5, 2025)
+
+#### MAJOR SECURITY ISSUE: Frontend Override Bypassing Real-Time Status (RESOLVED)
+- **CRITICAL DISCOVERY**: Frontend was completely overriding backend's real-time booking status calculation
+- **Root Cause**: Two-part system failure:
+  1. **Backend**: Venue-layouts route hardcoded `status: 'available'` for all tables at line 4225
+  2. **Frontend**: IframeSeatSelection component overrode all backend status with local logic at line 419
+- **Security Impact**: 
+  - Tables showed as "available" (green) even when already booked
+  - Multiple customers could book the same table simultaneously
+  - Real-time booking status completely bypassed
+  - Tables 11 and 16 confirmed affected (showed green when booked)
+- **Complete Resolution**:
+  - **Backend Fix**: Replaced hardcoded status with `storage.getTablesByVenue(venueId, eventId)` real-time calculation
+  - **Frontend Fix**: Removed status override, now respects backend's `table.status === 'booked'` data
+  - **Verification**: Tables 11 and 16 now correctly show as red (unclickable) when booked
+  - **Production Ready**: Double-booking prevention now fully operational
+
+#### Previous Payment and Booking Flow Bug Resolution (August 5, 2025)
 
 #### MAJOR ISSUE: Complete Booking System Bypass After Payment (RESOLVED)
 - **CRITICAL DISCOVERY**: Customers charged via Stripe but entire booking system bypassed
