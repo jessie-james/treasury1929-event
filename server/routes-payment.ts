@@ -80,12 +80,12 @@ export function registerPaymentRoutes(app: Express) {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: `Event Booking - ${selectedSeats.length} seats`,
+                name: `Event Booking - ${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''}`,
                 description: `Event ID: ${eventId}, Table: ${tableId}`,
               },
-              unit_amount: Math.round(amount / selectedSeats.length), // amount per seat in cents
+              unit_amount: amount, // total amount in cents - no division needed
             },
-            quantity: selectedSeats.length,
+            quantity: 1, // quantity is always 1 since amount is already the total
           },
         ],
         mode: 'payment',

@@ -43,6 +43,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (August 2025)
 
+### Critical Payment Bug Resolution (August 5, 2025)
+- **CRITICAL ISSUE RESOLVED**: Fixed payment calculation bug causing customer overcharges
+- **Customer Impact**: vivacedan@comcast.net was overcharged $46 ($176 charged instead of $130 expected)
+- **Root Cause**: Payment calculation in checkout session incorrectly divided total amount by seat count, then multiplied by quantity again
+- **Resolution Actions**:
+  - Processed $46 refund successfully (Refund ID: re_3RsfBuEOOtiAoFkb1oa0MNHk)
+  - Fixed payment calculation to use total amount with quantity=1 instead of per-seat calculation
+  - Updated booking record with refund documentation
+  - Tested payment system with multiple scenarios (1, 2, 4, 8 seats) - all calculations now correct
+- **Payment Details**: Stripe Charge ch_3RsfBuEOOtiAoFkb1ZRCy2s1, Payment Intent pi_3RsfBuEOOtiAoFkb1uMPg8Yv
+- **Prevention**: Comprehensive testing implemented to verify payment accuracy before processing
+
 ### Complete End-to-End Testing (August 5, 2025)
 - Completed comprehensive test of the entire booking system from account creation to email confirmation
 - **Test Account**: Created jose@sahuaroworks.com with customer role and profile data
