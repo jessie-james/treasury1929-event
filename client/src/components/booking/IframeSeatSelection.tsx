@@ -416,7 +416,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
                 <TableLayoutCanvas
                   tables={currentVenueLayout.tables.map(table => ({
                     ...table,
-                    status: bookedTableIds.includes(table.id) ? ('sold' as const) : ('available' as const),
+                    // CRITICAL FIX: Use backend real-time status instead of frontend override
+                    status: table.status === 'booked' ? 'sold' as const : 
+                            table.status === 'hold' ? 'hold' as const : 
+                            'available' as const,
                     shape: table.shape as 'half' | 'full'
                   }))}
                   stages={currentVenueLayout.stages}

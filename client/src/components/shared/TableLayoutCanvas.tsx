@@ -10,7 +10,7 @@ interface VenueTable {
   capacity: number;
   shape: 'half' | 'full';
   rotation: number;
-  status: 'available' | 'sold' | 'hold';
+  status: 'available' | 'sold' | 'hold' | 'booked'; // CRITICAL: Add 'booked' status
   tableSize?: number;
 }
 
@@ -92,7 +92,17 @@ export function TableLayoutCanvas({
     const isSold = table.status === 'sold' || table.status === 'booked';
     const isHalf = table.shape === 'half';
     
-    console.log(`🎨 Drawing table ${table.tableNumber}:`, { isSelected, selectedTables, tableId: table.id });
+    // CRITICAL DEBUG: Log table status for debugging
+    if ([11, 16].includes(table.tableNumber)) {
+      console.log(`🚨 CRITICAL TABLE ${table.tableNumber} STATUS:`, {
+        rawStatus: table.status,
+        isAvailable,
+        isSold,
+        isOnHold,
+        isSelected,
+        table
+      });
+    }
     
     // Use tableSize from database or calculate from width/height as fallback
     let tableSize = table.tableSize || 4;
