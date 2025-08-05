@@ -17,7 +17,7 @@ interface CheckoutFormProps {
 
 interface Event {
   id: number;
-  name: string;
+  title: string;
   basePrice: number;
   ticketPrice: number;
   eventType: string;
@@ -134,7 +134,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
         <div className="space-y-2">
           <div className="flex justify-between">
             <span>Event:</span>
-            <span>{event?.name || `#${eventId}`}</span>
+            <span>{event?.title || `#${eventId}`}</span>
           </div>
           {tableId > 0 && (
             <div className="flex justify-between">
