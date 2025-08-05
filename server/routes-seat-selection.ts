@@ -9,10 +9,13 @@ export function registerSeatSelectionRoutes(app: Express): void {
     res.json({ message: "Venue layout routes are working!", timestamp: new Date().toISOString() });
   });
 
-  // Venue layout endpoint for seat selection
+  // CRITICAL: Venue layout endpoint with real-time booking status
   app.get("/api/venues/:venueId/layout", async (req, res) => {
     try {
       const venueId = parseInt(req.params.venueId);
+      const eventId = req.query.eventId ? parseInt(req.query.eventId as string) : undefined;
+      
+      console.log(`🚨 CRITICAL VENUE LAYOUT REQUEST for venue ${venueId}, event ${eventId}`);
       
       if (isNaN(venueId)) {
         return res.status(400).json({ error: "Invalid venue ID" });
@@ -24,8 +27,13 @@ export function registerSeatSelectionRoutes(app: Express): void {
         return res.status(404).json({ error: "Venue not found" });
       }
 
-      // Get tables for this venue
-      const tables = await storage.getTablesByVenue(venueId);
+      // CRITICAL FIX: Get tables with real-time booking status
+      const tables = await storage.getTablesByVenue(venueId, eventId);
+      
+      console.log(`🔍 TABLE STATUS VERIFICATION - Event ${eventId}:`);
+      tables.filter(t => [11, 16].includes(t.tableNumber)).forEach(t => {
+        console.log(`   Table ${t.tableNumber}: ${t.status}`);
+      });
       
       // Get stages for this venue (if any)
       const stages = await storage.getStagesByVenue(venueId);
@@ -47,7 +55,7 @@ export function registerSeatSelectionRoutes(app: Express): void {
           capacity: table.capacity,
           shape: table.shape,
           rotation: table.rotation,
-          status: 'available' // Default status for seat selection
+          status: table.status // CRITICAL: Use real-time calculated status, not hardcoded 'available'
         })),
         stages: stages.map(stage => ({
           id: stage.id,

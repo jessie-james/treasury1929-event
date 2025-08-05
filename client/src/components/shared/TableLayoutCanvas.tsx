@@ -345,6 +345,8 @@ export function TableLayoutCanvas({
         console.log(`✅ Table ${table.tableNumber} clicked!`, table);
         if (table.status === 'available') {
           onTableSelect(table);
+        } else {
+          console.log(`❌ Table ${table.tableNumber} is ${table.status} - cannot select`);
         }
         break;
       }

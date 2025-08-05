@@ -437,45 +437,48 @@ export class PgStorage implements IStorage {
 
   async getTablesByVenue(venueId: number, eventId?: number): Promise<Table[]> {
     if (eventId) {
-      // Get tables with real-time booking status for specific event
-      const result = await db.select({
-        id: schema.tables.id,
-        venueId: schema.tables.venueId,
-        tableNumber: schema.tables.tableNumber,
-        capacity: schema.tables.capacity,
-        floor: schema.tables.floor,
-        x: schema.tables.x,
-        y: schema.tables.y,
-        width: schema.tables.width,
-        height: schema.tables.height,
-        shape: schema.tables.shape,
-        tableSize: schema.tables.tableSize,
-        zone: schema.tables.zone,
-        priceCategory: schema.tables.priceCategory,
-        isLocked: schema.tables.isLocked,
-        rotation: schema.tables.rotation,
-        // Calculate real-time status based on both confirmed bookings AND active seat holds
-        status: sql`CASE 
-          WHEN EXISTS (
-            SELECT 1 FROM bookings 
-            WHERE bookings.table_id = ${schema.tables.id} 
-            AND bookings.event_id = ${eventId}
-            AND bookings.status = 'confirmed'
-          ) THEN 'booked'
-          WHEN EXISTS (
-            SELECT 1 FROM seat_holds
-            WHERE seat_holds.table_id = ${schema.tables.id}
-            AND seat_holds.event_id = ${eventId}
-            AND seat_holds.status = 'active'
-            AND seat_holds.hold_expiry > NOW()
-          ) THEN 'hold'
-          ELSE 'available' 
-        END`.as('status')
-      })
-      .from(schema.tables)
-      .where(eq(schema.tables.venueId, venueId));
+      console.log(`🚨 CRITICAL: Real-time table status for venue ${venueId}, event ${eventId}`);
       
-      return result as Table[];
+      // Get base tables first
+      const baseTables = await db.select().from(schema.tables).where(eq(schema.tables.venueId, venueId));
+      console.log(`📊 Base tables loaded: ${baseTables.length}`);
+      
+      // Apply real-time status calculation for each table
+      const tablesWithStatus = await Promise.all(baseTables.map(async (table) => {
+        // Check for confirmed bookings
+        const confirmedBooking = await db.select().from(schema.bookings)
+          .where(and(
+            eq(schema.bookings.tableId, table.id),
+            eq(schema.bookings.eventId, eventId),
+            eq(schema.bookings.status, 'confirmed')
+          ))
+          .limit(1);
+        
+        if (confirmedBooking.length > 0) {
+          console.log(`🔴 Table ${table.tableNumber} is BOOKED (booking: ${confirmedBooking[0].id})`);
+          return { ...table, status: 'booked' as const };
+        }
+        
+        // Check for active seat holds
+        const activeSeatHold = await db.select().from(schema.seatHolds)
+          .where(and(
+            eq(schema.seatHolds.tableId, table.id),
+            eq(schema.seatHolds.eventId, eventId),
+            eq(schema.seatHolds.status, 'active'),
+            sql`${schema.seatHolds.holdExpiry} > NOW()`
+          ))
+          .limit(1);
+        
+        if (activeSeatHold.length > 0) {
+          console.log(`🟠 Table ${table.tableNumber} is on HOLD (hold: ${activeSeatHold[0].id})`);
+          return { ...table, status: 'hold' as const };
+        }
+        
+        console.log(`🟢 Table ${table.tableNumber} is AVAILABLE`);
+        return { ...table, status: 'available' as const };
+      }));
+      
+      return tablesWithStatus as Table[];
     } else {
       // Default behavior for non-event specific requests
       return await db.select().from(schema.tables).where(eq(schema.tables.venueId, venueId));

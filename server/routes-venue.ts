@@ -72,9 +72,11 @@ export function registerVenueRoutes(app: Express): void {
       }
 
       const stages = await storage.getStagesByVenue(venueId);
-      // Get eventId from query params for real-time table status calculation
+      // CRITICAL: Force real-time table status calculation for double-booking prevention
       const eventId = req.query.eventId ? parseInt(req.query.eventId as string) : undefined;
+      console.log(`🔍 Venue layout request for venue ${venueId}, event ${eventId}`);
       const tables = await storage.getTablesByVenue(venueId, eventId);
+      console.log(`📊 Tables loaded: ${tables.length}, sample statuses:`, tables.slice(0,3).map(t => ({num: t.tableNumber, status: t.status})));
 
       res.json({
         venue,

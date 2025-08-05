@@ -4187,13 +4187,12 @@ export async function registerRoutes(app: Express) {
           
           console.log(`🔍 SERVER: Fetching tables for venue ${venueId} (${eventVenue.displayName})`);
           
-          // Get tables for this venue
-          const venueTables = await db
-            .select()
-            .from(tables)
-            .where(eq(tables.venueId, venueId));
+          // CRITICAL FIX: Get tables with real-time booking status calculation  
+          console.log(`🚨 CRITICAL: Getting real-time table status for venue ${venueId}, event ${eventId}`);
+          const venueTables = await storage.getTablesByVenue(venueId, eventId);
             
           console.log(`📊 SERVER: Found ${venueTables.length} tables for venue ${venueId}`);
+          console.log(`🔍 CRITICAL STATUS CHECK:`, venueTables.filter(t => [11, 16].includes(t.tableNumber)).map(t => ({num: t.tableNumber, status: t.status})));
           
           // Get stages for this venue
           const venueStages = await db
@@ -4222,7 +4221,7 @@ export async function registerRoutes(app: Express) {
               shape: table.shape,
               rotation: table.rotation || 0,
               tableSize: table.tableSize, // Use actual tableSize from database
-              status: 'available'
+              status: table.status // CRITICAL: Use real-time calculated status
             })),
             stages: venueStages.map(stage => ({
               id: stage.id,
