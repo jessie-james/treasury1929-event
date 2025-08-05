@@ -33,7 +33,7 @@ import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import TicketOnlyBookingPage from "@/pages/TicketOnlyBookingPage";
 import KitchenDashboard from "@/pages/backoffice/KitchenDashboard";
 import TicketDetailPage from "@/pages/TicketDetailPage";
-
+import PasswordResetPage from "@/pages/PasswordResetPage";
 
 import { BookingCancel } from "@/pages/BookingCancel";
 import { Header } from "./components/Header";
@@ -49,7 +49,7 @@ function Router() {
   const isBackoffice = location.startsWith("/backoffice");
   
   // Check if current path is an auth-related page (should not show navigation)
-  const isAuthPage = location === "/auth" || location === "/admin-login";
+  const isAuthPage = location === "/auth" || location === "/admin-login" || location.startsWith("/reset-password");
 
   // Only show header and bottom navigation on non-backoffice and non-auth pages
   const showNavigation = !isBackoffice && !isAuthPage;
@@ -61,7 +61,7 @@ function Router() {
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/auth" component={AuthPage} />
-
+        <Route path="/reset-password" component={PasswordResetPage} />
         <Route path="/admin-login" component={AdminLoginPage} />
         <Route path="/events/:id" component={EventPage} />
         <ProtectedRoute path="/events/:id/book" component={BookingPage} />

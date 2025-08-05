@@ -394,4 +394,66 @@ export class EmailService {
       return false;
     }
   }
+
+  static async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
+    if (!emailInitialized) {
+      console.log('📧 Email service not initialized - skipping password reset');
+      return false;
+    }
+
+    try {
+      // Use the correct Replit app URL instead of localhost
+      const baseUrl = process.env.REPLIT_URL || 
+                      (process.env.REPL_SLUG && process.env.REPL_OWNER 
+                        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.app` 
+                        : 'http://localhost:5000');
+      const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+
+      const emailContent = {
+        to: email,
+        from: this.FROM_EMAIL,
+        subject: 'Reset Your Password - The Treasury 1929',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Guest,</p>
+            
+            <p>We received a request to reset your password for your Treasury 1929 account.</p>
+            
+            <p>To reset your password, please click the button below:</p>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" style="background-color: #2c3e50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                Reset Your Password
+              </a>
+            </div>
+
+            <p>This link will expire in 1 hour for security purposes.</p>
+
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="color: #856404; margin: 0;">If you didn't request this password reset, please ignore this email. Your password will remain unchanged.</p>
+            </div>
+            
+            <p>If you have any questions, please contact us at (520) 734-3937.</p>
+            
+            <p>Best regards,<br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3937<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
+            </div>
+          </div>
+        `
+      };
+
+      await sgMail.send(emailContent);
+      console.log(`✓ Password reset email sent to ${email}`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ Failed to send password reset email:', error);
+      return false;
+    }
+  }
 }
