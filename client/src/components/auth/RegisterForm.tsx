@@ -22,9 +22,6 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { InfoIcon, Mail, KeyRound, EyeIcon, EyeOffIcon, User, Phone } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-
 
 const registerSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -41,9 +38,6 @@ const registerSchema = z.object({
 export function RegisterForm() {
   const { registerMutation } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [emailExistsError, setEmailExistsError] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
-  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -59,81 +53,21 @@ export function RegisterForm() {
     setShowPassword(!showPassword);
   };
 
-  const handleForgotPassword = async () => {
-    const email = form.getValues('email');
-    if (!email) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsResettingPassword(true);
-    try {
-      await apiRequest("POST", "/api/forgot-password", { email });
-      toast({
-        title: "Password reset sent",
-        description: "We've sent you a password reset link to help you access your existing account.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to send password reset email",
-        variant: "destructive",
-      });
-    } finally {
-      setIsResettingPassword(false);
-    }
-  };
-
-
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit((data) => {
           console.log('Submitting registration form with data:', data);
-          setEmailExistsError(false); // Clear any previous error
-          registerMutation.mutate(data, {
-            onError: (error) => {
-              if (error.message.includes("Email already exists")) {
-                setEmailExistsError(true);
-              }
-            }
-          });
+          registerMutation.mutate(data);
         })}
         className="space-y-4"
       >
-        {emailExistsError ? (
-          <div className="bg-amber-50 text-amber-800 p-3 rounded-md text-sm flex items-start gap-2 mb-4 border border-amber-200">
-            <InfoIcon className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-medium">Account already exists</p>
-              <p className="mt-1">
-                You already have an account with this email. Please use the <strong>Login</strong> tab above to sign in.
-              </p>
-              <div className="mt-2">
-                <Button
-                  type="button"
-                  variant="link"
-                  className="text-sm p-0 h-auto text-amber-700 hover:text-amber-800"
-                  onClick={handleForgotPassword}
-                  disabled={isResettingPassword}
-                >
-                  {isResettingPassword ? "Sending reset link..." : "Forgot your password? Reset it here"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm flex items-start gap-2 mb-4">
-            <InfoIcon className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-            <p>
-              Create an account to book events and set your dining preferences at The Treasury 1929 Events.
-            </p>
-          </div>
-        )}
+        <div className="bg-blue-50 text-blue-800 p-3 rounded-md text-sm flex items-start gap-2 mb-4">
+          <InfoIcon className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+          <p>
+            Create an account to book events and set your dining preferences at The Treasury 1929 Events.
+          </p>
+        </div>
 
         <FormField
           control={form.control}
@@ -254,9 +188,9 @@ export function RegisterForm() {
         <Button
           type="submit"
           className="w-full"
-          disabled={registerMutation.isPending || emailExistsError}
+          disabled={registerMutation.isPending}
         >
-          {registerMutation.isPending ? "Creating your account..." : emailExistsError ? "Email Already Registered" : "Create Account"}
+          {registerMutation.isPending ? "Creating your account..." : "Create Account"}
         </Button>
       </form>
     </Form>
