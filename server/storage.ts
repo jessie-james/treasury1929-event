@@ -1080,16 +1080,25 @@ export class PgStorage implements IStorage {
       createdAt: schema.bookings.createdAt,
       checkedIn: schema.bookings.checkedIn,
       checkedInAt: schema.bookings.checkedInAt,
-      orderTracking: schema.bookings.orderTracking
+      orderTracking: schema.bookings.orderTracking,
+      foodSelections: schema.bookings.foodSelections,
+      guestNames: schema.bookings.guestNames
     })
     .from(schema.bookings)
     .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
-    .where(eq(schema.bookings.eventId, eventId));
+    .where(and(
+      eq(schema.bookings.eventId, eventId),
+      eq(schema.bookings.status, 'confirmed')
+    ));
 
     console.log(`Found ${result.length} bookings for event ${eventId}`);
     result.forEach(booking => {
       console.log(`  Booking ${booking.bookingId}: table ${booking.tableNumber}, email ${booking.customerEmail}, has orderTracking: ${!!booking.orderTracking}`);
     });
+
+    // Get all food options to map IDs to names for fallback
+    const allFoodOptions = await db.select().from(schema.foodOptions);
+    const foodOptionsMap = new Map(allFoodOptions.map(opt => [opt.id, opt]));
 
     // Transform order tracking data to match expected format
     const processedBookings = result.map(booking => {
@@ -1121,6 +1130,96 @@ export class PgStorage implements IStorage {
         } catch (error) {
           console.error(`Error parsing order tracking for booking ${booking.bookingId}:`, error);
         }
+      }
+      
+      // Fallback to food selections if no order tracking data
+      if (guestOrders.length === 0 && booking.foodSelections && Array.isArray(booking.foodSelections)) {
+        console.log(`Processing booking ${booking.bookingId} with fallback food selections`);
+        
+        booking.foodSelections.forEach((selection: any, index: number) => {
+          if (selection && typeof selection === 'object') {
+            // Handle guest names
+            let guestName = `Guest ${index + 1}`;
+            if (booking.guestNames) {
+              if (Array.isArray(booking.guestNames)) {
+                guestName = booking.guestNames[index] || `Guest ${index + 1}`;
+              } else if (typeof booking.guestNames === 'object') {
+                const guestKey = String(index + 1);
+                guestName = booking.guestNames[guestKey] || `Guest ${index + 1}`;
+              }
+            }
+            
+            const guestOrder = {
+              guestName,
+              guestNumber: index + 1,
+              items: [] as Array<{type: string, name: string, dietary: string[]}>
+            };
+
+            // Process salad (handle both numeric ID and object format)
+            let saladId = null;
+            if (selection.salad) {
+              if (typeof selection.salad === 'number') {
+                saladId = selection.salad;
+              } else if (selection.salad.id) {
+                saladId = selection.salad.id;
+              }
+            }
+            if (saladId) {
+              const foodOption = foodOptionsMap.get(saladId);
+              if (foodOption) {
+                guestOrder.items.push({
+                  type: 'salad',
+                  name: foodOption.name,
+                  dietary: foodOption.dietaryRestrictions || []
+                });
+              }
+            }
+
+            // Process entree (handle both numeric ID and object format)
+            let entreeId = null;
+            if (selection.entree) {
+              if (typeof selection.entree === 'number') {
+                entreeId = selection.entree;
+              } else if (selection.entree.id) {
+                entreeId = selection.entree.id;
+              }
+            }
+            if (entreeId) {
+              const foodOption = foodOptionsMap.get(entreeId);
+              if (foodOption) {
+                guestOrder.items.push({
+                  type: 'entree',
+                  name: foodOption.name,
+                  dietary: foodOption.dietaryRestrictions || []
+                });
+              }
+            }
+
+            // Process dessert (handle both numeric ID and object format)
+            let dessertId = null;
+            if (selection.dessert) {
+              if (typeof selection.dessert === 'number') {
+                dessertId = selection.dessert;
+              } else if (selection.dessert.id) {
+                dessertId = selection.dessert.id;
+              }
+            }
+            if (dessertId) {
+              const foodOption = foodOptionsMap.get(dessertId);
+              if (foodOption) {
+                guestOrder.items.push({
+                  type: 'dessert',
+                  name: foodOption.name,
+                  dietary: foodOption.dietaryRestrictions || []
+                });
+              }
+            }
+
+            if (guestOrder.items.length > 0) {
+              guestOrders.push(guestOrder);
+            }
+          }
+        });
       }
 
       const processedBooking = {
