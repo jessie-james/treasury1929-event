@@ -491,8 +491,8 @@ export class PgStorage implements IStorage {
           }
         };
         
-        // Use default refund amount of $85.00 (8500 cents) - this should be calculated from actual booking
-        const refundAmountCents = 8500; // This should be calculated from booking.totalAmount or similar
+        // Calculate 100% refund from booking total amount
+        const refundAmountCents = booking.totalAmount || 0;
         
         await EmailService.sendCancellationEmail(bookingEmailData, refundAmountCents);
       } catch (emailError) {
