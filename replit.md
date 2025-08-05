@@ -38,5 +38,24 @@ Preferred communication style: Simple, everyday language.
 ## External Dependencies
 
 - **Payment Processing**: Stripe (for payment processing, with live keys configured)
-- **Email Services**: SendGrid (for booking confirmations and administrative alerts)
+- **Email Services**: SendGrid (for booking confirmations and administrative alerts, configured with "The Treasury 1929" branding)
 - **Database Services**: Neon PostgreSQL (serverless PostgreSQL with connection pooling)
+
+## Recent Updates (August 2025)
+
+### Menu and Food Service Enhancements
+- Updated all food item descriptions to start with capital letters for professional presentation
+- Added "berries on side" to all dessert descriptions (Creme Brulee, Chocolate Molten Cake, Tiramisu)
+- Comprehensive allergen information maintained for all menu items (dairy, gluten, eggs)
+- Professional food presentation standards implemented
+
+### Email Communication System
+- Updated SendGrid sender configuration from "info" to "The Treasury 1929" for professional branding
+- Implemented complete email template suite matching The Treasury 1929 brand standards:
+  - **Booking Confirmation**: Professional format with digital check-in codes and QR functionality
+  - **Cancellation/Refund**: Customer-initiated cancellation with refund processing details
+  - **Venue Cancellation**: Treasury-initiated event cancellation with full refund notifications
+  - **Event Reminders**: Day-before event notifications with check-in requirements
+  - **Password Reset/Welcome**: Account setup with branded welcome messaging
+- All email templates include consistent contact information (📍 2 E Congress St, Ste 100, 📞 (520) 734-3937)
+- Website references standardized to www.thetreasury1929.com (removed incorrect /dinnerconcerts path)

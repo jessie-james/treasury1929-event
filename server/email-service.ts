@@ -458,31 +458,38 @@ export class EmailService {
       const emailContent = {
         to: booking.customerEmail,
         from: this.FROM_EMAIL,
-        subject: `🎭 Tomorrow: ${event.title} - Event Reminder`,
+        subject: `Tomorrow: Your Dinner Concert at The Treasury 1929 🎭`,
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h1 style="color: #2c3e50; text-align: center;">🎭 Your Event is Tomorrow!</h1>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Guest,</p>
             
-            <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h2 style="color: #856404; margin-top: 0;">Event Reminder</h2>
-              <p style="color: #856404;"><strong>Event:</strong> ${event.title}</p>
-              <p style="color: #856404;"><strong>Date:</strong> ${eventDate}</p>
-              <p style="color: #856404;"><strong>Venue:</strong> ${venue.name}</p>
-              <p style="color: #856404;"><strong>Your Table:</strong> ${table.tableNumber} (${table.floor} floor)</p>
+            <p>We're excited to welcome you tomorrow evening for the Dinner Concert at The Treasury 1929!</p>
+            
+            <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #27ae60; margin-top: 0;">Your Reservation Details:</h3>
+              <p><strong>Event:</strong> ${event.title}</p>
+              <p><strong>Date:</strong> ${eventDate}</p>
+              <p><strong>Table:</strong> ${table.tableNumber}</p>
+              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
             </div>
 
-            <div style="background-color: #d1ecf1; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #0c5460; margin-top: 0;">What to Bring</h3>
-              <ul style="color: #0c5460;">
-                <li>Photo ID for check-in verification</li>
-                <li>Your booking confirmation (reference #${booking.id})</li>
-                <li>Arrive 15 minutes early for the best experience</li>
-              </ul>
-            </div>
-
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
-              <p style="color: #666;">We can't wait to see you tomorrow!</p>
-              <p style="color: #666;">Questions? Contact ${this.ADMIN_EMAIL}</p>
+            <p><strong>Important Reminders:</strong></p>
+            <ul>
+              <li>Please arrive 15 minutes before the event start time</li>
+              <li>Bring a photo ID for check-in verification</li>
+              <li>Have your booking confirmation ready (reference #${booking.id})</li>
+              <li>Don't forget to bring your QR code for quick entry</li>
+            </ul>
+            
+            <p>We can't wait to share this intimate musical experience with you tomorrow!</p>
+            
+            <p>Warm regards,<br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3937<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com</p>
             </div>
           </div>
         `
@@ -494,6 +501,67 @@ export class EmailService {
 
     } catch (error) {
       console.error('✗ Failed to send event reminder:', error);
+      return false;
+    }
+  }
+
+  // Venue-initiated event cancellation email
+  static async sendVenueCancellationEmail(data: BookingEmailData, refundAmount?: number): Promise<boolean> {
+    if (!emailInitialized) {
+      console.log('📧 Email service not initialized - skipping venue cancellation email');
+      return false;
+    }
+
+    try {
+      const { booking, event } = data;
+
+      const emailContent = {
+        to: booking.customerEmail,
+        from: this.FROM_EMAIL,
+        subject: `Important Update: Dinner Concert Cancellation & Full Refund`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Guest,</p>
+            
+            <p>We regret to inform you that due to unforeseen circumstances, we must cancel the upcoming Dinner Concert at The Treasury 1929 for which you had purchased tickets.</p>
+            
+            <p>Please accept our sincere apologies for any inconvenience this may cause. We understand how disappointing this is, and we truly appreciate your understanding.</p>
+            
+            ${refundAmount ? `
+            <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #27ae60; margin-top: 0;">Refund Information</h3>
+              <p><strong>Full Refund Amount:</strong> $${(refundAmount / 100).toFixed(2)}</p>
+              <p><strong>Booking Reference:</strong> #${booking.id}</p>
+            </div>
+            ` : ''}
+            
+            <p>You will receive a full refund for your tickets and any additional purchases associated with your reservation. Refunds are processed promptly, though they may take 7–10 business days to appear in your account depending on your bank or card issuer.</p>
+            
+            <p>We sincerely hope you'll consider rebooking for another date in our Dinner Concert Series. To view upcoming events and make a new reservation, please visit:</p>
+            <p>👉 <strong>www.thetreasury1929.com</strong></p>
+            
+            <p>If you'd like to be notified of future concert dates and special invitations, just reply to this email and let us know you'd like to join our mailing list.</p>
+            
+            <p>Thank you again for your understanding. We look forward to welcoming you to The Treasury 1929 very soon.</p>
+            
+            <p>Warm regards,<br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3979<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com</p>
+            </div>
+          </div>
+        `
+      };
+
+      await sgMail.send(emailContent);
+      console.log(`✓ Venue cancellation email sent to ${booking.customerEmail}`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ Failed to send venue cancellation email:', error);
       return false;
     }
   }
