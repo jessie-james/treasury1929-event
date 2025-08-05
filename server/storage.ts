@@ -922,7 +922,7 @@ export class PgStorage implements IStorage {
   async getEventOrdersWithDetails(eventId: number): Promise<any[]> {
     const result = await db.select({
       bookingId: schema.bookings.id,
-      tableNumber: sql`COALESCE(${schema.tables.tableNumber}, 0)`.as('tableNumber'),
+      tableNumber: sql`COALESCE(${schema.tables.tableNumber}, ${schema.bookings.tableId})`.as('tableNumber'),
       tableId: schema.bookings.tableId,
       tableZone: sql`'General'`.as('tableZone'),
       tablePriceCategory: sql`'Standard'`.as('tablePriceCategory'),
@@ -938,39 +938,59 @@ export class PgStorage implements IStorage {
     .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
     .where(eq(schema.bookings.eventId, eventId));
 
+    console.log(`Found ${result.length} bookings for event ${eventId}`);
+    result.forEach(booking => {
+      console.log(`  Booking ${booking.bookingId}: table ${booking.tableNumber}, email ${booking.customerEmail}, has orderTracking: ${!!booking.orderTracking}`);
+    });
+
     // Transform order tracking data to match expected format
-    return result.map(booking => {
+    const processedBookings = result.map(booking => {
       let guestOrders = [];
       
-      if (booking.orderTracking && typeof booking.orderTracking === 'object') {
-        const orderData = booking.orderTracking as any;
-        
-        if (orderData.orders && Array.isArray(orderData.orders)) {
-          guestOrders = orderData.orders.map((order: any, index: number) => ({
-            guestName: order.guestName || `Guest ${index + 1}`,
-            guestNumber: index + 1,
-            items: order.orderItems ? order.orderItems.map((item: any) => ({
-              type: item.type || 'unknown',
-              name: item.itemName || item.name || 'Unknown Item',
-              dietary: []
-            })) : [],
-            wineItems: order.orderItems ? order.orderItems
-              .filter((item: any) => item.type === 'wine')
-              .map((item: any) => ({
-                name: item.itemName || item.name || 'Unknown Wine',
-                type: 'wine'
+      if (booking.orderTracking) {
+        try {
+          // Parse orderTracking if it's a string
+          const orderData = typeof booking.orderTracking === 'string' 
+            ? JSON.parse(booking.orderTracking) 
+            : booking.orderTracking;
+          
+          console.log(`Processing booking ${booking.bookingId} with order data:`, {
+            hasOrders: !!orderData.orders,
+            orderCount: orderData.orders?.length || 0
+          });
+          
+          if (orderData.orders && Array.isArray(orderData.orders)) {
+            guestOrders = orderData.orders.map((order: any, index: number) => ({
+              guestName: order.guestName || `Guest ${index + 1}`,
+              guestNumber: index + 1,
+              items: order.orderItems ? order.orderItems.map((item: any) => ({
+                type: item.type || 'unknown',
+                name: item.itemName || item.name || 'Unknown Item',
+                dietary: []
               })) : []
-          }));
+            }));
+          }
+        } catch (error) {
+          console.error(`Error parsing order tracking for booking ${booking.bookingId}:`, error);
         }
       }
 
-      return {
+      const processedBooking = {
         ...booking,
         guestOrders,
         totalGuests: guestOrders.length,
         hasOrders: guestOrders.some((guest: any) => guest.items.length > 0)
       };
-    }).filter(booking => booking.hasOrders);
+      
+      console.log(`Processed booking ${booking.bookingId}: ${processedBooking.hasOrders ? 'HAS ORDERS' : 'NO ORDERS'}, ${processedBooking.totalGuests} guests`);
+      
+      return processedBooking;
+    });
+
+    const bookingsWithOrders = processedBookings.filter(booking => booking.hasOrders);
+    console.log(`Returning ${bookingsWithOrders.length} bookings with orders out of ${result.length} total bookings`);
+    
+    return bookingsWithOrders;
   }
 
   // Layout methods (stub implementations)
