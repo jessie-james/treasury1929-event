@@ -752,6 +752,7 @@ export class PgStorage implements IStorage {
         guestNames: schema.bookings.guestNames,
         foodSelections: schema.bookings.foodSelections,
         wineSelections: schema.bookings.wineSelections,
+        orderTracking: schema.bookings.orderTracking, // ADD THIS LINE
         customerEmail: schema.bookings.customerEmail,
         status: schema.bookings.status,
         createdAt: schema.bookings.createdAt,
@@ -776,9 +777,34 @@ export class PgStorage implements IStorage {
 
     // Process bookings to include detailed food information
     const detailedOrders = bookings.map(booking => {
-      const processedFoodSelections = [];
+      let processedFoodSelections = [];
       
-      if (booking.foodSelections && Array.isArray(booking.foodSelections)) {
+      // First check if we have order tracking data (preferred method)
+      if (booking.orderTracking) {
+        try {
+          const orderData = JSON.parse(booking.orderTracking);
+          if (orderData && orderData.orders && Array.isArray(orderData.orders)) {
+            processedFoodSelections = orderData.orders.map((order: any) => ({
+              guestName: order.guestName,
+              guestNumber: order.guestName === 'Table Service' ? 999 : 
+                         processedFoodSelections.length + 1,
+              items: order.orderItems.map((item: any) => ({
+                type: item.type.charAt(0).toUpperCase() + item.type.slice(1), // Capitalize
+                name: item.itemName,
+                quantity: item.quantity,
+                dietary: [] // Will be filled from food options if needed
+              })),
+              status: order.status || 'pending',
+              orderTracking: true // Flag to indicate this came from order tracking
+            }));
+          }
+        } catch (e) {
+          console.error('Error parsing order tracking for booking', booking.id, e);
+        }
+      }
+      
+      // Fallback to food selections if no order tracking data
+      if (processedFoodSelections.length === 0 && booking.foodSelections && Array.isArray(booking.foodSelections)) {
         booking.foodSelections.forEach((selection, index) => {
           if (selection && typeof selection === 'object') {
             // Handle both object and array formats for guestNames
@@ -836,28 +862,28 @@ export class PgStorage implements IStorage {
               }
             }
 
-            // Process wine selections if they exist
-            const wineItems: Array<{name: string, type: string}> = [];
-            if (booking.wineSelections && Array.isArray(booking.wineSelections) && booking.wineSelections[index]) {
-              const wineSelection = booking.wineSelections[index];
-              if (wineSelection.wine && typeof wineSelection.wine === 'number') {
-                const wineOption = foodOptionsMap.get(wineSelection.wine);
-                if (wineOption) {
-                  wineItems.push({
-                    name: wineOption.name,
-                    type: 'wine'
-                  });
-                }
-              }
-            }
-            
-            guestOrder.wineItems = wineItems;
-
-            if (guestOrder.items.length > 0 || wineItems.length > 0) {
+            if (guestOrder.items.length > 0) {
               processedFoodSelections.push(guestOrder);
             }
           }
         });
+        
+        // Process wine selections separately for fallback method
+        if (booking.wineSelections && Array.isArray(booking.wineSelections)) {
+          const wineItems = booking.wineSelections.map((wine: any) => ({
+            type: 'Wine',
+            name: wine.name,
+            quantity: wine.quantity || 1
+          }));
+          
+          if (wineItems.length > 0) {
+            processedFoodSelections.push({
+              guestName: 'Table Service',
+              guestNumber: 999,
+              items: wineItems
+            });
+          }
+        }
       }
 
       return {
