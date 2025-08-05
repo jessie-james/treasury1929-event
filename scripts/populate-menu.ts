@@ -74,7 +74,7 @@ const foodItems = [
   },
   {
     name: "Eggplant Lasagna (pasta free)",
-    description: "layers of eggplant, with both tomato & gluten-free cream sauce, baked with fontina cheese & served with a side of sautéed vegetables",
+    description: "gluten-free layers of eggplant, with both tomato & besciamella sauce, baked with fontina cheese & served with a side of sautéed vegetables",
     type: "entree",
     image: "https://images.unsplash.com/photo-1572715376701-98568319fd0b",
     allergens: ["dairy"],
