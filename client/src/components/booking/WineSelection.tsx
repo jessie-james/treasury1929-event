@@ -138,7 +138,7 @@ export function WineSelection({ eventId, onComplete, onSkip, onBack }: WineSelec
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Wine className="h-5 w-5" />
-            Wine Bottles
+            Wine Bottles (Choose or Skip)
             <Badge variant="secondary">Max 2 per table</Badge>
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
