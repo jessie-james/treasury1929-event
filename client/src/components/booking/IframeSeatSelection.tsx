@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { TableLayoutCanvas } from "@/components/shared/TableLayoutCanvas";
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
   onComplete: (selection: { tableId: number; seatNumbers: number[] }) => void;
   hasExistingBooking?: boolean;
   selectedVenueIndex?: number;
+  onBack?: () => void;
 }
 
 interface VenueTable {
@@ -67,7 +68,7 @@ interface VenueLayout {
 // Custom hook for canvas drawing operations
 // Canvas renderer replaced with unified TableLayoutCanvas component
 
-export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, selectedVenueIndex: propSelectedVenueIndex }: Props) {
+export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, selectedVenueIndex: propSelectedVenueIndex, onBack }: Props) {
   const [selectedTable, setSelectedTable] = useState<VenueTable | null>(null);
   const [selectedVenueIndex, setSelectedVenueIndex] = useState<number>(propSelectedVenueIndex ?? 0);
   const [desiredGuestCount, setDesiredGuestCount] = useState(2); // Number of guests the user wants to bring
@@ -238,6 +239,20 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
 
   return (
     <div className="min-h-screen">
+      {/* Back Button */}
+      {onBack && (
+        <div className="flex items-center gap-3 mb-6">
+          <Button 
+            variant="outline" 
+            onClick={onBack}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Seating Area
+          </Button>
+        </div>
+      )}
+      
       {/* Simple header - no nesting */}
       <div className="mb-6">
         <div className="flex justify-between items-start mb-4">

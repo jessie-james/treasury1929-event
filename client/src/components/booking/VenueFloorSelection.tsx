@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Building, Users, Eye, Star } from "lucide-react";
+import { Building, Users, Eye, Star, ArrowLeft } from "lucide-react";
 
 interface Venue {
   id: number;
@@ -14,11 +14,26 @@ interface Venue {
 interface VenueFloorSelectionProps {
   venues: Venue[];
   onSelect: (venueDisplayName: string, venueIndex: number) => void;
+  onBack?: () => void;
 }
 
-export function VenueFloorSelection({ venues, onSelect }: VenueFloorSelectionProps) {
+export function VenueFloorSelection({ venues, onSelect, onBack }: VenueFloorSelectionProps) {
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      {onBack && (
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={onBack}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Event Details
+          </Button>
+        </div>
+      )}
+      
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold">Choose Your Seating Area</h2>
         <p className="text-muted-foreground">

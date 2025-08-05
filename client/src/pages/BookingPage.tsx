@@ -175,6 +175,7 @@ export default function BookingPage() {
                     setSelectedVenueIndex(venueIndex);
                     setStep("seats");
                   }}
+                  onBack={() => setLocation(`/events/${eventId}`)}
                 />
               ) : (
                 <div className="text-center p-8">
@@ -196,6 +197,7 @@ export default function BookingPage() {
                 setHoldStartTime(new Date()); // Start the 20-minute timer
                 setStep("food");
               }}
+              onBack={() => setStep("venue")}
             />
           )}
 
@@ -222,6 +224,7 @@ export default function BookingPage() {
                 setWineSelections([]);
                 setStep("checkout");
               }}
+              onBack={() => setStep("food")}
             />
           )}
 
@@ -239,6 +242,7 @@ export default function BookingPage() {
                   setLocation("/dashboard");
                 }, 300);
               }}
+              onBack={() => setStep("wine")}
             />
           )}
       </div>

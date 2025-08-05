@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Event, type Booking } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Calendar, MapPin, Ticket, AlertTriangle } from "lucide-react";
+import { Calendar, MapPin, Ticket, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Link, useLocation } from "wouter";
@@ -78,6 +78,18 @@ export function EventDetails({
 
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      <div className="flex items-center gap-3">
+        <Button 
+          variant="outline" 
+          onClick={() => setLocation("/")}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Events
+        </Button>
+      </div>
+      
       <div className="aspect-[21/9] relative rounded-lg overflow-hidden">
         <img
           src={event.image || ''}

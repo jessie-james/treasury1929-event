@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 interface CheckoutFormProps {
   eventId: number;
@@ -10,6 +12,7 @@ interface CheckoutFormProps {
   guestNames?: Record<number, string>;
   selectedVenue?: string;
   onSuccess?: () => void;
+  onBack?: () => void;
 }
 
 interface Event {
@@ -30,7 +33,8 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
   wineSelections = [],
   guestNames = {},
   selectedVenue,
-  onSuccess 
+  onSuccess,
+  onBack
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +114,20 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
 
   return (
     <div className="checkout-form space-y-6">
+      {/* Back Button */}
+      {onBack && (
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={onBack}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Wine Selection
+          </Button>
+        </div>
+      )}
+      
       <div className="booking-summary bg-white border border-gray-200 rounded-lg p-6">
         <h3 className="text-lg font-semibold mb-4">Booking Summary</h3>
         <div className="space-y-2">

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Wine, Info } from "lucide-react";
+import { Minus, Plus, Wine, Info, ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { FoodOption } from "@shared/schema";
@@ -11,6 +11,7 @@ interface WineSelectionProps {
   eventId: number;
   onComplete: (selections: WineSelection[]) => void;
   onSkip: () => void;
+  onBack?: () => void;
 }
 
 interface WineSelection {
@@ -21,7 +22,7 @@ interface WineSelection {
   quantity: number;
 }
 
-export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProps) {
+export function WineSelection({ eventId, onComplete, onSkip, onBack }: WineSelectionProps) {
   const [selections, setSelections] = useState<Record<number, number>>({});
 
   // Fetch wine options
@@ -92,6 +93,20 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
 
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      {onBack && (
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={onBack}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Food Selection
+          </Button>
+        </div>
+      )}
+      
       <div className="text-center space-y-2">
         <h2 className="text-2xl font-bold">Wine & Beverages</h2>
         <p className="text-muted-foreground">
