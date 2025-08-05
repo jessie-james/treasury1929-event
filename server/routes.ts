@@ -1019,7 +1019,7 @@ export async function registerRoutes(app: Express) {
                 capacity: table.capacity,
                 shape: table.shape,
                 rotation: table.rotation || 0,
-                status: 'available'
+                status: table.status
               })),
               stages: stages.map((stage: any) => ({
                 id: stage.id,
@@ -3331,6 +3331,77 @@ export async function registerRoutes(app: Express) {
         message: "Failed to cancel booking",
         error: error instanceof Error ? error.message : String(error) 
       });
+    }
+  });
+
+  // Admin payments endpoint with actual payment amounts
+  app.get("/api/admin/payments", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Get payment data from payments table joined with booking info
+      const paymentsData = await db.execute(sql`
+        SELECT 
+          p.id,
+          p.booking_id,
+          p.stripe_payment_id,
+          p.amount,
+          p.currency,
+          p.status,
+          p.created_at as payment_date,
+          b.customer_email,
+          b.guest_names,
+          b.party_size,
+          t.table_number,
+          e.title as event_title,
+          e.date as event_date
+        FROM payments p
+        LEFT JOIN bookings b ON p.booking_id = b.id
+        LEFT JOIN tables t ON b.table_id = t.id  
+        LEFT JOIN events e ON b.event_id = e.id
+        ORDER BY p.created_at DESC
+      `);
+      
+      res.json(paymentsData.rows || []);
+    } catch (error) {
+      console.error("Error fetching admin payments:", error);
+      res.status(500).json({ message: "Failed to fetch payments" });
+    }
+  });
+
+  // Admin orders endpoint with food selections
+  app.get("/api/admin/orders", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      // Get orders from bookings table with food selections
+      const ordersData = await db.execute(sql`
+        SELECT 
+          b.id as booking_id,
+          b.customer_email,
+          b.food_selections,
+          b.guest_names,
+          b.party_size,
+          t.table_number,
+          e.title as event_title,
+          e.date as event_date,
+          b.created_at as order_date
+        FROM bookings b
+        LEFT JOIN tables t ON b.table_id = t.id  
+        LEFT JOIN events e ON b.event_id = e.id
+        WHERE b.food_selections IS NOT NULL 
+        AND b.status = 'confirmed'
+        ORDER BY b.created_at DESC
+      `);
+      
+      res.json(ordersData.rows || []);
+    } catch (error) {
+      console.error("Error fetching admin orders:", error);
+      res.status(500).json({ message: "Failed to fetch orders" });
     }
   });
 

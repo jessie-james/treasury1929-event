@@ -114,7 +114,28 @@ export class PgStorage implements IStorage {
     const venue = await this.getVenueById(id);
     if (!venue) return null;
 
-    const tables = await this.getTablesByVenue(id);
+    // Get tables with real-time booking status for current event
+    const tables = await db.select({
+      id: schema.tables.id,
+      tableNumber: schema.tables.tableNumber,
+      x: schema.tables.x,
+      y: schema.tables.y,
+      width: schema.tables.width,
+      height: schema.tables.height,
+      capacity: schema.tables.capacity,
+      shape: schema.tables.shape,
+      rotation: schema.tables.rotation,
+      status: schema.tables.status,
+      venueId: schema.tables.venueId,
+      floor: schema.tables.floor,
+      zone: schema.tables.zone,
+      priceCategory: schema.tables.priceCategory,
+      isLocked: schema.tables.isLocked,
+      tableSize: schema.tables.tableSize
+    })
+    .from(schema.tables)
+    .where(eq(schema.tables.venueId, id));
+
     const stages = await this.getStagesByVenue(id);
 
     return {
