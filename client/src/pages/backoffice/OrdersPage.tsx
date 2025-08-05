@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, ArrowLeft, Download, Users, MapPin, Check, X, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowLeft, Download, Users, MapPin, Check, X, AlertTriangle, FileText, ChefHat } from "lucide-react";
 import { useLocation } from "wouter";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -349,14 +349,26 @@ export default function OrdersPage() {
                 </Badge>
               </div>
               {orders && orders.length > 0 && (
-                <Button
-                  size="sm"
-                  onClick={() => generatePDF(event, orders)}
-                  className="gap-2"
-                >
-                  <Download className="h-4 w-4" />
-                  Download PDF
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => window.open(`/api/events/${event.id}/kitchen-report`, '_blank')}
+                    className="text-xs"
+                  >
+                    <ChefHat className="h-3 w-3 mr-1" />
+                    Kitchen Report
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => window.open(`/api/events/${event.id}/server-report`, '_blank')}
+                    className="text-xs"
+                  >
+                    <FileText className="h-3 w-3 mr-1" />
+                    Server Report
+                  </Button>
+                </div>
               )}
             </div>
           </div>

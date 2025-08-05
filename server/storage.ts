@@ -918,6 +918,61 @@ export class PgStorage implements IStorage {
     return result[0];
   }
 
+  // Get event orders with details for PDF generation
+  async getEventOrdersWithDetails(eventId: number): Promise<any[]> {
+    const result = await db.select({
+      bookingId: schema.bookings.id,
+      tableNumber: sql`COALESCE(${schema.tables.tableNumber}, 0)`.as('tableNumber'),
+      tableId: schema.bookings.tableId,
+      tableZone: sql`'General'`.as('tableZone'),
+      tablePriceCategory: sql`'Standard'`.as('tablePriceCategory'),
+      partySize: schema.bookings.partySize,
+      customerEmail: schema.bookings.customerEmail,
+      status: schema.bookings.status,
+      createdAt: schema.bookings.createdAt,
+      checkedIn: schema.bookings.checkedIn,
+      checkedInAt: schema.bookings.checkedInAt,
+      orderTracking: schema.bookings.orderTracking
+    })
+    .from(schema.bookings)
+    .leftJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
+    .where(eq(schema.bookings.eventId, eventId));
+
+    // Transform order tracking data to match expected format
+    return result.map(booking => {
+      let guestOrders = [];
+      
+      if (booking.orderTracking && typeof booking.orderTracking === 'object') {
+        const orderData = booking.orderTracking as any;
+        
+        if (orderData.orders && Array.isArray(orderData.orders)) {
+          guestOrders = orderData.orders.map((order: any, index: number) => ({
+            guestName: order.guestName || `Guest ${index + 1}`,
+            guestNumber: index + 1,
+            items: order.orderItems ? order.orderItems.map((item: any) => ({
+              type: item.type || 'unknown',
+              name: item.itemName || item.name || 'Unknown Item',
+              dietary: []
+            })) : [],
+            wineItems: order.orderItems ? order.orderItems
+              .filter((item: any) => item.type === 'wine')
+              .map((item: any) => ({
+                name: item.itemName || item.name || 'Unknown Wine',
+                type: 'wine'
+              })) : []
+          }));
+        }
+      }
+
+      return {
+        ...booking,
+        guestOrders,
+        totalGuests: guestOrders.length,
+        hasOrders: guestOrders.some((guest: any) => guest.items.length > 0)
+      };
+    }).filter(booking => booking.hasOrders);
+  }
+
   // Layout methods (stub implementations)
   async getFloors(venueId: number): Promise<any[]> {
     return [];

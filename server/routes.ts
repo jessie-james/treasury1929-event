@@ -4470,5 +4470,48 @@ export async function registerRoutes(app: Express) {
     }
   });
   
+  // Import PDF generator dynamically
+  const { PDFGenerator } = await import("./pdf-generator.js");
+
+  // Kitchen PDF Report - Food type summaries for preparation
+  app.get("/api/events/:eventId/kitchen-report", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager", "hostess"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      const orders = await storage.getEventOrdersWithDetails(eventId);
+      
+      PDFGenerator.generateKitchenReport(orders, res);
+    } catch (error) {
+      console.error("Error generating kitchen report:", error);
+      res.status(500).json({ 
+        message: "Failed to generate kitchen report",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Server PDF Report - Table assignments and guest details
+  app.get("/api/events/:eventId/server-report", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager", "hostess"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const eventId = parseInt(req.params.eventId);
+      const orders = await storage.getEventOrdersWithDetails(eventId);
+      
+      PDFGenerator.generateServerReport(orders, res);
+    } catch (error) {
+      console.error("Error generating server report:", error);
+      res.status(500).json({ 
+        message: "Failed to generate server report",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   return httpServer;
 }
