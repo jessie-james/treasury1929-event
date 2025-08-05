@@ -40,7 +40,7 @@ export class EmailService {
   private static FROM_EMAIL = 'The Treasury 1929 <info@thetreasury1929.com>';
   private static ADMIN_EMAIL = 'info@thetreasury1929.com';
 
-  static async sendBookingConfirmation(data: BookingEmailData, qrCodeData?: string): Promise<boolean> {
+  static async sendBookingConfirmation(data: BookingEmailData): Promise<boolean> {
     if (!emailInitialized) {
       console.log('📧 Email service not initialized - skipping booking confirmation');
       return false;
@@ -48,46 +48,62 @@ export class EmailService {
 
     try {
       const { booking, event, table, venue } = data;
-      const guestName = booking.guestNames && booking.guestNames.length > 0 
-        ? booking.guestNames[0] 
-        : 'Valued Guest';
+      const eventDate = new Date(event.date).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
 
-      // Generate QR code placeholder if not provided
-      const qrCode = qrCodeData || `TT29-${booking.id}-${event.id}`;
-      
+      const guestList = booking.guestNames && booking.guestNames.length > 0 
+        ? booking.guestNames.join(', ') 
+        : 'Guest names not provided';
+
       const emailContent = {
         to: booking.customerEmail,
         from: this.FROM_EMAIL,
-        subject: 'Your Dinner Concert Ticket Confirmation – The Treasury 1929',
+        subject: `Booking Confirmation - ${event.title}`,
         html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-            <p style="margin-bottom: 20px;">Dear ${guestName},</p>
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #2c3e50; text-align: center;">Booking Confirmed! 🎉</h1>
             
-            <p style="margin-bottom: 20px;">Thank you for your purchase! We're excited to welcome you to an intimate evening of live music and dining at The Treasury 1929.</p>
-            
-            <p style="margin-bottom: 20px;">Your ticket is confirmed for the upcoming Dinner Concert. Please be sure to bring and show the QR code below at the door on the day of the event for entry:</p>
-            
-            <div style="text-align: center; margin: 30px 0; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
-              <p style="font-size: 18px; margin-bottom: 10px;">📲 QR Code for Entry</p>
-              <div style="background-color: white; padding: 15px; border-radius: 8px; display: inline-block; border: 2px solid #ddd;">
-                <p style="font-family: monospace; font-size: 14px; margin: 0; color: #2c3e50;">${qrCode}</p>
-              </div>
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h2 style="color: #34495e; margin-top: 0;">Event Details</h2>
+              <p><strong>Event:</strong> ${event.title}</p>
+              <p><strong>Date & Time:</strong> ${eventDate}</p>
+              <p><strong>Venue:</strong> ${venue.name}</p>
+              <p><strong>Table:</strong> ${table.tableNumber} (${table.floor} floor)</p>
+              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
+              <p><strong>Guests:</strong> ${guestList}</p>
             </div>
-            
-            <p style="margin-bottom: 20px;">To view your profile and menu selections, please visit: <a href="${process.env.FRONTEND_URL || 'https://thetreasury1929.com'}" style="color: #2c3e50;">our website</a>.</p>
-            
-            <p style="margin-bottom: 20px;">We look forward to sharing a memorable evening with you.</p>
-            
-            <p style="margin-bottom: 30px;">If you'd like to receive updates about future Dinner Concert Series dates and exclusive invites, just reply to this email and let us know you'd like to be added to our mailing list.</p>
-            
-            <p style="margin-bottom: 10px;">Warm regards,</p>
-            <p style="margin-bottom: 30px;"><strong>The Treasury 1929 Team</strong></p>
-            
-            <div style="border-top: 1px solid #ddd; padding-top: 20px; color: #666; font-size: 14px;">
-              <p style="margin: 5px 0;">📍 2 E Congress St, Ste 100</p>
-              <p style="margin: 5px 0;">📞 (520) 734-3937</p>
-              <p style="margin: 5px 0;">📧 info@thetreasury1929.com</p>
-              <p style="margin: 5px 0;">🌐 www.thetreasury1929.com</p>
+
+            <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #27ae60; margin-top: 0;">Booking Reference</h3>
+              <p style="font-size: 18px; font-weight: bold; color: #2c3e50;">#{booking.id}</p>
+              <p style="font-size: 14px; color: #666;">Please keep this reference number for your records.</p>
+            </div>
+
+            ${booking.notes ? `
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <h4 style="color: #856404; margin-top: 0;">Special Notes</h4>
+              <p style="color: #856404;">${booking.notes}</p>
+            </div>
+            ` : ''}
+
+            <div style="background-color: #d1ecf1; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #0c5460; margin-top: 0;">Important Information</h3>
+              <ul style="color: #0c5460;">
+                <li>Please arrive 15 minutes before the event start time</li>
+                <li>Bring a photo ID for check-in</li>
+                <li>Contact us if you need to make any changes</li>
+              </ul>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+              <p style="color: #666;">Need help? Contact us at ${this.ADMIN_EMAIL}</p>
+              <p style="color: #666; font-size: 14px;">Thank you for choosing ${venue.name}!</p>
             </div>
           </div>
         `
