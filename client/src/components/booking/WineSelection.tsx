@@ -114,10 +114,7 @@ export function WineSelection({ eventId, onComplete, onSkip, onBack }: WineSelec
         </p>
         
         {/* Top Action Buttons */}
-        <div className="flex justify-center gap-3 pt-2">
-          <Button variant="outline" onClick={onSkip}>
-            Skip Wine Selection
-          </Button>
+        <div className="flex justify-center pt-2">
           <Button onClick={handleComplete}>
             {hasSelections ? "Continue with Wine" : "Continue without Wine"}
           </Button>
