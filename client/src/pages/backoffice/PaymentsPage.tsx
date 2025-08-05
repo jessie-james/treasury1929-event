@@ -46,27 +46,34 @@ export default function PaymentsPage() {
     queryKey: ["/api/events"],
   });
 
+  // Fetch admin payments data
+  const { data: payments, isLoading: paymentsLoading } = useQuery({
+    queryKey: ["/api/admin/payments"],
+  });
+
+  // Fetch admin orders data
+  const { data: orders, isLoading: ordersLoading } = useQuery({
+    queryKey: ["/api/admin/orders"],
+  });
+
   const { data: bookings, isLoading } = useQuery<Booking[]>({
     queryKey: ["/api/bookings"],
   });
 
-  // Helper function to calculate total revenue
-  const calculateTotalRevenue = (bookings: Booking[] | undefined) => {
-    if (!bookings || bookings.length === 0) return 0;
+  // Helper function to calculate total revenue from payments
+  const calculateTotalRevenue = (payments: any[] | undefined) => {
+    if (!payments || payments.length === 0) return 0;
     
-    return bookings.reduce((total, booking) => {
-      // For now, return 0 until real pricing data is available
-      // This removes mock financial calculations
-      let bookingTotal = 0;
-      
-      // Subtract refund if any
-      if (booking.refundAmount) {
-        bookingTotal -= booking.refundAmount;
+    return payments.reduce((total, payment) => {
+      // Convert cents to dollars and sum up all successful payments
+      if (payment.status === 'succeeded' && payment.amount) {
+        return total + (payment.amount / 100);
       }
-      
-      return total + bookingTotal;
+      return total;
     }, 0);
   };
+
+  const totalRevenue = calculateTotalRevenue(payments);
 
   // Filter bookings by date range
   const filteredBookings = bookings?.filter(booking => {
@@ -95,8 +102,8 @@ export default function PaymentsPage() {
     return isInDateRange && matchesSearch && matchesStatus;
   });
 
-  // Calculate revenue stats
-  const totalRevenue = calculateTotalRevenue(filteredBookings);
+  // Calculate revenue stats from bookings (legacy)
+  const bookingRevenue = calculateTotalRevenue(filteredBookings);
   const confirmedRevenue = calculateTotalRevenue(
     filteredBookings?.filter(b => b.status === "confirmed")
   );
@@ -257,7 +264,7 @@ export default function PaymentsPage() {
                 <CardContent>
                   <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
                   <p className="text-xs text-muted-foreground">
-                    {filteredBookings?.length || 0} transactions
+                    {payments?.length || 0} payments processed
                   </p>
                 </CardContent>
               </Card>
