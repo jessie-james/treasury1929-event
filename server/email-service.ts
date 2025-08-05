@@ -402,12 +402,11 @@ export class EmailService {
     }
 
     try {
-      // Use the correct Replit deployment URL from REPLIT_DOMAINS
-      const baseUrl = process.env.REPLIT_URL || 
-                      (process.env.REPLIT_DOMAINS 
-                        ? `https://${process.env.REPLIT_DOMAINS}` 
-                        : 'http://localhost:5000');
+      // Use the correct public-facing deployment URL
+      const baseUrl = process.env.REPLIT_URL || 'https://venue-master-remix.replit.app';
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
+      
+      console.log(`📧 Generated password reset URL: ${resetUrl}`);
 
       const emailContent = {
         to: email,

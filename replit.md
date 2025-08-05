@@ -89,6 +89,7 @@ Preferred communication style: Simple, everyday language.
 - **Time Format Standardization**: Corrected time display to show "Guest Arrival 5:45 PM, show starts 6:30 PM" format (arrival time calculated as 45 minutes before show time)
 - **Download Functionality**: Updated download buttons to link to PDF ticket generation instead of simple webpage links
 - **Email Client Compatibility**: Resolved QR code display issues by using attachment-based approach instead of data URLs
+- **Password Reset URL Fix**: Corrected password reset email links to use proper public deployment URL (https://venue-master-remix.replit.app/) instead of internal development URLs
 - All email templates include consistent contact information (📍 2 E Congress St, Ste 100, 📞 (520) 734-3937)
 - Website references corrected to www.thetreasury1929.com/dinnerconcerts for the official dinner concert app domain
 - Password reset functionality fully implemented with secure token generation and validation routes
