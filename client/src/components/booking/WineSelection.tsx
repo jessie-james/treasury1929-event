@@ -79,8 +79,8 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
 
   const totalCost = Object.entries(selections).reduce((total, [optionId, quantity]) => {
     const option = wineOptions.find(opt => opt.id === parseInt(optionId));
-    // Apply price multiplier for bottles (price * 2)
-    const adjustedPrice = option && option.type === 'wine_bottle' ? option.price * 2 : option?.price || 0;
+    // Use the actual price from beverage management
+    const adjustedPrice = option?.price || 0;
     return total + (adjustedPrice * quantity) / 100;
   }, 0);
 
@@ -143,7 +143,7 @@ export function WineSelection({ eventId, onComplete, onSkip }: WineSelectionProp
                     <h4 className="font-medium">{option.name}</h4>
                     <p className="text-sm text-muted-foreground">{option.description}</p>
                     <p className="text-sm font-medium mt-1">
-                      ${((option.price * 2) / 100).toFixed(2)} per bottle (750ml)
+                      ${(option.price / 100).toFixed(2)} per bottle (750ml)
                     </p>
                   </div>
                   
