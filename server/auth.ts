@@ -54,6 +54,11 @@ async function comparePasswords(supplied: string, stored: string) {
 const PostgresSessionStore = connectPg(session);
 
 export function setupAuth(app: Express) {
+  // Initialize email service first
+  EmailService.initialize().catch(error => {
+    console.error('Failed to initialize email service:', error);
+  });
+
   // Detect environment - if process.env.NODE_ENV is not set, assume development
   const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === 'true';
   const isDevelopment = !isProduction;
@@ -448,9 +453,11 @@ export function setupAuth(app: Express) {
       
       // Store the reset token (in a real app, store in database with expiration)
       // For now, we'll store it in memory with a 1-hour expiration
-      const resetTokens = new Map();
+      if (!app.locals.resetTokens) {
+        app.locals.resetTokens = new Map();
+      }
+      const resetTokens = app.locals.resetTokens;
       resetTokens.set(resetToken, { email, expires: Date.now() + 3600000 }); // 1 hour
-      app.locals.resetTokens = resetTokens;
 
       // Send password reset email
       const emailSent = await EmailService.sendPasswordResetEmail(email, resetToken);

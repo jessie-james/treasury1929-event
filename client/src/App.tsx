@@ -33,6 +33,7 @@ import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 import TicketOnlyBookingPage from "@/pages/TicketOnlyBookingPage";
 import KitchenDashboard from "@/pages/backoffice/KitchenDashboard";
 import TicketDetailPage from "@/pages/TicketDetailPage";
+import PasswordResetPage from "@/pages/PasswordResetPage";
 
 import { BookingCancel } from "@/pages/BookingCancel";
 import { Header } from "./components/Header";
@@ -57,6 +58,7 @@ function Router() {
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/auth" component={AuthPage} />
+        <Route path="/reset-password" component={PasswordResetPage} />
         <Route path="/admin-login" component={AdminLoginPage} />
         <Route path="/events/:id" component={EventPage} />
         <ProtectedRoute path="/events/:id/book" component={BookingPage} />
