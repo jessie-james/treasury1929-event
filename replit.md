@@ -37,8 +37,8 @@ Preferred communication style: Simple, everyday language.
 
 ## External Dependencies
 
-- **Payment Processing**: Stripe (for payment processing, with live keys configured)
-- **Email Services**: SendGrid (for booking confirmations and administrative alerts, configured with "The Treasury 1929" branding)
+- **Payment Processing**: Stripe (Treasury account only - STRIPE_SECRET_KEY_NEW)
+- **Email Services**: SendGrid (Treasury account only - SENDGRID_API_KEY_NEW, configured with "The Treasury 1929" branding)
 - **Database Services**: Neon PostgreSQL (serverless PostgreSQL with connection pooling)
 
 ## Recent Updates (August 2025)

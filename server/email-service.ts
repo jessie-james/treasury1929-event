@@ -43,10 +43,10 @@ export class EmailService {
   private static readonly ADMIN_EMAIL = 'admin@venue.com';
 
   static async initialize(): Promise<void> {
-    const sendgridApiKey = process.env.SENDGRID_API_KEY_NEW || process.env.SENDGRID_API_KEY;
+    const sendgridApiKey = process.env.SENDGRID_API_KEY_NEW;
     
     if (!sendgridApiKey) {
-      console.log('⚠️  No SendGrid API key found - email service disabled');
+      console.log('⚠️  No SENDGRID_API_KEY_NEW found - email service disabled');
       return;
     }
     

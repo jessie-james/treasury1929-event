@@ -161,7 +161,7 @@ export function securityErrorHandler(err: any, req: Request, res: Response, next
 export function validateEnvironment() {
   const requiredEnvVars = [
     'DATABASE_URL',
-    'STRIPE_SECRET_KEY'
+    'STRIPE_SECRET_KEY_NEW'
   ];
 
   const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -175,7 +175,7 @@ export function validateEnvironment() {
 
   // Warn about optional but recommended variables
   const recommendedVars = [
-    'SENDGRID_API_KEY',
+    'SENDGRID_API_KEY_NEW',
     'SESSION_SECRET',
     'ADMIN_EMAIL',
     'FROM_EMAIL'

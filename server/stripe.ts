@@ -21,17 +21,16 @@ export function initializeStripe(): boolean {
     initAttempts++;
     console.log(`Initializing Stripe (attempt ${initAttempts})...`);
     
-    // Check for required environment variable - prioritize new key
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY;
+    // Check for required environment variable - Treasury account only
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY_NEW;
     if (!stripeSecretKey) {
-      console.error("Missing STRIPE_SECRET_KEY_NEW or STRIPE_SECRET_KEY environment variable");
+      console.error("Missing STRIPE_SECRET_KEY_NEW environment variable");
       return false;
     }
     
     // Log first few characters of the key for debugging (never full key)
     const keyPrefix = stripeSecretKey.substring(0, 7);
-    const keySource = process.env.STRIPE_SECRET_KEY_NEW ? "NEW" : "OLD";
-    console.log(`Using Stripe key with prefix: ${keyPrefix}... (${keySource})`);
+    console.log(`Using Stripe key with prefix: ${keyPrefix}... (TREASURY_NEW)`);
     
     // Create Stripe instance - without specifying API version to avoid type conflicts
     stripe = new Stripe(stripeSecretKey);
