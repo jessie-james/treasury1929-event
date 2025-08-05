@@ -73,12 +73,31 @@ export class EmailService {
             
             <p>Your ticket is confirmed for the upcoming Dinner Concert. Please be sure to bring and show the QR code below at the door on the day of the event for entry:</p>
             
-            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-              <h3 style="color: #2c3e50; margin-top: 0;">Digital Check-in Code</h3>
-              <div style="background-color: white; padding: 15px; border-radius: 8px; display: inline-block;">
-                <p style="font-family: monospace; font-size: 16px; margin: 0; color: #2c3e50;">BOOKING:${booking.id}:${event.id}:${booking.customerEmail}</p>
+            <!-- FULL DIGITAL TICKET -->
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #6c757d;">
+              <h2 style="color: #2c3e50; margin-top: 0; text-align: center;">🎫 YOUR DIGITAL TICKET</h2>
+              <div style="text-align: center; margin: 20px 0;">
+                <p style="font-size: 18px; font-weight: bold; color: #2c3e50; margin: 5px 0;">${event.title}</p>
+                <p style="font-size: 16px; color: #495057; margin: 5px 0;">${eventDate}</p>
+                <p style="font-size: 14px; color: #6c757d; margin: 5px 0;">Table ${table.tableNumber} • ${booking.partySize} Guests</p>
               </div>
-              <p style="color: #666; margin-top: 15px; font-size: 14px;">Show this code at the venue for quick check-in</p>
+              
+              <!-- QR CODE SECTION -->
+              <div style="background-color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 15px 0;">
+                <h3 style="color: #27ae60; margin-top: 0;">Digital Check-in Code</h3>
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; display: inline-block; border: 1px solid #dee2e6;">
+                  <p style="font-family: monospace; font-size: 16px; margin: 0; color: #2c3e50; font-weight: bold;">BOOKING:${booking.id}:${event.id}:${booking.customerEmail}</p>
+                </div>
+                <p style="color: #666; margin-top: 15px; font-size: 14px;">Show this code at the venue for quick check-in</p>
+              </div>
+              
+              <!-- DOWNLOAD BUTTON -->
+              <div style="text-align: center; margin: 20px 0;">
+                <a href="https://www.thetreasury1929.com/dinnerconcerts/ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
+                  📥 Download Digital Ticket
+                </a>
+                <p style="color: #666; font-size: 12px; margin-top: 10px;">Save to your phone for easy access</p>
+              </div>
             </div>
 
             <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -465,21 +484,42 @@ export class EmailService {
             
             <p>We're excited to welcome you tomorrow evening for the Dinner Concert at The Treasury 1929!</p>
             
-            <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #27ae60; margin-top: 0;">Your Reservation Details:</h3>
-              <p><strong>Event:</strong> ${event.title}</p>
-              <p><strong>Date:</strong> ${eventDate}</p>
-              <p><strong>Table:</strong> ${table.tableNumber}</p>
-              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
+            <!-- FULL DIGITAL TICKET FOR REMINDER -->
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #6c757d;">
+              <h2 style="color: #2c3e50; margin-top: 0; text-align: center;">🎫 YOUR DIGITAL TICKET</h2>
+              <div style="text-align: center; margin: 20px 0;">
+                <p style="font-size: 18px; font-weight: bold; color: #2c3e50; margin: 5px 0;">${event.title}</p>
+                <p style="font-size: 16px; color: #495057; margin: 5px 0;">${eventDate}</p>
+                <p style="font-size: 14px; color: #6c757d; margin: 5px 0;">Table ${table.tableNumber} • ${booking.partySize} Guests</p>
+              </div>
+              
+              <!-- QR CODE SECTION -->
+              <div style="background-color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 15px 0;">
+                <h3 style="color: #27ae60; margin-top: 0;">Digital Check-in Code</h3>
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; display: inline-block; border: 1px solid #dee2e6;">
+                  <p style="font-family: monospace; font-size: 16px; margin: 0; color: #2c3e50; font-weight: bold;">BOOKING:${booking.id}:${event.id}:${booking.customerEmail}</p>
+                </div>
+                <p style="color: #666; margin-top: 15px; font-size: 14px;">Show this code at the venue for quick check-in</p>
+              </div>
+              
+              <!-- DOWNLOAD BUTTON -->
+              <div style="text-align: center; margin: 20px 0;">
+                <a href="https://www.thetreasury1929.com/dinnerconcerts/ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
+                  📥 Download Digital Ticket
+                </a>
+                <p style="color: #666; font-size: 12px; margin-top: 10px;">Save to your phone for easy access</p>
+              </div>
             </div>
 
-            <p><strong>Important Reminders:</strong></p>
-            <ul>
-              <li>Please arrive 15 minutes before the event start time</li>
-              <li>Bring a photo ID for check-in verification</li>
-              <li>Have your booking confirmation ready (reference #${booking.id})</li>
-              <li>Don't forget to bring your QR code for quick entry</li>
-            </ul>
+            <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #856404; margin-top: 0;">Important Reminders for Tomorrow:</h3>
+              <ul style="color: #856404;">
+                <li>Please arrive 15 minutes before the event start time</li>
+                <li>Bring a photo ID for check-in verification</li>
+                <li>Have your booking confirmation ready (reference #${booking.id})</li>
+                <li>Don't forget to bring your QR code for quick entry</li>
+              </ul>
+            </div>
             
             <p>We can't wait to share this intimate musical experience with you tomorrow!</p>
             
