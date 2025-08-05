@@ -402,10 +402,10 @@ export class EmailService {
     }
 
     try {
-      // Use the correct Replit app URL instead of localhost
+      // Use the correct Replit deployment URL from REPLIT_DOMAINS
       const baseUrl = process.env.REPLIT_URL || 
-                      (process.env.REPL_SLUG && process.env.REPL_OWNER 
-                        ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.replit.app` 
+                      (process.env.REPLIT_DOMAINS 
+                        ? `https://${process.env.REPLIT_DOMAINS}` 
                         : 'http://localhost:5000');
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
 
