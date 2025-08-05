@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { InfoIcon, Mail, KeyRound, EyeIcon, EyeOffIcon, User, Phone } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 const registerSchema = z.object({
   email: z.string().email("Please enter a valid email"),
@@ -39,6 +41,8 @@ export function RegisterForm() {
   const { registerMutation } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [emailExistsError, setEmailExistsError] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(registerSchema),
@@ -52,6 +56,35 @@ export function RegisterForm() {
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  const handleForgotPassword = async () => {
+    const email = form.getValues('email');
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      await apiRequest("POST", "/api/forgot-password", { email });
+      toast({
+        title: "Password reset sent",
+        description: "We've sent you a password reset link to help you access your existing account.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send password reset email",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   return (
@@ -76,8 +109,19 @@ export function RegisterForm() {
             <div>
               <p className="font-medium">Account already exists</p>
               <p className="mt-1">
-                You already have an account with this email. Please use the <strong>Login</strong> tab above to sign in, or contact us if you've forgotten your password.
+                You already have an account with this email. Please use the <strong>Login</strong> tab above to sign in.
               </p>
+              <div className="mt-2">
+                <Button
+                  type="button"
+                  variant="link"
+                  className="text-sm p-0 h-auto text-amber-700 hover:text-amber-800"
+                  onClick={handleForgotPassword}
+                  disabled={isResettingPassword}
+                >
+                  {isResettingPassword ? "Sending reset link..." : "Forgot your password? Reset it here"}
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
