@@ -42,8 +42,8 @@ import { EmailService } from "./email-service";
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 
-// Initialize Stripe with Treasury 1929 keys - prioritize Treasury account
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY_TREASURY || process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY;
+// Initialize Stripe with Treasury 1929 keys - prioritize Treasury account (regular key, not NEW)
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY_TREASURY || process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY_NEW;
 if (!stripeSecretKey) {
   console.error("STRIPE_SECRET_KEY_TREASURY, STRIPE_SECRET_KEY_NEW or STRIPE_SECRET_KEY environment variable not set. Stripe payments will not work.");
 }
@@ -65,7 +65,7 @@ function initializeStripe() {
 
       // Additional logging for deployment debugging
       const keyPrefix = stripeSecretKey.substring(0, 7);
-      const keySource = process.env.STRIPE_SECRET_KEY_TREASURY ? "TREASURY" : process.env.STRIPE_SECRET_KEY_NEW ? "NEW" : "OLD";
+      const keySource = process.env.STRIPE_SECRET_KEY_TREASURY ? "TREASURY" : process.env.STRIPE_SECRET_KEY ? "TREASURY_REGULAR" : "SAHUARO_NEW";
       console.log(`Using Stripe key with prefix: ${keyPrefix}... (${keySource})`);
 
       // Create Stripe instance with more resilient settings for deployment
