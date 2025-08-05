@@ -67,13 +67,27 @@ export default function PaymentsPage() {
     return payments.reduce((total, payment) => {
       // Convert cents to dollars and sum up all successful payments
       if (payment.status === 'succeeded' && payment.amount) {
-        return total + (payment.amount / 100);
+        let paymentAmount = payment.amount / 100;
+        // Subtract any refunds
+        if (payment.refund_amount) {
+          paymentAmount -= payment.refund_amount / 100;
+        }
+        return total + paymentAmount;
       }
       return total;
     }, 0);
   };
 
+  // Calculate various metrics from payments data
   const totalRevenue = calculateTotalRevenue(payments);
+  const refundedAmount = payments?.reduce((total, payment) => {
+    if (payment.refund_amount) {
+      return total + (payment.refund_amount / 100);
+    }
+    return total;
+  }, 0) || 0;
+  
+  const cancelledBookings = payments?.filter(p => p.booking_status === 'cancelled').length || 0;
 
   // Filter bookings by date range
   const filteredBookings = bookings?.filter(booking => {
@@ -102,17 +116,8 @@ export default function PaymentsPage() {
     return isInDateRange && matchesSearch && matchesStatus;
   });
 
-  // Calculate revenue stats from bookings (legacy)
+  // Legacy booking calculations (not used in current implementation)
   const bookingRevenue = calculateTotalRevenue(filteredBookings);
-  const confirmedRevenue = calculateTotalRevenue(
-    filteredBookings?.filter(b => b.status === "confirmed")
-  );
-  const refundedAmount = calculateTotalRevenue(
-    filteredBookings?.filter(b => b.status === "refunded")
-  );
-  const canceledAmount = calculateTotalRevenue(
-    filteredBookings?.filter(b => b.status === "canceled")
-  );
 
   // Get event-specific revenue
   const eventRevenue = events?.map(event => {
@@ -277,9 +282,9 @@ export default function PaymentsPage() {
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${confirmedRevenue.toFixed(2)}</div>
+                  <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
                   <p className="text-xs text-muted-foreground">
-                    {filteredBookings?.filter(b => b.status === "confirmed").length || 0} transactions
+                    {payments?.filter(p => p.status === 'succeeded').length || 0} confirmed
                   </p>
                 </CardContent>
               </Card>
@@ -292,9 +297,9 @@ export default function PaymentsPage() {
                   <RefreshCw className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${Math.abs(refundedAmount).toFixed(2)}</div>
+                  <div className="text-2xl font-bold">${refundedAmount.toFixed(2)}</div>
                   <p className="text-xs text-muted-foreground">
-                    {filteredBookings?.filter(b => b.status === "refunded").length || 0} transactions
+                    {payments?.filter(p => p.refund_amount > 0).length || 0} refunds
                   </p>
                 </CardContent>
               </Card>
@@ -307,9 +312,9 @@ export default function PaymentsPage() {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${Math.abs(canceledAmount).toFixed(2)}</div>
+                  <div className="text-2xl font-bold">{cancelledBookings}</div>
                   <p className="text-xs text-muted-foreground">
-                    {filteredBookings?.filter(b => b.status === "canceled").length || 0} bookings
+                    bookings cancelled
                   </p>
                 </CardContent>
               </Card>

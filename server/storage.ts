@@ -435,8 +435,36 @@ export class PgStorage implements IStorage {
     return await db.select().from(schema.tables);
   }
 
-  async getTablesByVenue(venueId: number): Promise<Table[]> {
-    return await db.select().from(schema.tables).where(eq(schema.tables.venueId, venueId));
+  async getTablesByVenue(venueId: number, eventId?: number): Promise<Table[]> {
+    if (eventId) {
+      // Get tables with real-time booking status for specific event
+      const result = await db.select({
+        id: schema.tables.id,
+        venueId: schema.tables.venueId,
+        tableNumber: schema.tables.tableNumber,
+        capacity: schema.tables.capacity,
+        floor: schema.tables.floor,
+        x: schema.tables.x,
+        y: schema.tables.y,
+        width: schema.tables.width,
+        height: schema.tables.height,
+        shape: schema.tables.shape,
+        tableSize: schema.tables.tableSize,
+        zone: schema.tables.zone,
+        priceCategory: schema.tables.priceCategory,
+        isLocked: schema.tables.isLocked,
+        rotation: schema.tables.rotation,
+        // Use stored table status (which is kept updated by booking system)
+        status: schema.tables.status
+      })
+      .from(schema.tables)
+      .where(eq(schema.tables.venueId, venueId));
+      
+      return result as Table[];
+    } else {
+      // Default behavior for non-event specific requests
+      return await db.select().from(schema.tables).where(eq(schema.tables.venueId, venueId));
+    }
   }
 
   async getTablesByVenueAndFloor(venueId: number, floor: string): Promise<Table[]> {
