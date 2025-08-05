@@ -57,9 +57,10 @@ Preferred communication style: Simple, everyday language.
   - **Venue Cancellation**: Treasury-initiated event cancellation with full refund notifications
   - **Event Reminders**: Full digital ticket with actual QR code image, PDF download button, and day-before notifications
   - **Password Reset/Welcome**: Functional password reset system with secure token validation
-- **QR Code Enhancement**: Replaced text-based QR codes with actual scannable QR code images using the qrcode package
+- **QR Code Enhancement**: QR codes now sent as email attachments using SendGrid's inline content feature (cid:) for maximum email client compatibility, eliminating data URL blocking issues
 - **Time Format Standardization**: Corrected time display to show "Guest Arrival 5:45 PM, show starts 6:30 PM" format (arrival time calculated as 45 minutes before show time)
 - **Download Functionality**: Updated download buttons to link to PDF ticket generation instead of simple webpage links
+- **Email Client Compatibility**: Resolved QR code display issues by using attachment-based approach instead of data URLs
 - All email templates include consistent contact information (📍 2 E Congress St, Ste 100, 📞 (520) 734-3937)
 - Website references corrected to www.thetreasury1929.com/dinnerconcerts for the official dinner concert app domain
 - Password reset functionality fully implemented with secure token generation and validation routes
