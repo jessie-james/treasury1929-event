@@ -555,6 +555,117 @@ export function registerPaymentRoutes(app: Express) {
     }
   });
 
+  // Manual booking creation from payment details (for missing Stripe bookings)
+  app.post("/api/admin/create-missing-booking", async (req, res) => {
+    try {
+      const { customerEmail, paymentId, sessionId, eventId, tableId, partySize, amount, guestNames, foodSelections, wineSelections } = req.body;
+      
+      if (!customerEmail || !eventId || !tableId) {
+        return res.status(400).json({
+          error: 'Customer email, event ID, and table ID are required',
+          status: 'error'
+        });
+      }
+      
+      // Check if booking already exists
+      const existingBookings = await storage.getBookings();
+      const existing = existingBookings.find(b => 
+        b.customerEmail === customerEmail && b.eventId === parseInt(eventId)
+      );
+      
+      if (existing) {
+        return res.json({
+          message: 'Booking already exists for this customer and event',
+          bookingId: existing.id,
+          status: 'already_exists'
+        });
+      }
+      
+      // Create booking manually
+      const bookingData = {
+        eventId: parseInt(eventId),
+        tableId: parseInt(tableId),
+        userId: null, // Manual creation, no user account required
+        partySize: parseInt(partySize) || 1,
+        customerEmail: customerEmail,
+        stripePaymentId: paymentId || 'manual_recovery_' + Date.now(),
+        stripeSessionId: sessionId || null,
+        amount: parseInt(amount) || 0,
+        status: 'confirmed' as const,
+        guestNames: guestNames ? JSON.parse(guestNames) : [],
+        foodSelections: foodSelections ? JSON.parse(foodSelections) : [],
+        wineSelections: wineSelections ? JSON.parse(wineSelections) : [],
+        selectedVenue: 'Main Floor',
+        holdStartTime: new Date()
+      };
+      
+      console.log('Creating manual booking:', bookingData);
+      const bookingId = await storage.createBooking(bookingData);
+      
+      // Sync availability after manual booking creation
+      const { AvailabilitySync } = await import('./availability-sync.js');
+      await AvailabilitySync.syncEventAvailability(parseInt(eventId));
+      
+      // Send confirmation email
+      const { EmailService } = await import('./email-service.js');
+      const booking = await storage.getBookingWithDetails(bookingId);
+      
+      let emailSent = false;
+      if (booking) {
+        const table = await storage.getTableById(parseInt(tableId));
+        const venue = table ? await storage.getVenueById(table.venueId) : null;
+        
+        const emailData = {
+          booking: {
+            id: bookingId.toString(),
+            customerEmail: customerEmail,
+            partySize: parseInt(partySize) || 1,
+            status: 'confirmed',
+            stripePaymentId: paymentId || 'manual_recovery',
+            createdAt: new Date(),
+            guestNames: guestNames ? JSON.parse(guestNames) : [],
+            foodSelections: foodSelections ? JSON.parse(foodSelections) : [],
+            wineSelections: wineSelections ? JSON.parse(wineSelections) : []
+          },
+          event: {
+            id: booking.event.id.toString(),
+            title: booking.event.title,
+            date: booking.event.date,
+            description: booking.event.description || ''
+          },
+          table: {
+            id: booking.table.id.toString(),
+            tableNumber: booking.table.tableNumber,
+            floor: 'Main Floor',
+            capacity: booking.table.capacity
+          },
+          venue: {
+            id: venue?.id.toString() || '1',
+            name: venue?.name || 'The Treasury 1929',
+            address: '2 E Congress St, Ste 100'
+          }
+        };
+        
+        emailSent = await EmailService.sendBookingConfirmation(emailData);
+      }
+      
+      res.json({
+        message: 'Missing booking created successfully',
+        bookingId: bookingId,
+        customerEmail: customerEmail,
+        emailSent: emailSent,
+        status: 'manual_recovery_success'
+      });
+      
+    } catch (error) {
+      console.error("Error creating missing booking:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to create booking',
+        status: 'error'
+      });
+    }
+  });
+
   // Resend confirmation email for existing booking
   app.post("/api/admin/resend-email", async (req, res) => {
     try {
