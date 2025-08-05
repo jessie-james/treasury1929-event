@@ -94,8 +94,8 @@ export class EmailService {
       
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
       
-      // Generate QR code as attachment for better email client compatibility
-      const qrData = `BOOKING:${booking.id}:${event.id}:${booking.customerEmail}`;
+      // Generate QR code using same format as ticket component for consistency
+      const qrData = booking.id.toString();
       const qrCodeBuffer = await QRCode.toBuffer(qrData, {
         width: 200,
         margin: 2,
@@ -148,13 +148,7 @@ export class EmailService {
                 <p style="font-family: monospace; font-size: 12px; margin: 10px 0; color: #666;">Booking ID: ${booking.id}</p>
               </div>
               
-              <!-- DOWNLOAD BUTTON -->
-              <div style="text-align: center; margin: 20px 0;">
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/api/download-ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
-                  📥 Download PDF Ticket
-                </a>
-                <p style="color: #666; font-size: 12px; margin-top: 10px;">Save to your phone for easy access</p>
-              </div>
+              <!-- PDF download button removed as requested -->
             </div>
 
             <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -235,8 +229,8 @@ export class EmailService {
       
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
       
-      // Generate QR code as attachment
-      const qrData = `BOOKING:${booking.id}:${event.id}:${booking.customerEmail}`;
+      // Generate QR code using same format as ticket component for consistency
+      const qrData = booking.id.toString();
       const qrCodeBuffer = await QRCode.toBuffer(qrData, {
         width: 200,
         margin: 2,
@@ -285,13 +279,7 @@ export class EmailService {
                 <p style="font-family: monospace; font-size: 12px; margin: 10px 0; color: #666;">Booking ID: ${booking.id}</p>
               </div>
               
-              <!-- DOWNLOAD BUTTON -->
-              <div style="text-align: center; margin: 20px 0;">
-                <a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/api/download-ticket/${booking.id}" style="background-color: #27ae60; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; font-size: 16px;">
-                  📥 Download PDF Ticket
-                </a>
-                <p style="color: #666; font-size: 12px; margin-top: 10px;">Save to your phone for easy access</p>
-              </div>
+              <!-- PDF download button removed as requested -->
             </div>
 
             <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
