@@ -542,6 +542,97 @@ export function registerPaymentRoutes(app: Express) {
     }
   });
 
+  // Admin endpoint to view all bookings (for debugging)
+  app.get("/api/admin/bookings", async (req, res) => {
+    try {
+      const bookings = await storage.getBookings();
+      res.json(bookings);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to fetch bookings'
+      });
+    }
+  });
+
+  // Resend confirmation email for existing booking
+  app.post("/api/admin/resend-email", async (req, res) => {
+    try {
+      const { bookingId, email } = req.body;
+      
+      let booking;
+      
+      if (bookingId) {
+        booking = await storage.getBookingWithDetails(bookingId);
+      } else if (email) {
+        const allBookings = await storage.getBookings();
+        booking = allBookings.find(b => b.customerEmail === email);
+      }
+      
+      if (!booking) {
+        return res.status(404).json({
+          error: 'Booking not found',
+          status: 'not_found'
+        });
+      }
+      
+      const { EmailService } = await import('./email-service.js');
+      
+      // Get venue info for the booking
+      const table = await storage.getTableById(booking.tableId);
+      const venue = table ? await storage.getVenueById(table.venueId) : null;
+      
+      const emailData = {
+        booking: {
+          id: booking.id.toString(),
+          customerEmail: booking.customerEmail,
+          partySize: booking.partySize || 1,
+          status: booking.status,
+          stripePaymentId: booking.stripePaymentId,
+          createdAt: booking.createdAt,
+          guestNames: booking.guestNames || [],
+          foodSelections: booking.foodSelections || [],
+          wineSelections: booking.wineSelections || []
+        },
+        event: {
+          id: booking.event.id.toString(),
+          title: booking.event.title,
+          date: booking.event.date,
+          description: booking.event.description || ''
+        },
+        table: {
+          id: booking.table.id.toString(),
+          tableNumber: booking.table.tableNumber,
+          floor: booking.selectedVenue || 'Main Floor',
+          capacity: booking.table.capacity
+        },
+        venue: {
+          id: venue?.id.toString() || '1',
+          name: venue?.name || 'The Treasury 1929',
+          address: '2 E Congress St, Ste 100'
+        }
+      };
+      
+      const emailSent = await EmailService.sendBookingConfirmation(emailData);
+      
+      res.json({
+        message: 'Confirmation email resent successfully',
+        bookingId: booking.id,
+        customerEmail: booking.customerEmail,
+        emailSent,
+        status: booking.status,
+        action: 'email_resent'
+      });
+      
+    } catch (error) {
+      console.error("Error resending email:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to resend email',
+        status: 'error'
+      });
+    }
+  });
+
   // Emergency system sync endpoint to fix availability after missing bookings
   app.post("/api/admin/sync-all-availability", async (req, res) => {
     try {
