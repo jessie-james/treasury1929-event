@@ -58,4 +58,4 @@ Preferred communication style: Simple, everyday language.
   - **Event Reminders**: Day-before event notifications with check-in requirements
   - **Password Reset/Welcome**: Account setup with branded welcome messaging
 - All email templates include consistent contact information (📍 2 E Congress St, Ste 100, 📞 (520) 734-3937)
-- Website references standardized to www.thetreasury1929.com (removed incorrect /dinnerconcerts path)
+- Website references corrected to www.thetreasury1929.com/dinnerconcerts for the official dinner concert app domain

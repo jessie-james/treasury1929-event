@@ -107,7 +107,7 @@ export class EmailService {
               <p>📍 2 E Congress St, Ste 100<br>
               📞 (520) 734-3937<br>
               📧 info@thetreasury1929.com<br>
-              🌐 www.thetreasury1929.com</p>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
             </div>
           </div>
         `
@@ -283,7 +283,7 @@ export class EmailService {
               <p>📍 2 E Congress St, Ste 100<br>
               📞 (520) 734-3979<br>
               📧 info@thetreasury1929.com<br>
-              🌐 www.thetreasury1929.com</p>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
             </div>
           </div>
         `
@@ -421,7 +421,7 @@ export class EmailService {
               <p>📍 2 E Congress St, Ste 100<br>
               📞 (520) 734-3937<br>
               📧 info@thetreasury1929.com<br>
-              🌐 www.thetreasury1929.com</p>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
             </div>
           </div>
         `
@@ -489,7 +489,7 @@ export class EmailService {
               <p>📍 2 E Congress St, Ste 100<br>
               📞 (520) 734-3937<br>
               📧 info@thetreasury1929.com<br>
-              🌐 www.thetreasury1929.com</p>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
             </div>
           </div>
         `
@@ -538,7 +538,7 @@ export class EmailService {
             <p>You will receive a full refund for your tickets and any additional purchases associated with your reservation. Refunds are processed promptly, though they may take 7–10 business days to appear in your account depending on your bank or card issuer.</p>
             
             <p>We sincerely hope you'll consider rebooking for another date in our Dinner Concert Series. To view upcoming events and make a new reservation, please visit:</p>
-            <p>👉 <strong>www.thetreasury1929.com</strong></p>
+            <p>👉 <strong>www.thetreasury1929.com/dinnerconcerts</strong></p>
             
             <p>If you'd like to be notified of future concert dates and special invitations, just reply to this email and let us know you'd like to join our mailing list.</p>
             
@@ -550,7 +550,7 @@ export class EmailService {
               <p>📍 2 E Congress St, Ste 100<br>
               📞 (520) 734-3979<br>
               📧 info@thetreasury1929.com<br>
-              🌐 www.thetreasury1929.com</p>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
             </div>
           </div>
         `
