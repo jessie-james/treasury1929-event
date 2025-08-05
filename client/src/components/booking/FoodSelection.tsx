@@ -432,11 +432,10 @@ function FoodSelectionInner({ selectedSeats, eventId, onComplete }: Props) {
           </div>
         )}
 
-        {/* Note about beverages and wine selection */}
+        {/* Note about wine selection */}
         {currentStepIndex === STEPS.length - 1 && currentSeat === selectedSeats[selectedSeats.length - 1] && (
-          <div className="text-center mb-4 space-y-2">
-            <p className="text-sm text-muted-foreground italic">Note: Mixed drinks are available at the venue.</p>
-            <p className="text-xs text-muted-foreground">Wine selection and other beverages available in next step.</p>
+          <div className="text-center mb-4">
+            <p className="text-sm text-muted-foreground">Wine selection available next step</p>
           </div>
         )}
         
