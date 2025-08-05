@@ -37,8 +37,8 @@ import { useState, useRef, useEffect } from "react";
 import { ImagePlus, Loader2, RefreshCw, X } from "lucide-react";
 
 // Define the common allergens and dietary restrictions
-const ALLERGENS: Allergen[] = ["gluten", "dairy", "eggs", "peanuts", "tree_nuts", "soy", "fish", "shellfish", "sesame"];
-const DIETARY_RESTRICTIONS: DietaryRestriction[] = ["gluten-free", "vegan", "vegetarian", "dairy-free"];
+const ALLERGENS: string[] = ["gluten", "dairy", "eggs", "peanuts", "tree_nuts", "soy", "fish", "shellfish", "sesame"];
+const DIETARY_RESTRICTIONS: string[] = ["gluten-free", "vegan", "vegetarian", "dairy-free"];
 
 const foodFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -77,8 +77,8 @@ export function FoodForm({ food, onClose }: Props) {
     defaultValues: food 
       ? {
           name: food.name,
-          description: food.description,
-          image: food.image,
+          description: food.description || "",
+          image: food.image || "",
           price: food.price ?? 0,
           type: food.type as "salad" | "entree" | "dessert",
           allergens: food.allergens ?? [],
