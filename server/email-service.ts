@@ -94,14 +94,14 @@ export class EmailService {
       
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
       
-      // Generate QR code using same format as app tickets (simple booking ID)
+      // Generate QR code using EXACT same format as app tickets (simple booking ID)
       const qrData = booking.id.toString();
       const qrCodeBuffer = await QRCode.toBuffer(qrData, {
         width: 200,
         margin: 2,
         color: {
-          dark: '#2c3e50',
-          light: '#ffffff'
+          dark: '#000000',
+          light: '#FFFFFF'
         }
       });
 
@@ -229,14 +229,14 @@ export class EmailService {
       
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
       
-      // Generate QR code using same format as app tickets (simple booking ID)
+      // Generate QR code using EXACT same format as app tickets (simple booking ID)
       const qrData = booking.id.toString();
       const qrCodeBuffer = await QRCode.toBuffer(qrData, {
         width: 200,
         margin: 2,
         color: {
-          dark: '#2c3e50',
-          light: '#ffffff'
+          dark: '#000000',
+          light: '#FFFFFF'
         }
       });
 
