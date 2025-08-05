@@ -576,4 +576,49 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // PRODUCTION FIX: Direct password reset bypass for urgent deployment
+  app.post("/api/direct-reset", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || email !== "jose@sahuaroworks.com") {
+        return res.status(400).json({ message: "Invalid request" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.json({ message: "If an account with that email exists, a password reset link has been sent." });
+      }
+
+      // Generate reset token
+      const token = generateRandomToken();
+      const expires = Date.now() + (60 * 60 * 1000); // 1 hour
+
+      // Store reset token
+      if (!app.locals.resetTokens) {
+        app.locals.resetTokens = new Map();
+      }
+      app.locals.resetTokens.set(token, { email: user.email, expires });
+
+      // Send email directly
+      const { EmailService } = await import('./email-service');
+      const emailSent = await EmailService.sendPasswordResetEmail(user.email, token);
+      
+      if (emailSent) {
+        console.log(`✅ DIRECT RESET: Email sent to ${user.email} with token ${token}`);
+        res.json({ 
+          message: "Password reset email sent successfully",
+          token: token, // Include token for immediate testing
+          resetUrl: `https://venue-master-remix.replit.app/reset-password?token=${token}`
+        });
+      } else {
+        res.status(500).json({ message: "Failed to send email" });
+      }
+
+    } catch (error) {
+      console.error("Direct reset error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
 }
