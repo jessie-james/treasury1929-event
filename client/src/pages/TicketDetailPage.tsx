@@ -135,7 +135,7 @@ export default function TicketDetailPage() {
               {booking.tableId && (
                 <div className="flex items-center gap-1">
                   <MapPin className="h-4 w-4" />
-                  Table {booking.tableId}
+                  Table {booking.table?.tableNumber || booking.tableId}
                 </div>
               )}
               <div className="flex items-center gap-1">
@@ -150,7 +150,7 @@ export default function TicketDetailPage() {
             {booking.tableId && (
               <div className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-muted-foreground" />
-                <span>Table {booking.tableId}</span>
+                <span>Table {booking.table?.tableNumber || booking.tableId}</span>
               </div>
             )}
             <div className="flex items-center gap-2">

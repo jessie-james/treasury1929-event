@@ -286,7 +286,7 @@ export default function PaymentSuccessPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
-                        Table {booking.tableId}
+                        Table {booking.table?.tableNumber || booking.tableId}
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
@@ -338,40 +338,7 @@ export default function PaymentSuccessPage() {
         </CardContent>
         
         <CardFooter className="flex flex-col space-y-3">
-          {booking && (
-            <Button 
-              variant="default" 
-              size="lg"
-              className="w-full flex items-center justify-center"
-              onClick={() => {
-                // Trigger download via the TicketQRCode component
-                const downloadBtn = document.querySelector('.download-ticket-btn') as HTMLButtonElement;
-                if (downloadBtn) {
-                  downloadBtn.click();
-                }
-              }}
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Download Ticket
-            </Button>
-          )}
-          
-          <Button 
-            onClick={() => navigate('/my-bookings')}
-            className="w-full flex items-center justify-center"
-            variant="outline"
-          >
-            View My Bookings
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-          
-          <Button 
-            variant="ghost"
-            onClick={() => navigate('/')}
-            className="w-full"
-          >
-            Return to Home
-          </Button>
+          {/* Removed the buttons as requested */}
         </CardFooter>
       </Card>
     </div>
