@@ -92,17 +92,7 @@ export function TableLayoutCanvas({
     const isSold = table.status === 'sold' || table.status === 'booked';
     const isHalf = table.shape === 'half';
     
-    // CRITICAL DEBUG: Log table status for debugging
-    if ([11, 16].includes(table.tableNumber)) {
-      console.log(`🚨 CRITICAL TABLE ${table.tableNumber} STATUS:`, {
-        rawStatus: table.status,
-        isAvailable,
-        isSold,
-        isOnHold,
-        isSelected,
-        table
-      });
-    }
+    // Table status logic for rendering different states
     
     // Use tableSize from database or calculate from width/height as fallback
     let tableSize = table.tableSize || 4;

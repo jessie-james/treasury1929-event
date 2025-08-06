@@ -45,13 +45,6 @@ type Step = typeof STEPS[number];
 function FoodSelectionInner({ selectedSeats, eventId, onComplete }: Props) {
   const { user } = useAuth();
   
-  // Early validation and debugging
-  console.log("FoodSelection component mounted:", {
-    selectedSeats,
-    eventId,
-    user: user?.id
-  });
-  
   if (!selectedSeats || selectedSeats.length === 0) {
     console.error("No seats selected for food selection");
     return (
@@ -66,12 +59,7 @@ function FoodSelectionInner({ selectedSeats, eventId, onComplete }: Props) {
     queryKey: [`/api/events/${eventId}/food-options`]
   });
   
-  // Debugging
-  console.log("Food options loaded:", options?.length || 0, "options");
-  console.log("Selected seats:", selectedSeats);
-
   const [currentSeat, setCurrentSeat] = useState<number>(() => {
-    console.log("Setting initial currentSeat to:", selectedSeats[0]);
     return selectedSeats[0];
   });
   const [currentStep, setCurrentStep] = useState<Step>("name");

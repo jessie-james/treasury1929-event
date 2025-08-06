@@ -201,17 +201,17 @@ export default function PaymentSuccessPage() {
                   <h4 className="font-medium mb-2">Guest Names:</h4>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     {Array.isArray(booking.guestNames) ? (
-                      booking.guestNames.map((name, index) => (
+                      booking.guestNames.map((name: string, index: number) => (
                         <div key={index} className="flex justify-between">
                           <span>Guest {index + 1}:</span>
                           <span className="font-medium">{name}</span>
                         </div>
                       ))
                     ) : (
-                      Object.entries(booking.guestNames).map(([seatNumber, name]) => (
+                      Object.entries(booking.guestNames).map(([seatNumber, name]: [string, unknown]) => (
                         <div key={seatNumber} className="flex justify-between">
                           <span>Guest {seatNumber}:</span>
-                          <span className="font-medium">{name}</span>
+                          <span className="font-medium">{String(name)}</span>
                         </div>
                       ))
                     )}
@@ -223,7 +223,7 @@ export default function PaymentSuccessPage() {
                 <div>
                   <h4 className="font-medium mb-2">Food Selections:</h4>
                   <div className="text-sm space-y-1">
-                    {booking.foodSelections.map((selection, index) => {
+                    {booking.foodSelections.map((selection: any, index: number) => {
                       const guestName = booking.guestNames 
                         ? Array.isArray(booking.guestNames) 
                           ? booking.guestNames[index] || `Guest ${index + 1}`
@@ -250,7 +250,7 @@ export default function PaymentSuccessPage() {
                 <div>
                   <h4 className="font-medium mb-2">Wine Selections:</h4>
                   <div className="text-sm space-y-1">
-                    {booking.wineSelections.map((selection, index) => {
+                    {booking.wineSelections.map((selection: any, index: number) => {
                       const guestName = booking.guestNames 
                         ? Array.isArray(booking.guestNames) 
                           ? booking.guestNames[index] || `Guest ${index + 1}`

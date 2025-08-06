@@ -74,11 +74,10 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
   const [desiredGuestCount, setDesiredGuestCount] = useState(2); // Number of guests the user wants to bring
   const [zoomLevel, setZoomLevel] = useState(1.0); // Zoom level for desktop users
 
-  console.log('🎯 IframeSeatSelection props:', { eventId, propSelectedVenueIndex, selectedVenueIndex });
+
 
   // Sync venue index with prop changes
   useEffect(() => {
-    console.log('🔄 Venue index prop changed:', { propSelectedVenueIndex, currentSelectedVenueIndex: selectedVenueIndex });
     if (propSelectedVenueIndex !== undefined) {
       setSelectedVenueIndex(propSelectedVenueIndex);
     }
