@@ -4,7 +4,7 @@ import { db } from "./db.js";
 import * as schema from "@shared/schema";
 import { insertVenueSchema, insertStageSchema, insertTableSchema } from "@shared/schema";
 import { z } from "zod";
-import { eq, inArray, sql } from "drizzle-orm";
+import { eq, inArray, count } from "drizzle-orm";
 
 /**
  * Register venue management routes
@@ -247,7 +247,7 @@ export function registerVenueRoutes(app: Express): void {
           const tablesWithBookings = [];
           for (const table of existingTables) {
             const bookingCount = await tx
-              .select({ count: sql<number>`COUNT(*)` })
+              .select({ count: count() })
               .from(schema.bookings)
               .where(eq(schema.bookings.tableId, table.id));
             
