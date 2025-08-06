@@ -2926,7 +2926,7 @@ export async function registerRoutes(app: Express) {
 
   // BOOKING MANAGEMENT ENDPOINTS
 
-  // Get detailed booking info
+  // Get detailed booking info (admin/staff only)
   app.get("/api/bookings/:id", async (req, res) => {
     try {
       if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager"].includes(req.user?.role || "")) {
@@ -2941,6 +2941,38 @@ export async function registerRoutes(app: Express) {
       const booking = await (storage as any).getBookingWithDetails(bookingId);
       if (!booking) {
         return res.status(404).json({ message: "Booking not found" });
+      }
+
+      res.json(booking);
+    } catch (error) {
+      console.error("Error fetching booking details:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch booking details",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  // Get customer's own booking details
+  app.get("/api/user/bookings/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const bookingId = parseInt(req.params.id);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+
+      const booking = await (storage as any).getBookingWithDetails(bookingId);
+      if (!booking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // Ensure customer can only access their own bookings
+      if (booking.userId !== req.user.id) {
+        return res.status(403).json({ message: "Access denied" });
       }
 
       res.json(booking);

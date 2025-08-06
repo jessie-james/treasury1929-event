@@ -66,10 +66,10 @@ export default function PaymentSuccessPage() {
 
   // Fetch booking details if we have a booking ID
   const { data: booking, isLoading } = useQuery({
-    queryKey: ['/api/bookings', bookingId],
+    queryKey: ['/api/user/bookings', bookingId],
     queryFn: async () => {
       if (!bookingId) return null;
-      const response = await fetch(`/api/bookings/${bookingId}`, { credentials: 'include' });
+      const response = await fetch(`/api/user/bookings/${bookingId}`, { credentials: 'include' });
       if (!response.ok) return null;
       return await response.json();
     },
@@ -184,7 +184,7 @@ export default function PaymentSuccessPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span>Table {booking.tableId}</span>
+                  <span>Table {booking.table?.tableNumber || booking.tableId}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-muted-foreground" />

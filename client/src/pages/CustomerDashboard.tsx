@@ -171,7 +171,7 @@ export default function CustomerDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xl">
                   <div className="flex items-center gap-4">
                     <MapPin className="w-8 h-8 text-muted-foreground" />
-                    <span className="font-semibold">Table {booking.tableId}</span>
+                    <span className="font-semibold">Table {booking.table?.tableNumber || booking.tableId}</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <Users className="w-8 h-8 text-muted-foreground" />
