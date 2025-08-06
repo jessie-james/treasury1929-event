@@ -75,10 +75,26 @@ export function registerPaymentRoutes(app: Express) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
+      // Get event and table details for user-friendly display
+      const event = await storage.getEventById(eventId);
+      const table = await storage.getTableById(tableId);
+      
+      if (!event || !table) {
+        return res.status(404).json({ message: "Event or table not found" });
+      }
+
       const stripe = getStripe();
       if (!stripe) {
         return res.status(500).json({ error: "Stripe not initialized" });
       }
+
+      // Format event date for display
+      const eventDate = new Date(event.date);
+      const eventDateFormatted = eventDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
@@ -87,8 +103,8 @@ export function registerPaymentRoutes(app: Express) {
             price_data: {
               currency: 'usd',
               product_data: {
-                name: `Event Booking - ${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''}`,
-                description: `Event ID: ${eventId}, Table: ${tableId}`,
+                name: `${event.title} - Table ${table.tableNumber}`,
+                description: `${eventDateFormatted} | ${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''} | ${table.floor}`,
               },
               unit_amount: amount, // total amount in cents - no division needed
             },
