@@ -1,9 +1,19 @@
 import { storage } from "../server/storage";
 import { hashPassword } from "../server/auth";
 
+/**
+ * Creates a hostess user account for venue check-in operations.
+ * 
+ * For security, use environment variables:
+ * - HOSTESS_EMAIL: Email address for the hostess account
+ * - HOSTESS_PASSWORD: Strong password for the hostess account
+ * 
+ * If environment variables are not set, defaults will be used (not recommended for production).
+ */
+
 async function createHostess() {
-  const email = "hostess@treasury.com";
-  const password = "welcome123";
+  const email = process.env.HOSTESS_EMAIL || "hostess@treasury.com";
+  const password = process.env.HOSTESS_PASSWORD || "welcome123";
   const role = "hostess";
 
   try {
