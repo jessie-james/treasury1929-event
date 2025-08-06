@@ -109,11 +109,10 @@ export class EmailService {
         ? booking.guestNames.join(', ') 
         : 'Guest names not provided';
 
-      // TESTING MODE: Send all emails to jose@sahuaroworks.com
       const emailContent = {
-        to: 'jose@sahuaroworks.com',
+        to: booking.customerEmail,
         from: this.FROM_EMAIL,
-        subject: `[TEST] Your Dinner Concert Ticket Confirmation – The Treasury 1929 (Original: ${booking.customerEmail})`,
+        subject: `Your Dinner Concert Ticket Confirmation – The Treasury 1929`,
         attachments: [
           {
             content: qrCodeBuffer.toString('base64'),
@@ -241,11 +240,10 @@ export class EmailService {
         }
       });
 
-      // TESTING MODE: Send all emails to jose@sahuaroworks.com
       const emailContent = {
-        to: 'jose@sahuaroworks.com',
+        to: booking.customerEmail,
         from: this.FROM_EMAIL,
-        subject: `[TEST] Tomorrow: Your Dinner Concert at The Treasury 1929 (Original: ${booking.customerEmail})`,
+        subject: `Tomorrow: Your Dinner Concert at The Treasury 1929`,
         attachments: [
           {
             content: qrCodeBuffer.toString('base64'),
@@ -333,11 +331,10 @@ export class EmailService {
       
       console.log(`📧 Generated password reset URL: ${resetUrl}`);
 
-      // TESTING MODE: Send all emails to jose@sahuaroworks.com
       const emailContent = {
-        to: 'jose@sahuaroworks.com',
+        to: email,
         from: this.FROM_EMAIL,
-        subject: `[TEST] Reset Your Password - The Treasury 1929 (Original: ${email})`,
+        subject: `Reset Your Password - The Treasury 1929`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
             <p>Dear Guest,</p>
@@ -418,11 +415,10 @@ export class EmailService {
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
       const refundAmount = (refundAmountCents / 100).toFixed(2);
 
-      // TESTING MODE: Send all emails to jose@sahuaroworks.com
       const emailContent = {
-        to: 'jose@sahuaroworks.com',
+        to: booking.customerEmail,
         from: this.FROM_EMAIL,
-        subject: `[TEST] Your Dinner Concert Ticket Cancellation & Refund Confirmation (Original: ${booking.customerEmail})`,
+        subject: `Your Dinner Concert Ticket Cancellation & Refund Confirmation`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
             <p>Dear Guest,</p>
