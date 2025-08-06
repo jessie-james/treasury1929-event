@@ -1338,6 +1338,26 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Get table by ID (public endpoint for checkout forms)
+  app.get("/api/tables/:id", async (req, res) => {
+    try {
+      const tableId = parseInt(req.params.id);
+      if (isNaN(tableId)) {
+        return res.status(400).json({ message: "Invalid table ID" });
+      }
+
+      const table = await storage.getTableById(tableId);
+      if (!table) {
+        return res.status(404).json({ message: "Table not found" });
+      }
+
+      res.json(table);
+    } catch (error) {
+      console.error("Error fetching table:", error);
+      res.status(500).json({ message: "Failed to fetch table" });
+    }
+  });
+
   // Endpoint to get availability for all tables for an event
   app.get("/api/tables/availability", async (req, res) => {
     try {

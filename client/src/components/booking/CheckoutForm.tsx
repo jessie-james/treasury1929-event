@@ -45,6 +45,12 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
     queryKey: [`/api/events/${eventId}`],
   });
 
+  // Fetch table details to get the actual table number
+  const { data: table } = useQuery({
+    queryKey: [`/api/tables/${tableId}`],
+    enabled: tableId > 0,
+  });
+
   // Calculate pricing based on event type
   const calculatePricing = () => {
     let basePrice;
@@ -139,7 +145,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
           {tableId > 0 && (
             <div className="flex justify-between">
               <span>Table:</span>
-              <span>{tableId}</span>
+              <span>{table?.tableNumber || tableId}</span>
             </div>
           )}
           <div className="flex justify-between">
