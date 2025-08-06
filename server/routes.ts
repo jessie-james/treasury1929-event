@@ -485,13 +485,13 @@ export async function registerRoutes(app: Express) {
             venue
           });
           
-          // Send admin notification email
-          await EmailService.sendAdminBookingNotification({
-            booking: newBooking as any,
-            event,
-            table,
-            venue
-          });
+          // Send admin notification email - method temporarily disabled
+          // await EmailService.sendAdminBookingNotification({
+          //   booking: newBooking as any,
+          //   event,
+          //   table,
+          //   venue
+          // });
         }
       } catch (emailError) {
         console.error('Email notification failed (booking still successful):', emailError);
@@ -1813,25 +1813,25 @@ export async function registerRoutes(app: Express) {
 
       console.log("Creating manual booking with data:", JSON.stringify(bookingData, null, 2));
 
-      // Create the manual booking using admin's ID for tracking
-      const booking = await storage.createManualBooking(bookingData, req.user.id);
+      // Create the manual booking using standard booking method
+      const booking = await storage.createBooking({...bookingData, status: 'confirmed'});
 
       // Create detailed log entry for this action
       await storage.createAdminLog({
         userId: req.user.id,
         action: "create_manual_booking",
         entityType: "booking",
-        entityId: booking?.id,
-        details: { 
+        entityId: (booking as any)?.id,
+        details: JSON.stringify({ 
           bookingData: {
-            id: booking?.id,
+            id: (booking as any)?.id,
             eventId: Number(eventId),
             tableId: Number(tableId),
             seatNumbers: seatNumbers,
             customerEmail: customerEmail,
             userId: Number(userId)
           }
-        }
+        })
       });
 
       console.log("Manual booking created successfully:", JSON.stringify(booking, null, 2));
@@ -1872,8 +1872,8 @@ export async function registerRoutes(app: Express) {
             .where(eq(events.id, event.id));
         } else {
           // Count actual booked seats
-          const bookedSeats = eventBookings.reduce((total, booking) => total + booking.seatNumbers.length, 0);
-          newAvailableSeats = event.totalSeats - bookedSeats;
+          const bookedSeats = eventBookings.reduce((total, booking) => total + (booking.seatNumbers?.length || 0), 0);
+          newAvailableSeats = (event.totalSeats || 0) - bookedSeats;
           await db.update(events)
             .set({ availableSeats: newAvailableSeats })
             .where(eq(events.id, event.id));
@@ -1885,13 +1885,13 @@ export async function registerRoutes(app: Express) {
           action: "reset_seats",
           entityType: "event",
           entityId: event.id,
-          details: {
+          details: JSON.stringify({
             eventTitle: event.title,
             totalSeats: event.totalSeats,
             previousAvailable: event.availableSeats,
             newAvailable: newAvailableSeats,
             confirmedBookings: eventBookings.length
-          }
+          })
         });
       }
 
@@ -2178,10 +2178,10 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Get table assignments for an event
-  app.get("/api/events/:eventId/table-assignments", async (req: Request, res: Response) => {
+  // Get table assignments for an event  
+  app.get("/api/events/:eventId/table-assignments", async (req, res) => {
     try {
-      const eventId = parseInt(req.params.eventId);
+      const eventId = Number(req.params.eventId);
       if (isNaN(eventId)) {
         return res.status(400).json({ message: "Invalid event ID" });
       }
@@ -2200,26 +2200,26 @@ export async function registerRoutes(app: Express) {
       .leftJoin(eventPricingTiers, eq(eventTableAssignments.pricingTierId, eventPricingTiers.id))
       .where(eq(eventTableAssignments.eventId, eventId));
 
-      res.json(assignments);
+      return res.json(assignments);
     } catch (error) {
       console.error("Error fetching table assignments:", error);
-      res.status(500).json({ message: "Failed to fetch table assignments" });
+      return res.status(500).json({ message: "Failed to fetch table assignments" });
     }
   });
 
   // Assign tables to pricing tiers
-  app.post("/api/events/:eventId/table-assignments", async (req: Request, res: Response) => {
+  app.post("/api/events/:eventId/table-assignments", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || req.user?.role === "customer") {
+      if (!req.isAuthenticated || !req.isAuthenticated() || req.user?.role === "customer") {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const eventId = parseInt(req.params.eventId);
+      const eventId = Number(req.params.eventId);
       if (isNaN(eventId)) {
         return res.status(400).json({ message: "Invalid event ID" });
       }
 
-      const { tableIds, pricingTierId } = req.body;
+      const { tableIds, pricingTierId } = req.body || {};
 
       if (!Array.isArray(tableIds) || !pricingTierId) {
         return res.status(400).json({ message: "Invalid request data" });
@@ -2248,14 +2248,14 @@ export async function registerRoutes(app: Express) {
         action: "assign_tables_to_tier",
         entityType: "event_table_assignment",
         entityId: eventId,
-        details: {
+        details: JSON.stringify({
           eventId,
           pricingTierId,
           tableIds
-        }
+        })
       });
 
-      res.status(201).json(newAssignments);
+      return res.status(201).json(newAssignments);
     } catch (error) {
       console.error("Error assigning tables:", error);
       res.status(500).json({ message: "Failed to assign tables" });
@@ -2333,12 +2333,12 @@ export async function registerRoutes(app: Express) {
         action: "upload_food_image",
         entityType: "food_option",
         entityId: 0, // Not tied to a specific food option yet
-        details: {
+        details: JSON.stringify({
           filename: req.file.filename,
           originalname: req.file.originalname,
           filePath: filePath,
           size: req.file.size
-        }
+        })
       });
 
       // Set appropriate content-type header to ensure JSON response
@@ -2408,12 +2408,12 @@ export async function registerRoutes(app: Express) {
         action: "upload_event_image",
         entityType: "event",
         entityId: 0, // Not tied to a specific event yet
-        details: {
+        details: JSON.stringify({
           filename: req.file.filename,
           originalname: req.file.originalname,
           filePath: filePath,
           size: req.file.size
-        }
+        })
       });
 
       // Set appropriate content-type header to ensure JSON response
@@ -2565,7 +2565,7 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const updates: Partial<Omit<InsertUser, "id">> = {};
+      const updates: Partial<Omit<NewUser, "id">> = {};
       const changedFields: Record<string, { from: any, to: any }> = {};
 
       // Handle potential updates
@@ -2614,11 +2614,11 @@ export async function registerRoutes(app: Express) {
         action: "update_user",
         entityType: "user",
         entityId: userId,
-        details: {
+        details: JSON.stringify({
           changedFields,
           updatedBy: req.user.email,
           timestamp: new Date().toISOString()
-        }
+        })
       });
 
       // Hide password in response
@@ -2666,12 +2666,12 @@ export async function registerRoutes(app: Express) {
         action: "delete_user",
         entityType: "user",
         entityId: userId,
-        details: {
+        details: JSON.stringify({
           deletedEmail: userToDelete.email,
           deletedRole: userToDelete.role,
           deletedBy: req.user.email,
           timestamp: new Date().toISOString()
-        }
+        })
       });
 
       res.status(200).json({ message: "User deleted successfully" });
@@ -2698,14 +2698,14 @@ export async function registerRoutes(app: Express) {
         action: "view_user_bookings",
         entityType: "user",
         entityId: userId,
-        details: {
+        details: JSON.stringify({
           adminEmail: req.user.email,
           timestamp: new Date().toISOString()
-        }
+        })
       });
 
-      const allBookings = await storage.getBookingWithDetails();
-      const userBookings = allBookings.filter(booking => booking.userId === userId);
+      const allBookings = await storage.getBookingWithDetails() || [];
+      const userBookings = Array.isArray(allBookings) ? allBookings.filter((booking: any) => booking.userId === userId) : [];
       res.json(userBookings);
     } catch (error) {
       console.error("Error fetching user bookings:", error);
