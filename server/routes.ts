@@ -3603,8 +3603,10 @@ export async function registerRoutes(app: Express) {
 
       // Track specific changes for more detailed logging
       const changes: Record<string, { from: any, to: any }> = {};
-      for (const key of Object.keys(req.body)) {
-        if (JSON.stringify(originalFoodOption[0][key as keyof typeof originalFoodOption[0]]) !== 
+      // Only check known food option properties to prevent prototype access
+      const allowedKeys = ['name', 'description', 'type', 'price', 'allergens', 'dietaryRestrictions', 'displayOrder', 'image', 'isAvailable'];
+      for (const key of allowedKeys) {
+        if (key in req.body && JSON.stringify(originalFoodOption[0][key as keyof typeof originalFoodOption[0]]) !== 
             JSON.stringify(foodOption[key as keyof typeof foodOption])) {
           changes[key] = {
             from: originalFoodOption[0][key as keyof typeof originalFoodOption[0]],
