@@ -2,9 +2,14 @@ import { storage } from "../server/storage";
 import { hashPassword } from "../server/auth";
 
 async function createAdmin() {
-  const email = "admin@treasury.com";
-  const password = "adminpassword";
+  const email = process.env.ADMIN_EMAIL || "admin@treasury.com";
+  const password = process.env.ADMIN_PASSWORD;
   const role = "admin";
+
+  if (!password) {
+    console.error("ADMIN_PASSWORD environment variable is required");
+    process.exit(1);
+  }
 
   try {
     // Hash the password
