@@ -430,6 +430,27 @@ export class PgStorage implements IStorage {
     return result.rowCount > 0;
   }
 
+  async releaseTableManually(bookingId: number, modifiedBy: number, reason?: string): Promise<Booking | null> {
+    // Release table without processing refund - for manual release only
+    const booking = await this.getBooking(bookingId);
+    if (!booking) {
+      throw new Error("Booking not found");
+    }
+
+    // Update booking to canceled status without refund processing
+    const result = await db.update(schema.bookings)
+      .set({ 
+        status: 'canceled',
+        lastModified: new Date(), 
+        modifiedBy,
+        notes: booking.notes ? `${booking.notes} | Manual release: ${reason || 'No reason provided'}` : `Manual release: ${reason || 'No reason provided'}`
+      })
+      .where(eq(schema.bookings.id, bookingId))
+      .returning();
+
+    return result[0] || null;
+  }
+
   async cancelBooking(bookingId: number, modifiedBy: number): Promise<Booking | null> {
     // First get the booking to find the table ID
     const booking = await this.getBooking(bookingId);

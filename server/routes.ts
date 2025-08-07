@@ -3178,6 +3178,51 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Manually release table without refund (admin only)
+  app.post("/api/bookings/:id/release", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner", "venue_manager"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const bookingId = parseInt(req.params.id);
+      if (isNaN(bookingId)) {
+        return res.status(400).json({ message: "Invalid booking ID" });
+      }
+
+      const { reason } = req.body;
+      const updatedBooking = await storage.releaseTableManually(bookingId, req.user.id, reason);
+
+      if (!updatedBooking) {
+        return res.status(404).json({ message: "Booking not found" });
+      }
+
+      // Log the manual release
+      await storage.createAdminLog({
+        userId: req.user.id,
+        action: "manual_table_release",
+        entityType: "booking",
+        entityId: bookingId,
+        details: JSON.stringify({
+          reason: reason || "No reason provided",
+          customerEmail: updatedBooking.customerEmail,
+          eventId: updatedBooking.eventId,
+          tableId: updatedBooking.tableId,
+          date: new Date().toISOString(),
+          bookingStatus: "canceled"
+        })
+      });
+
+      res.json(updatedBooking);
+    } catch (error) {
+      console.error("Error releasing table:", error);
+      res.status(500).json({ 
+        message: "Failed to release table",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Add a note to a booking
   app.post("/api/bookings/:id/add-note", async (req, res) => {
     try {
@@ -3265,18 +3310,73 @@ export async function registerRoutes(app: Express) {
           });
         }
 
+        // Validate that we have a payment intent ID
+        if (!booking.stripePaymentId) {
+          console.error("No Stripe payment ID found for booking", bookingId);
+          return res.status(400).json({ 
+            error: "Cannot process refund: No payment information found" 
+          });
+        }
+
         const refund = await stripe.refunds.create({
           payment_intent: booking.stripePaymentId,
           amount: Math.round(amount * 100), // Convert to cents
         });
 
-        // Update booking record with refund info
+        // Update booking record with refund info and status
         const updatedBooking = await storage.processRefund(
           bookingId,
           amount,
           refund.id,
           req.user.id
         );
+
+        // Send refund confirmation email
+        try {
+          const { EmailService } = await import('./email-service');
+          
+          // Get full booking details for email
+          const event = await storage.getEventById(booking.eventId);
+          const table = await storage.getTableById(booking.tableId);
+          const venue = await storage.getVenueById(table?.venueId || 4);
+          
+          if (event && table && venue) {
+            const emailData = {
+              booking: {
+                id: booking.id.toString(),
+                customerEmail: booking.customerEmail,
+                partySize: booking.partySize || 1,
+                status: 'refunded',
+                notes: booking.notes || '',
+                stripePaymentId: booking.stripePaymentId || '',
+                createdAt: booking.createdAt,
+                guestNames: booking.guestNames || []
+              },
+              event: {
+                id: event.id.toString(),
+                title: event.title,
+                date: event.date,
+                description: event.description || ''
+              },
+              table: {
+                id: table.id.toString(),
+                tableNumber: table.tableNumber,
+                floor: table.floor || 'Main Floor',
+                capacity: table.capacity
+              },
+              venue: {
+                id: venue.id.toString(),
+                name: venue.name,
+                address: '2 E Congress St, Ste 100, Tucson, AZ'
+              }
+            };
+            
+            await EmailService.sendCancellationEmail(emailData, Math.round(amount * 100));
+          }
+        } catch (emailError) {
+          console.error("Failed to send refund confirmation email:", emailError);
+          // Don't fail the refund if email fails
+        }
 
         // Create detailed payment transaction log
         await storage.createAdminLog({
@@ -3309,14 +3409,15 @@ export async function registerRoutes(app: Express) {
           action: "booking_refunded",
           entityType: "booking",
           entityId: bookingId,
-          details: {
+          details: JSON.stringify({
             amount: amount,
             refundId: refund.id,
             customerEmail: booking.customerEmail,
             eventId: booking.eventId,
+            tableId: booking.tableId,
             date: new Date().toISOString(),
             bookingStatus: "refunded"
-          }
+          })
         });
 
         res.json(updatedBooking);

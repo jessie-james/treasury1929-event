@@ -47,7 +47,9 @@ export function BookingManagement() {
   const [isFoodDialogOpen, setIsFoodDialogOpen] = useState(false);
   const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
+  const [isReleaseDialogOpen, setIsReleaseDialogOpen] = useState(false);
   const [refundAmount, setRefundAmount] = useState<number>(0);
+  const [releaseReason, setReleaseReason] = useState("");
   const [noteText, setNoteText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -127,6 +129,29 @@ export function BookingManagement() {
     onError: (error: Error) => {
       toast({
         title: "Failed to process refund",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  const releaseTableMutation = useMutation({
+    mutationFn: async ({ bookingId, reason }: { bookingId: number; reason: string }) => {
+      const res = await apiRequest("POST", `/api/bookings/${bookingId}/release`, { reason });
+      return await res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Table released",
+        description: "The table has been manually released",
+      });
+      setReleaseReason("");
+      setIsReleaseDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to release table",
         description: error.message,
         variant: "destructive",
       });
@@ -272,6 +297,7 @@ export function BookingManagement() {
               <TableHead>ID</TableHead>
               <TableHead>Event</TableHead>
               <TableHead>Customer</TableHead>
+              <TableHead>Table</TableHead>
               <TableHead>Party Size</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
@@ -284,6 +310,14 @@ export function BookingManagement() {
                 <TableCell className="font-medium">#{booking.id}</TableCell>
                 <TableCell>{booking.event.title}</TableCell>
                 <TableCell>{booking.user.email}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex flex-col">
+                    <span>Table {booking.table?.tableNumber || booking.tableId}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {booking.table?.floor === 'main' && booking.table?.tableNumber >= 200 ? 'Mezzanine' : 'Main Floor'}
+                    </span>
+                  </div>
+                </TableCell>
                 <TableCell>{booking.partySize} guests</TableCell>
                 <TableCell>{getStatusBadge(booking.status)}</TableCell>
                 <TableCell>{booking.createdAt ? formatPhoenixDateShort(booking.createdAt) : "N/A"}</TableCell>
@@ -312,6 +346,19 @@ export function BookingManagement() {
                     >
                       <DollarSign className="h-4 w-4 mr-1" />
                       Refund
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedBooking(booking);
+                        setIsReleaseDialogOpen(true);
+                      }}
+                      disabled={booking.status === "canceled"}
+                    >
+                      <RotateCw className="h-4 w-4 mr-1" />
+                      Release
                     </Button>
                     
                     <Button 
@@ -490,14 +537,75 @@ export function BookingManagement() {
         </DialogContent>
       </Dialog>
       
+      {/* Manual Release Dialog */}
+      <Dialog open={isReleaseDialogOpen} onOpenChange={setIsReleaseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Release Table Manually</DialogTitle>
+            <DialogDescription>
+              This will cancel the booking and release the table without processing a refund. 
+              Use this for manual corrections or when refund has been processed separately.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Reason for Release</label>
+              <Textarea
+                placeholder="Enter reason for manually releasing this table (required)..."
+                value={releaseReason}
+                onChange={(e) => setReleaseReason(e.target.value)}
+                className="min-h-[80px]"
+              />
+            </div>
+            
+            <div className="text-sm text-muted-foreground space-y-1">
+              <p><strong>Booking:</strong> #{selectedBooking?.id}</p>
+              <p><strong>Customer:</strong> {selectedBooking?.user.email}</p>
+              <p><strong>Table:</strong> {selectedBooking?.table?.tableNumber || selectedBooking?.tableId} ({selectedBooking?.table?.floor === 'main' && selectedBooking?.table?.tableNumber >= 200 ? 'Mezzanine' : 'Main Floor'})</p>
+              <p><strong>Event:</strong> {selectedBooking?.event.title}</p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReleaseDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (selectedBooking && releaseReason.trim()) {
+                  releaseTableMutation.mutate({
+                    bookingId: selectedBooking.id,
+                    reason: releaseReason.trim()
+                  });
+                }
+              }}
+              disabled={!releaseReason.trim() || releaseTableMutation.isPending}
+              variant="destructive"
+            >
+              {releaseTableMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Releasing...
+                </>
+              ) : (
+                <>
+                  <RotateCw className="mr-2 h-4 w-4" />
+                  Release Table
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       {/* Seats Modification Dialog */}
       <Dialog open={isSeatsDialogOpen} onOpenChange={setIsSeatsDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Change Seats for Booking #{selectedBooking?.id}</DialogTitle>
             <DialogDescription>
-              Modify seat assignments for this booking. Current table: {selectedBooking?.tableId}, 
-              Table: {selectedBooking?.table?.tableNumber || selectedBooking?.tableId}, Party Size: {selectedBooking?.partySize}
+              Modify seat assignments for this booking. Current Table: {selectedBooking?.table?.tableNumber || selectedBooking?.tableId} ({selectedBooking?.table?.floor === 'main' && selectedBooking?.table?.tableNumber >= 200 ? 'Mezzanine' : 'Main Floor'}), Party Size: {selectedBooking?.partySize}
             </DialogDescription>
           </DialogHeader>
           
@@ -558,8 +666,8 @@ export function BookingManagement() {
               <h3 className="font-medium mb-2">Booking Information</h3>
               <div className="text-sm text-muted-foreground">
                 <p>Event: {selectedBooking?.event.title}</p>
-                <p>Original Table: {selectedBooking?.tableId}</p>
-                <p>Current Table: {selectedBooking?.tableId}, Party Size: {selectedBooking?.partySize}</p>
+                <p>Original Table: {selectedBooking?.table?.tableNumber || selectedBooking?.tableId} ({selectedBooking?.table?.floor === 'main' && selectedBooking?.table?.tableNumber >= 200 ? 'Mezzanine' : 'Main Floor'})</p>
+                <p>Current Party Size: {selectedBooking?.partySize}</p>
                 <p>Status: {selectedBooking?.status}</p>
               </div>
             </div>
@@ -696,7 +804,7 @@ export function BookingManagement() {
             
             <div className="text-sm text-muted-foreground mt-4">
               <p>Event: {selectedBooking?.event.title}</p>
-              <p>Table: {selectedBooking?.tableId}, Party Size: {selectedBooking?.partySize}</p>
+              <p>Table: {selectedBooking?.table?.tableNumber || selectedBooking?.tableId} ({selectedBooking?.table?.floor === 'main' && selectedBooking?.table?.tableNumber >= 200 ? 'Mezzanine' : 'Main Floor'}), Party Size: {selectedBooking?.partySize}</p>
               <p>Status: {selectedBooking?.status}</p>
             </div>
           </div>

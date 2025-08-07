@@ -59,6 +59,7 @@ export interface IStorage {
   checkInBooking(bookingId: number, checkedInBy: number): Promise<Booking | null>;
   updateBookingStatus(id: number, status: string, modifiedBy?: number): Promise<Booking | null>;
   processRefund(bookingId: number, refundAmount: number, refundId: string, modifiedBy: number): Promise<Booking | null>;
+  releaseTableManually(bookingId: number, modifiedBy: number, reason?: string): Promise<Booking | null>;
 
   // Table methods
   getVenues(): Promise<{ id: number, name: string }[]>;
