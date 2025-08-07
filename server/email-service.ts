@@ -40,7 +40,7 @@ let emailInitialized = false;
 
 export class EmailService {
   private static readonly FROM_EMAIL = 'The Treasury 1929 <info@thetreasury1929.com>';
-  private static readonly ADMIN_EMAIL = 'admin@venue.com';
+  private static readonly ADMIN_EMAIL = 'jose@sahuaroworks.com';
 
   static async initialize(): Promise<void> {
     const sendgridApiKey = process.env.SENDGRID_API_KEY_NEW;
@@ -190,6 +190,32 @@ export class EmailService {
 
       await sgMail.send(emailContent);
       console.log(`✓ Booking confirmation sent to ${booking.customerEmail} (FIXED)`);
+      
+      // Send admin copy for monitoring and verification
+      try {
+        const adminEmailContent = {
+          ...emailContent,
+          to: this.ADMIN_EMAIL,
+          subject: `[ADMIN COPY] Customer Booking Confirmation - ${booking.customerEmail}`,
+          html: `
+            <div style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2196f3;">
+              <h3 style="color: #1565c0; margin-top: 0;">📋 Admin Copy - Customer Email Sent Successfully</h3>
+              <p><strong>Customer Email:</strong> ${booking.customerEmail}</p>
+              <p><strong>Booking ID:</strong> #${booking.id}</p>
+              <p><strong>Payment ID:</strong> ${booking.stripePaymentId || 'N/A'}</p>
+              <p style="color: #1565c0;">This email confirms the customer received the booking confirmation below.</p>
+            </div>
+            ${emailContent.html}
+          `
+        };
+        
+        await sgMail.send(adminEmailContent);
+        console.log(`✓ Admin copy sent to ${this.ADMIN_EMAIL} for booking ${booking.id}`);
+      } catch (adminEmailError) {
+        console.error(`⚠️ Failed to send admin copy (customer email was successful):`, adminEmailError);
+        // Don't fail the whole process if admin copy fails
+      }
+      
       return true;
 
     } catch (error) {
