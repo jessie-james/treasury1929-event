@@ -89,14 +89,14 @@ export class PgStorage implements IStorage {
   async updateUserPassword(userId: number, hashedPassword: string): Promise<boolean> {
     // Password should already be hashed by the caller
     const result = await db.update(schema.users).set({ password: hashedPassword }).where(eq(schema.users.id, userId));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async updateUserDietaryPreferences(userId: number, allergens: string[], dietaryRestrictions: string[]): Promise<boolean> {
     const result = await db.update(schema.users)
       .set({ allergens, dietaryRestrictions })
       .where(eq(schema.users.id, userId));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | null> {

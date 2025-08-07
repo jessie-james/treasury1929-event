@@ -94,6 +94,10 @@ export class AvailabilitySync {
    * Real-time availability check - always check actual bookings
    * Use this before allowing table selection to prevent overbooking
    */
+  // Cache for performance optimization
+  private static availabilityCache = new Map<number, {data: any, timestamp: number}>();
+  private static readonly CACHE_TTL = 30 * 1000; // 30 seconds cache
+
   static async getRealTimeAvailability(eventId: number): Promise<{
     availableSeats: number;
     availableTables: number;
@@ -102,17 +106,35 @@ export class AvailabilitySync {
     isSoldOut: boolean;
   }> {
     try {
-      // Get event details
-      const event = await storage.getEventById(eventId);
+      // Check cache first for performance
+      const cached = this.availabilityCache.get(eventId);
+      const now = Date.now();
+      if (cached && (now - cached.timestamp) < this.CACHE_TTL) {
+        return cached.data;
+      }
+
+      // Get event details (using direct query for better performance)
+      const [event] = await db
+        .select({
+          id: events.id,
+          eventType: events.eventType,
+          ticketCapacity: events.ticketCapacity,
+          totalSeats: events.totalSeats,
+          totalTables: events.totalTables
+        })
+        .from(events)
+        .where(eq(events.id, eventId))
+        .limit(1);
+
       if (!event) {
         throw new Error(`Event ${eventId} not found`);
       }
 
-      // Get all confirmed bookings for this event - optimized query
-      const eventBookings = await db
+      // Optimized single query to get booking aggregates
+      const [bookingStats] = await db
         .select({
-          partySize: bookings.partySize,
-          tableId: bookings.tableId
+          totalBookedSeats: sql<number>`COALESCE(SUM(${bookings.partySize}), 0)`,
+          totalBookedTables: sql<number>`COUNT(DISTINCT ${bookings.tableId})`
         })
         .from(bookings)
         .where(and(
@@ -120,11 +142,10 @@ export class AvailabilitySync {
           sql`${bookings.status} NOT IN ('canceled', 'refunded')`
         ));
 
-      // Calculate actual booked seats and tables
-      const bookedSeats = eventBookings.reduce((total, booking) => total + (booking.partySize || 0), 0);
-      const bookedTables = new Set(eventBookings.map(b => b.tableId)).size;
+      const bookedSeats = Number(bookingStats?.totalBookedSeats || 0);
+      const bookedTables = Number(bookingStats?.totalBookedTables || 0);
 
-      // For ticket-only events, use ticket capacity instead of venue capacity
+      // Calculate availability based on event type
       let availableSeats: number;
       let availableTables: number;
       let totalSeats: number;
@@ -132,14 +153,12 @@ export class AvailabilitySync {
       let isSoldOut: boolean;
 
       if (event.eventType === 'ticket-only') {
-        // For ticket-only events, use ticketCapacity
         totalSeats = event.ticketCapacity || 0;
-        totalTables = 1; // Ticket-only events don't have tables
+        totalTables = 1;
         availableSeats = Math.max(0, totalSeats - bookedSeats);
-        availableTables = totalTables; // Always available for ticket-only
+        availableTables = totalTables;
         isSoldOut = availableSeats === 0;
       } else {
-        // For full events, use venue capacity
         totalSeats = event.totalSeats || 0;
         totalTables = event.totalTables || 0;
         availableSeats = Math.max(0, totalSeats - bookedSeats);
@@ -147,13 +166,18 @@ export class AvailabilitySync {
         isSoldOut = availableSeats === 0 || availableTables === 0;
       }
 
-      return {
+      const result = {
         availableSeats,
         availableTables,
-        totalSeats: event.totalSeats || 0,
-        totalTables: event.totalTables || 0,
+        totalSeats,
+        totalTables,
         isSoldOut
       };
+
+      // Cache the result
+      this.availabilityCache.set(eventId, { data: result, timestamp: now });
+
+      return result;
     } catch (error) {
       console.error(`Error getting real-time availability for event ${eventId}:`, error);
       throw error;

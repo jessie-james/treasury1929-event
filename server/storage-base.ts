@@ -150,7 +150,7 @@ export class MemStorage implements IStorage {
   private venueStaffMembers: VenueStaff[] = [];
 
   // Implement required methods with in-memory storage
-  // This is a minimal implementation for compatibility
+  // This is a minimal implementation for compatibility and testing
   
   // User Methods
   async getAllUsers(): Promise<User[]> {
@@ -184,6 +184,49 @@ export class MemStorage implements IStorage {
   }
   
   async updateUserDietaryPreferences(userId: number, allergens: string[], dietaryRestrictions: string[]): Promise<boolean> {
+    return true;
+  }
+  
+  // Missing interface methods - minimal implementations for compatibility
+  async updateUser(userId: number, updates: Partial<User>): Promise<User | null> {
+    const index = this.users.findIndex(u => u.id === userId);
+    if (index === -1) return null;
+    this.users[index] = { ...this.users[index], ...updates };
+    return this.users[index];
+  }
+  
+  async deleteUser(userId: number): Promise<boolean> {
+    const index = this.users.findIndex(u => u.id === userId);
+    if (index === -1) return false;
+    this.users.splice(index, 1);
+    return true;
+  }
+  
+  async updateEventsOrder(eventIds: number[]): Promise<void> {
+    // No-op for in-memory storage
+  }
+  
+  async getBookingByQRCode(qrCode: string): Promise<any> {
+    return null;
+  }
+  
+  async updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | null> {
+    return this.updateUser(userId, { stripeCustomerId });
+  }
+  
+  async updateUserStripeInfo(userId: number, stripeInfo: { stripeCustomerId: string, stripeSubscriptionId: string }): Promise<User | null> {
+    return this.updateUser(userId, stripeInfo);
+  }
+  
+  async createVenue(venueData: any): Promise<number> {
+    return 1;
+  }
+  
+  async updateVenue(id: number, venueData: Partial<any>): Promise<any> {
+    return null;
+  }
+  
+  async deleteVenue(id: number): Promise<boolean> {
     return true;
   }
   

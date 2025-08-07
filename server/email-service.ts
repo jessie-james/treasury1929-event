@@ -9,7 +9,7 @@ interface User {
 
 interface BookingEmailData {
   booking: {
-    id: string;
+    id: number;
     customerEmail: string;
     partySize: number;
     status: string;
@@ -19,21 +19,21 @@ interface BookingEmailData {
     guestNames?: string[];
   };
   event: {
-    id: string;
+    id: number;
     title: string;
     date: Date;
     description: string;
   };
   table: {
-    id: string;
+    id: number;
     tableNumber: number;
     floor: string;
     capacity: number;
   };
   venue: {
-    id: string;
+    id: number;
     name: string;
-    address: string;
+    address?: string;
   };
 }
 
@@ -674,6 +674,73 @@ export class EmailService {
 
     } catch (error) {
       console.error('✗ Failed to send refund notification email:', error);
+      return false;
+    }
+  }
+
+  static async sendAdminBookingNotification(data: BookingEmailData): Promise<boolean> {
+    if (!emailInitialized) {
+      console.log('📧 Email service not initialized - skipping admin notification');
+      return false;
+    }
+
+    try {
+      const { booking, event, table, venue } = data;
+      
+      // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
+      const PHOENIX_TZ = 'America/Phoenix';
+      const eventDateObj = new Date(event.date);
+      
+      // Format date in Phoenix timezone
+      const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
+      
+      // Format show time in Phoenix timezone
+      const showTime = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'h:mm a');
+
+      const emailContent = {
+        to: this.ADMIN_EMAIL,
+        from: this.FROM_EMAIL,
+        subject: `New Booking Alert - ${event.title}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+              <h1 style="margin: 0; font-size: 24px; font-weight: 600;">🎵 New Booking Alert</h1>
+            </div>
+            
+            <div style="padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
+              <h2 style="color: #1e40af; margin-top: 0;">Booking Details</h2>
+              
+              <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Booking ID:</strong> ${booking.id}</p>
+                <p style="margin: 5px 0;"><strong>Customer:</strong> ${booking.customerEmail}</p>
+                <p style="margin: 5px 0;"><strong>Party Size:</strong> ${booking.partySize} guests</p>
+                <p style="margin: 5px 0;"><strong>Table:</strong> ${table.tableNumber} (${table.floor})</p>
+                <p style="margin: 5px 0;"><strong>Status:</strong> ${booking.status}</p>
+                ${booking.notes ? `<p style="margin: 5px 0;"><strong>Notes:</strong> ${booking.notes}</p>` : ''}
+              </div>
+              
+              <h3 style="color: #1e40af;">Event Information</h3>
+              <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Event:</strong> ${event.title}</p>
+                <p style="margin: 5px 0;"><strong>Date:</strong> ${eventDateFormatted}</p>
+                <p style="margin: 5px 0;"><strong>Time:</strong> ${showTime}</p>
+                <p style="margin: 5px 0;"><strong>Venue:</strong> ${venue.name}</p>
+              </div>
+              
+              <div style="text-align: center; margin-top: 30px;">
+                <p style="color: #6b7280; font-size: 14px;">Booking created: ${format(booking.createdAt, 'PPpp')}</p>
+              </div>
+            </div>
+          </div>
+        `
+      };
+
+      await sgMail.send(emailContent);
+      console.log(`✓ Admin booking notification sent for booking ${booking.id}`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ Failed to send admin booking notification:', error);
       return false;
     }
   }
