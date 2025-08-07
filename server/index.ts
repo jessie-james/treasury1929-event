@@ -277,7 +277,7 @@ app.post("/api/test-email", async (req, res) => {
       event: {
         id: "35",
         title: "Email System Test",
-        date: new Date(),
+        date: new Date('2025-08-14T18:30:00.000Z'),
         description: "Testing email functionality"
       },
       table: {
