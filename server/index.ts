@@ -261,26 +261,57 @@ app.get("/api/stripe/config", (_req, res) => {
 app.post("/api/test-email", async (req, res) => {
   try {
     const { EmailService } = await import("./email-service");
-    const testEmail = req.body.email || "admin@example.com";
+    console.log('🔍 Testing email system...');
     
-    const success = await EmailService.sendTestEmail(testEmail);
+    // Test data for email
+    const testEmailData = {
+      booking: {
+        id: "EMAIL_TEST",
+        customerEmail: "jose@sahuaroworks.com",
+        partySize: 2,
+        status: "confirmed",
+        stripePaymentId: "test_payment_intent",
+        createdAt: new Date(),
+        guestNames: ["Test Guest 1", "Test Guest 2"]
+      },
+      event: {
+        id: "35",
+        title: "Email System Test",
+        date: new Date(),
+        description: "Testing email functionality"
+      },
+      table: {
+        id: "1",
+        tableNumber: 1,
+        floor: "Main Floor",
+        capacity: 4
+      },
+      venue: {
+        id: "4",
+        name: "The Treasury 1929",
+        address: "2 E Congress St, Ste 100"
+      }
+    };
     
-    if (success) {
+    const emailSent = await EmailService.sendBookingConfirmation(testEmailData);
+    
+    if (emailSent) {
       res.json({ 
         success: true, 
-        message: "Test email sent successfully! Check your inbox." 
+        message: "Test booking confirmation email sent successfully to jose@sahuaroworks.com" 
       });
     } else {
       res.status(500).json({ 
         success: false, 
-        message: "Email service not configured. Please check SENDGRID_API_KEY." 
+        message: "Email service failed to send. Check SENDGRID_API_KEY configuration." 
       });
     }
   } catch (error) {
     console.error("Email test failed:", error);
     res.status(500).json({ 
       success: false, 
-      message: "Email test failed. Please check your configuration." 
+      message: "Email test failed. Please check your configuration.",
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 });
