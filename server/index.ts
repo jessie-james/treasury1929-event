@@ -96,32 +96,17 @@ app.get('/booking-success', async (req, res) => {
     
     const session = await stripe.checkout.sessions.retrieve(session_id as string);
     
-    // Create booking from successful payment
+    // Create booking from successful payment - WITH EMAIL CONFIRMATION
     let bookingId = null;
     if (session.payment_status === 'paid') {
       try {
-        const { storage } = await import("./storage");
-        const metadata = session.metadata;
+        // Import the proper function that includes email sending
+        const { createBookingFromStripeSession } = await import("./routes-payment");
         
-        if (metadata && metadata.eventId && metadata.tableId && metadata.userId) {
-          const seats = metadata.seats ? metadata.seats.split(',') : [];
-          const bookingData = {
-            eventId: parseInt(metadata.eventId),
-            tableId: parseInt(metadata.tableId),
-            userId: parseInt(metadata.userId),
-            partySize: seats.length || 1,
-            customerEmail: session.customer_details?.email || metadata.customerEmail,
-            stripePaymentId: session.payment_intent,
-            stripeSessionId: session.id,
-            amount: session.amount_total,
-            status: 'confirmed' as const,
-            seatNumbers: seats.map(s => parseInt(s)),
-            foodSelections: metadata.foodSelections ? JSON.parse(metadata.foodSelections) : [],
-            guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : {}
-          };
-          
-          bookingId = await storage.createBooking(bookingData);
-          console.log(`Booking created: #${bookingId} for payment ${session.payment_intent}`);
+        if (session.metadata) {
+          console.log('Creating booking from success redirect for session:', session.id);
+          bookingId = await createBookingFromStripeSession(session);
+          console.log(`✅ Success redirect created booking #${bookingId} - confirmation email sent automatically`);
         }
       } catch (bookingError) {
         console.error('Booking creation error:', bookingError);

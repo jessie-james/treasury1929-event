@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import express from "express";
 
 // Helper function to create booking from Stripe session
-async function createBookingFromStripeSession(session: any) {
+export async function createBookingFromStripeSession(session: any) {
   const metadata = session.metadata;
   
   // Validate metadata exists
