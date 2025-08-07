@@ -883,7 +883,7 @@ export function registerPaymentRoutes(app: Express) {
       }
     }
     
-    // Handle checkout session completion - THIS IS THE CRITICAL MISSING PIECE
+    // Handle checkout session completion
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       console.log(`Checkout session completed: ${session.id}`);
@@ -893,50 +893,7 @@ export function registerPaymentRoutes(app: Express) {
           // Create booking from session metadata
           console.log('Creating booking from webhook for session:', session.id);
           const booking = await createBookingFromStripeSession(session);
-          
-          // The createBookingFromStripeSession function now automatically syncs availability
-          
-          // Send confirmation email
-          const { EmailService } = await import('./email-service.js');
-          
-          // Get event, table, and venue details for email
-          const event = await storage.getEventById(parseInt(session.metadata.eventId));
-          const table = await storage.getTableById(parseInt(session.metadata.tableId));
-          const venue = await storage.getVenueById(table?.venueId || 0);
-          
-          if (event && table && venue) {
-            const emailData = {
-              booking: {
-                id: booking.toString(),
-                customerEmail: session.customer_details?.email || session.metadata.customerEmail || '',
-                partySize: session.metadata.seats ? session.metadata.seats.split(',').length : 1,
-                status: 'confirmed',
-                stripePaymentId: session.payment_intent,
-                createdAt: new Date(),
-                guestNames: session.metadata.guestNames ? JSON.parse(session.metadata.guestNames) : []
-              },
-              event: {
-                id: event.id.toString(),
-                title: event.title,
-                date: event.date,
-                description: event.description || ''
-              },
-              table: {
-                id: table.id.toString(),
-                tableNumber: table.tableNumber,
-                floor: session.metadata.selectedVenue || 'Main Floor',
-                capacity: table.capacity
-              },
-              venue: {
-                id: venue.id.toString(),
-                name: venue.name,
-                address: '2 E Congress St, Ste 100' // Treasury 1929 address
-              }
-            };
-            
-            const emailSent = await EmailService.sendBookingConfirmation(emailData);
-            console.log(`Booking confirmation email ${emailSent ? 'sent' : 'failed'} for booking #${booking}`);
-          }
+          console.log(`✅ Webhook created booking #${booking} - confirmation email sent automatically`);
         }
       } catch (error) {
         console.error("Error processing checkout session completion:", error);
