@@ -283,8 +283,18 @@ export default function PaymentSuccessPage() {
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
                         {(() => {
-                          // Format event date and time correctly - same logic as email service
-                          const eventDateObj = new Date(booking.event.date);
+                          // Fix timezone handling - treat stored UTC time as Tucson local time
+                          const eventDateString = booking.event.date.toString();
+                          let eventDateObj;
+                          
+                          if (eventDateString.includes('T') && eventDateString.includes('Z')) {
+                            // Remove Z to treat as local time instead of UTC
+                            const localDateString = eventDateString.replace('Z', '');
+                            eventDateObj = new Date(localDateString);
+                          } else {
+                            eventDateObj = new Date(booking.event.date);
+                          }
+                          
                           const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
                             weekday: 'long',
                             year: 'numeric',
