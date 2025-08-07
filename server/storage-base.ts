@@ -54,7 +54,7 @@ export interface IStorage {
   getAllBookingsWithDetails(): Promise<BookingWithDetails[]>;
   getBookingByPaymentId(paymentId: string): Promise<Booking | null>;
   getBookingByQRCode(bookingId: number): Promise<Booking | null>;
-  createBooking(bookingData: any): Promise<number>;
+  createBooking(bookingData: any): Promise<Booking>;
   updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | null>;
   changeBookingSeats(bookingId: number, newTableId: number, newSeats: number[]): Promise<Booking | null>;
   addBookingNote(bookingId: number, note: string): Promise<Booking | null>;
@@ -313,11 +313,11 @@ export class MemStorage implements IStorage {
     return null;
   }
   
-  async createBooking(bookingData: any): Promise<number> {
+  async createBooking(bookingData: any): Promise<Booking> {
     const id = this.bookings.length + 1;
     const booking = { ...bookingData, id };
     this.bookings.push(booking as Booking);
-    return id;
+    return booking as Booking;
   }
   
   async updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | null> {

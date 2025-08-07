@@ -4479,10 +4479,10 @@ export async function registerRoutes(app: Express) {
             displayName: eventVenue.displayName,
             displayOrder: eventVenue.displayOrder,
             venue: {
-              id: eventVenue.venue.id,
-              name: eventVenue.venue.name,
-              width: eventVenue.venue.width || 1000,
-              height: eventVenue.venue.height || 700
+              id: eventVenue.venue?.id || 0,
+              name: eventVenue.venue?.name || 'Unknown Venue',
+              width: eventVenue.venue?.width || 1000,
+              height: eventVenue.venue?.height || 700
             },
             tables: venueTables.map(table => ({
               id: table.id,

@@ -24,7 +24,7 @@ export function EventCard({ event }: { event: Event }) {
   const { data: realTimeAvailability } = useQuery({
     queryKey: [`/api/events/${event.id}/availability`],
     enabled: !!event.id,
-    refetchInterval: 60000, // Refresh every minute for cards
+    refetchInterval: 5 * 60 * 1000, // Refresh every 5 minutes for cards
   });
   
   // Use real-time availability if available, otherwise fall back to event data

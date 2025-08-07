@@ -40,7 +40,7 @@ export function EventDetails({
   const { data: realTimeAvailability } = useQuery({
     queryKey: [`/api/events/${eventId}/availability`],
     enabled: !!eventId,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 2 * 60 * 1000, // Refresh every 2 minutes
   });
 
   useEffect(() => {

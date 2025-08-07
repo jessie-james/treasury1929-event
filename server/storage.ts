@@ -354,12 +354,12 @@ export class PgStorage implements IStorage {
     return result[0] || null;
   }
 
-  async createBooking(bookingData: any): Promise<number> {
+  async createBooking(bookingData: any): Promise<Booking> {
     console.log("🔍 STORAGE DEBUG: About to insert booking data:", JSON.stringify(bookingData, null, 2));
     try {
-      const result = await db.insert(schema.bookings).values(bookingData).returning({ id: schema.bookings.id });
+      const result = await db.insert(schema.bookings).values(bookingData).returning();
       console.log("✅ STORAGE SUCCESS: Insert completed:", result[0].id);
-      return result[0].id;
+      return result[0] as Booking;
     } catch (error) {
       console.log("❌ STORAGE ERROR:", error);
       throw error;

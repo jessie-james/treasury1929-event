@@ -111,7 +111,7 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
   const { data: realTimeAvailability } = useQuery({
     queryKey: [`/api/events/${eventId}/availability`],
     enabled: !!eventId,
-    refetchInterval: 15000, // Refresh every 15 seconds during booking
+    refetchInterval: 30000, // Refresh every 30 seconds during booking
     throwOnError: false
   });
 
