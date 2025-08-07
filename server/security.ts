@@ -176,9 +176,8 @@ export function validateEnvironment() {
   // Warn about optional but recommended variables
   const recommendedVars = [
     'SENDGRID_API_KEY_NEW',
-    'SESSION_SECRET',
-    'ADMIN_EMAIL',
-    'FROM_EMAIL'
+    'SESSION_SECRET'
+    // Note: ADMIN_EMAIL and FROM_EMAIL removed - email service has hardcoded fallback values
   ];
 
   const missingRecommended = recommendedVars.filter(varName => !process.env[varName]);

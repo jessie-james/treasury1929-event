@@ -207,9 +207,9 @@ export class EmailService {
 
     } catch (error) {
       console.error('✗ CRITICAL: Failed to send booking confirmation email');
-      console.error('  Booking ID:', booking.id);
-      console.error('  Customer Email:', booking.customerEmail);
-      console.error('  Event:', event.title);
+      console.error('  Booking ID:', data.booking.id);
+      console.error('  Customer Email:', data.booking.customerEmail);
+      console.error('  Event:', data.event.title);
       console.error('  Error Details:', error);
       
       // Log to admin logs if possible
@@ -343,9 +343,9 @@ export class EmailService {
 
     } catch (error) {
       console.error('✗ CRITICAL: Failed to send event reminder email');
-      console.error('  Booking ID:', booking.id);
-      console.error('  Customer Email:', booking.customerEmail);
-      console.error('  Event:', event.title);
+      console.error('  Booking ID:', data.booking.id);
+      console.error('  Customer Email:', data.booking.customerEmail);
+      console.error('  Event:', data.event.title);
       console.error('  Error Details:', error);
       console.error('  Timestamp:', new Date().toISOString());
       return false;
