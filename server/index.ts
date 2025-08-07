@@ -320,7 +320,7 @@ app.post("/api/test-email", async (req, res) => {
 app.post("/api/demo-emails", async (req, res) => {
   try {
     const { EmailService } = await import("./email-service");
-    const targetEmail = req.body.email || "jose@sahuaroworks.com";
+    const targetEmail = "jose@sahuaroworks.com"; // SECURITY: Always send test emails to admin only
     
     // Mock data for demo
     const mockBookingData = {
