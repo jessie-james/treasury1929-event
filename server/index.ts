@@ -352,10 +352,40 @@ app.post("/api/demo-emails", async (req, res) => {
 
     const results = [];
     
-    // 1. Booking Confirmation
+    // 1. Booking Confirmation - Use actual confirmation method with admin copy
     try {
-      await EmailService.sendBookingConfirmation(mockBookingData as any);
-      results.push("✅ Booking Confirmation sent");
+      const confirmationData = {
+        booking: {
+          id: "12345",
+          customerEmail: targetEmail,
+          partySize: 2,
+          status: "confirmed",
+          notes: "Demo booking confirmation email",
+          stripePaymentId: "pi_demo123456",
+          createdAt: new Date(),
+          guestNames: ["Guest 1", "Guest 2"]
+        },
+        event: {
+          id: "35",
+          title: "Pianist Sophia Su in Concert with Clarinetist",
+          date: new Date('2025-08-14T19:00:00'),
+          description: "Demo event"
+        },
+        table: {
+          id: "286",
+          tableNumber: 1,
+          floor: "main",
+          capacity: 4
+        },
+        venue: {
+          id: "4",
+          name: "The Treasury 1929",
+          address: "2 E Congress St, Ste 100"
+        }
+      };
+      
+      await EmailService.sendBookingConfirmation(confirmationData);
+      results.push("✅ Booking Confirmation sent (with admin copy)");
     } catch (error) {
       results.push("❌ Booking Confirmation failed");
     }
