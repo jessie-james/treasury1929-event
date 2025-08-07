@@ -224,7 +224,7 @@ export async function registerRoutes(app: Express) {
       
       // Check if venues exist in venues table
       const venueIds = allEventVenues.map(ev => ev.venueId);
-      let actualVenues = [];
+      let actualVenues: any[] = [];
       if (venueIds.length > 0) {
         actualVenues = await db
           .select()
@@ -1963,9 +1963,9 @@ export async function registerRoutes(app: Express) {
         action: "update_events_order",
         entityType: "event",
         entityId: 0,  // Not tied to a specific event
-        details: {
+        details: JSON.stringify({
           orderedIds: orderedIds
-        }
+        })
       });
 
       res.status(200).json({ success: true, message: "Events order updated successfully" });
@@ -2003,9 +2003,9 @@ export async function registerRoutes(app: Express) {
         action: "update_food_options_order",
         entityType: "food_option",
         entityId: 0,  // Not tied to a specific food option
-        details: {
+        details: JSON.stringify({
           orderedIds: orderedIds
-        }
+        })
       });
 
       res.status(200).json({ success: true, message: "Food options order updated successfully" });
@@ -2626,6 +2626,10 @@ export async function registerRoutes(app: Express) {
           timestamp: new Date().toISOString()
         })
       });
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
       // Hide password in response
       const { password: updatedPassword, ...userResponse } = updatedUser;

@@ -202,11 +202,12 @@ export class MemStorage implements IStorage {
     return true;
   }
   
-  async updateEventsOrder(eventIds: number[]): Promise<void> {
+  async updateEventsOrder(eventIds: number[]): Promise<boolean> {
     // No-op for in-memory storage
+    return true;
   }
   
-  async getBookingByQRCode(qrCode: string): Promise<any> {
+  async getBookingByQRCode(bookingId: number): Promise<any> {
     return null;
   }
   
@@ -230,13 +231,7 @@ export class MemStorage implements IStorage {
     return true;
   }
   
-  async updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | null> {
-    return null;
-  }
-  
-  async updateUserStripeInfo(userId: number, stripeInfo: { stripeCustomerId: string, stripeSubscriptionId: string }): Promise<User | null> {
-    return null;
-  }
+  // Duplicate functions removed - already defined above
   
   // Event Methods
   async getAllEvents(): Promise<Event[]> {

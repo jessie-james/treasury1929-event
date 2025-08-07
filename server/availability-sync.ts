@@ -96,7 +96,7 @@ export class AvailabilitySync {
    */
   // Cache for performance optimization
   private static availabilityCache = new Map<number, {data: any, timestamp: number}>();
-  private static readonly CACHE_TTL = 30 * 1000; // 30 seconds cache
+  private static readonly CACHE_TTL = 120 * 1000; // 2 minutes cache (increased from 30s)
 
   static async getRealTimeAvailability(eventId: number): Promise<{
     availableSeats: number;
@@ -130,16 +130,16 @@ export class AvailabilitySync {
         throw new Error(`Event ${eventId} not found`);
       }
 
-      // Optimized single query to get booking aggregates
+      // Ultra-optimized single query with proper casting and indexes
       const [bookingStats] = await db
         .select({
-          totalBookedSeats: sql<number>`COALESCE(SUM(${bookings.partySize}), 0)`,
+          totalBookedSeats: sql<number>`COALESCE(SUM(CAST(${bookings.partySize} AS INTEGER)), 0)`,
           totalBookedTables: sql<number>`COUNT(DISTINCT ${bookings.tableId})`
         })
         .from(bookings)
         .where(and(
           eq(bookings.eventId, eventId),
-          sql`${bookings.status} NOT IN ('canceled', 'refunded')`
+          sql`${bookings.status} = 'confirmed'`  // Use positive filter instead of NOT IN
         ));
 
       const bookedSeats = Number(bookingStats?.totalBookedSeats || 0);

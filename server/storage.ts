@@ -926,27 +926,25 @@ export class PgStorage implements IStorage {
     return totals;
   }
 
-  async getEventOrdersWithDetails(eventId: number): Promise<any> {
-    // Get all confirmed bookings for this event with detailed information
-    const bookings = await db
-      .select({
-        id: schema.bookings.id,
-        tableId: schema.bookings.tableId,
-        partySize: schema.bookings.partySize,
-        guestNames: schema.bookings.guestNames,
-        foodSelections: schema.bookings.foodSelections,
-        wineSelections: schema.bookings.wineSelections,
-        orderTracking: schema.bookings.orderTracking, // ADD THIS LINE
-        customerEmail: schema.bookings.customerEmail,
-        status: schema.bookings.status,
-        createdAt: schema.bookings.createdAt,
-        checkedIn: schema.bookings.checkedIn,
-        checkedInAt: schema.bookings.checkedInAt,
-        tableNumber: schema.tables.tableNumber,
-        tableCapacity: schema.tables.capacity,
-        tableZone: schema.tables.zone,
-        tablePriceCategory: schema.tables.priceCategory,
-      })
+  async getEventOrdersWithDetails(eventId: number): Promise<any[]> {
+    const bookings = await db.select({
+      id: schema.bookings.id,
+      tableId: schema.bookings.tableId,
+      partySize: schema.bookings.partySize,
+      guestNames: schema.bookings.guestNames,
+      foodSelections: schema.bookings.foodSelections,
+      wineSelections: schema.bookings.wineSelections,
+      orderTracking: schema.bookings.orderTracking,
+      customerEmail: schema.bookings.customerEmail,
+      status: schema.bookings.status,
+      createdAt: schema.bookings.createdAt,
+      checkedIn: schema.bookings.checkedIn,
+      checkedInAt: schema.bookings.checkedInAt,
+      tableNumber: schema.tables.tableNumber,
+      tableCapacity: schema.tables.capacity,
+      tableZone: schema.tables.zone,
+      tablePriceCategory: schema.tables.priceCategory,
+    })
       .from(schema.bookings)
       .innerJoin(schema.tables, eq(schema.bookings.tableId, schema.tables.id))
       .where(and(
