@@ -1,5 +1,6 @@
 import sgMail from '@sendgrid/mail';
 import QRCode from 'qrcode';
+import { format, formatInTimeZone } from 'date-fns-tz';
 
 interface User {
   email: string;
@@ -68,29 +69,19 @@ export class EmailService {
     try {
       const { booking, event, table, venue } = data;
       
-      // All events are in Phoenix, Arizona timezone
+      // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
+      const PHOENIX_TZ = 'America/Phoenix';
       const eventDateObj = new Date(event.date);
-      const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
       
-      // The event date contains the show start time
-      const showTime = eventDateObj.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+      // Format date in Phoenix timezone
+      const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
       
-      // Calculate arrival time (45 minutes before show)
+      // Format show time in Phoenix timezone
+      const showTime = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'h:mm a');
+      
+      // Calculate arrival time (45 minutes before show) in Phoenix timezone
       const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
-      const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+      const arrivalTimeFormatted = formatInTimeZone(arrivalTime, PHOENIX_TZ, 'h:mm a');
       
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
       
@@ -215,7 +206,21 @@ export class EmailService {
       return true;
 
     } catch (error) {
-      console.error('✗ Failed to send booking confirmation:', error);
+      console.error('✗ CRITICAL: Failed to send booking confirmation email');
+      console.error('  Booking ID:', booking.id);
+      console.error('  Customer Email:', booking.customerEmail);
+      console.error('  Event:', event.title);
+      console.error('  Error Details:', error);
+      
+      // Log to admin logs if possible
+      try {
+        // Don't import storage here to avoid circular dependency
+        console.error('  Timestamp:', new Date().toISOString());
+        console.error('  Phoenix Time:', formatInTimeZone(new Date(), 'America/Phoenix', 'yyyy-MM-dd HH:mm:ss'));
+      } catch (logError) {
+        console.error('  Additional logging failed:', logError);
+      }
+      
       return false;
     }
   }
@@ -337,7 +342,12 @@ export class EmailService {
       return true;
 
     } catch (error) {
-      console.error('✗ Failed to send event reminder:', error);
+      console.error('✗ CRITICAL: Failed to send event reminder email');
+      console.error('  Booking ID:', booking.id);
+      console.error('  Customer Email:', booking.customerEmail);
+      console.error('  Event:', event.title);
+      console.error('  Error Details:', error);
+      console.error('  Timestamp:', new Date().toISOString());
       return false;
     }
   }
@@ -400,7 +410,10 @@ export class EmailService {
       return true;
 
     } catch (error) {
-      console.error('✗ Failed to send password reset email:', error);
+      console.error('✗ CRITICAL: Failed to send password reset email');
+      console.error('  Email:', email);
+      console.error('  Error Details:', error);
+      console.error('  Timestamp:', new Date().toISOString());
       return false;
     }
   }
@@ -414,29 +427,19 @@ export class EmailService {
     try {
       const { booking, event, table, venue } = data;
       
-      // All events are in Phoenix, Arizona timezone
+      // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
+      const PHOENIX_TZ = 'America/Phoenix';
       const eventDateObj = new Date(event.date);
-      const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
       
-      // The event date contains the show start time
-      const showTime = eventDateObj.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+      // Format date in Phoenix timezone
+      const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
       
-      // Calculate arrival time (45 minutes before show)
+      // Format show time in Phoenix timezone
+      const showTime = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'h:mm a');
+      
+      // Calculate arrival time (45 minutes before show) in Phoenix timezone
       const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
-      const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+      const arrivalTimeFormatted = formatInTimeZone(arrivalTime, PHOENIX_TZ, 'h:mm a');
       
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
       const refundAmount = (refundAmountCents / 100).toFixed(2);
@@ -508,29 +511,19 @@ export class EmailService {
     try {
       const { booking, event, table, venue } = data;
       
-      // All events are in Phoenix, Arizona timezone
+      // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
+      const PHOENIX_TZ = 'America/Phoenix';
       const eventDateObj = new Date(event.date);
-      const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
       
-      // The event date contains the show start time
-      const showTime = eventDateObj.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+      // Format date in Phoenix timezone
+      const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
       
-      // Calculate arrival time (45 minutes before show)
+      // Format show time in Phoenix timezone
+      const showTime = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'h:mm a');
+      
+      // Calculate arrival time (45 minutes before show) in Phoenix timezone
       const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
-      const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+      const arrivalTimeFormatted = formatInTimeZone(arrivalTime, PHOENIX_TZ, 'h:mm a');
       
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
       const refundAmount = (refundAmountCents / 100).toFixed(2);
@@ -609,29 +602,19 @@ export class EmailService {
     try {
       const { booking, event, table, venue, refund } = data;
       
-      // All events are in Phoenix, Arizona timezone
+      // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
+      const PHOENIX_TZ = 'America/Phoenix';
       const eventDateObj = new Date(event.date);
-      const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
       
-      // The event date contains the show start time
-      const showTime = eventDateObj.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+      // Format date in Phoenix timezone
+      const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
       
-      // Calculate arrival time (45 minutes before show)
+      // Format show time in Phoenix timezone
+      const showTime = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'h:mm a');
+      
+      // Calculate arrival time (45 minutes before show) in Phoenix timezone
       const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
-      const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+      const arrivalTimeFormatted = formatInTimeZone(arrivalTime, PHOENIX_TZ, 'h:mm a');
       
       const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
       const refundAmount = ((refund.amount || 0) / 100).toFixed(2);

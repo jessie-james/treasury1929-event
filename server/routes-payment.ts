@@ -67,9 +67,9 @@ export async function createBookingFromStripeSession(session: any) {
         booking: {
           id: createdBooking.id.toString(),
           customerEmail: createdBooking.customerEmail,
-          partySize: createdBooking.partySize,
+          partySize: createdBooking.partySize || 1,
           status: createdBooking.status,
-          notes: createdBooking.notes,
+          notes: createdBooking.notes || undefined,
           stripePaymentId: createdBooking.stripePaymentId || undefined,
           createdAt: createdBooking.createdAt,
           guestNames: createdBooking.guestNames || []
@@ -95,14 +95,25 @@ export async function createBookingFromStripeSession(session: any) {
       
       const emailSent = await EmailService.sendBookingConfirmation(emailData);
       if (emailSent) {
-        console.log(`✓ Booking confirmation email sent to ${bookingData.customerEmail}`);
+        console.log(`✓ SUCCESS: Booking confirmation email sent to ${bookingData.customerEmail}`);
+        console.log(`  Booking ID: ${bookingId}`);
+        console.log(`  Event: ${event.title}`);
+        console.log(`  Table: ${table.tableNumber}`);
       } else {
-        console.log(`⚠️ Failed to send confirmation email to ${bookingData.customerEmail}`);
+        console.error(`❌ CRITICAL EMAIL FAILURE: Failed to send confirmation email`);
+        console.error(`  Customer: ${bookingData.customerEmail}`);
+        console.error(`  Booking ID: ${bookingId}`);
+        console.error(`  Event: ${event.title}`);
+        console.error(`  This customer will NOT receive their ticket!`);
       }
     }
   } catch (emailError) {
-    console.error('❌ Error sending booking confirmation email:', emailError);
-    // Don't fail the booking creation if email fails
+    console.error('❌ CRITICAL ERROR: Booking confirmation email system failure');
+    console.error('  This means customers are not receiving their tickets!');
+    console.error('  Booking was created but email failed');
+    console.error('  Email Error Details:', emailError);
+    console.error('  Time:', new Date().toISOString());
+    // Don't fail the booking creation if email fails, but log extensively
   }
   
   // Immediately sync availability after booking creation
@@ -534,11 +545,12 @@ export function registerPaymentRoutes(app: Express) {
         return res.status(400).json({ error: 'Session has no metadata' });
       }
 
+      const metadata = session.metadata;
       // Check if booking already exists
-      const existingBookings = await storage.getBookingsByEventId(parseInt(session.metadata.eventId));
+      const existingBookings = await storage.getBookingsByEventId(parseInt(metadata.eventId));
       const existingBooking = existingBookings.find(booking => 
         booking.stripePaymentId === session.payment_intent ||
-        booking.tableId === parseInt(session.metadata.tableId)
+        booking.tableId === parseInt(metadata.tableId)
       );
 
       if (existingBooking) {
@@ -557,8 +569,8 @@ export function registerPaymentRoutes(app: Express) {
       // Send confirmation email
       const { EmailService } = await import('./email-service.js');
       
-      const event = await storage.getEventById(parseInt(session.metadata.eventId));
-      const table = await storage.getTableById(parseInt(session.metadata.tableId));
+      const event = await storage.getEventById(parseInt(metadata.eventId));
+      const table = await storage.getTableById(parseInt(metadata.tableId));
       const venue = await storage.getVenueById(table?.venueId || 0);
       
       let emailSent = false;
@@ -566,12 +578,12 @@ export function registerPaymentRoutes(app: Express) {
         const emailData = {
           booking: {
             id: booking.toString(),
-            customerEmail: session.customer_details?.email || session.metadata.customerEmail || '',
-            partySize: session.metadata.seats ? session.metadata.seats.split(',').length : 1,
+            customerEmail: session.customer_details?.email || metadata.customerEmail || '',
+            partySize: metadata.seats ? metadata.seats.split(',').length : 1,
             status: 'confirmed',
             stripePaymentId: typeof session.payment_intent === 'string' ? session.payment_intent : undefined,
             createdAt: new Date(),
-            guestNames: session.metadata.guestNames ? JSON.parse(session.metadata.guestNames) : []
+            guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : []
           },
           event: {
             id: event.id.toString(),
@@ -582,7 +594,7 @@ export function registerPaymentRoutes(app: Express) {
           table: {
             id: table.id.toString(),
             tableNumber: table.tableNumber,
-            floor: session.metadata.selectedVenue || 'Main Floor',
+            floor: metadata.selectedVenue || 'Main Floor',
             capacity: table.capacity
           },
           venue: {
