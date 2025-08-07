@@ -226,8 +226,12 @@ export function BookingManagement() {
     const matchesSearch = 
       searchQuery === "" || 
       booking.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.user.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.user.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       booking.id.toString().includes(searchQuery) ||
-      booking.event.title.toLowerCase().includes(searchQuery.toLowerCase());
+      booking.event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.table?.tableNumber?.toString().includes(searchQuery) ||
+      booking.stripePaymentId?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesStatus = 
       statusFilter === "all" || 
@@ -283,10 +287,13 @@ export function BookingManagement() {
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="confirmed">Confirmed</SelectItem>
               <SelectItem value="modified">Modified</SelectItem>
-              <SelectItem value="refunded">Refunded</SelectItem>
+              <SelectItem value="refunded">Refunded (Auto-synced from Stripe)</SelectItem>
               <SelectItem value="canceled">Canceled</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className="text-xs text-muted-foreground bg-blue-50 p-2 rounded border">
+          <strong>Note:</strong> Refunds processed directly in Stripe automatically update booking status and release tables. Refunded bookings cannot be modified.
         </div>
       </div>
       
@@ -299,6 +306,8 @@ export function BookingManagement() {
               <TableHead>Customer</TableHead>
               <TableHead>Table</TableHead>
               <TableHead>Party Size</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Payment ID</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -308,8 +317,25 @@ export function BookingManagement() {
             {filteredBookings?.map((booking) => (
               <TableRow key={booking.id}>
                 <TableCell className="font-medium">#{booking.id}</TableCell>
-                <TableCell>{booking.event.title}</TableCell>
-                <TableCell>{booking.user.email}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{booking.event.title}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {booking.event.date ? new Date(booking.event.date).toLocaleDateString('en-US', { 
+                        month: 'short', day: 'numeric', year: 'numeric', 
+                        hour: 'numeric', minute: '2-digit' 
+                      }) : 'N/A'}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{booking.user.email}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {booking.user.firstName} {booking.user.lastName}
+                    </span>
+                  </div>
+                </TableCell>
                 <TableCell className="font-medium">
                   <div className="flex flex-col">
                     <span>Table {booking.table?.tableNumber || booking.tableId}</span>
@@ -319,6 +345,26 @@ export function BookingManagement() {
                   </div>
                 </TableCell>
                 <TableCell>{booking.partySize} guests</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex flex-col">
+                    <span>${((booking.totalAmount || booking.amount || 0) / 100).toFixed(2)}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {booking.refundAmount ? `Refunded: $${(booking.refundAmount / 100).toFixed(2)}` : 'Paid'}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="font-mono text-xs">
+                  <div className="flex flex-col">
+                    <span className="truncate max-w-[100px]" title={booking.stripePaymentId || 'No payment ID'}>
+                      {booking.stripePaymentId ? booking.stripePaymentId.substring(0, 12) + '...' : 'N/A'}
+                    </span>
+                    {booking.refundId && (
+                      <span className="text-amber-600 truncate max-w-[100px]" title={booking.refundId}>
+                        R: {booking.refundId.substring(0, 8)}...
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>{getStatusBadge(booking.status)}</TableCell>
                 <TableCell>{booking.createdAt ? formatPhoenixDateShort(booking.createdAt) : "N/A"}</TableCell>
                 <TableCell className="text-right">
@@ -355,7 +401,7 @@ export function BookingManagement() {
                         setSelectedBooking(booking);
                         setIsReleaseDialogOpen(true);
                       }}
-                      disabled={booking.status === "canceled"}
+                      disabled={booking.status === "canceled" || booking.status === "refunded"}
                     >
                       <RotateCw className="h-4 w-4 mr-1" />
                       Release
@@ -368,7 +414,7 @@ export function BookingManagement() {
                         setSelectedBooking(booking);
                         setIsSeatsDialogOpen(true);
                       }}
-                      disabled={booking.status === "canceled"}
+                      disabled={booking.status === "canceled" || booking.status === "refunded"}
                     >
                       <Pencil className="h-4 w-4 mr-1" />
                       Seats
@@ -381,7 +427,7 @@ export function BookingManagement() {
                         setSelectedBooking(booking);
                         setIsFoodDialogOpen(true);
                       }}
-                      disabled={booking.status === "canceled"}
+                      disabled={booking.status === "canceled" || booking.status === "refunded"}
                     >
                       <RefreshCw className="h-4 w-4 mr-1" />
                       Food
@@ -395,7 +441,7 @@ export function BookingManagement() {
                           cancelBookingMutation.mutate(booking.id);
                         }
                       }}
-                      disabled={booking.status === "canceled"}
+                      disabled={booking.status === "canceled" || booking.status === "refunded"}
                     >
                       <Ban className="h-4 w-4 mr-1" />
                       Cancel
@@ -407,7 +453,7 @@ export function BookingManagement() {
             
             {filteredBookings?.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No bookings found matching your criteria.
                 </TableCell>
               </TableRow>
