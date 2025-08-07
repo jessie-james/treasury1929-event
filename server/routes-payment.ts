@@ -57,17 +57,40 @@ export async function createBookingFromStripeSession(session: any) {
     const { EmailService } = await import('./email-service.js');
     
     // Get the created booking with full details
-    const createdBooking = await storage.getBookingById(bookingId);
+    const createdBooking = await storage.getBooking(bookingId);
     const event = await storage.getEventById(eventId);
     const table = await storage.getTableById(tableId);
     const venue = await storage.getVenueById(parseInt(metadata.selectedVenue) || 4);
     
     if (createdBooking && event && table && venue) {
       const emailData = {
-        booking: createdBooking,
-        event,
-        table,
-        venue
+        booking: {
+          id: createdBooking.id.toString(),
+          customerEmail: createdBooking.customerEmail,
+          partySize: createdBooking.partySize,
+          status: createdBooking.status,
+          notes: createdBooking.notes,
+          stripePaymentId: createdBooking.stripePaymentId || undefined,
+          createdAt: createdBooking.createdAt,
+          guestNames: createdBooking.guestNames || []
+        },
+        event: {
+          id: event.id.toString(),
+          title: event.title,
+          date: event.date,
+          description: event.description || ''
+        },
+        table: {
+          id: table.id.toString(),
+          tableNumber: table.tableNumber,
+          floor: table.floor,
+          capacity: table.capacity
+        },
+        venue: {
+          id: venue.id.toString(),
+          name: venue.name,
+          address: '2 E Congress St, Ste 100'
+        }
       };
       
       const emailSent = await EmailService.sendBookingConfirmation(emailData);
@@ -546,7 +569,7 @@ export function registerPaymentRoutes(app: Express) {
             customerEmail: session.customer_details?.email || session.metadata.customerEmail || '',
             partySize: session.metadata.seats ? session.metadata.seats.split(',').length : 1,
             status: 'confirmed',
-            stripePaymentId: session.payment_intent,
+            stripePaymentId: typeof session.payment_intent === 'string' ? session.payment_intent : undefined,
             createdAt: new Date(),
             guestNames: session.metadata.guestNames ? JSON.parse(session.metadata.guestNames) : []
           },
