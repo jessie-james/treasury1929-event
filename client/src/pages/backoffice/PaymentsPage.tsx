@@ -47,7 +47,7 @@ export default function PaymentsPage() {
   });
 
   // Fetch admin payments data
-  const { data: payments, isLoading: paymentsLoading } = useQuery({
+  const { data: payments = [], isLoading: paymentsLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/payments"],
   });
 
@@ -80,14 +80,14 @@ export default function PaymentsPage() {
 
   // Calculate various metrics from payments data
   const totalRevenue = calculateTotalRevenue(payments);
-  const refundedAmount = payments?.reduce((total, payment) => {
+  const refundedAmount = (payments as any[])?.reduce((total, payment) => {
     if (payment.refund_amount) {
       return total + (payment.refund_amount / 100);
     }
     return total;
   }, 0) || 0;
   
-  const cancelledBookings = payments?.filter(p => p.booking_status === 'cancelled').length || 0;
+  const cancelledBookings = (payments as any[])?.filter(p => p.booking_status === 'cancelled').length || 0;
 
   // Filter bookings by date range
   const filteredBookings = bookings?.filter(booking => {
@@ -269,7 +269,7 @@ export default function PaymentsPage() {
                 <CardContent>
                   <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
                   <p className="text-xs text-muted-foreground">
-                    {payments?.length || 0} payments processed
+                    {(payments as any[])?.length || 0} payments processed
                   </p>
                 </CardContent>
               </Card>
@@ -284,7 +284,7 @@ export default function PaymentsPage() {
                 <CardContent>
                   <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
                   <p className="text-xs text-muted-foreground">
-                    {payments?.filter(p => p.status === 'succeeded').length || 0} confirmed
+                    {(payments as any[])?.filter(p => p.status === 'succeeded').length || 0} confirmed
                   </p>
                 </CardContent>
               </Card>
@@ -299,7 +299,7 @@ export default function PaymentsPage() {
                 <CardContent>
                   <div className="text-2xl font-bold">${refundedAmount.toFixed(2)}</div>
                   <p className="text-xs text-muted-foreground">
-                    {payments?.filter(p => p.refund_amount > 0).length || 0} refunds
+                    {(payments as any[])?.filter(p => p.refund_amount > 0).length || 0} refunds
                   </p>
                 </CardContent>
               </Card>

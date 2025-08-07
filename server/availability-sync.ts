@@ -43,8 +43,8 @@ export class AvailabilitySync {
         availableTables = 1; // Ticket-only events don't have tables
       } else {
         // For full events, use venue capacity
-        availableSeats = Math.max(0, event.totalSeats - bookedSeats);
-        availableTables = Math.max(0, event.totalTables - bookedTables);
+        availableSeats = Math.max(0, (event.totalSeats || 0) - bookedSeats);
+        availableTables = Math.max(0, (event.totalTables || 0) - bookedTables);
       }
 
       // Update event with accurate availability
@@ -108,9 +108,12 @@ export class AvailabilitySync {
         throw new Error(`Event ${eventId} not found`);
       }
 
-      // Get all confirmed bookings for this event
+      // Get all confirmed bookings for this event - optimized query
       const eventBookings = await db
-        .select()
+        .select({
+          partySize: bookings.partySize,
+          tableId: bookings.tableId
+        })
         .from(bookings)
         .where(and(
           eq(bookings.eventId, eventId),
@@ -137,8 +140,8 @@ export class AvailabilitySync {
         isSoldOut = availableSeats === 0;
       } else {
         // For full events, use venue capacity
-        totalSeats = event.totalSeats;
-        totalTables = event.totalTables;
+        totalSeats = event.totalSeats || 0;
+        totalTables = event.totalTables || 0;
         availableSeats = Math.max(0, totalSeats - bookedSeats);
         availableTables = Math.max(0, totalTables - bookedTables);
         isSoldOut = availableSeats === 0 || availableTables === 0;
@@ -147,8 +150,8 @@ export class AvailabilitySync {
       return {
         availableSeats,
         availableTables,
-        totalSeats: event.totalSeats,
-        totalTables: event.totalTables,
+        totalSeats: event.totalSeats || 0,
+        totalTables: event.totalTables || 0,
         isSoldOut
       };
     } catch (error) {

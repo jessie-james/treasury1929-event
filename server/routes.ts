@@ -1069,13 +1069,19 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Real-time availability check endpoint
+  // Real-time availability check endpoint with caching
   app.get("/api/events/:eventId/availability", async (req, res) => {
     try {
       const eventId = parseInt(req.params.eventId);
       if (isNaN(eventId)) {
         return res.status(400).json({ message: "Invalid event ID" });
       }
+
+      // Set cache headers for 30 seconds
+      res.set({
+        'Cache-Control': 'public, max-age=30',
+        'ETag': `"availability-${eventId}-${Date.now()}"`
+      });
 
       const availability = await AvailabilitySync.getRealTimeAvailability(eventId);
       res.json(availability);
