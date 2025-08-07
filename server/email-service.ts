@@ -69,7 +69,11 @@ export class EmailService {
       const { booking, event, table, venue } = data;
       
       // Format event date and time correctly
-      const eventDateObj = new Date(event.date);
+      // Fix timezone issue - ensure date is treated as local time
+      const eventDateString = event.date.toString();
+      const eventDateObj = eventDateString.includes('T') 
+        ? new Date(eventDateString) 
+        : new Date(eventDateString.replace(' ', 'T'));
       const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -204,7 +208,11 @@ export class EmailService {
       const { booking, event, table, venue } = data;
       
       // Format event date and time correctly
-      const eventDateObj = new Date(event.date);
+      // Fix timezone issue - ensure date is treated as local time
+      const eventDateString = event.date.toString();
+      const eventDateObj = eventDateString.includes('T') 
+        ? new Date(eventDateString) 
+        : new Date(eventDateString.replace(' ', 'T'));
       const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -389,7 +397,11 @@ export class EmailService {
       const { booking, event, table, venue } = data;
       
       // Format event date and time correctly
-      const eventDateObj = new Date(event.date);
+      // Fix timezone issue - ensure date is treated as local time
+      const eventDateString = event.date.toString();
+      const eventDateObj = eventDateString.includes('T') 
+        ? new Date(eventDateString) 
+        : new Date(eventDateString.replace(' ', 'T'));
       const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -483,7 +495,11 @@ export class EmailService {
       const { booking, event, table, venue } = data;
       
       // Format event date and time correctly
-      const eventDateObj = new Date(event.date);
+      // Fix timezone issue - ensure date is treated as local time
+      const eventDateString = event.date.toString();
+      const eventDateObj = eventDateString.includes('T') 
+        ? new Date(eventDateString) 
+        : new Date(eventDateString.replace(' ', 'T'));
       const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -584,7 +600,11 @@ export class EmailService {
       const { booking, event, table, venue, refund } = data;
       
       // Format event date and time correctly
-      const eventDateObj = new Date(event.date);
+      // Fix timezone issue - ensure date is treated as local time
+      const eventDateString = event.date.toString();
+      const eventDateObj = eventDateString.includes('T') 
+        ? new Date(eventDateString) 
+        : new Date(eventDateString.replace(' ', 'T'));
       const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
