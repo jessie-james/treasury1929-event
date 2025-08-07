@@ -185,6 +185,11 @@ export function validateEnvironment() {
   
   if (missingRecommended.length > 0) {
     console.warn('⚠️  Missing recommended environment variables:', missingRecommended);
-    console.warn('📧 Email notifications and some features may not work without these');
+    // Note: EMAIL SERVICE WILL STILL WORK - it has hardcoded fallback values
+    if (missingRecommended.includes('SENDGRID_API_KEY_NEW')) {
+      console.warn('📧 Email notifications will NOT work without SENDGRID_API_KEY_NEW');
+    } else {
+      console.warn('📧 Email notifications will work (using hardcoded fallback values)');
+    }
   }
 }
