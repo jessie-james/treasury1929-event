@@ -119,6 +119,11 @@ export default function UsersPage() {
     queryKey: ['/api/users'],
   });
 
+  // Fetch food options to map food selections to names
+  const { data: foodOptions, isLoading: foodOptionsLoading } = useQuery({
+    queryKey: ['/api/food-options'],
+  });
+
   const filteredUsers = useMemo(() => {
     if (!users) return [];
     
@@ -266,6 +271,14 @@ export default function UsersPage() {
                       </Badge>
                     </CardTitle>
                     <CardDescription className="text-xs sm:text-sm mt-1">
+                      {user.firstName || user.lastName ? (
+                        <div className="mb-1">
+                          <strong>{[user.firstName, user.lastName].filter(Boolean).join(' ')}</strong>
+                          {user.phone && <span className="ml-2">• {user.phone}</span>}
+                        </div>
+                      ) : user.phone ? (
+                        <div className="mb-1"><strong>Phone:</strong> {user.phone}</div>
+                      ) : null}
                       Joined {user.createdAt ? formatPhoenixDateShort(String(user.createdAt)) : 'N/A'}
                     </CardDescription>
                   </div>
@@ -304,6 +317,23 @@ export default function UsersPage() {
                         </AccordionTrigger>
                         <AccordionContent className="px-3 py-3 sm:px-6 sm:py-3 bg-secondary/10">
                           <div className="space-y-3 sm:space-y-4">
+                            {/* Booking Status and Check-in */}
+                            <div className="flex flex-wrap gap-2">
+                              <Badge variant={booking.status === 'confirmed' ? 'default' : booking.status === 'cancelled' ? 'destructive' : 'secondary'}>
+                                {booking.status}
+                              </Badge>
+                              {booking.checkedIn && (
+                                <Badge variant="outline" className="bg-green-50 text-green-700">
+                                  Checked In
+                                </Badge>
+                              )}
+                              {booking.refundAmount && booking.refundAmount > 0 && (
+                                <Badge variant="destructive">
+                                  Refunded: ${(booking.refundAmount / 100).toFixed(2)}
+                                </Badge>
+                              )}
+                            </div>
+
                             <div>
                               <h4 className="font-medium mb-2 text-sm sm:text-base">Guests</h4>
                               <div className="grid grid-cols-1 gap-2">
@@ -324,11 +354,94 @@ export default function UsersPage() {
                               <div>
                                 <h4 className="font-medium mb-2 text-sm sm:text-base">Food Selections</h4>
                                 <div className="grid grid-cols-1 gap-2">
-                                  {booking.foodSelections.map((item: any, index: number) => (
-                                    <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
-                                      <span>Selection {index + 1}</span>
-                                    </div>
-                                  ))}
+                                  {booking.foodSelections.map((selection: any, index: number) => {
+                                    // If it's just an ID (number), map it to food option
+                                    if (typeof selection === 'number' && foodOptions) {
+                                      const foodOption = foodOptions.find((f: any) => f.id === selection);
+                                      return (
+                                        <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
+                                          <div className="font-medium">{foodOption?.name || `Food Item ${selection}`}</div>
+                                          {foodOption?.description && (
+                                            <div className="text-muted-foreground mt-1">{foodOption.description}</div>
+                                          )}
+                                          {foodOption?.type && (
+                                            <Badge variant="outline" className="mt-1 text-xs">{foodOption.type}</Badge>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                    // If it's an object with more details
+                                    if (typeof selection === 'object' && selection !== null) {
+                                      return (
+                                        <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
+                                          <div className="font-medium">{selection.name || selection.title || `Selection ${index + 1}`}</div>
+                                          {selection.description && (
+                                            <div className="text-muted-foreground mt-1">{selection.description}</div>
+                                          )}
+                                          {selection.type && (
+                                            <Badge variant="outline" className="mt-1 text-xs">{selection.type}</Badge>
+                                          )}
+                                          {selection.quantity && selection.quantity > 1 && (
+                                            <span className="text-muted-foreground"> (×{selection.quantity})</span>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                    // Fallback for unknown format
+                                    return (
+                                      <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
+                                        <span>Selection {index + 1}: {JSON.stringify(selection)}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            {booking.wineSelections && booking.wineSelections.length > 0 && (
+                              <div>
+                                <h4 className="font-medium mb-2 text-sm sm:text-base">Wine Selections</h4>
+                                <div className="grid grid-cols-1 gap-2">
+                                  {booking.wineSelections.map((selection: any, index: number) => {
+                                    // If it's just an ID (number), map it to food option (wine type)
+                                    if (typeof selection === 'number' && foodOptions) {
+                                      const wineOption = foodOptions.find((f: any) => f.id === selection);
+                                      return (
+                                        <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
+                                          <div className="font-medium">{wineOption?.name || `Wine Item ${selection}`}</div>
+                                          {wineOption?.description && (
+                                            <div className="text-muted-foreground mt-1">{wineOption.description}</div>
+                                          )}
+                                          {wineOption?.price && wineOption.price > 0 && (
+                                            <span className="text-green-600 font-medium"> ${(wineOption.price / 100).toFixed(2)}</span>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                    // If it's an object with more details
+                                    if (typeof selection === 'object' && selection !== null) {
+                                      return (
+                                        <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
+                                          <div className="font-medium">{selection.name || selection.title || `Wine Selection ${index + 1}`}</div>
+                                          {selection.description && (
+                                            <div className="text-muted-foreground mt-1">{selection.description}</div>
+                                          )}
+                                          {selection.price && (
+                                            <span className="text-green-600 font-medium"> ${(selection.price / 100).toFixed(2)}</span>
+                                          )}
+                                          {selection.quantity && selection.quantity > 1 && (
+                                            <span className="text-muted-foreground"> (×{selection.quantity})</span>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                    // Fallback for unknown format
+                                    return (
+                                      <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
+                                        <span>Wine Selection {index + 1}: {JSON.stringify(selection)}</span>
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             )}
@@ -340,10 +453,32 @@ export default function UsersPage() {
                               </div>
                             )}
 
-                            {user.allergens && user.allergens.length > 0 && (
+                            {/* User Dietary Information */}
+                            {(user.allergens && user.allergens.length > 0) || (user.dietaryRestrictions && user.dietaryRestrictions.length > 0) ? (
                               <div>
-                                <h4 className="font-medium mb-1 text-sm sm:text-base">Allergens</h4>
-                                <p className="text-xs sm:text-sm italic break-words">{user.allergens?.join(', ')}</p>
+                                <h4 className="font-medium mb-2 text-sm sm:text-base">Dietary Information</h4>
+                                <div className="space-y-1">
+                                  {user.allergens && user.allergens.length > 0 && (
+                                    <div>
+                                      <span className="text-xs font-medium text-red-600">Allergens:</span>
+                                      <p className="text-xs sm:text-sm italic break-words">{user.allergens.join(', ')}</p>
+                                    </div>
+                                  )}
+                                  {user.dietaryRestrictions && user.dietaryRestrictions.length > 0 && (
+                                    <div>
+                                      <span className="text-xs font-medium text-green-600">Dietary Restrictions:</span>
+                                      <p className="text-xs sm:text-sm italic break-words">{user.dietaryRestrictions.join(', ')}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : null}
+
+                            {/* Payment Information */}
+                            {booking.stripePaymentId && (
+                              <div>
+                                <h4 className="font-medium mb-1 text-sm sm:text-base">Payment Info</h4>
+                                <p className="text-xs text-muted-foreground font-mono break-all">{booking.stripePaymentId}</p>
                               </div>
                             )}
                           </div>
