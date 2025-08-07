@@ -54,7 +54,7 @@ export async function createBookingFromStripeSession(session: any) {
   
   // Send booking confirmation email
   try {
-    const { EmailService } = await import('./email-service.js');
+    const { EmailService } = await import('./email-service');
     
     // Get the created booking with full details
     const createdBooking = await storage.getBooking(bookingId);
@@ -567,7 +567,7 @@ export function registerPaymentRoutes(app: Express) {
       // The createBookingFromStripeSession function now automatically syncs availability
       
       // Send confirmation email
-      const { EmailService } = await import('./email-service.js');
+      const { EmailService } = await import('./email-service');
       
       const event = await storage.getEventById(parseInt(metadata.eventId));
       const table = await storage.getTableById(parseInt(metadata.tableId));
@@ -688,7 +688,7 @@ export function registerPaymentRoutes(app: Express) {
       await AvailabilitySync.syncEventAvailability(parseInt(eventId));
       
       // Send confirmation email
-      const { EmailService } = await import('./email-service.js');
+      const { EmailService } = await import('./email-service');
       const booking = await storage.getBookingWithDetails(bookingId);
       
       let emailSent = false;
@@ -768,7 +768,7 @@ export function registerPaymentRoutes(app: Express) {
         });
       }
       
-      const { EmailService } = await import('./email-service.js');
+      const { EmailService } = await import('./email-service');
       
       // Get venue info for the booking
       const table = await storage.getTableById(booking.tableId);
@@ -780,7 +780,7 @@ export function registerPaymentRoutes(app: Express) {
           customerEmail: booking.customerEmail,
           partySize: booking.partySize || 1,
           status: booking.status,
-          stripePaymentId: booking.stripePaymentId,
+          stripePaymentId: booking.stripePaymentId || undefined,
           createdAt: booking.createdAt,
           guestNames: booking.guestNames || [],
           foodSelections: booking.foodSelections || [],
@@ -869,21 +869,21 @@ export function registerPaymentRoutes(app: Express) {
       return res.status(500).send("Stripe not initialized");
     }
     
-    let event;
+    let webhookEvent;
     
     try {
       // Verify webhook signature
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
       
       if (webhookSecret && req.headers['stripe-signature']) {
-        event = stripe.webhooks.constructEvent(
+        webhookEvent = stripe.webhooks.constructEvent(
           req.body,
           req.headers['stripe-signature'] as string,
           webhookSecret
         );
       } else {
         // For testing, just parse the JSON
-        event = req.body;
+        webhookEvent = req.body;
       }
     } catch (err: any) {
       console.error(`Webhook signature verification failed: ${err.message}`);
@@ -891,8 +891,8 @@ export function registerPaymentRoutes(app: Express) {
     }
     
     // Handle specific webhook events
-    if (event.type === 'payment_intent.succeeded') {
-      const paymentIntent = event.data.object;
+    if (webhookEvent.type === 'payment_intent.succeeded') {
+      const paymentIntent = webhookEvent.data.object;
       console.log(`Payment intent succeeded: ${paymentIntent.id}`);
       
       // Get user ID from metadata
@@ -919,8 +919,8 @@ export function registerPaymentRoutes(app: Express) {
     }
     
     // Handle checkout session completion
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
+    if (webhookEvent.type === 'checkout.session.completed') {
+      const session = webhookEvent.data.object;
       console.log(`Checkout session completed: ${session.id}`);
       
       try {
@@ -937,20 +937,20 @@ export function registerPaymentRoutes(app: Express) {
     }
     
     // Handle charge disputes and refunds
-    if (event.type === 'charge.dispute.created' || 
-        event.type === 'payment_intent.amount_capturable_updated' ||
-        event.type === 'payment_intent.refunded' ||
-        event.type === 'charge.refunded') {
+    if (webhookEvent.type === 'charge.dispute.created' || 
+        webhookEvent.type === 'payment_intent.amount_capturable_updated' ||
+        webhookEvent.type === 'payment_intent.refunded' ||
+        webhookEvent.type === 'charge.refunded') {
       
       try {
-        const chargeOrIntent = event.data.object;
-        console.log(`Refund/dispute event received: ${event.type} for ${chargeOrIntent.id}`);
+        const chargeOrIntent = webhookEvent.data.object;
+        console.log(`Refund/dispute event received: ${webhookEvent.type} for ${chargeOrIntent.id}`);
         
         // Find the booking associated with this payment
         let paymentId = '';
-        if (event.type.includes('payment_intent')) {
+        if (webhookEvent.type.includes('payment_intent')) {
           paymentId = chargeOrIntent.id;
-        } else if (event.type.includes('charge')) {
+        } else if (webhookEvent.type.includes('charge')) {
           paymentId = chargeOrIntent.payment_intent || chargeOrIntent.id;
         }
         
@@ -973,7 +973,7 @@ export function registerPaymentRoutes(app: Express) {
             console.log(`✅ Table ${booking.tableId} released for event ${booking.eventId} after refund`);
             
             // Send refund notification email
-            const { EmailService } = await import('./email-service.js');
+            const { EmailService } = await import('./email-service');
             
             // Get event, table, and venue details for email
             const event = await storage.getEventById(booking.eventId);
@@ -1010,7 +1010,7 @@ export function registerPaymentRoutes(app: Express) {
                 },
                 refund: {
                   amount: chargeOrIntent.amount_refunded || chargeOrIntent.amount || 0,
-                  reason: event.type.includes('dispute') ? 'Payment dispute filed' : 'Refund processed',
+                  reason: webhookEvent.type.includes('dispute') ? 'Payment dispute filed' : 'Refund processed',
                   processedAt: new Date(),
                   refundId: chargeOrIntent.id
                 }
@@ -1027,7 +1027,7 @@ export function registerPaymentRoutes(app: Express) {
               entityType: "booking",
               entityId: booking.id,
               details: JSON.stringify({
-                eventType: event.type,
+                eventType: webhookEvent.type,
                 paymentId: paymentId,
                 bookingId: booking.id,
                 customerEmail: booking.customerEmail,
@@ -1085,7 +1085,7 @@ export function registerPaymentRoutes(app: Express) {
       console.log(`✅ TEST: Table ${booking.tableId} released for event ${booking.eventId} after refund`);
       
       // Send refund notification email
-      const { EmailService } = await import('./email-service.js');
+      const { EmailService } = await import('./email-service');
       
       // Get event, table, and venue details for email
       const event = await storage.getEventById(booking.eventId);
