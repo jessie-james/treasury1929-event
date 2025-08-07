@@ -28,6 +28,7 @@ import { ImagePlus, Loader2, RefreshCw, X, Building, UtensilsCrossed, Check, Win
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EventPricingManager } from "./EventPricingManager";
 import { EventVenueManager } from "./EventVenueManager";
+import { formatPhoenixDateForInput } from "@/lib/timezone";
 
 const eventFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -91,7 +92,7 @@ export function EventForm({ event, onClose }: Props) {
       title: event.title,
       description: event.description || "",
       image: event.image || "",
-      date: new Date(event.date).toISOString().split('T')[0],
+      date: formatPhoenixDateForInput(event.date),
       venueId: event.venueId,
       isActive: event.isActive ?? true,
       includeFoodService: event.includeFoodService ?? true,

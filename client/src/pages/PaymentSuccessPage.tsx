@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { CheckCircle, Download, ArrowRight, ArrowLeft, Calendar, MapPin, Users, Ticket } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatEventTimes } from '@/lib/timezone';
 import QRCode from 'qrcode';
 import type { Booking, Event, FoodOption } from "@/../../shared/schema";
 import { downloadTicket } from "@/utils/ticketGenerator";
@@ -282,42 +283,9 @@ export default function PaymentSuccessPage() {
                     <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {(() => {
-                          // Fix timezone handling - treat stored UTC time as Tucson local time
-                          const eventDateString = booking.event.date.toString();
-                          let eventDateObj;
-                          
-                          if (eventDateString.includes('T') && eventDateString.includes('Z')) {
-                            // Remove Z to treat as local time instead of UTC
-                            const localDateString = eventDateString.replace('Z', '');
-                            eventDateObj = new Date(localDateString);
-                          } else {
-                            eventDateObj = new Date(booking.event.date);
-                          }
-                          
-                          const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          });
-                          
-                          // The event date contains the show start time
-                          const showTime = eventDateObj.toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          });
-                          
-                          // Calculate arrival time (45 minutes before show)
-                          const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
-                          const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          });
-                          
-                          return `${eventDateFormatted} • Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
+{(() => {
+                          const { eventDate, timeDisplay } = formatEventTimes(booking.event.date);
+                          return `${eventDate} • ${timeDisplay}`;
                         })()}
                       </div>
                       <div className="flex items-center gap-1">

@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
+import { formatPhoenixTime } from "@/lib/timezone";
 import { QrScanner } from "@/components/backoffice/QrScanner";
 import { useToast } from "@/hooks/use-toast";
 import { Event, Booking, User } from "@shared/schema";
@@ -113,7 +114,7 @@ export default function EntrancePage() {
   const checkInMutation = useMutation({
     mutationFn: async (bookingId: number) => {
       const addDebugLog = (message: string) => {
-        setDebugLog(prev => [`${new Date().toLocaleTimeString()}: ${message}`, ...prev.slice(0, 9)]);
+        setDebugLog(prev => [`${formatPhoenixTime(new Date())}: ${message}`, ...prev.slice(0, 9)]);
         console.log(message);
       };
       

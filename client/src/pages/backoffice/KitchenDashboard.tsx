@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { ChefHat, Clock, CheckCircle, Users, Wine, UtensilsCrossed } from "lucide-react";
 import type { Event } from "@shared/schema";
+import { formatPhoenixDateShort } from "@/lib/timezone";
 
 interface OrderItem {
   bookingId: number;
@@ -107,7 +108,7 @@ export default function KitchenDashboard() {
             <SelectContent>
               {activeEvents.map((event) => (
                 <SelectItem key={event.id} value={event.id.toString()}>
-                  {event.title} - {new Date(event.date).toLocaleDateString()}
+                  {event.title} - {formatPhoenixDateShort(event.date)}
                 </SelectItem>
               ))}
             </SelectContent>

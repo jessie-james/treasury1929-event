@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatPhoenixDateShort } from '@/lib/timezone';
 
 type SortOption = 'date' | 'events' | 'seats';
 
@@ -265,7 +266,7 @@ export default function UsersPage() {
                       </Badge>
                     </CardTitle>
                     <CardDescription className="text-xs sm:text-sm mt-1">
-                      Joined {user.createdAt ? new Date(String(user.createdAt)).toLocaleDateString() : 'N/A'}
+                      Joined {user.createdAt ? formatPhoenixDateShort(String(user.createdAt)) : 'N/A'}
                     </CardDescription>
                   </div>
                   <div className="flex flex-row justify-between sm:flex-col sm:text-right shrink-0">
@@ -288,7 +289,7 @@ export default function UsersPage() {
                             <div className="min-w-0 flex-1">
                               <h3 className="font-medium text-sm sm:text-base leading-tight">{booking.event.title}</h3>
                               <p className="text-xs text-muted-foreground">
-                                {new Date(booking.event.date).toLocaleDateString()}
+                                {formatPhoenixDateShort(booking.event.date)}
                               </p>
                             </div>
                             <div className="flex justify-between sm:flex-col sm:gap-1 sm:text-right shrink-0">

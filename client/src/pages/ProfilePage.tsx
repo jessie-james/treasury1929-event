@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { User, Save, Edit, X, Phone } from "lucide-react";
+import { formatPhoenixDateShort } from "@/lib/timezone";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProfilePage() {
@@ -148,7 +149,7 @@ export default function ProfilePage() {
                   
                   <div>
                     <h3 className="font-medium text-sm text-muted-foreground">Account Created</h3>
-                    <p>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</p>
+                    <p>{user.createdAt ? formatPhoenixDateShort(user.createdAt) : "N/A"}</p>
                   </div>
                 </div>
               ) : (
@@ -174,7 +175,7 @@ export default function ProfilePage() {
                   
                   <div>
                     <h3 className="font-medium text-sm text-muted-foreground">Account Created</h3>
-                    <p>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}</p>
+                    <p>{user.createdAt ? formatPhoenixDateShort(user.createdAt) : "N/A"}</p>
                   </div>
                 </div>
               )}

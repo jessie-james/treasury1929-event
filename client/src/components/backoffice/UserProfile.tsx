@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import type { ExtendedBooking } from "@shared/schema";
+import { formatPhoenixDate } from "@/lib/timezone";
 
 interface Props {
   userId: number;
@@ -94,12 +95,7 @@ export function UserProfile({ userId }: Props) {
                     <div>
                       <h3 className="text-base sm:text-lg font-semibold">{booking.event.title}</h3>
                       <p className="text-sm sm:text-base text-muted-foreground">
-                        {new Date(booking.event.date).toLocaleDateString(undefined, {
-                          weekday: 'long',
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
+                        {formatPhoenixDate(booking.event.date)}
                       </p>
                     </div>
                     <div className="text-left sm:text-right">

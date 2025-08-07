@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Minus, Plus, Users, Calendar, MapPin } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { Event } from "@shared/schema";
+import { formatEventTimes } from "@/lib/timezone";
 
 interface TicketOnlyFlowProps {
   eventId: number;
@@ -83,14 +84,10 @@ export function TicketOnlyFlow({ eventId, onComplete }: TicketOnlyFlowProps) {
           <CardContent className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />
-              {new Date(event.date).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit'
-              })}
+{(() => {
+                const { eventDate, timeDisplay } = formatEventTimes(event.date);
+                return `${eventDate} • ${timeDisplay}`;
+              })()}
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4" />

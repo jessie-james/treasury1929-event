@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { Link2, Calendar, Users, Trash2, Copy } from "lucide-react";
+import { formatPhoenixDateShort } from "@/lib/timezone";
 import {
   Dialog,
   DialogContent,
@@ -294,7 +295,7 @@ export function PrivateEventManager({ eventId, isPrivate }: PrivateEventManagerP
                       {token.maxUses && <span>/ {token.maxUses}</span>}
                       {token.expiresAt && (
                         <span>
-                          Expires: {new Date(token.expiresAt).toLocaleDateString()}
+                          Expires: {formatPhoenixDateShort(token.expiresAt)}
                         </span>
                       )}
                     </div>

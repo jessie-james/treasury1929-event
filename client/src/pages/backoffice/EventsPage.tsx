@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { formatPhoenixDateShort } from "@/lib/timezone";
 
 type SortOption = "display-order" | "date-asc" | "date-desc" | "title-asc" | "title-desc" | "seats-asc" | "seats-desc" | "id-asc" | "id-desc";
 
@@ -201,7 +202,7 @@ export default function EventsPage() {
                       <CardTitle>{event.title}</CardTitle>
                       <CardDescription className="flex items-center gap-1">
                         <CalendarDays className="h-3 w-3" />
-                        {new Date(event.date).toLocaleDateString()}
+                        {formatPhoenixDateShort(event.date)}
                       </CardDescription>
                     </div>
                     <Button 
@@ -265,7 +266,7 @@ export default function EventsPage() {
                                 <h3 className="font-medium">{event.title}</h3>
                                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                                   <CalendarDays className="h-3 w-3" />
-                                  {new Date(event.date).toLocaleDateString('en-US')}
+                                  {formatPhoenixDateShort(event.date)}
                                 </p>
                               </div>
                             </div>

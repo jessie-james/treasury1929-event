@@ -35,6 +35,7 @@ import { Loader2, Pencil, Ban, RefreshCw, DollarSign, MessageSquare, Check, Rota
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { formatPhoenixDateShort } from "@/lib/timezone";
 
 type EnrichedBooking = BookingWithDetails & { 
   foodItems?: FoodOption[];
@@ -285,7 +286,7 @@ export function BookingManagement() {
                 <TableCell>{booking.user.email}</TableCell>
                 <TableCell>{booking.partySize} guests</TableCell>
                 <TableCell>{getStatusBadge(booking.status)}</TableCell>
-                <TableCell>{booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : "N/A"}</TableCell>
+                <TableCell>{booking.createdAt ? formatPhoenixDateShort(booking.createdAt) : "N/A"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button 
@@ -453,7 +454,7 @@ export function BookingManagement() {
             <div className="text-sm text-muted-foreground">
               <p>Customer: {selectedBooking?.user.email}</p>
               <p>Event: {selectedBooking?.event.title}</p>
-              <p>Date: {selectedBooking?.createdAt ? new Date(selectedBooking.createdAt).toLocaleDateString() : "N/A"}</p>
+              <p>Date: {selectedBooking?.createdAt ? formatPhoenixDateShort(selectedBooking.createdAt) : "N/A"}</p>
               <p>Status: {selectedBooking?.status}</p>
             </div>
           </div>

@@ -12,6 +12,7 @@ import { Loader2, ArrowLeft, Download, Users, MapPin, Check, X, AlertTriangle, F
 import { useLocation } from "wouter";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { formatPhoenixDate, formatPhoenixDateShort } from "@/lib/timezone";
 
 interface EventOrder {
   bookingId: number;
@@ -184,12 +185,7 @@ export default function OrdersPage() {
       doc.text(`Food Orders - ${event.title}`, 20, 20);
       
       doc.setFontSize(12);
-      doc.text(`Date: ${new Date(event.date).toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })}`, 20, 30);
+      doc.text(`Date: ${formatPhoenixDate(event.date)}`, 20, 30);
       
       doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 40);
       
@@ -326,12 +322,7 @@ export default function OrdersPage() {
             <div className="flex-1">
               <CardTitle className="text-xl mb-1">{event.title}</CardTitle>
               <CardDescription>
-                {new Date(event.date).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
+                {formatPhoenixDate(event.date)}
               </CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
