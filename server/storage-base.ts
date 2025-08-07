@@ -231,7 +231,28 @@ export class MemStorage implements IStorage {
     return true;
   }
   
-  // Duplicate functions removed - already defined above
+  // Event Methods already defined above - removing duplicates
+
+  // Additional interface methods
+  async changeBookingSeats(bookingId: number, newSeats: any): Promise<any> {
+    return null;
+  }
+
+  async addBookingNote(bookingId: number, note: string): Promise<any> {
+    return null;
+  }
+
+  async getEventCheckInStats(eventId: number): Promise<any> {
+    return { checkedIn: 0, total: 0 };
+  }
+
+  async releaseTableManually(eventId: number, tableId: number): Promise<any> {
+    return null;
+  }
+
+  async getEventOrdersWithDetails(eventId: number): Promise<any[]> {
+    return [];
+  }
   
   // Event Methods
   async getAllEvents(): Promise<Event[]> {
@@ -504,17 +525,7 @@ export class MemStorage implements IStorage {
     return null;
   }
   
-  async createVenue(venueData: any): Promise<number> {
-    return 1;
-  }
-  
-  async updateVenue(id: number, venueData: any): Promise<any> {
-    return null;
-  }
-  
-  async deleteVenue(id: number): Promise<boolean> {
-    return true;
-  }
+  // Venue methods already defined above - duplicates removed
 
   // Stage Methods (stub implementations)
   async getStagesByVenue(venueId: number): Promise<any[]> {

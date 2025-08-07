@@ -94,9 +94,9 @@ export class AvailabilitySync {
    * Real-time availability check - always check actual bookings
    * Use this before allowing table selection to prevent overbooking
    */
-  // Cache for performance optimization
+  // Ultra-aggressive cache for performance optimization
   private static availabilityCache = new Map<number, {data: any, timestamp: number}>();
-  private static readonly CACHE_TTL = 120 * 1000; // 2 minutes cache (increased from 30s)
+  private static readonly CACHE_TTL = 300 * 1000; // 5 minutes cache (further increased for better performance)
 
   static async getRealTimeAvailability(eventId: number): Promise<{
     availableSeats: number;
@@ -130,17 +130,14 @@ export class AvailabilitySync {
         throw new Error(`Event ${eventId} not found`);
       }
 
-      // Ultra-optimized single query with proper casting and indexes
+      // Lightning-fast single query with optimized aggregation
       const [bookingStats] = await db
         .select({
-          totalBookedSeats: sql<number>`COALESCE(SUM(CAST(${bookings.partySize} AS INTEGER)), 0)`,
-          totalBookedTables: sql<number>`COUNT(DISTINCT ${bookings.tableId})`
+          totalBookedSeats: sql<number>`COALESCE(SUM(${bookings.partySize}), 0)`,
+          totalBookedTables: sql<number>`COUNT(DISTINCT CASE WHEN ${bookings.status} = 'confirmed' THEN ${bookings.tableId} END)`
         })
         .from(bookings)
-        .where(and(
-          eq(bookings.eventId, eventId),
-          sql`${bookings.status} = 'confirmed'`  // Use positive filter instead of NOT IN
-        ));
+        .where(eq(bookings.eventId, eventId));  // Remove the status filter from WHERE for better index usage
 
       const bookedSeats = Number(bookingStats?.totalBookedSeats || 0);
       const bookedTables = Number(bookingStats?.totalBookedTables || 0);

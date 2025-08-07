@@ -10,6 +10,7 @@ import {
   json,
   primaryKey,
   unique,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -158,7 +159,12 @@ export const bookings = pgTable("bookings", {
   lockToken: varchar("lock_token", { length: 255 }), // UUID for seat hold locks
   lockExpiry: timestamp("lock_expiry"), // When the lock expires
   version: integer("version").default(1), // For optimistic locking
-});
+}, (table) => ({
+  // Performance indexes for availability queries
+  eventIdIdx: index("idx_bookings_event_id").on(table.eventId),
+  eventStatusIdx: index("idx_bookings_event_status").on(table.eventId, table.status),
+  eventTableIdx: index("idx_bookings_event_table").on(table.eventId, table.tableId),
+}));
 
 // Unique constraint for bookings (one table per event)
 // This constraint helps prevent double-bookings for the same table at an event

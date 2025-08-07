@@ -479,8 +479,22 @@ export async function registerRoutes(app: Express) {
         if (event && table && venue) {
           // Send customer confirmation email
           await EmailService.sendBookingConfirmation({
-            booking: newBooking as any,
-            event,
+            booking: {
+              id: newBooking.id,
+              customerEmail: newBooking.customerEmail,
+              partySize: newBooking.partySize,
+              status: newBooking.status,
+              notes: newBooking.notes || '',
+              stripePaymentId: newBooking.stripePaymentId || '',
+              createdAt: newBooking.createdAt,
+              guestNames: newBooking.guestNames || []
+            },
+            event: {
+              id: event.id,
+              title: event.title,
+              date: event.date,
+              description: event.description || ''
+            },
             table,
             venue
           });
@@ -1069,21 +1083,54 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Real-time availability check endpoint with caching
+  // Ultra-fast availability endpoint with aggressive caching
+  const availabilityCache = new Map<number, {data: any, timestamp: number}>();
+  const ENDPOINT_CACHE_TTL = 60 * 1000; // 1 minute cache at endpoint level
+  
+  // Cache clearing endpoint for testing
+  app.post("/api/admin/clear-availability-cache", async (req, res) => {
+    availabilityCache.clear();
+    // Also clear the AvailabilitySync cache
+    (AvailabilitySync as any).availabilityCache?.clear();
+    res.json({ message: "Availability caches cleared" });
+  });
+  
   app.get("/api/events/:eventId/availability", async (req, res) => {
+    const startTime = Date.now();
     try {
       const eventId = parseInt(req.params.eventId);
       if (isNaN(eventId)) {
         return res.status(400).json({ message: "Invalid event ID" });
       }
 
-      // Set cache headers for 30 seconds
+      // Check endpoint-level cache first (even more aggressive than class-level cache)
+      const cached = availabilityCache.get(eventId);
+      const now = Date.now();
+      if (cached && (now - cached.timestamp) < ENDPOINT_CACHE_TTL) {
+        res.set({
+          'Cache-Control': 'public, max-age=60',
+          'X-Cache': 'HIT'
+        });
+        console.log(`[PERFORMANCE] Availability cache HIT for event ${eventId} - ${Date.now() - startTime}ms`);
+        return res.json(cached.data);
+      }
+
+      // Set cache headers for 1 minute
       res.set({
-        'Cache-Control': 'public, max-age=30',
-        'ETag': `"availability-${eventId}-${Date.now()}"`
+        'Cache-Control': 'public, max-age=60',
+        'X-Cache': 'MISS'
       });
 
       const availability = await AvailabilitySync.getRealTimeAvailability(eventId);
+      
+      // Cache the result at endpoint level
+      availabilityCache.set(eventId, { data: availability, timestamp: now });
+      
+      const duration = Date.now() - startTime;
+      if (duration > 100) {
+        console.log(`[PERFORMANCE] Slow availability request for event ${eventId} - ${duration}ms`);
+      }
+      
       res.json(availability);
     } catch (error) {
       console.error("Error fetching real-time availability:", error);
@@ -2117,10 +2164,10 @@ export async function registerRoutes(app: Express) {
         action: "update_pricing_tier",
         entityType: "event_pricing_tier",
         entityId: tierId,
-        details: {
+        details: JSON.stringify({
           eventId,
           changes: validationResult.data
-        }
+        })
       });
 
       res.json(updatedTier);
@@ -2171,10 +2218,10 @@ export async function registerRoutes(app: Express) {
         action: "delete_pricing_tier",
         entityType: "event_pricing_tier",
         entityId: tierId,
-        details: {
+        details: JSON.stringify({
           eventId,
           tierName: deletedTier.name
-        }
+        })
       });
 
       res.json({ message: "Pricing tier deleted successfully" });
@@ -2474,10 +2521,10 @@ export async function registerRoutes(app: Express) {
         userId: req.user.id,
         action: "view_users",
         entityType: "user",
-        details: {
+        details: JSON.stringify({
           adminEmail: req.user.email,
           timestamp: new Date().toISOString()
-        }
+        })
       });
 
       // Get users and their bookings
@@ -2532,12 +2579,12 @@ export async function registerRoutes(app: Express) {
         action: "create_user",
         entityType: "user",
         entityId: newUser.id,
-        details: {
+        details: JSON.stringify({
           email: newUser.email,
           role: newUser.role,
           createdBy: req.user.email,
           timestamp: new Date().toISOString()
-        }
+        })
       });
 
       // Hide password in response
@@ -2760,13 +2807,13 @@ export async function registerRoutes(app: Express) {
 
       console.log('📅 Creating booking:', JSON.stringify(bookingData, null, 2));
       const newBooking = await storage.createBooking(bookingData);
-      console.log('📅 Booking created successfully:', newBooking.id);
+      console.log('📅 Booking created successfully:', newBooking);
       
       // Send emails if possible
       try {
         const event = await storage.getEventById(bookingData.eventId);
         const table = await storage.getTableById(bookingData.tableId);
-        const venue = await storage.getVenueById(event.venueId);
+        const venue = event ? await storage.getVenueById(event.venueId) : null;
         
         if (event && table && venue) {
           await EmailService.sendBookingConfirmation({
@@ -3269,11 +3316,11 @@ export async function registerRoutes(app: Express) {
         action: "add_booking_note",
         entityType: "booking",
         entityId: bookingId,
-        details: {
+        details: JSON.stringify({
           note: note,
           eventId: originalBooking.eventId,
           customerEmail: originalBooking.customerEmail
-        }
+        })
       });
 
       res.json(updatedBooking);

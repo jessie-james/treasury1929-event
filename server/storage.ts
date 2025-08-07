@@ -94,7 +94,7 @@ export class PgStorage implements IStorage {
 
   async updateUserDietaryPreferences(userId: number, allergens: string[], dietaryRestrictions: string[]): Promise<boolean> {
     const result = await db.update(schema.users)
-      .set({ allergens, dietaryRestrictions })
+      .set({ allergens: allergens as any, dietaryRestrictions: dietaryRestrictions as any })
       .where(eq(schema.users.id, userId));
     return (result.rowCount ?? 0) > 0;
   }
@@ -172,7 +172,7 @@ export class PgStorage implements IStorage {
 
   async deleteVenue(id: number): Promise<boolean> {
     const result = await db.update(schema.venues).set({ isActive: false }).where(eq(schema.venues.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Stage methods
@@ -199,7 +199,7 @@ export class PgStorage implements IStorage {
 
   async deleteStage(id: number): Promise<boolean> {
     const result = await db.update(schema.stages).set({ isActive: false }).where(eq(schema.stages.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Event methods
@@ -230,7 +230,7 @@ export class PgStorage implements IStorage {
 
   async deleteEvent(id: number): Promise<boolean> {
     const result = await db.update(schema.events).set({ isActive: false }).where(eq(schema.events.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Booking methods - Updated for table-based booking
@@ -373,7 +373,7 @@ export class PgStorage implements IStorage {
 
   async deleteBooking(id: number): Promise<boolean> {
     const result = await db.delete(schema.bookings).where(eq(schema.bookings.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getTablesByEventId(eventId: number): Promise<Table[]> {
@@ -442,7 +442,7 @@ export class PgStorage implements IStorage {
     const result = await db.update(schema.tables)
       .set({ status })
       .where(eq(schema.tables.id, tableId));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async releaseTableManually(bookingId: number, modifiedBy: number, reason?: string): Promise<Booking | null> {
@@ -528,7 +528,7 @@ export class PgStorage implements IStorage {
         };
         
         // Calculate 100% refund from booking total amount
-        const refundAmountCents = booking.totalAmount || 0;
+        const refundAmountCents = (booking as any).totalAmount || 0;
         
         await EmailService.sendCancellationEmail(bookingEmailData, refundAmountCents);
       } catch (emailError) {
@@ -644,7 +644,7 @@ export class PgStorage implements IStorage {
 
   async updateTable(id: number, tableData: Partial<Table>): Promise<boolean> {
     const result = await db.update(schema.tables).set(tableData).where(eq(schema.tables.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async deleteTable(id: number): Promise<boolean> {
@@ -676,12 +676,12 @@ export class PgStorage implements IStorage {
 
   async updateSeat(id: number, seatData: Partial<Seat>): Promise<boolean> {
     const result = await db.update(schema.seats).set(seatData).where(eq(schema.seats.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async deleteSeat(id: number): Promise<boolean> {
     const result = await db.delete(schema.seats).where(eq(schema.seats.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Menu methods
@@ -709,12 +709,12 @@ export class PgStorage implements IStorage {
 
   async updateMenuItem(id: number, itemData: Partial<MenuItem>): Promise<boolean> {
     const result = await db.update(schema.menuItems).set(itemData).where(eq(schema.menuItems.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async deleteMenuItem(id: number): Promise<boolean> {
     const result = await db.delete(schema.menuItems).where(eq(schema.menuItems.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Staff methods
@@ -739,12 +739,12 @@ export class PgStorage implements IStorage {
 
   async updateStaffMember(id: number, staffData: Partial<VenueStaff>): Promise<boolean> {
     const result = await db.update(schema.venueStaff).set(staffData).where(eq(schema.venueStaff.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async deleteStaffMember(id: number): Promise<boolean> {
     const result = await db.update(schema.venueStaff).set({ isActive: false }).where(eq(schema.venueStaff.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Utility methods
@@ -845,7 +845,7 @@ export class PgStorage implements IStorage {
 
   async deleteFoodOption(id: number): Promise<boolean> {
     const result = await db.delete(schema.foodOptions).where(eq(schema.foodOptions.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async updateFoodOptionsOrder(orderedIds: number[]): Promise<boolean> {
@@ -926,6 +926,7 @@ export class PgStorage implements IStorage {
     return totals;
   }
 
+  // Single implementation of getEventOrdersWithDetails
   async getEventOrdersWithDetails(eventId: number): Promise<any[]> {
     const bookings = await db.select({
       id: schema.bookings.id,
@@ -1336,14 +1337,14 @@ export class PgStorage implements IStorage {
     const result = await db.update(schema.seatHolds)
       .set({ status: 'expired' })
       .where(eq(schema.seatHolds.id, holdId));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async completeSeatHold(holdId: number): Promise<boolean> {
     const result = await db.update(schema.seatHolds)
       .set({ status: 'completed' })
       .where(eq(schema.seatHolds.id, holdId));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Clean up expired holds periodically
@@ -1354,7 +1355,7 @@ export class PgStorage implements IStorage {
         eq(schema.seatHolds.status, 'active'),
         sql`${schema.seatHolds.holdExpiry} < NOW()`
       ));
-    return result.rowCount;
+    return result.rowCount ?? 0;
   }
 
   // Admin Log methods
