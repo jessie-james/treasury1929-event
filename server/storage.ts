@@ -71,6 +71,21 @@ export class PgStorage implements IStorage {
     return result[0] || null;
   }
 
+  async updateUser(userId: number, updates: Partial<User>): Promise<User | null> {
+    const result = await db.update(schema.users).set(updates).where(eq(schema.users.id, userId)).returning();
+    return result[0] || null;
+  }
+
+  async deleteUser(userId: number): Promise<boolean> {
+    try {
+      await db.delete(schema.users).where(eq(schema.users.id, userId));
+      return true;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      return false;
+    }
+  }
+
   async updateUserPassword(userId: number, hashedPassword: string): Promise<boolean> {
     // Password should already be hashed by the caller
     const result = await db.update(schema.users).set({ password: hashedPassword }).where(eq(schema.users.id, userId));
@@ -1358,6 +1373,76 @@ export class PgStorage implements IStorage {
     return await db.select().from(schema.adminLogs)
       .where(eq(schema.adminLogs.entityType, entityType))
       .orderBy(desc(schema.adminLogs.createdAt));
+  }
+
+  // Missing methods to prevent crashes
+  async updateEventsOrder(orderedIds: number[]): Promise<boolean> {
+    try {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await db.update(schema.events)
+          .set({ displayOrder: i })
+          .where(eq(schema.events.id, orderedIds[i]));
+      }
+      return true;
+    } catch (error) {
+      console.error('Error updating events order:', error);
+      return false;
+    }
+  }
+
+  async getBookingByQRCode(bookingId: number): Promise<Booking | null> {
+    const result = await db.select().from(schema.bookings).where(eq(schema.bookings.id, bookingId)).limit(1);
+    return result[0] || null;
+  }
+
+  async changeBookingSeats(bookingId: number, newTableId: number, newSeats: number[]): Promise<Booking | null> {
+    try {
+      const result = await db.update(schema.bookings)
+        .set({ 
+          tableId: newTableId, 
+          seatNumbers: newSeats,
+          partySize: newSeats.length 
+        })
+        .where(eq(schema.bookings.id, bookingId))
+        .returning();
+      return result[0] || null;
+    } catch (error) {
+      console.error('Error changing booking seats:', error);
+      return null;
+    }
+  }
+
+  async addBookingNote(bookingId: number, note: string): Promise<Booking | null> {
+    try {
+      const result = await db.update(schema.bookings)
+        .set({ notes: note })
+        .where(eq(schema.bookings.id, bookingId))
+        .returning();
+      return result[0] || null;
+    } catch (error) {
+      console.error('Error adding booking note:', error);
+      return null;
+    }
+  }
+
+  async getEventCheckInStats(eventId: number): Promise<any> {
+    try {
+      const bookings = await db.select()
+        .from(schema.bookings)
+        .where(eq(schema.bookings.eventId, eventId));
+      
+      const totalBookings = bookings.length;
+      const checkedIn = bookings.filter(b => b.status === 'checked-in').length;
+      
+      return {
+        totalBookings,
+        checkedIn,
+        remaining: totalBookings - checkedIn
+      };
+    } catch (error) {
+      console.error('Error getting check-in stats:', error);
+      return { totalBookings: 0, checkedIn: 0, remaining: 0 };
+    }
   }
 }
 

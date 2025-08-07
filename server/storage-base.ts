@@ -14,6 +14,8 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | null>;
   createUser(userData: any): Promise<User>;
   updateUserProfile(userId: number, profile: Partial<User>): Promise<User | null>;
+  updateUser(userId: number, updates: Partial<User>): Promise<User | null>;
+  deleteUser(userId: number): Promise<boolean>;
   updateUserPassword(userId: number, newPassword: string): Promise<boolean>;
   updateUserDietaryPreferences(userId: number, allergens: string[], dietaryRestrictions: string[]): Promise<boolean>;
   updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | null>;
@@ -40,6 +42,7 @@ export interface IStorage {
   getEventById(id: number): Promise<Event | null>;
   createEvent(eventData: any): Promise<number>;
   updateEvent(id: number, eventData: Partial<any>): Promise<Event | null>;
+  updateEventsOrder(orderedIds: number[]): Promise<boolean>;
   deleteEvent(id: number): Promise<boolean>;
 
   // Booking methods - Updated for table-based booking
@@ -50,9 +53,13 @@ export interface IStorage {
   getBookingWithDetails(id: number): Promise<BookingWithDetails | null>;
   getAllBookingsWithDetails(): Promise<BookingWithDetails[]>;
   getBookingByPaymentId(paymentId: string): Promise<Booking | null>;
+  getBookingByQRCode(bookingId: number): Promise<Booking | null>;
   createBooking(bookingData: any): Promise<number>;
   updateBooking(id: number, bookingData: Partial<Booking>): Promise<Booking | null>;
+  changeBookingSeats(bookingId: number, newTableId: number, newSeats: number[]): Promise<Booking | null>;
+  addBookingNote(bookingId: number, note: string): Promise<Booking | null>;
   deleteBooking(id: number): Promise<boolean>;
+  getEventCheckInStats(eventId: number): Promise<any>;
   getTablesByEventId(eventId: number): Promise<Table[]>;
   getAvailableTablesByEventId(eventId: number): Promise<Table[]>;
   updateEventAvailability(eventId: number): Promise<boolean>;
