@@ -608,6 +608,91 @@ app.post("/api/test-jose-welcome", async (req, res) => {
   }
 });
 
+// Resend Ayla's confirmation email
+app.post("/api/resend-ayla-confirmation", async (req, res) => {
+  try {
+    const { EmailService } = await import("./email-service");
+    const { storage } = await import("./storage");
+    
+    console.log("🔄 Resending Ayla's confirmation email...");
+    
+    // Find Ayla's most recent booking
+    const aylaBookings = await storage.getUserBookings("ayla@thetreasury1929.com");
+    
+    if (!aylaBookings || aylaBookings.length === 0) {
+      return res.status(404).json({ success: false, message: "No bookings found for Ayla" });
+    }
+    
+    // Get the most recent booking
+    const latestBooking = aylaBookings[0];
+    
+    // Get event, table, and venue details
+    const event = await storage.getEventById(latestBooking.eventId);
+    const table = await storage.getTableById(latestBooking.tableId);
+    const venue = event ? await storage.getVenueById(event.venueId) : null;
+    
+    if (!event || !table || !venue) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Could not retrieve complete booking details" 
+      });
+    }
+    
+    // Prepare booking data for email
+    const emailData = {
+      booking: {
+        id: latestBooking.id.toString(),
+        customerEmail: "ayla@thetreasury1929.com",
+        partySize: latestBooking.partySize,
+        status: latestBooking.status,
+        notes: latestBooking.notes || "",
+        stripePaymentId: latestBooking.stripePaymentId || "",
+        createdAt: new Date(latestBooking.createdAt),
+        guestNames: latestBooking.guestNames || []
+      },
+      event: {
+        id: event.id.toString(),
+        title: event.title,
+        date: new Date(event.date),
+        description: event.description || ""
+      },
+      table: {
+        id: table.id.toString(),
+        tableNumber: table.tableNumber,
+        floor: table.floor,
+        capacity: table.capacity
+      },
+      venue: {
+        id: venue.id.toString(),
+        name: venue.name,
+        address: venue.address || "2 E Congress St, Ste 100"
+      }
+    };
+    
+    const emailSent = await EmailService.sendBookingConfirmation(emailData);
+    
+    if (emailSent) {
+      res.json({ 
+        success: true, 
+        message: `Confirmation email resent to ayla@thetreasury1929.com for booking #${latestBooking.id}`,
+        bookingId: latestBooking.id
+      });
+    } else {
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to send confirmation email" 
+      });
+    }
+    
+  } catch (error) {
+    console.error("Ayla email resend failed:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to resend email: " + (error instanceof Error ? error.message : String(error))
+    });
+  }
+});
+
 // Add DELETE event route early to bypass authentication middleware
 console.log("🔧 Registering DELETE event route BEFORE authentication middleware...");
 app.delete("/api/events/:id", async (req, res) => {
