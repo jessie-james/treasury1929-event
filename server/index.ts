@@ -322,7 +322,7 @@ app.post("/api/demo-emails", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T19:00:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString()
       },
       table: {
         id: 286,
@@ -450,7 +450,7 @@ app.post("/api/test-booking-confirmation", async (req, res) => {
       event: {
         id: 1,
         title: "Candlelight Jazz: Tribute to Ella Fitzgerald",
-        date: "2025-08-11T19:00:00Z"
+        date: "2025-08-14T18:30:00Z"
       },
       table: {
         id: 1,
@@ -504,7 +504,7 @@ app.post("/api/test-jose-booking-confirmation", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T19:00:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString()
       },
       table: { id: 286, tableNumber: 1, floor: "main" },
       venue: { id: 4, name: "Main Floor" }
@@ -535,7 +535,7 @@ app.post("/api/test-jose-cancellation", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T19:00:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString()
       },
       table: { id: 286, tableNumber: 1, floor: "main" },
       venue: { id: 4, name: "Main Floor" }
@@ -566,7 +566,7 @@ app.post("/api/test-jose-venue-cancellation", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T19:00:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString()
       },
       table: { id: 286, tableNumber: 1, floor: "main" },
       venue: { id: 4, name: "Main Floor" }
@@ -597,7 +597,7 @@ app.post("/api/test-jose-reminder", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T19:00:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString()
       },
       table: { id: 286, tableNumber: 1, floor: "main" },
       venue: { id: 4, name: "Main Floor" }
