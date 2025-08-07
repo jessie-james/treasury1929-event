@@ -52,6 +52,36 @@ async function createBookingFromStripeSession(session: any) {
   console.log('Creating booking with validated data:', bookingData);
   const bookingId = await storage.createBooking(bookingData);
   
+  // Send booking confirmation email
+  try {
+    const { EmailService } = await import('./email-service.js');
+    
+    // Get the created booking with full details
+    const createdBooking = await storage.getBookingById(bookingId);
+    const event = await storage.getEventById(eventId);
+    const table = await storage.getTableById(tableId);
+    const venue = await storage.getVenueById(parseInt(metadata.selectedVenue) || 4);
+    
+    if (createdBooking && event && table && venue) {
+      const emailData = {
+        booking: createdBooking,
+        event,
+        table,
+        venue
+      };
+      
+      const emailSent = await EmailService.sendBookingConfirmation(emailData);
+      if (emailSent) {
+        console.log(`✓ Booking confirmation email sent to ${bookingData.customerEmail}`);
+      } else {
+        console.log(`⚠️ Failed to send confirmation email to ${bookingData.customerEmail}`);
+      }
+    }
+  } catch (emailError) {
+    console.error('❌ Error sending booking confirmation email:', emailError);
+    // Don't fail the booking creation if email fails
+  }
+  
   // Immediately sync availability after booking creation
   const { AvailabilitySync } = await import('./availability-sync.js');
   await AvailabilitySync.syncEventAvailability(eventId);
