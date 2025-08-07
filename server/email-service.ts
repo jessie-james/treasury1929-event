@@ -41,7 +41,7 @@ let emailInitialized = false;
 
 export class EmailService {
   private static readonly FROM_EMAIL = 'The Treasury 1929 <info@thetreasury1929.com>';
-  private static readonly ADMIN_EMAIL = 'jose@sahuaroworks.com';
+  private static readonly ADMIN_EMAIL = 'info@thetreasury1929.com';
 
   static async initialize(): Promise<void> {
     const sendgridApiKey = process.env.SENDGRID_API_KEY_NEW;
