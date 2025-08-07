@@ -478,14 +478,12 @@ export async function registerRoutes(app: Express) {
         
         if (event && table && venue) {
           // Send customer confirmation email
-          console.log(`📧 Sending confirmation email to ${bookingData.customerEmail}...`);
           await EmailService.sendBookingConfirmation({
             booking: newBooking as any,
             event,
             table,
             venue
           });
-          console.log(`✅ Confirmation email sent successfully to ${bookingData.customerEmail}`);
           
           // Send admin notification email - method temporarily disabled
           // await EmailService.sendAdminBookingNotification({
@@ -494,8 +492,6 @@ export async function registerRoutes(app: Express) {
           //   table,
           //   venue
           // });
-        } else {
-          console.log(`⚠️  Email not sent - missing data: event=${!!event}, table=${!!table}, venue=${!!venue}`);
         }
       } catch (emailError) {
         console.error('Email notification failed (booking still successful):', emailError);
