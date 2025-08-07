@@ -282,7 +282,33 @@ export default function PaymentSuccessPage() {
                     <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")}
+                        {(() => {
+                          // Format event date and time correctly - same logic as email service
+                          const eventDateObj = new Date(booking.event.date);
+                          const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          });
+                          
+                          // The event date contains the show start time
+                          const showTime = eventDateObj.toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          });
+                          
+                          // Calculate arrival time (45 minutes before show)
+                          const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
+                          const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          });
+                          
+                          return `${eventDateFormatted} • Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
+                        })()}
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
