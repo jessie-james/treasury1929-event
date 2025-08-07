@@ -4745,5 +4745,57 @@ export async function registerRoutes(app: Express) {
   });
 
 
+  // Send manual confirmation email for booking ID 129
+  app.post("/api/admin/send-confirmation/:bookingId", async (req, res) => {
+    try {
+      const bookingId = parseInt(req.params.bookingId);
+      const booking = await storage.getBookingById(bookingId);
+      
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+      
+      const { EmailService } = await import('./email-service.js');
+      const event = await storage.getEventById(booking.eventId);
+      const table = await storage.getTableById(booking.tableId);
+      const venue = await storage.getVenueById(4);
+      
+      if (event && table && venue) {
+        const emailData = {
+          booking: {
+            id: booking.id.toString(),
+            customerEmail: booking.customerEmail,
+            partySize: booking.partySize,
+            status: 'confirmed',
+            stripePaymentId: booking.stripePaymentId,
+            createdAt: booking.createdAt,
+            guestNames: booking.guestNames || []
+          },
+          event,
+          table,
+          venue
+        };
+        
+        const emailSent = await EmailService.sendBookingConfirmation(emailData);
+        
+        res.json({
+          success: true,
+          emailSent,
+          customerEmail: booking.customerEmail,
+          bookingId: booking.id,
+          message: emailSent ? "Confirmation email sent successfully" : "Email failed to send"
+        });
+      } else {
+        res.status(500).json({ error: "Missing booking data for email" });
+      }
+      
+    } catch (error) {
+      console.error("Manual confirmation email failed:", error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : "Email failed"
+      });
+    }
+  });
+
   return httpServer;
 }

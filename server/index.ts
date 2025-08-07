@@ -257,6 +257,60 @@ app.get("/api/stripe/config", (_req, res) => {
   }
 });
 
+// Manual email send for vivacedan@comcast.net booking ID 129
+app.post("/api/send-manual-email", async (req, res) => {
+  try {
+    const { EmailService } = await import("./email-service");
+    
+    // Hard-coded data for vivacedan@comcast.net booking 129
+    const emailData = {
+      booking: {
+        id: "129",
+        customerEmail: "vivacedan@comcast.net",
+        partySize: 1,
+        status: "confirmed",
+        stripePaymentId: "pi_3RsvXkEOOtiAoFkb1dJ4yfPX",
+        createdAt: new Date("2025-08-06T00:49:27.967Z"),
+        guestNames: ["Daniel"]
+      },
+      event: {
+        id: "35",
+        title: "Pianist Sophia Su in Concert with Clarinetist",
+        date: new Date("2025-08-14T18:30:00.000Z"),
+        description: "Dinner Concert Series Premiere at The Treasury 1929"
+      },
+      table: {
+        id: "292",
+        tableNumber: 8,
+        floor: "Main Floor",
+        capacity: 2
+      },
+      venue: {
+        id: "4",
+        name: "The Treasury 1929",
+        address: "2 E Congress St, Ste 100"
+      }
+    };
+    
+    const emailSent = await EmailService.sendBookingConfirmation(emailData);
+    
+    res.json({
+      success: true,
+      emailSent,
+      customerEmail: "vivacedan@comcast.net",
+      bookingId: 129,
+      message: emailSent ? "Manual confirmation email sent to vivacedan@comcast.net" : "Email failed to send"
+    });
+    
+  } catch (error) {
+    console.error("Manual email failed:", error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Email failed"
+    });
+  }
+});
+
 // Email test endpoint for production verification
 app.post("/api/test-email", async (req, res) => {
   try {
