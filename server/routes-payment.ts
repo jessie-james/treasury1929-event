@@ -1010,6 +1010,23 @@ export function registerPaymentRoutes(app: Express) {
         const chargeOrIntent = webhookEvent.data.object;
         console.log(`Refund/dispute event received: ${webhookEvent.type} for ${chargeOrIntent.id}`);
         
+        // Extract refund amount correctly based on webhook type
+        let refundAmount = 0;
+        if (webhookEvent.type === 'charge.refunded' && chargeOrIntent.refunds?.data?.length > 0) {
+          // For charge.refunded, get the amount from the latest refund
+          const latestRefund = chargeOrIntent.refunds.data[0];
+          refundAmount = latestRefund.amount;
+          console.log(`Extracted refund amount from charge.refunded: ${refundAmount} cents ($${(refundAmount/100).toFixed(2)})`);
+        } else if (webhookEvent.type === 'payment_intent.refunded') {
+          // For payment_intent.refunded, use amount_received (total refunded)
+          refundAmount = chargeOrIntent.amount_received || chargeOrIntent.amount_refunded || chargeOrIntent.amount || 0;
+          console.log(`Extracted refund amount from payment_intent.refunded: ${refundAmount} cents ($${(refundAmount/100).toFixed(2)})`);
+        } else {
+          // Fallback for disputes and other events
+          refundAmount = chargeOrIntent.amount_refunded || chargeOrIntent.amount || 0;
+          console.log(`Using fallback refund amount: ${refundAmount} cents ($${(refundAmount/100).toFixed(2)})`);
+        }
+        
         // Find the booking associated with this payment
         let paymentId = '';
         if (webhookEvent.type.includes('payment_intent')) {
@@ -1073,7 +1090,7 @@ export function registerPaymentRoutes(app: Express) {
                   address: '2 E Congress St, Ste 100'
                 },
                 refund: {
-                  amount: chargeOrIntent.amount_refunded || chargeOrIntent.amount || 0,
+                  amount: refundAmount,
                   reason: webhookEvent.type.includes('dispute') ? 'Payment dispute filed' : 'Refund processed',
                   processedAt: new Date(),
                   refundId: chargeOrIntent.id
@@ -1095,7 +1112,8 @@ export function registerPaymentRoutes(app: Express) {
                 paymentId: paymentId,
                 bookingId: booking.id,
                 customerEmail: booking.customerEmail,
-                refundAmount: chargeOrIntent.amount_refunded || chargeOrIntent.amount || 0,
+                refundAmount: refundAmount,
+                refundAmountDollars: (refundAmount / 100).toFixed(2),
                 processedAt: new Date().toISOString(),
                 tableReleased: true
               })
