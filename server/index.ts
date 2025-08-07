@@ -368,7 +368,7 @@ app.post("/api/demo-emails", async (req, res) => {
         event: {
           id: "35",
           title: "Pianist Sophia Su in Concert with Clarinetist",
-          date: new Date('2025-08-14T19:00:00'),
+          date: new Date('2025-08-14T18:30:00'),
           description: "Demo event"
         },
         table: {
