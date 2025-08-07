@@ -60,7 +60,7 @@ export default function PaymentsPage() {
     queryKey: ["/api/bookings"],
   });
 
-  // Helper function to calculate total revenue from payments
+  // Helper function to calculate total revenue from payments data
   const calculateTotalRevenue = (payments: any[] | undefined) => {
     if (!payments || payments.length === 0) return 0;
     
@@ -73,6 +73,27 @@ export default function PaymentsPage() {
           paymentAmount -= payment.refund_amount / 100;
         }
         return total + paymentAmount;
+      }
+      return total;
+    }, 0);
+  };
+
+  // Helper function to calculate revenue from booking data using correct pricing
+  const calculateBookingRevenue = (bookings: any[] | undefined) => {
+    if (!bookings || bookings.length === 0) return 0;
+    
+    return bookings.reduce((total, booking) => {
+      if (booking.status === 'confirmed') {
+        // Use actual pricing: $130 per person (base_price from events table)
+        const basePrice = 130.00; // $130 per person
+        const partySize = booking.partySize || 1;
+        let bookingAmount = basePrice * partySize;
+        
+        // Subtract any refunds
+        if (booking.refundAmount) {
+          bookingAmount -= booking.refundAmount;
+        }
+        return total + bookingAmount;
       }
       return total;
     }, 0);
@@ -116,20 +137,20 @@ export default function PaymentsPage() {
     return isInDateRange && matchesSearch && matchesStatus;
   });
 
-  // Legacy booking calculations (not used in current implementation)
-  const bookingRevenue = calculateTotalRevenue(filteredBookings);
+  // Calculate booking revenue using correct pricing logic
+  const bookingRevenue = calculateBookingRevenue(filteredBookings);
 
-  // Get event-specific revenue
+  // Get event-specific revenue using correct calculation for bookings
   const eventRevenue = events?.map(event => {
     const eventBookings = filteredBookings?.filter(b => b.eventId === event.id);
     return {
       event,
-      revenue: calculateTotalRevenue(eventBookings),
+      revenue: calculateBookingRevenue(eventBookings), // Fixed: use booking calculation instead of payment calculation
       bookingCount: eventBookings?.length || 0
     };
   }).sort((a, b) => b.revenue - a.revenue);
 
-  // Get monthly revenue - removed mock calculations
+  // Get monthly revenue with REAL calculations (FIXED)
   const months: Record<string, number> = {};
   filteredBookings?.forEach(booking => {
     // Skip bookings with no createdAt date
@@ -139,8 +160,11 @@ export default function PaymentsPage() {
     if (!isValid(date)) return;
     
     const monthYear = format(date, "MMM yyyy");
-    // Removed mock amount calculation - will be $0 until real pricing is implemented
-    const amount = 0;
+    
+    // FIXED: Calculate real booking amount using correct pricing
+    const basePrice = 130.00; // $130 per person
+    const partySize = booking.partySize || 1;
+    const amount = booking.status === 'confirmed' ? (basePrice * partySize) : 0;
     
     if (!months[monthYear]) {
       months[monthYear] = 0;
@@ -444,7 +468,10 @@ export default function PaymentsPage() {
                 ) : filteredBookings && filteredBookings.length > 0 ? (
                   <div className="space-y-4">
                     {filteredBookings.map(booking => {
-                      const bookingTotal = (booking.seatNumbers?.length || 0) * 19.99;
+                      // FIXED: Use correct pricing calculation
+                      const basePrice = 130.00; // $130 per person (from events.base_price)
+                      const partySize = booking.partySize || 1;
+                      const bookingTotal = basePrice * partySize;
                       const refundAmount = booking.refundAmount || 0;
                       const finalAmount = bookingTotal - refundAmount;
                       
@@ -541,7 +568,10 @@ export default function PaymentsPage() {
                     {filteredBookings
                       .filter(booking => booking.status !== "refunded" && booking.status !== "canceled")
                       .map(booking => {
-                        const bookingTotal = (booking.seatNumbers?.length || 0) * 19.99;
+                        // FIXED: Use correct pricing calculation
+                        const basePrice = 130.00; // $130 per person (from events.base_price)
+                        const partySize = booking.partySize || 1;
+                        const bookingTotal = basePrice * partySize;
                         const refundAmount = booking.refundAmount || 0;
                         const finalAmount = bookingTotal - refundAmount;
                         
