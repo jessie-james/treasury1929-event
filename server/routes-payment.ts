@@ -367,6 +367,70 @@ export function registerPaymentRoutes(app: Express) {
         // Insert booking into database
         const booking = await storage.createBooking(bookingData);
         
+        // Send booking confirmation email
+        try {
+          const { EmailService } = await import('./email-service');
+          
+          // Get the created booking with full details
+          const createdBooking = await storage.getBooking(booking);
+          const event = await storage.getEventById(parseInt(session.metadata!.eventId));
+          const table = await storage.getTableById(parseInt(session.metadata!.tableId));
+          const venue = await storage.getVenueById(parseInt(session.metadata!.selectedVenue || '4'));
+          
+          if (createdBooking && event && table && venue) {
+            const emailData = {
+              booking: {
+                id: createdBooking.id.toString(),
+                customerEmail: createdBooking.customerEmail,
+                partySize: createdBooking.partySize || 1,
+                status: createdBooking.status,
+                notes: createdBooking.notes || undefined,
+                stripePaymentId: createdBooking.stripePaymentId || undefined,
+                createdAt: createdBooking.createdAt,
+                guestNames: createdBooking.guestNames || []
+              },
+              event: {
+                id: event.id.toString(),
+                title: event.title,
+                date: event.date,
+                description: event.description || ''
+              },
+              table: {
+                id: table.id.toString(),
+                tableNumber: table.tableNumber,
+                floor: table.floor,
+                capacity: table.capacity
+              },
+              venue: {
+                id: venue.id.toString(),
+                name: venue.name,
+                address: '2 E Congress St, Ste 100'
+              }
+            };
+            
+            const emailSent = await EmailService.sendBookingConfirmation(emailData);
+            if (emailSent) {
+              console.log(`✓ SUCCESS: Booking confirmation email sent to ${bookingData.customerEmail}`);
+              console.log(`  Booking ID: ${booking}`);
+              console.log(`  Event: ${event.title}`);
+              console.log(`  Table: ${table.tableNumber}`);
+            } else {
+              console.error(`❌ CRITICAL EMAIL FAILURE: Failed to send confirmation email`);
+              console.error(`  Customer: ${bookingData.customerEmail}`);
+              console.error(`  Booking ID: ${booking}`);
+              console.error(`  Event: ${event.title}`);
+              console.error(`  This customer will NOT receive their ticket!`);
+            }
+          }
+        } catch (emailError) {
+          console.error('❌ CRITICAL ERROR: Booking confirmation email system failure');
+          console.error('  This means customers are not receiving their tickets!');
+          console.error('  Booking was created but email failed');
+          console.error('  Email Error Details:', emailError);
+          console.error('  Time:', new Date().toISOString());
+          // Don't fail the booking creation if email fails, but log extensively
+        }
+        
         // Sync availability after booking creation
         const { AvailabilitySync } = await import('./availability-sync.js');
         await AvailabilitySync.syncEventAvailability(parseInt(session.metadata!.eventId));
