@@ -21,6 +21,7 @@ interface ExtendedBooking {
   partySize: number | null;
   guestNames: Record<string, string> | null;
   foodSelections: any[] | null;
+  wineSelections: any[] | null;
   customerEmail: string;
   stripePaymentId: string | null;
   createdAt: string | Date | null;
@@ -127,7 +128,7 @@ export default function UsersPage() {
   const filteredUsers = useMemo(() => {
     if (!users) return [];
     
-    let result = users.filter((user: UserWithBookings) => {
+    let result = Array.isArray(users) ? users.filter((user: UserWithBookings) => {
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         const matchesEmail = user.email.toLowerCase().includes(searchLower);
@@ -144,7 +145,7 @@ export default function UsersPage() {
         }
       }
       return true;
-    });
+    }) : [];
 
     // Sort the users
     result.sort((a: UserWithBookings, b: UserWithBookings) => {
@@ -195,7 +196,7 @@ export default function UsersPage() {
     );
   }
 
-  if (!users?.length) {
+  if (!Array.isArray(users) || !users.length) {
     return (
       <BackofficeLayout>
         <div className="text-center py-8">
@@ -354,43 +355,88 @@ export default function UsersPage() {
                               <div>
                                 <h4 className="font-medium mb-2 text-sm sm:text-base">Food Selections</h4>
                                 <div className="grid grid-cols-1 gap-2">
-                                  {booking.foodSelections.map((selection: any, index: number) => {
-                                    // If it's just an ID (number), map it to food option
-                                    if (typeof selection === 'number' && foodOptions) {
-                                      const foodOption = foodOptions.find((f: any) => f.id === selection);
+                                  {booking.foodSelections.map((guestSelection: any, guestIndex: number) => {
+                                    // Handle the typical structure: object with salad, entree, dessert keys
+                                    if (typeof guestSelection === 'object' && guestSelection !== null) {
+                                      const courses = ['salad', 'entree', 'dessert'];
+                                      const hasCourses = courses.some(course => guestSelection[course]);
+                                      
+                                      if (hasCourses) {
+                                        return (
+                                          <div key={guestIndex} className="text-xs sm:text-sm p-3 bg-muted rounded border-l-4 border-blue-200">
+                                            <div className="font-medium mb-2">Guest {guestIndex + 1} {guestSelection.guestName ? `(${guestSelection.guestName})` : ''}</div>
+                                            <div className="space-y-1">
+                                              {courses.map(course => {
+                                                const courseSelection = guestSelection[course];
+                                                if (!courseSelection) return null;
+                                                
+                                                // If it's a number (ID), find the food option
+                                                if (typeof courseSelection === 'number' && Array.isArray(foodOptions)) {
+                                                  const foodOption = foodOptions.find((f: any) => f.id === courseSelection);
+                                                  return (
+                                                    <div key={course} className="flex items-center gap-2">
+                                                      <Badge variant="outline" className="capitalize text-xs">{course}</Badge>
+                                                      <span>{foodOption?.name || `Item ${courseSelection}`}</span>
+                                                    </div>
+                                                  );
+                                                }
+                                                
+                                                // If it's an object with name/id
+                                                if (typeof courseSelection === 'object' && courseSelection.name) {
+                                                  return (
+                                                    <div key={course} className="flex items-center gap-2">
+                                                      <Badge variant="outline" className="capitalize text-xs">{course}</Badge>
+                                                      <span>{courseSelection.name}</span>
+                                                    </div>
+                                                  );
+                                                }
+                                                
+                                                // If it's a string (name directly)
+                                                if (typeof courseSelection === 'string') {
+                                                  return (
+                                                    <div key={course} className="flex items-center gap-2">
+                                                      <Badge variant="outline" className="capitalize text-xs">{course}</Badge>
+                                                      <span>{courseSelection}</span>
+                                                    </div>
+                                                  );
+                                                }
+                                                
+                                                return null;
+                                              })}
+                                            </div>
+                                          </div>
+                                        );
+                                      }
+                                      
+                                      // Handle other object formats
                                       return (
-                                        <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
-                                          <div className="font-medium">{foodOption?.name || `Food Item ${selection}`}</div>
+                                        <div key={guestIndex} className="text-xs sm:text-sm p-2 bg-muted rounded">
+                                          <div className="font-medium">{guestSelection.name || guestSelection.title || `Selection ${guestIndex + 1}`}</div>
+                                          {guestSelection.description && (
+                                            <div className="text-muted-foreground mt-1">{guestSelection.description}</div>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+                                    
+                                    // Handle if it's just an ID (number)
+                                    if (typeof guestSelection === 'number' && Array.isArray(foodOptions)) {
+                                      const foodOption = foodOptions.find((f: any) => f.id === guestSelection);
+                                      return (
+                                        <div key={guestIndex} className="text-xs sm:text-sm p-2 bg-muted rounded">
+                                          <div className="font-medium">{foodOption?.name || `Food Item ${guestSelection}`}</div>
                                           {foodOption?.description && (
                                             <div className="text-muted-foreground mt-1">{foodOption.description}</div>
                                           )}
-                                          {foodOption?.type && (
-                                            <Badge variant="outline" className="mt-1 text-xs">{foodOption.type}</Badge>
-                                          )}
                                         </div>
                                       );
                                     }
-                                    // If it's an object with more details
-                                    if (typeof selection === 'object' && selection !== null) {
-                                      return (
-                                        <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
-                                          <div className="font-medium">{selection.name || selection.title || `Selection ${index + 1}`}</div>
-                                          {selection.description && (
-                                            <div className="text-muted-foreground mt-1">{selection.description}</div>
-                                          )}
-                                          {selection.type && (
-                                            <Badge variant="outline" className="mt-1 text-xs">{selection.type}</Badge>
-                                          )}
-                                          {selection.quantity && selection.quantity > 1 && (
-                                            <span className="text-muted-foreground"> (×{selection.quantity})</span>
-                                          )}
-                                        </div>
-                                      );
-                                    }
-                                    // Fallback for unknown format
+                                    
+                                    // Fallback for unknown format - show raw data for debugging
                                     return (
-                                      <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
-                                        <span>Selection {index + 1}: {JSON.stringify(selection)}</span>
+                                      <div key={guestIndex} className="text-xs sm:text-sm p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                        <span className="font-medium">Debug - Selection {guestIndex + 1}:</span>
+                                        <pre className="mt-1 text-xs overflow-auto">{JSON.stringify(guestSelection, null, 2)}</pre>
                                       </div>
                                     );
                                   })}
@@ -404,7 +450,7 @@ export default function UsersPage() {
                                 <div className="grid grid-cols-1 gap-2">
                                   {booking.wineSelections.map((selection: any, index: number) => {
                                     // If it's just an ID (number), map it to food option (wine type)
-                                    if (typeof selection === 'number' && foodOptions) {
+                                    if (typeof selection === 'number' && Array.isArray(foodOptions)) {
                                       const wineOption = foodOptions.find((f: any) => f.id === selection);
                                       return (
                                         <div key={index} className="text-xs sm:text-sm p-2 bg-muted rounded">
