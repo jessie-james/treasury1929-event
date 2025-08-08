@@ -66,11 +66,18 @@ export function setupAuth(app: Express) {
   // Use secure random secret instead of hardcoded value
   const sessionSecret = process.env.SESSION_SECRET || randomBytes(32).toString('hex');
   
-  // Configure session store (errorCallback is not in the type definition but is supported)
+  // Configure session store with better error handling
   const sessionStore = new PostgresSessionStore({
     pool: pool,
     createTableIfMissing: true,
-    // Custom error logging without using the errorCallback option
+    tableName: 'sessions',
+    schemaName: 'public'
+  });
+  
+  // Test session store - add error logging
+  console.log('✓ Session store configured');
+  sessionStore.on('connect', () => {
+    console.log('✓ Session store connected to PostgreSQL');
   });
   
   // Attach error handler to the store's events
@@ -192,9 +199,16 @@ export function setupAuth(app: Express) {
 
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log(`Deserializing user with ID: ${id}`);
       const user = await storage.getUserById(id);
+      if (!user) {
+        console.log(`User with ID ${id} not found during deserialization`);
+        return done(null, false);
+      }
+      console.log(`User deserialized successfully: ${user.email}`);
       done(null, user);
     } catch (error) {
+      console.error(`Error deserializing user ${id}:`, error);
       done(error);
     }
   });
@@ -281,8 +295,8 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", async (req, res, next) => {
-    console.log("Login attempt for:", req.body.email);
+  app.post("/api/auth/login", async (req, res, next) => {
+    console.log("🔐 LOGIN REQUEST for:", req.body.email);
 
     passport.authenticate("local", async (err: any, user: User | false) => {
       if (err) {
@@ -299,10 +313,10 @@ export function setupAuth(app: Express) {
             }
           });
         }
-        return next(err);
+        return res.status(500).json({ message: "Authentication system error" });
       }
       if (!user) {
-        console.log("Authentication failed");
+        console.log("Authentication failed for:", req.body.email);
         // Log failed login with invalid credentials
         if (req.body.email) {
           await safeCreateAdminLog({
@@ -315,12 +329,12 @@ export function setupAuth(app: Express) {
             }
           });
         }
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401).json({ message: "Invalid email or password" });
       }
 
       req.login(user, async (err) => {
         if (err) {
-          console.error("Login error:", err);
+          console.error("Login session creation error:", err);
           // Log failed login during session creation
           await safeCreateAdminLog({
             userId: user.id,
@@ -331,9 +345,9 @@ export function setupAuth(app: Express) {
               error: err.message || "Session error"
             }
           });
-          return next(err);
+          return res.status(500).json({ message: "Session creation failed" });
         }
-        console.log("Login successful for user:", user.email);
+        console.log("✅ Login successful for user:", user.email, "ID:", user.id);
         
         // Log successful login
         if (user.role !== 'customer') {
@@ -348,12 +362,26 @@ export function setupAuth(app: Express) {
           });
         }
         
-        res.json(user);
+        // Remove password before sending response
+        const userResponse = { ...user };
+        if ('password' in userResponse) {
+          delete userResponse.password;
+        }
+        
+        res.json(userResponse);
       });
     })(req, res, next);
   });
 
-  app.post("/api/logout", async (req, res) => {
+  // Also register the old route for backwards compatibility
+  app.post("/api/login", async (req, res, next) => {
+    // Redirect to new auth route
+    req.url = '/api/auth/login';
+    return app._router.handle(req, res, next);
+  });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    console.log("🚪 LOGOUT REQUEST");
     // Only log logout for admin users
     if (req.isAuthenticated() && req.user && req.user.role !== 'customer') {
       const user = req.user as User;
@@ -369,8 +397,15 @@ export function setupAuth(app: Express) {
     }
     
     req.logout(() => {
-      res.sendStatus(200);
+      console.log("✅ Logout completed");
+      res.json({ message: "Logged out successfully" });
     });
+  });
+
+  // Backwards compatibility
+  app.post("/api/logout", async (req, res, next) => {
+    req.url = '/api/auth/logout';
+    return app._router.handle(req, res, next);
   });
 
   // Enhanced user endpoint with better debugging and fallback auth
@@ -379,6 +414,7 @@ export function setupAuth(app: Express) {
       isAuthenticated: req.isAuthenticated(),
       hasUser: !!req.user,
       sessionID: req.sessionID,
+      userEmail: req.user?.email,
       cookies: req.headers.cookie
     });
     
@@ -390,8 +426,28 @@ export function setupAuth(app: Express) {
       return res.json(userObj);
     }
     
-    // Return 204 instead of 401 to prevent unhandled promise rejections
-    return res.status(204).send();
+    // Return 401 for unauthenticated users
+    return res.status(401).json({ message: "Not authenticated" });
+  });
+
+  // Auth me endpoint (alternative to /api/user)
+  app.get("/api/auth/me", (req, res) => {
+    console.log("Auth me endpoint check:", {
+      isAuthenticated: req.isAuthenticated(),
+      hasUser: !!req.user,
+      sessionID: req.sessionID,
+      userEmail: req.user?.email
+    });
+    
+    if (req.isAuthenticated() && req.user) {
+      const userObj = { ...req.user };
+      if ('password' in userObj) {
+        delete userObj.password;
+      }
+      return res.json(userObj);
+    }
+    
+    return res.status(401).json({ message: "Not authenticated" });
   });
   
 

@@ -838,9 +838,17 @@ app.use((req, res, next) => {
   try {
     log("Starting server initialization...");
 
-    // Set up authentication with our deployment-compatible options
+    // CRITICAL: Set up authentication FIRST before any other middleware
     log("Setting up authentication...");
     setupAuth(app);
+    
+    // Immediately test basic auth routes
+    app.get("/api/auth/test", (req, res) => {
+      res.json({ 
+        message: "Auth routes working", 
+        isAuthenticated: req.isAuthenticated ? req.isAuthenticated() : false 
+      });
+    });
     
     // CRITICAL: Register ALL API routes BEFORE Vite middleware
     log("Setting up routes...");

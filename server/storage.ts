@@ -49,8 +49,15 @@ export class PgStorage implements IStorage {
   }
 
   async getUserById(id: number): Promise<User | null> {
+    console.log(`Storage: Looking up user with ID ${id}`);
     const result = await db.select().from(schema.users).where(eq(schema.users.id, id));
-    return result[0] || null;
+    const user = result[0] || null;
+    if (user) {
+      console.log(`Storage: Found user ${user.email} (ID: ${user.id})`);
+    } else {
+      console.log(`Storage: No user found with ID ${id}`);
+    }
+    return user;
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
