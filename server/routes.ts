@@ -3552,15 +3552,16 @@ export async function registerRoutes(app: Express) {
       //   return res.status(401).json({ message: "Unauthorized" });
       // }
 
-      // Get actual payment data from bookings table where real Stripe data is stored
+      // Get actual payment data from bookings table using REAL Stripe amounts
       const paymentsData = await db.execute(sql`
         SELECT 
           b.id,
           b.id as booking_id,
           b.stripe_payment_id,
-          -- Calculate amount based on party size and base price ($130/person)
+          -- Use actual Stripe charged amount (stored from session.amount_total)
           CASE 
             WHEN b.stripe_payment_id LIKE 'pi_test%' THEN 0 
+            WHEN b.amount IS NOT NULL THEN b.amount
             ELSE COALESCE(b.party_size, 1) * COALESCE(e.base_price, 13000)
           END as amount,
           'usd' as currency,

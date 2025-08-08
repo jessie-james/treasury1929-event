@@ -140,6 +140,7 @@ export const bookings = pgTable("bookings", {
   foodSelections: json("food_selections").$type<any[]>().default([]),
   customerEmail: varchar("customer_email", { length: 255 }).notNull(),
   stripePaymentId: varchar("stripe_payment_id", { length: 255 }),
+  amount: integer("amount"), // Actual Stripe charged amount in cents
   createdAt: timestamp("created_at").defaultNow().notNull(),
   status: varchar("status", { length: 50 }).default("pending").notNull(),
   notes: text("notes"),
