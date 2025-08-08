@@ -3560,13 +3560,23 @@ export async function registerRoutes(app: Express) {
           b.stripe_payment_id,
           -- Use actual Stripe charged amount (stored from session.amount_total)
           CASE 
-            WHEN b.stripe_payment_id LIKE 'pi_test%' THEN 0 
+            WHEN b.stripe_payment_id LIKE 'pi_test%' OR 
+                 b.stripe_payment_id LIKE 'pi_athena%' OR 
+                 b.stripe_payment_id LIKE 'pi_post_restart%' OR 
+                 b.stripe_payment_id LIKE 'pi_customer_email_test%' OR 
+                 b.stripe_payment_id LIKE 'pi_final%' OR 
+                 b.stripe_payment_id LIKE 'test_booking%' THEN 0 
             WHEN b.amount IS NOT NULL THEN b.amount
             ELSE COALESCE(b.party_size, 1) * COALESCE(e.base_price, 13000)
           END as amount,
           'usd' as currency,
           CASE 
-            WHEN b.stripe_payment_id LIKE 'pi_test%' THEN 'test_payment'
+            WHEN b.stripe_payment_id LIKE 'pi_test%' OR 
+                 b.stripe_payment_id LIKE 'pi_athena%' OR 
+                 b.stripe_payment_id LIKE 'pi_post_restart%' OR 
+                 b.stripe_payment_id LIKE 'pi_customer_email_test%' OR 
+                 b.stripe_payment_id LIKE 'pi_final%' OR 
+                 b.stripe_payment_id LIKE 'test_booking%' THEN 'test_payment'
             WHEN b.status = 'confirmed' THEN 'succeeded'
             WHEN b.status = 'refunded' THEN 'refunded'
             ELSE b.status
@@ -3585,6 +3595,14 @@ export async function registerRoutes(app: Express) {
         LEFT JOIN events e ON b.event_id = e.id
         WHERE b.status IN ('confirmed', 'refunded')  -- Include confirmed and refunded for complete picture
           AND b.stripe_payment_id IS NOT NULL  -- Only bookings with actual payment IDs
+          AND NOT (
+            b.stripe_payment_id LIKE 'pi_test%' OR 
+            b.stripe_payment_id LIKE 'pi_athena%' OR 
+            b.stripe_payment_id LIKE 'pi_post_restart%' OR 
+            b.stripe_payment_id LIKE 'pi_customer_email_test%' OR 
+            b.stripe_payment_id LIKE 'pi_final%' OR 
+            b.stripe_payment_id LIKE 'test_booking%'
+          )  -- Exclude ALL test payments from revenue calculations
         
         ORDER BY b.created_at DESC
       `);
@@ -3737,12 +3755,20 @@ export async function registerRoutes(app: Express) {
       console.log(`📊 Found ${allBookings.length} total bookings with Stripe payment IDs`);
       
       // Filter for bookings that need syncing (missing amounts, non-test payments)
-      const bookingsToSync = allBookings.filter(booking => 
-        !booking.amount && 
-        !booking.stripe_payment_id.startsWith('pi_test') && 
-        !booking.stripe_payment_id.startsWith('pi_athena') &&
-        !booking.stripe_payment_id.startsWith('pi_post_restart')
-      );
+      const bookingsToSync = allBookings.filter(booking => {
+        const paymentId = booking.stripe_payment_id;
+        const isTestPayment = 
+          paymentId.startsWith('pi_test') || 
+          paymentId.startsWith('pi_athena') ||
+          paymentId.startsWith('pi_post_restart') ||
+          paymentId.includes('_test') ||
+          paymentId.includes('customer_email_test') ||
+          paymentId.includes('final_test') ||
+          paymentId.includes('final_comprehensive') ||
+          paymentId.startsWith('test_booking');
+        
+        return !booking.amount && !isTestPayment;
+      });
       
       const testBookings = allBookings.filter(booking => 
         booking.stripe_payment_id.startsWith('pi_test') || 
