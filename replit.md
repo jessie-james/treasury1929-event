@@ -6,6 +6,12 @@ This project is a mobile-first event venue booking platform for live entertainme
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes (August 8, 2025)
+- **Authentication System Fixed**: Resolved critical session deserialization issue that was preventing user logins
+- **Ayla Customer Account**: Confirmed working with password "ayla123" (customer role, not admin)
+- **Session Management**: Fixed PostgreSQL session store configuration and passport middleware ordering
+- **Middleware Order**: Ensured authentication routes register before Vite middleware to prevent HTML responses on API endpoints
+
 ## System Architecture
 
 ### Frontend
