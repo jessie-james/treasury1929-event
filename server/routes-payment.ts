@@ -132,10 +132,14 @@ export function registerPaymentRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const { eventId, tableId, selectedSeats, amount, foodSelections, wineSelections, guestNames, selectedVenue } = req.body;
+      const { eventId, tableId, selectedSeats, amount, foodSelections, wineSelections, guestNames, selectedVenue, partySize } = req.body;
+      
+      // Use selectedSeats or derive from partySize, and calculate amount if not provided
+      const seats = selectedSeats || Array.from({length: partySize || 2}, (_, i) => i + 1);
+      const calculatedAmount = amount || (seats.length * 13000); // $130 per person in cents
       
       // Validate input
-      if (!eventId || !tableId || !selectedSeats || !amount) {
+      if (!eventId || !tableId || (!selectedSeats && !partySize)) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
@@ -168,9 +172,9 @@ export function registerPaymentRoutes(app: Express) {
               currency: 'usd',
               product_data: {
                 name: `${event.title} - Table ${table.tableNumber}`,
-                description: `${eventDateFormatted} | ${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''} | ${table.floor}`,
+                description: `${eventDateFormatted} | ${seats.length} seat${seats.length > 1 ? 's' : ''} | ${table.floor}`,
               },
-              unit_amount: amount, // total amount in cents - no division needed
+              unit_amount: calculatedAmount, // total amount in cents - no division needed
             },
             quantity: 1, // quantity is always 1 since amount is already the total
           },
@@ -182,7 +186,7 @@ export function registerPaymentRoutes(app: Express) {
           eventId: eventId.toString(),
           tableId: tableId.toString(),
           userId: req.user.id.toString(),
-          seats: selectedSeats.join(','),
+          seats: seats.join(','),
           foodSelections: JSON.stringify(foodSelections || []),
           wineSelections: JSON.stringify(wineSelections || []),
           guestNames: JSON.stringify(guestNames || {}),
