@@ -2568,7 +2568,9 @@ export async function registerRoutes(app: Express) {
       // Check each booking for refunds in Stripe
       for (const booking of bookingsWithPayments) {
         try {
+          console.log(`Checking booking #${booking.id} (table ${booking.tableId}) with payment ID: ${booking.stripePaymentId}`);
           const paymentIntent = await stripe.paymentIntents.retrieve(booking.stripePaymentId!);
+          console.log(`Payment intent for booking #${booking.id}: amount_refunded=${paymentIntent.amount_refunded}`);
           
           if (paymentIntent.amount_refunded && paymentIntent.amount_refunded > 0) {
             // This booking has been refunded in Stripe
