@@ -283,9 +283,15 @@ export default function PaymentSuccessPage() {
                     <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-{(() => {
-                          const { eventDate, timeDisplay } = formatEventTimes(booking.event.date);
-                          return `${eventDate} • ${timeDisplay}`;
+                        {(() => {
+                          try {
+                            if (!booking.event?.date) return 'Date TBD';
+                            const { eventDate, timeDisplay } = formatEventTimes(booking.event.date);
+                            return `${eventDate} • ${timeDisplay}`;
+                          } catch (error) {
+                            console.error('Date formatting error:', error);
+                            return 'Date formatting error';
+                          }
                         })()}
                       </div>
                       <div className="flex items-center gap-1">

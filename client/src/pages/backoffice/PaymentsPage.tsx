@@ -513,7 +513,7 @@ export default function PaymentsPage() {
                       .filter(booking => booking.amount && booking.amount > 0) // Only show bookings with Stripe amounts
                       .map(booking => {
                       // Use ONLY actual Stripe amount (no fallback calculations)
-                      const bookingTotal = booking.amount / 100; // Convert from cents to dollars
+                      const bookingTotal = (booking.amount || 0) / 100; // Convert from cents to dollars
                       const refundAmount = (booking.refundAmount || 0) / 100; // Convert refund from cents to dollars
                       const finalAmount = bookingTotal - refundAmount;
                       

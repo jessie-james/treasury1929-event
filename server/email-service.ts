@@ -44,10 +44,10 @@ export class EmailService {
   private static readonly ADMIN_EMAIL = 'info@thetreasury1929.com';
 
   static async initialize(): Promise<void> {
-    const sendgridApiKey = process.env.SENDGRID_API_KEY_NEW;
+    const sendgridApiKey = process.env.SENDGRID_API_KEY;
     
     if (!sendgridApiKey) {
-      console.log('⚠️  No SENDGRID_API_KEY_NEW found - email service disabled');
+      console.log('⚠️  No SENDGRID_API_KEY found - email service disabled');
       return;
     }
     
