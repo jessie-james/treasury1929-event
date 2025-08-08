@@ -3725,23 +3725,42 @@ export async function registerRoutes(app: Express) {
 
       console.log("🔍 Starting Stripe payment amounts sync...");
 
-      // Find all bookings with Stripe payment IDs but missing amounts
-      const bookingsToSync = await db.execute(sql`
-        SELECT id, stripe_payment_id, party_size, customer_email
+      // Find ALL bookings with Stripe payment IDs (including test payments for better feedback)
+      const allBookingsQuery = await db.execute(sql`
+        SELECT id, stripe_payment_id, amount, party_size, customer_email, status
         FROM bookings 
         WHERE stripe_payment_id IS NOT NULL 
-        AND amount IS NULL
-        AND stripe_payment_id NOT LIKE 'pi_test%'
         ORDER BY created_at DESC
       `);
+      
+      const allBookings = allBookingsQuery.rows as any[];
+      console.log(`📊 Found ${allBookings.length} total bookings with Stripe payment IDs`);
+      
+      // Filter for bookings that need syncing (missing amounts, non-test payments)
+      const bookingsToSync = allBookings.filter(booking => 
+        !booking.amount && 
+        !booking.stripe_payment_id.startsWith('pi_test') && 
+        !booking.stripe_payment_id.startsWith('pi_athena') &&
+        !booking.stripe_payment_id.startsWith('pi_post_restart')
+      );
+      
+      const testBookings = allBookings.filter(booking => 
+        booking.stripe_payment_id.startsWith('pi_test') || 
+        booking.stripe_payment_id.startsWith('pi_athena') ||
+        booking.stripe_payment_id.startsWith('pi_post_restart')
+      );
+      
+      const alreadySynced = allBookings.filter(booking => booking.amount > 0);
+      
+      console.log(`📊 Breakdown: ${bookingsToSync.length} need sync, ${testBookings.length} test payments, ${alreadySynced.length} already synced`);
 
-      const bookings = bookingsToSync.rows as any[];
-      console.log(`📊 Found ${bookings.length} bookings to sync with Stripe`);
-
-      if (bookings.length === 0) {
+      if (bookingsToSync.length === 0) {
         return res.json({
           success: true,
-          message: "No bookings need syncing - all amounts are already populated",
+          message: `No real payments need syncing. Found ${alreadySynced.length} already synced, ${testBookings.length} test payments.`,
+          totalFound: allBookings.length,
+          alreadySynced: alreadySynced.length,
+          testPayments: testBookings.length,
           synced: 0,
           errors: []
         });
@@ -3752,8 +3771,8 @@ export async function registerRoutes(app: Express) {
         errors: [] as string[]
       };
 
-      // Process each booking
-      for (const booking of bookings) {
+      // Process each booking that needs syncing
+      for (const booking of bookingsToSync) {
         try {
           console.log(`🔍 Syncing payment ${booking.stripe_payment_id} for booking ${booking.id}`);
           
@@ -3786,8 +3805,11 @@ export async function registerRoutes(app: Express) {
 
       res.json({
         success: true,
-        message: `Successfully synced ${syncResults.synced} payment amounts from Stripe`,
-        totalFound: bookings.length,
+        message: `Successfully synced ${syncResults.synced} payment amounts from Stripe. ${alreadySynced.length} were already synced, ${testBookings.length} test payments skipped.`,
+        totalFound: allBookings.length,
+        needingSync: bookingsToSync.length,
+        alreadySynced: alreadySynced.length,
+        testPayments: testBookings.length,
         synced: syncResults.synced,
         errors: syncResults.errors
       });
