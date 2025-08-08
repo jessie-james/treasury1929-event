@@ -3709,6 +3709,98 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Admin endpoint to sync payment amounts from Stripe
+  app.post("/api/admin/sync-stripe-amounts", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || !["admin", "venue_owner"].includes(req.user?.role || "")) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ 
+          message: "Stripe not initialized", 
+          error: "Cannot sync payment amounts without Stripe connection" 
+        });
+      }
+
+      console.log("🔍 Starting Stripe payment amounts sync...");
+
+      // Find all bookings with Stripe payment IDs but missing amounts
+      const bookingsToSync = await db.execute(sql`
+        SELECT id, stripe_payment_id, party_size, customer_email
+        FROM bookings 
+        WHERE stripe_payment_id IS NOT NULL 
+        AND amount IS NULL
+        AND stripe_payment_id NOT LIKE 'pi_test%'
+        ORDER BY created_at DESC
+      `);
+
+      const bookings = bookingsToSync.rows as any[];
+      console.log(`📊 Found ${bookings.length} bookings to sync with Stripe`);
+
+      if (bookings.length === 0) {
+        return res.json({
+          success: true,
+          message: "No bookings need syncing - all amounts are already populated",
+          synced: 0,
+          errors: []
+        });
+      }
+
+      const syncResults = {
+        synced: 0,
+        errors: [] as string[]
+      };
+
+      // Process each booking
+      for (const booking of bookings) {
+        try {
+          console.log(`🔍 Syncing payment ${booking.stripe_payment_id} for booking ${booking.id}`);
+          
+          // Get payment intent from Stripe
+          const paymentIntent = await stripe.paymentIntents.retrieve(booking.stripe_payment_id);
+          
+          if (paymentIntent && paymentIntent.status === 'succeeded') {
+            // Update booking with actual Stripe amount
+            await db.execute(sql`
+              UPDATE bookings 
+              SET amount = ${paymentIntent.amount}
+              WHERE id = ${booking.id}
+            `);
+            
+            syncResults.synced++;
+            console.log(`✅ Updated booking ${booking.id}: $${paymentIntent.amount / 100} (${paymentIntent.amount} cents)`);
+          } else {
+            const errorMsg = `Payment ${booking.stripe_payment_id} not succeeded (status: ${paymentIntent?.status})`;
+            syncResults.errors.push(errorMsg);
+            console.log(`⚠️ ${errorMsg}`);
+          }
+        } catch (paymentError: any) {
+          const errorMsg = `Failed to sync booking ${booking.id} (${booking.stripe_payment_id}): ${paymentError.message}`;
+          syncResults.errors.push(errorMsg);
+          console.error(`❌ ${errorMsg}`);
+        }
+      }
+
+      console.log(`📈 Sync complete: ${syncResults.synced} synced, ${syncResults.errors.length} errors`);
+
+      res.json({
+        success: true,
+        message: `Successfully synced ${syncResults.synced} payment amounts from Stripe`,
+        totalFound: bookings.length,
+        synced: syncResults.synced,
+        errors: syncResults.errors
+      });
+
+    } catch (error) {
+      console.error("❌ Error syncing Stripe amounts:", error);
+      res.status(500).json({ 
+        message: "Failed to sync Stripe amounts",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Add these routes after the existing event routes
   app.post("/api/food-options", async (req, res) => {
     try {

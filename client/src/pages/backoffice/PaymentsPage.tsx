@@ -27,12 +27,14 @@ import { apiRequest } from "@/lib/queryClient";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 export default function PaymentsPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [syncing, setSyncing] = useState(false);
   const [dateRange, setDateRange] = useState({
     start: subMonths(new Date(), 1),
     end: new Date()
@@ -232,6 +234,39 @@ export default function PaymentsPage() {
     }
   };
 
+  // Sync payment amounts with Stripe
+  const handleStripeSync = async () => {
+    setSyncing(true);
+    try {
+      const response = await apiRequest("POST", "/api/admin/sync-stripe-amounts", {});
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Stripe sync successful",
+          description: `${result.synced} payment amounts updated from Stripe`,
+        });
+        // Refresh payment data
+        await queryClient.invalidateQueries({ queryKey: ["/api/admin/payments"] });
+        await queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      } else {
+        toast({
+          title: "Stripe sync failed",
+          description: result.message || "An error occurred",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Stripe sync failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <BackofficeLayout>
       <div className="space-y-6">
@@ -244,6 +279,15 @@ export default function PaymentsPage() {
           </div>
           
           <div className="flex items-center gap-2">
+            <Button 
+              onClick={handleStripeSync}
+              disabled={syncing}
+              variant="outline"
+              className="mr-2"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? "Syncing..." : "Sync with Stripe"}
+            </Button>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
