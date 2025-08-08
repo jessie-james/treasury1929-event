@@ -2531,7 +2531,7 @@ export async function registerRoutes(app: Express) {
       const users = await storage.getAllUsers();
       const allBookings = await storage.getAllBookingsWithDetails();
 
-      // Attach bookings to each user
+      // Attach bookings to each user with proper refund data
       const usersWithBookings = users.map(user => ({
         ...user,
         bookings: allBookings.filter(booking => booking.userId === user.id)
@@ -2541,6 +2541,74 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Sync refund data from Stripe (admin only)
+  app.post("/api/admin/sync-refunds", async (req, res) => {
+    try {
+      if (!req.isAuthenticated() || req.user?.role !== "admin") {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      if (!stripe) {
+        return res.status(500).json({ error: "Stripe not configured" });
+      }
+
+      console.log("Starting refund sync from Stripe...");
+      
+      // Get all bookings with payment IDs
+      const allBookings = await storage.getBookings();
+      const bookingsWithPayments = allBookings.filter(b => b.stripePaymentId && b.status === 'confirmed');
+      
+      let syncedCount = 0;
+      let refundCount = 0;
+
+      // Check each booking for refunds in Stripe
+      for (const booking of bookingsWithPayments) {
+        try {
+          const paymentIntent = await stripe.paymentIntents.retrieve(booking.stripePaymentId!);
+          
+          if (paymentIntent.amount_refunded && paymentIntent.amount_refunded > 0) {
+            // This booking has been refunded in Stripe but not in our system
+            if (!booking.refundAmount || booking.refundAmount === 0) {
+              console.log(`Found unsynced refund for booking #${booking.id}: $${paymentIntent.amount_refunded/100}`);
+              
+              // Update booking with refund information
+              await storage.updateBookingRefund(booking.id, paymentIntent.amount_refunded, 'stripe_sync');
+              await storage.updateBookingStatus(booking.id, 'refunded');
+              
+              // Sync availability - table becomes available again
+              try {
+                const { AvailabilitySync } = await import('./availability-sync.js');
+                await AvailabilitySync.syncEventAvailability(booking.eventId);
+              } catch (availError) {
+                console.warn('Could not sync availability for booking:', booking.id, availError);
+              }
+              
+              refundCount++;
+            }
+          }
+          syncedCount++;
+        } catch (error) {
+          console.error(`Error syncing refund for booking #${booking.id}:`, error);
+        }
+      }
+
+      console.log(`Refund sync completed: ${syncedCount} bookings checked, ${refundCount} refunds synced`);
+
+      res.json({
+        success: true,
+        bookingsChecked: syncedCount,
+        refundsSynced: refundCount,
+        message: `Synced ${refundCount} refunds from Stripe`
+      });
+
+    } catch (error) {
+      console.error("Error syncing refunds:", error);
+      res.status(500).json({ 
+        error: error instanceof Error ? error.message : 'Refund sync failed' 
+      });
     }
   });
 

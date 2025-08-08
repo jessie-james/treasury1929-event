@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { BackofficeLayout } from '@/components/backoffice/BackofficeLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatPhoenixDateShort } from '@/lib/timezone';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { RefreshCw } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 type SortOption = 'date' | 'events' | 'seats';
 
@@ -116,9 +119,33 @@ function UsersSkeleton() {
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('date');
+  const { toast } = useToast();
 
   const { data: users, isLoading: usersLoading, error: usersError } = useQuery({
     queryKey: ['/api/users'],
+  });
+
+  const syncRefundsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('/api/admin/sync-refunds', {
+        method: 'POST'
+      });
+      return response;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      toast({
+        title: "Refund Sync Complete",
+        description: `${data.refundsSynced} refunds synced from Stripe. ${data.bookingsChecked} bookings checked.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Sync Failed",
+        description: error.message || 'Failed to sync refunds from Stripe',
+        variant: "destructive",
+      });
+    }
   });
 
   // Fetch food options to map food selections to names
@@ -212,9 +239,21 @@ export default function UsersPage() {
       <div className="space-y-4 sm:space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h1 className="text-3xl sm:text-4xl font-bold">User Management</h1>
-          <Badge variant="secondary" className="text-base self-start sm:self-auto">
-            {filteredUsers.length} users
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => syncRefundsMutation.mutate()}
+              disabled={syncRefundsMutation.isPending}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncRefundsMutation.isPending ? 'animate-spin' : ''}`} />
+              {syncRefundsMutation.isPending ? 'Syncing...' : 'Sync Refunds'}
+            </Button>
+            <Badge variant="secondary" className="text-base self-start sm:self-auto">
+              {filteredUsers.length} users
+            </Badge>
+          </div>
         </div>
 
         {/* Compact Filters Bar */}

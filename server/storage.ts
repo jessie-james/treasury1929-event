@@ -438,6 +438,18 @@ export class PgStorage implements IStorage {
     return result[0] || null;
   }
 
+  async updateBookingRefund(bookingId: number, refundAmount: number, refundId: string): Promise<Booking | null> {
+    const result = await db.update(schema.bookings)
+      .set({ 
+        refundAmount, 
+        refundId, 
+        lastModified: new Date()
+      })
+      .where(eq(schema.bookings.id, bookingId))
+      .returning();
+    return result[0] || null;
+  }
+
   async updateTableStatus(tableId: number, status: string): Promise<boolean> {
     const result = await db.update(schema.tables)
       .set({ status })
