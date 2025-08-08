@@ -133,10 +133,14 @@ export default function UsersPage() {
       return response;
     },
     onSuccess: (data) => {
+      // Force refresh all related queries
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/payments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/bookings'] });
+      
       toast({
         title: "Refund Sync Complete",
-        description: `${data.refundsSynced} refunds synced from Stripe. ${data.bookingsChecked} bookings checked.`,
+        description: `${data.refundsSynced} refunds synced from Stripe. ${data.bookingsChecked} bookings checked. ${data.discrepanciesFound > 0 ? `${data.discrepanciesFound} discrepancies resolved.` : ''}`,
       });
     },
     onError: (error: any) => {
@@ -370,7 +374,12 @@ export default function UsersPage() {
                           <div className="space-y-3 sm:space-y-4">
                             {/* Booking Status and Check-in */}
                             <div className="flex flex-wrap gap-2">
-                              <Badge variant={booking.status === 'confirmed' ? 'default' : booking.status === 'cancelled' ? 'destructive' : 'secondary'}>
+                              <Badge variant={
+                                booking.status === 'confirmed' ? 'default' : 
+                                booking.status === 'cancelled' ? 'destructive' : 
+                                booking.status === 'refunded' ? 'destructive' : 
+                                'secondary'
+                              }>
                                 {booking.status}
                               </Badge>
                               {booking.checkedIn && (

@@ -2557,12 +2557,13 @@ export async function registerRoutes(app: Express) {
 
       console.log("Starting refund sync from Stripe...");
       
-      // Get all bookings with payment IDs
+      // Get all bookings with payment IDs (both confirmed and refunded to check for discrepancies)
       const allBookings = await storage.getBookings();
-      const bookingsWithPayments = allBookings.filter(b => b.stripePaymentId && b.status === 'confirmed');
+      const bookingsWithPayments = allBookings.filter(b => b.stripePaymentId && (b.status === 'confirmed' || b.status === 'refunded'));
       
       let syncedCount = 0;
       let refundCount = 0;
+      let discrepancyCount = 0;
 
       // Check each booking for refunds in Stripe
       for (const booking of bookingsWithPayments) {
@@ -2570,9 +2571,9 @@ export async function registerRoutes(app: Express) {
           const paymentIntent = await stripe.paymentIntents.retrieve(booking.stripePaymentId!);
           
           if (paymentIntent.amount_refunded && paymentIntent.amount_refunded > 0) {
-            // This booking has been refunded in Stripe but not in our system
-            if (!booking.refundAmount || booking.refundAmount === 0) {
-              console.log(`Found unsynced refund for booking #${booking.id}: $${paymentIntent.amount_refunded/100}`);
+            // This booking has been refunded in Stripe
+            if (!booking.refundAmount || booking.refundAmount === 0 || booking.status !== 'refunded') {
+              console.log(`Found unsynced refund for booking #${booking.id}: $${paymentIntent.amount_refunded/100} (current status: ${booking.status})`);
               
               // Update booking with refund information
               await storage.updateBookingRefund(booking.id, paymentIntent.amount_refunded, 'stripe_sync');
@@ -2587,7 +2588,16 @@ export async function registerRoutes(app: Express) {
               }
               
               refundCount++;
+            } else if (booking.refundAmount !== paymentIntent.amount_refunded) {
+              // Refund amount discrepancy
+              console.log(`Refund amount discrepancy for booking #${booking.id}: DB has $${booking.refundAmount/100}, Stripe has $${paymentIntent.amount_refunded/100}`);
+              await storage.updateBookingRefund(booking.id, paymentIntent.amount_refunded, 'stripe_sync');
+              discrepancyCount++;
             }
+          } else if (booking.status === 'refunded' && (!paymentIntent.amount_refunded || paymentIntent.amount_refunded === 0)) {
+            // Booking is marked as refunded in our system but not in Stripe
+            console.log(`Warning: Booking #${booking.id} marked as refunded in DB but not in Stripe`);
+            discrepancyCount++;
           }
           syncedCount++;
         } catch (error) {
@@ -2595,13 +2605,14 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      console.log(`Refund sync completed: ${syncedCount} bookings checked, ${refundCount} refunds synced`);
+      console.log(`Refund sync completed: ${syncedCount} bookings checked, ${refundCount} refunds synced, ${discrepancyCount} discrepancies found`);
 
       res.json({
         success: true,
         bookingsChecked: syncedCount,
         refundsSynced: refundCount,
-        message: `Synced ${refundCount} refunds from Stripe`
+        discrepanciesFound: discrepancyCount,
+        message: `Synced ${refundCount} refunds from Stripe. ${discrepancyCount > 0 ? `${discrepancyCount} discrepancies resolved.` : ''}`
       });
 
     } catch (error) {
