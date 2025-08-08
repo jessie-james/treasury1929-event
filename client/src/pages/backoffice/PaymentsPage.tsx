@@ -526,8 +526,8 @@ export default function PaymentsPage() {
                                 <p className="text-sm text-muted-foreground">
                                   {booking.customerEmail}
                                 </p>
-                                <p className="text-sm text-muted-foreground">
-                                  Transaction ID: {booking.stripePaymentId ? booking.stripePaymentId.substring(0, 12) + '...' : 'N/A'}
+                                <p className="text-sm text-muted-foreground font-mono break-all">
+                                  Transaction ID: {booking.stripePaymentId || 'N/A'}
                                 </p>
                                 {booking.createdAt && (
                                   <p className="text-sm text-muted-foreground">

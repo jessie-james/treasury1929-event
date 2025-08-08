@@ -560,13 +560,13 @@ export default function UsersPage() {
                                 {booking.stripePaymentId && (
                                   <div className="flex justify-between mt-2 pt-2 border-t border-blue-300">
                                     <span className="text-blue-700">Payment ID:</span>
-                                    <span className="font-mono text-xs">{booking.stripePaymentId.length > 15 ? booking.stripePaymentId.substring(0, 15) + '...' : booking.stripePaymentId}</span>
+                                    <span className="font-mono text-xs break-all">{booking.stripePaymentId}</span>
                                   </div>
                                 )}
                                 {booking.refundId && (
                                   <div className="flex justify-between">
                                     <span className="text-red-600">Refund ID:</span>
-                                    <span className="font-mono text-xs">{booking.refundId.length > 15 ? booking.refundId.substring(0, 15) + '...' : booking.refundId}</span>
+                                    <span className="font-mono text-xs break-all">{booking.refundId}</span>
                                   </div>
                                 )}
                               </div>

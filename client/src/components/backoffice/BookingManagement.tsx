@@ -355,12 +355,12 @@ export function BookingManagement() {
                 </TableCell>
                 <TableCell className="font-mono text-xs">
                   <div className="flex flex-col">
-                    <span className="truncate max-w-[100px]" title={booking.stripePaymentId || 'No payment ID'}>
-                      {booking.stripePaymentId ? booking.stripePaymentId.substring(0, 12) + '...' : 'N/A'}
+                    <span className="break-all max-w-[200px]" title={booking.stripePaymentId || 'No payment ID'}>
+                      {booking.stripePaymentId || 'N/A'}
                     </span>
                     {booking.refundId && (
-                      <span className="text-amber-600 truncate max-w-[100px]" title={booking.refundId}>
-                        R: {booking.refundId.substring(0, 8)}...
+                      <span className="text-amber-600 break-all max-w-[200px]" title={booking.refundId}>
+                        R: {booking.refundId}
                       </span>
                     )}
                   </div>
