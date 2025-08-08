@@ -24,6 +24,7 @@ interface ExtendedBooking {
   wineSelections: any[] | null;
   customerEmail: string;
   stripePaymentId: string | null;
+  amount: number | null; // Actual Stripe payment amount in cents
   createdAt: string | Date | null;
   status: string;
   notes: string | null;
@@ -290,6 +291,16 @@ export default function UsersPage() {
                     <p className="text-xs text-muted-foreground">
                       {user.bookings.reduce((sum, b) => sum + (b.partySize || 0), 0)} total seats
                     </p>
+                    <p className="text-xs sm:text-sm font-medium text-green-600">
+                      ${user.bookings.reduce((sum, b) => {
+                        if (b.status === 'confirmed' && b.amount && b.amount > 0) {
+                          const amount = b.amount / 100; // Convert cents to dollars
+                          const refund = (b.refundAmount || 0) / 100;
+                          return sum + (amount - refund);
+                        }
+                        return sum;
+                      }, 0).toFixed(2)} total paid
+                    </p>
                   </div>
                 </div>
               </CardHeader>
@@ -521,12 +532,45 @@ export default function UsersPage() {
                             ) : null}
 
                             {/* Payment Information */}
-                            {booking.stripePaymentId && (
-                              <div>
-                                <h4 className="font-medium mb-1 text-sm sm:text-base">Payment Info</h4>
-                                <p className="text-xs text-muted-foreground font-mono break-all">{booking.stripePaymentId}</p>
+                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                              <h4 className="font-medium mb-2 text-sm text-blue-800">Payment Details</h4>
+                              <div className="space-y-1 text-xs">
+                                {booking.amount && booking.amount > 0 ? (
+                                  <>
+                                    <div className="flex justify-between">
+                                      <span className="text-blue-700">Amount Paid:</span>
+                                      <span className="font-medium">${(booking.amount / 100).toFixed(2)}</span>
+                                    </div>
+                                    {booking.refundAmount && booking.refundAmount > 0 && (
+                                      <div className="flex justify-between">
+                                        <span className="text-red-600">Refunded:</span>
+                                        <span className="font-medium text-red-600">-${(booking.refundAmount / 100).toFixed(2)}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex justify-between border-t border-blue-300 pt-1 mt-2">
+                                      <span className="text-blue-700 font-medium">Net Total:</span>
+                                      <span className="font-bold">${((booking.amount / 100) - ((booking.refundAmount || 0) / 100)).toFixed(2)}</span>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                                    ⚠️ Payment amount not synced from Stripe
+                                  </div>
+                                )}
+                                {booking.stripePaymentId && (
+                                  <div className="flex justify-between mt-2 pt-2 border-t border-blue-300">
+                                    <span className="text-blue-700">Payment ID:</span>
+                                    <span className="font-mono text-xs">{booking.stripePaymentId.length > 15 ? booking.stripePaymentId.substring(0, 15) + '...' : booking.stripePaymentId}</span>
+                                  </div>
+                                )}
+                                {booking.refundId && (
+                                  <div className="flex justify-between">
+                                    <span className="text-red-600">Refund ID:</span>
+                                    <span className="font-mono text-xs">{booking.refundId.length > 15 ? booking.refundId.substring(0, 15) + '...' : booking.refundId}</span>
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            </div>
                           </div>
                         </AccordionContent>
                       </AccordionItem>

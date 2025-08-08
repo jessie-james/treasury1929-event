@@ -80,23 +80,14 @@ export default function PaymentsPage() {
     }, 0);
   };
 
-  // Helper function to calculate revenue from booking data using ACTUAL Stripe amounts
+  // Helper function to calculate revenue from booking data using ONLY Stripe amounts
   const calculateBookingRevenue = (bookings: any[] | undefined) => {
     if (!bookings || bookings.length === 0) return 0;
     
     return bookings.reduce((total, booking) => {
-      if (booking.status === 'confirmed') {
-        let bookingAmount = 0;
-        
-        if (booking.amount && booking.amount > 0) {
-          // Use ACTUAL Stripe amount from database (in cents, convert to dollars)
-          bookingAmount = booking.amount / 100;
-        } else {
-          // Fall back to calculated pricing for bookings without synced amounts
-          const basePrice = 130.00; // $130 per person
-          const partySize = booking.partySize || 1;
-          bookingAmount = basePrice * partySize;
-        }
+      if (booking.status === 'confirmed' && booking.amount && booking.amount > 0) {
+        // Use ONLY actual Stripe amount from database (in cents, convert to dollars)
+        let bookingAmount = booking.amount / 100;
         
         // Subtract any refunds
         if (booking.refundAmount) {
@@ -104,7 +95,7 @@ export default function PaymentsPage() {
         }
         return total + bookingAmount;
       }
-      return total;
+      return total; // Skip bookings without synced Stripe amounts
     }, 0);
   };
 
@@ -159,40 +150,31 @@ export default function PaymentsPage() {
     };
   }).sort((a, b) => b.revenue - a.revenue);
 
-  // Get monthly revenue with REAL calculations (FIXED)
+  // Get monthly revenue with ONLY Stripe amounts (NO FALLBACKS)
   const months: Record<string, number> = {};
   filteredBookings?.forEach(booking => {
-    // Skip bookings with no createdAt date
-    if (!booking.createdAt) return;
+    // Skip bookings with no createdAt date or no Stripe amount
+    if (!booking.createdAt || !booking.amount || booking.amount <= 0) return;
     
     const date = parseISO(booking.createdAt.toString());
     if (!isValid(date)) return;
     
     const monthYear = format(date, "MMM yyyy");
     
-    // Use ACTUAL Stripe amount when available, fallback to calculation
-    let amount = 0;
+    // Use ONLY actual Stripe amount (no fallback calculations)
     if (booking.status === 'confirmed') {
-      if (booking.amount && booking.amount > 0) {
-        // Use actual Stripe amount (convert from cents to dollars)
-        amount = booking.amount / 100;
-      } else {
-        // Fallback to calculated amount
-        const basePrice = 130.00; // $130 per person
-        const partySize = booking.partySize || 1;
-        amount = basePrice * partySize;
+      const amount = booking.amount / 100; // Convert from cents to dollars
+      
+      if (!months[monthYear]) {
+        months[monthYear] = 0;
       }
-    }
-    
-    if (!months[monthYear]) {
-      months[monthYear] = 0;
-    }
-    
-    months[monthYear] += amount;
-    
-    // Subtract refund if any
-    if (booking.refundAmount) {
-      months[monthYear] -= booking.refundAmount;
+      
+      months[monthYear] += amount;
+      
+      // Subtract refund if any
+      if (booking.refundAmount) {
+        months[monthYear] -= booking.refundAmount;
+      }
     }
   });
 
@@ -527,18 +509,11 @@ export default function PaymentsPage() {
                   </div>
                 ) : filteredBookings && filteredBookings.length > 0 ? (
                   <div className="space-y-4">
-                    {filteredBookings.map(booking => {
-                      // Use ACTUAL Stripe amount when available, fallback to calculation
-                      let bookingTotal = 0;
-                      if (booking.amount && booking.amount > 0) {
-                        // Use actual Stripe amount (convert from cents to dollars)
-                        bookingTotal = booking.amount / 100;
-                      } else {
-                        // Fallback to calculated amount
-                        const basePrice = 130.00; // $130 per person
-                        const partySize = booking.partySize || 1;
-                        bookingTotal = basePrice * partySize;
-                      }
+                    {filteredBookings
+                      .filter(booking => booking.amount && booking.amount > 0) // Only show bookings with Stripe amounts
+                      .map(booking => {
+                      // Use ONLY actual Stripe amount (no fallback calculations)
+                      const bookingTotal = booking.amount / 100; // Convert from cents to dollars
                       const refundAmount = booking.refundAmount || 0;
                       const finalAmount = bookingTotal - refundAmount;
                       
