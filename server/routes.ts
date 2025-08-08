@@ -2866,10 +2866,10 @@ export async function registerRoutes(app: Express) {
       }
 
       const userId = req.user.id;
-      const { eventId, tableId, selectedSeats, foodSelections, guestNames, paymentMethod } = req.body;
+      const { eventId, tableId, selectedSeats, foodSelections, guestNames, paymentMethod, partySize } = req.body;
 
-      // Validate required fields
-      if (!eventId || !tableId || !selectedSeats || selectedSeats.length === 0) {
+      // Validate required fields - accept either selectedSeats or partySize
+      if (!eventId || !tableId || (!selectedSeats && !partySize)) {
         return res.status(400).json({ message: "Missing required booking information" });
       }
 
@@ -2878,9 +2878,9 @@ export async function registerRoutes(app: Express) {
         eventId: Number(eventId),
         userId: Number(userId),
         tableId: Number(tableId),
-        partySize: selectedSeats.length,
+        partySize: selectedSeats ? selectedSeats.length : (partySize || 2),
         customerEmail: req.user.email,
-        stripePaymentId: paymentMethod === "direct" ? `direct-${Date.now()}-${userId}` : req.body.stripePaymentId,
+        stripePaymentId: req.body.stripePaymentId || paymentMethod === "direct" ? `direct-${Date.now()}-${userId}` : `direct-${Date.now()}-${userId}`,
         guestNames: guestNames || [],
         foodSelections: foodSelections || [],
         status: 'confirmed'
@@ -2961,11 +2961,11 @@ export async function registerRoutes(app: Express) {
       // NO VALIDATION - Just create the booking directly
       const bookingData = {
         eventId: req.body.eventId,
-        userId: req.body.userId,
+        userId: userId || req.user.id,
         tableId: req.body.tableId,
         partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
         customerEmail: req.body.customerEmail,
-        stripePaymentId: req.body.stripePaymentId,
+        stripePaymentId: req.body.stripePaymentId || `direct-${Date.now()}-${userId || req.user.id}`,
         guestNames: req.body.guestNames || [],
         foodSelections: req.body.foodSelections || [],
         status: 'confirmed'

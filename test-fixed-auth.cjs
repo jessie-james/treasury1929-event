@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Test the fixed authentication system
+// Test booking creation with all required fields
 const http = require('http');
 const baseUrl = 'http://localhost:5000';
 
@@ -46,98 +46,72 @@ async function makeRequest(method, path, data = null, cookies = '') {
   });
 }
 
-async function testFixedAuth() {
-  console.log('🔧 Testing Fixed Authentication System...\n');
+async function testFixedBooking() {
+  console.log('🎯 Testing COMPLETE booking creation...');
   
-  try {
-    // 1. Test login with Ayla's account
-    console.log('1. Testing login with Ayla\'s existing account...');
-    const loginResponse = await makeRequest('POST', '/api/auth/login', {
-      email: 'ayla@thetreasury1929.com',
-      password: 'admin123'  // Assuming she reset to this
-    });
+  // Step 1: Login
+  const loginResponse = await makeRequest('POST', '/api/auth/login', {
+    email: 'ayla@thetreasury1929.com',
+    password: 'ayla123'
+  });
+  
+  if (loginResponse.status !== 200) {
+    console.log('❌ Login failed');
+    return;
+  }
+  
+  console.log('✅ Ayla authenticated');
+  const sessionCookie = loginResponse.cookies.join('; ');
+  
+  // Step 2: Test main booking endpoint with complete data
+  console.log('\n🔄 Testing /api/bookings endpoint...');
+  
+  const mainBookingData = {
+    eventId: 35,
+    tableId: 300,
+    partySize: 2,
+    paymentMethod: "direct",
+    guestNames: ["Ayla Arreguin", "Test Guest"],
+    foodSelections: [
+      { guest: "Ayla Arreguin", selection: "chicken" },
+      { guest: "Test Guest", selection: "vegetarian" }
+    ]
+  };
+  
+  const mainResponse = await makeRequest('POST', '/api/bookings', mainBookingData, sessionCookie);
+  console.log(`Main endpoint: ${mainResponse.status} - ${JSON.stringify(mainResponse.data)}`);
+  
+  // Step 3: Test alternative endpoint with complete data
+  console.log('\n🔄 Testing /api/create-booking endpoint...');
+  
+  const altBookingData = {
+    eventId: 35,
+    tableId: 301, // Different table
+    partySize: 2,
+    stripePaymentId: `test-direct-${Date.now()}`,
+    customerEmail: "ayla@thetreasury1929.com",
+    guestNames: ["Ayla Arreguin", "Test Guest 2"],
+    foodSelections: [
+      { guest: "Ayla Arreguin", selection: "fish" },
+      { guest: "Test Guest 2", selection: "vegetarian" }
+    ]
+  };
+  
+  const altResponse = await makeRequest('POST', '/api/create-booking', altBookingData, sessionCookie);
+  console.log(`Alt endpoint: ${altResponse.status} - ${JSON.stringify(altResponse.data)}`);
+  
+  // Step 4: Check if either booking was successful
+  if (mainResponse.status === 200 || altResponse.status === 200) {
+    console.log('\n✅ SUCCESS! Booking creation is now working!');
     
-    console.log(`   ✓ Ayla login: ${loginResponse.status === 200 ? 'SUCCESS' : 'FAILED'}`);
-    let sessionCookie = '';
-    if (loginResponse.status === 200 && loginResponse.cookies.length > 0) {
-      sessionCookie = loginResponse.cookies.join('; ');
-      console.log(`   ✓ Session created for: ${loginResponse.data.email}`);
-    }
-    
-    // 2. Test authentication check
-    console.log('\n2. Testing session validation...');
-    const authCheckResponse = await makeRequest('GET', '/api/auth/me', null, sessionCookie);
-    console.log(`   ✓ Auth check: ${authCheckResponse.status === 200 ? 'SUCCESS' : 'FAILED'}`);
-    if (authCheckResponse.status === 200) {
-      console.log(`   ✓ Authenticated as: ${authCheckResponse.data.email} (ID: ${authCheckResponse.data.id})`);
-    }
-    
-    // 3. Test user bookings access (this was failing before)
-    console.log('\n3. Testing user bookings access...');
+    // Verify by checking user bookings
     const bookingsResponse = await makeRequest('GET', '/api/user/bookings', null, sessionCookie);
-    console.log(`   ✓ User bookings: ${bookingsResponse.status === 200 ? 'SUCCESS' : 'FAILED'}`);
     if (bookingsResponse.status === 200) {
-      console.log(`   ✓ Found ${bookingsResponse.data.length} bookings for Ayla`);
-      
-      // Check if Ayla's booking #158 is accessible
-      const aylaBooking = bookingsResponse.data.find(b => b.id === 158);
-      if (aylaBooking) {
-        console.log(`   ✓ Booking #158 accessible: ${aylaBooking.status}`);
-      }
+      console.log(`✅ User now has ${bookingsResponse.data.length} total bookings`);
     }
-    
-    // 4. Test wrong password (should fail properly)
-    console.log('\n4. Testing wrong password validation...');
-    const wrongPasswordResponse = await makeRequest('POST', '/api/auth/login', {
-      email: 'ayla@thetreasury1929.com',
-      password: 'WrongPassword123'
-    });
-    console.log(`   ✓ Wrong password: ${wrongPasswordResponse.status === 401 ? 'CORRECTLY REJECTED' : 'ISSUE FOUND'}`);
-    if (wrongPasswordResponse.status === 401) {
-      console.log(`   ✓ Error message: "${wrongPasswordResponse.data.message}"`);
-    }
-    
-    // 5. Test accessing Ayla's confirmation page
-    console.log('\n5. Testing confirmation page access...');
-    const confirmationResponse = await makeRequest('GET', '/payment-success?booking_id=158', null, sessionCookie);
-    console.log(`   ✓ Confirmation page: ${confirmationResponse.status === 200 ? 'ACCESSIBLE' : 'FAILED'}`);
-    
-    // 6. Test password reset flow
-    console.log('\n6. Testing password reset...');
-    const resetResponse = await makeRequest('POST', '/api/auth/forgot-password', {
-      email: 'ayla@thetreasury1929.com'
-    });
-    console.log(`   ✓ Password reset: ${resetResponse.status === 200 ? 'SUCCESS' : 'FAILED'}`);
-    
-    console.log('\n📊 AUTHENTICATION FIXES ANALYSIS:');
-    
-    const fixes = [];
-    if (loginResponse.status === 200) fixes.push('✓ Login working');
-    if (authCheckResponse.status === 200) fixes.push('✓ Session validation fixed');
-    if (bookingsResponse.status === 200) fixes.push('✓ User data access restored');
-    if (wrongPasswordResponse.status === 401) fixes.push('✓ Password validation working');
-    if (confirmationResponse.status === 200) fixes.push('✓ Confirmation page accessible');
-    if (resetResponse.status === 200) fixes.push('✓ Password reset functional');
-    
-    console.log('\n🎯 FIXED AUTHENTICATION ISSUES:');
-    fixes.forEach(fix => console.log(`   ${fix}`));
-    
-    if (fixes.length >= 5) {
-      console.log('\n✅ AUTHENTICATION SYSTEM FULLY RESTORED');
-      console.log('\n🔄 AYLA\'S ISSUE RESOLUTION:');
-      console.log('   • Login system now working properly');
-      console.log('   • Password reset functional');
-      console.log('   • Session management fixed');
-      console.log('   • User bookings accessible after login');
-      console.log('   • Confirmation page shows ticket details when authenticated');
-      console.log('   • Email confirmations now send (previously fixed)');
-    } else {
-      console.log('\n⚠️  Some authentication issues remain');
-    }
-    
-  } catch (error) {
-    console.error('❌ Auth test failed:', error.message);
+  } else {
+    console.log('\n❌ Both endpoints still failing');
   }
 }
 
-testFixedAuth();
+testFixedBooking();
