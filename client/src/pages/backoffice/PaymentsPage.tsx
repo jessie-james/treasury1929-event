@@ -89,9 +89,9 @@ export default function PaymentsPage() {
         // Use ONLY actual Stripe amount from database (in cents, convert to dollars)
         let bookingAmount = booking.amount / 100;
         
-        // Subtract any refunds
+        // Subtract any refunds (convert from cents to dollars)
         if (booking.refundAmount) {
-          bookingAmount -= booking.refundAmount;
+          bookingAmount -= booking.refundAmount / 100;
         }
         return total + bookingAmount;
       }
@@ -171,9 +171,9 @@ export default function PaymentsPage() {
       
       months[monthYear] += amount;
       
-      // Subtract refund if any
+      // Subtract refund if any (convert from cents to dollars)
       if (booking.refundAmount) {
-        months[monthYear] -= booking.refundAmount;
+        months[monthYear] -= booking.refundAmount / 100;
       }
     }
   });
@@ -514,7 +514,7 @@ export default function PaymentsPage() {
                       .map(booking => {
                       // Use ONLY actual Stripe amount (no fallback calculations)
                       const bookingTotal = booking.amount / 100; // Convert from cents to dollars
-                      const refundAmount = booking.refundAmount || 0;
+                      const refundAmount = (booking.refundAmount || 0) / 100; // Convert refund from cents to dollars
                       const finalAmount = bookingTotal - refundAmount;
                       
                       return (
@@ -537,11 +537,24 @@ export default function PaymentsPage() {
                               </div>
                               <div className="text-right">
                                 <div className="font-medium">
-                                  ${finalAmount.toFixed(2)}
-                                  {refundAmount > 0 && (
-                                    <span className="text-destructive ml-2">
-                                      -${refundAmount.toFixed(2)}
-                                    </span>
+                                  {booking.status === 'refunded' ? (
+                                    <div className="space-y-1">
+                                      <div className="text-sm text-muted-foreground line-through">
+                                        ${bookingTotal.toFixed(2)}
+                                      </div>
+                                      <div className="text-destructive">
+                                        -${refundAmount.toFixed(2)} refunded
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      ${bookingTotal.toFixed(2)}
+                                      {refundAmount > 0 && (
+                                        <span className="text-destructive ml-2">
+                                          -${refundAmount.toFixed(2)}
+                                        </span>
+                                      )}
+                                    </>
                                   )}
                                 </div>
                                 <Badge variant={
