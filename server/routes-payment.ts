@@ -275,7 +275,7 @@ export function registerPaymentRoutes(app: Express) {
             
             <div class="booking-details">
               <h3>Booking Details</h3>
-              <p><strong>Booking ID:</strong> #${booking}</p>
+              <p><strong>Booking ID:</strong> #${typeof booking === 'object' ? booking.id : booking}</p>
               <p><strong>Amount:</strong> $${((session.amount_total || 0) / 100).toFixed(2)}</p>
             </div>
             
@@ -369,14 +369,14 @@ export function registerPaymentRoutes(app: Express) {
         };
 
         // Insert booking into database
-        const booking = await storage.createBooking(bookingData);
+        const bookingId = await storage.createBooking(bookingData);
         
         // Send booking confirmation email
         try {
           const { EmailService } = await import('./email-service');
           
           // Get the created booking with full details
-          const createdBooking = await storage.getBooking(booking);
+          const createdBooking = await storage.getBooking(bookingId);
           const event = await storage.getEventById(parseInt(session.metadata!.eventId));
           const table = await storage.getTableById(parseInt(session.metadata!.tableId));
           const venue = await storage.getVenueById(parseInt(session.metadata!.selectedVenue || '4'));
@@ -415,13 +415,13 @@ export function registerPaymentRoutes(app: Express) {
             const emailSent = await EmailService.sendBookingConfirmation(emailData);
             if (emailSent) {
               console.log(`✓ SUCCESS: Booking confirmation email sent to ${bookingData.customerEmail}`);
-              console.log(`  Booking ID: ${booking}`);
+              console.log(`  Booking ID: ${bookingId}`);
               console.log(`  Event: ${event.title}`);
               console.log(`  Table: ${table.tableNumber}`);
             } else {
               console.error(`❌ CRITICAL EMAIL FAILURE: Failed to send confirmation email`);
               console.error(`  Customer: ${bookingData.customerEmail}`);
-              console.error(`  Booking ID: ${booking}`);
+              console.error(`  Booking ID: ${bookingId}`);
               console.error(`  Event: ${event.title}`);
               console.error(`  This customer will NOT receive their ticket!`);
             }
@@ -440,7 +440,7 @@ export function registerPaymentRoutes(app: Express) {
         await AvailabilitySync.syncEventAvailability(parseInt(session.metadata!.eventId));
         console.log(`✅ Availability synced for event ${session.metadata!.eventId} after direct booking creation`);
         
-        res.json({ success: true, booking });
+        res.json({ success: true, booking: bookingId });
       } else {
         res.status(400).json({ error: 'Payment not completed' });
       }
