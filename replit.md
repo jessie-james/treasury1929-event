@@ -6,11 +6,15 @@ This project is a mobile-first event venue booking platform for live entertainme
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (August 8, 2025)
+## Recent Changes (August 9, 2025)
+- **PDF Ticket Generation Fixed**: Complete resolution of booking information display issues
+  - Fixed table number display (now shows correct Table 8 instead of wrong table numbers)
+  - Added proper event timing ("Doors: 5:45 PM • Concert: 6:30 PM") 
+  - Implemented complete food selections display with guest-specific choices
+  - Resolved TypeScript errors preventing My Tickets tab from loading
+- **Customer Dashboard Enhanced**: Updated booking data retrieval to always fetch fresh data
 - **Authentication System Fixed**: Resolved critical session deserialization issue that was preventing user logins
-- **Ayla Customer Account**: Confirmed working with password "ayla123" (customer role, not admin)
 - **Session Management**: Fixed PostgreSQL session store configuration and passport middleware ordering
-- **Middleware Order**: Ensured authentication routes register before Vite middleware to prevent HTML responses on API endpoints
 
 ## System Architecture
 
