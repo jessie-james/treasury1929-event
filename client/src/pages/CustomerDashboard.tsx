@@ -20,7 +20,9 @@ type EnrichedBooking = Booking & {
 export default function CustomerDashboard() {
   const [, setLocation] = useLocation();
   const { data: bookings, isLoading, error } = useQuery<EnrichedBooking[]>({
-    queryKey: ["/api/user/bookings"],
+    queryKey: ["/api/user/bookings", Date.now()], // Force refresh with timestamp
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache at all
   });
 
   const { data: foodOptions } = useQuery<FoodOption[]>({
