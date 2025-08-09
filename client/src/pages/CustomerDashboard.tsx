@@ -156,11 +156,16 @@ export default function CustomerDashboard() {
                 <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
                   <div className="space-y-3">
                     <CardTitle className="text-3xl md:text-4xl leading-tight">{booking.event.title}</CardTitle>
-                    <div className="flex items-center gap-3 text-xl text-muted-foreground">
-                      <Calendar className="w-8 h-8" />
-                      <span className="leading-relaxed">
-                        {format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")}
-                      </span>
+                    <div className="flex flex-col gap-2 text-xl text-muted-foreground">
+                      <div className="flex items-center gap-3">
+                        <Calendar className="w-8 h-8" />
+                        <span className="leading-relaxed">
+                          {format(new Date(booking.event.date), "EEEE, MMMM d, yyyy")}
+                        </span>
+                      </div>
+                      <div className="text-lg text-center ml-11">
+                        Doors: 5:45 PM • Concert: 6:30 PM
+                      </div>
                     </div>
                   </div>
                   {getStatusBadge(booking.status)}
@@ -171,7 +176,7 @@ export default function CustomerDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xl">
                   <div className="flex items-center gap-4">
                     <MapPin className="w-8 h-8 text-muted-foreground" />
-                    <span className="font-semibold">Table {booking.table?.tableNumber || booking.tableId}</span>
+                    <span className="font-semibold">Table {booking.table?.tableNumber || 'TBD'}</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <Users className="w-8 h-8 text-muted-foreground" />
@@ -183,16 +188,28 @@ export default function CustomerDashboard() {
                   </div>
                 </div>
 
-                {booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames.length > 0 && (
+                {booking.guestNames && (
                   <div>
                     <h4 className="font-medium mb-2">Guest Names:</h4>
                     <div className="grid grid-cols-2 gap-2 text-sm">
-                      {booking.guestNames.map((name, index) => (
-                        <div key={index} className="flex justify-between">
-                          <span>Guest {index + 1}:</span>
-                          <span className="font-medium">{name}</span>
-                        </div>
-                      ))}
+                      {(() => {
+                        if (Array.isArray(booking.guestNames)) {
+                          return booking.guestNames.map((name, index) => (
+                            <div key={index} className="flex justify-between">
+                              <span>Guest {index + 1}:</span>
+                              <span className="font-medium">{name}</span>
+                            </div>
+                          ));
+                        } else if (typeof booking.guestNames === 'object' && booking.guestNames !== null) {
+                          return Object.entries(booking.guestNames).map(([seatNumber, name]) => (
+                            <div key={seatNumber} className="flex justify-between">
+                              <span>Guest {seatNumber}:</span>
+                              <span className="font-medium">{String(name)}</span>
+                            </div>
+                          ));
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 )}
@@ -202,8 +219,9 @@ export default function CustomerDashboard() {
                     <h4 className="font-medium mb-2">Food Selections:</h4>
                     <div className="text-sm space-y-1">
                       {booking.foodSelections.map((selection, index) => {
-                        const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
-                          ? booking.guestNames[index] 
+                        const guestNumber = (index + 1).toString();
+                        const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
+                          ? booking.guestNames[guestNumber] || `Guest ${index + 1}`
                           : `Guest ${index + 1}`;
                         const saladItem = foodOptions?.find(item => item.id === selection.salad);
                         const entreeItem = foodOptions?.find(item => item.id === selection.entree);
@@ -227,8 +245,9 @@ export default function CustomerDashboard() {
                     <h4 className="font-medium mb-2">Wine Selections:</h4>
                     <div className="text-sm space-y-1">
                       {booking.wineSelections.map((selection, index) => {
-                        const guestName = booking.guestNames && Array.isArray(booking.guestNames) && booking.guestNames[index] 
-                          ? booking.guestNames[index] 
+                        const guestNumber = (index + 1).toString();
+                        const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
+                          ? booking.guestNames[guestNumber] || `Guest ${index + 1}`
                           : `Guest ${index + 1}`;
                         const wineItem = foodOptions?.find(item => item.id === selection.wine);
                         
