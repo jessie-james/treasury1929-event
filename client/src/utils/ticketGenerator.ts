@@ -184,6 +184,37 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
     currentY += 15;
   }
 
+  // Wine selections - handle the actual booking structure
+  if (booking.wineSelections && booking.wineSelections.length > 0) {
+    ctx.font = 'bold 14px Arial';
+    ctx.fillStyle = '#374151';
+    ctx.fillText('Wine Selections:', canvas.width / 2, currentY);
+    currentY += 20;
+
+    ctx.font = '10px Arial';
+    ctx.fillStyle = '#6b7280';
+    
+    booking.wineSelections.forEach((selection: any, index: number) => {
+      const guestNumber = (index + 1).toString();
+      const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
+        ? booking.guestNames[guestNumber] || `Guest ${index + 1}`
+        : `Guest ${index + 1}`;
+      
+      // Find wine item by ID
+      const wineItem = foodOptions?.find(item => item.id === selection.wine);
+      
+      ctx.fillText(`${guestName}:`, canvas.width / 2, currentY);
+      currentY += 12;
+      
+      if (wineItem) {
+        ctx.fillText(`  Wine: ${wineItem.name}`, canvas.width / 2, currentY);
+        currentY += 12;
+      }
+      currentY += 8; // Space between guests
+    });
+    currentY += 15;
+  }
+
   // QR Code
   if (qrCodeUrl) {
     const qrImg = new Image();

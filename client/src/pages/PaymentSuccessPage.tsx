@@ -312,21 +312,30 @@ export default function PaymentSuccessPage() {
               )}
 
               {booking.wineSelections && booking.wineSelections.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Wine Selections:</h4>
-                  <div className="text-sm space-y-1">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Wine Selections:
+                  </h4>
+                  <div className="space-y-3 text-sm">
                     {booking.wineSelections.map((selection: any, index: number) => {
-                      const guestName = booking.guestNames 
-                        ? Array.isArray(booking.guestNames) 
-                          ? booking.guestNames[index] || `Guest ${index + 1}`
-                          : booking.guestNames[index + 1] || `Guest ${index + 1}`
+                      // Get guest name from the object structure (same as food selections)
+                      const guestNumber = (index + 1).toString();
+                      const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
+                        ? booking.guestNames[guestNumber] || booking.guestNames[(index + 1)] || `Guest ${index + 1}`
                         : `Guest ${index + 1}`;
                       const wineItem = foodOptions?.find(item => item.id === selection.wine);
                       
                       return (
-                        <div key={index} className="p-2 bg-purple-50 rounded">
-                          <span className="font-medium">{guestName}:</span>
-                          {wineItem && <span className="ml-2 block">Wine: {wineItem.name}</span>}
+                        <div key={index} className="p-3 bg-white rounded border">
+                          <div className="font-medium text-primary mb-2">{guestName}:</div>
+                          <div className="space-y-1 text-xs">
+                            {wineItem && (
+                              <div>• Wine: {wineItem.name}</div>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
