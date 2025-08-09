@@ -21,14 +21,44 @@ interface TicketOptions {
 export const generateTicketCanvas = async (options: TicketOptions): Promise<HTMLCanvasElement> => {
   const { booking, qrCodeUrl, foodOptions } = options;
   
+  // Calculate dynamic height based on content
+  const calculateRequiredHeight = () => {
+    let baseHeight = 400; // Base height for header, event details, etc.
+    
+    // Add height for guest names
+    if (booking.partySize && booking.partySize > 0) {
+      baseHeight += 25; // "Guest Names:" header
+      baseHeight += (booking.partySize * 15) + 20; // Each guest name + spacing
+    }
+    
+    // Add height for food selections
+    if (booking.foodSelections && booking.foodSelections.length > 0) {
+      baseHeight += 25; // "Food Selections:" header
+      const foodLinesPerGuest = 4; // Guest name + salad + entree + dessert
+      baseHeight += (booking.foodSelections.length * foodLinesPerGuest * 12) + (booking.foodSelections.length * 8) + 15; // Lines + guest spacing + section spacing
+    }
+    
+    // Add height for wine selections
+    if (booking.wineSelections && booking.wineSelections.length > 0) {
+      baseHeight += 25; // "Wine Selections:" header
+      baseHeight += (booking.wineSelections.length * 15) + 10; // Each wine + spacing
+    }
+    
+    // Add height for QR code and contact info
+    baseHeight += 150 + 15 + 30; // QR code + instruction + spacing
+    baseHeight += 80; // Contact information section
+    
+    return Math.max(800, baseHeight); // Minimum 800px, or calculated height
+  };
+  
   // Create a canvas to compose the ticket
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not get canvas context');
 
-  // Set canvas size - optimized for readability
+  // Set canvas size - dynamic height based on content
   canvas.width = 450;
-  canvas.height = 800; // Increased height to accommodate logo and contact info
+  canvas.height = calculateRequiredHeight();
 
   // White background
   ctx.fillStyle = '#ffffff';
@@ -244,15 +274,17 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
   }
 
   // Contact Information at the bottom
-  const bottomY = canvas.height - 60;
+  currentY += 20; // Add some extra space before contact info
   ctx.font = 'bold 12px Arial';
   ctx.fillStyle = '#1a1a1a';
-  ctx.fillText('The Treasury 1929', canvas.width / 2, bottomY);
+  ctx.fillText('The Treasury 1929', canvas.width / 2, currentY);
+  currentY += 18;
   
   ctx.font = '10px Arial';
   ctx.fillStyle = '#6b7280';
-  ctx.fillText('2 E Congress St, Tucson, AZ 85701', canvas.width / 2, bottomY + 15);
-  ctx.fillText('(520) 528-5270', canvas.width / 2, bottomY + 30);
+  ctx.fillText('2 E Congress St, Tucson, AZ 85701', canvas.width / 2, currentY);
+  currentY += 15;
+  ctx.fillText('(520) 528-5270', canvas.width / 2, currentY);
 
   return canvas;
 };
