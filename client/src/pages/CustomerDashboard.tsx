@@ -275,11 +275,14 @@ export default function CustomerDashboard() {
                       <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          {format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")}
+                          {format(new Date(booking.event.date), "EEEE, MMMM d, yyyy")}
+                        </div>
+                        <div className="text-xs text-center">
+                          Doors: 5:45 PM • Concert: 6:30 PM
                         </div>
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />
-                          Table {booking.tableId}
+                          Table {booking.table?.tableNumber || 'TBD'}
                         </div>
                         <div className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
