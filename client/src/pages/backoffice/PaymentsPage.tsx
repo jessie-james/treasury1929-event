@@ -608,10 +608,10 @@ export default function PaymentsPage() {
                     {filteredBookings
                       .filter(booking => booking.status === "refunded")
                       .map(booking => {
-                        const basePrice = 130.00; // $130 per person (from events.base_price)
+                        // Convert cents to dollars
+                        const originalAmount = (booking.amount || 0) / 100;
+                        const refundAmount = (booking.refundAmount || 0) / 100;
                         const partySize = booking.partySize || 1;
-                        const bookingTotal = basePrice * partySize;
-                        const refundAmount = booking.refundAmount || 0;
                         
                         return (
                           <Card key={booking.id} className="overflow-hidden">
@@ -629,7 +629,7 @@ export default function PaymentsPage() {
                                   )}
                                   <div className="mt-2 space-y-1">
                                     <p className="text-sm">
-                                      <span className="text-muted-foreground">Original Amount:</span> ${bookingTotal.toFixed(2)}
+                                      <span className="text-muted-foreground">Original Amount:</span> ${originalAmount.toFixed(2)}
                                     </p>
                                     <p className="text-sm">
                                       <span className="text-muted-foreground">Refund Amount:</span> ${refundAmount.toFixed(2)}
@@ -643,9 +643,9 @@ export default function PaymentsPage() {
                                   <Badge variant="destructive">
                                     Refunded
                                   </Badge>
-                                  {booking.eventDate && (
+                                  {booking.lastModified && (
                                     <p className="text-sm text-muted-foreground">
-                                      Event: {format(parseISO(booking.eventDate.toString()), "MMM dd, yyyy")}
+                                      Refunded: {format(parseISO(booking.lastModified.toString()), "MMM dd, yyyy")}
                                     </p>
                                   )}
                                 </div>
