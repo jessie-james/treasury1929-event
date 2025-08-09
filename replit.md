@@ -27,6 +27,11 @@ Preferred communication style: Simple, everyday language.
     - Test payments now use TRE_STRIPE_TEST_SECRET_KEY for refunds
     - Live payments use STRIPE_SECRET_KEY_NEW for refunds
     - Fresh Stripe instances created per refund to ensure correct key usage
+- **Cancellation System Fixed**: Complete resolution of table release issues after booking cancellation
+  - Fixed table availability sync after cancellation processing
+  - Fixed admin UI button disabling by correcting status spelling mismatch ("cancelled" vs "canceled")
+  - Cancellation properly releases tables and syncs event availability
+  - Admin buttons now correctly disable for both cancelled and refunded bookings
 
 ## System Architecture
 

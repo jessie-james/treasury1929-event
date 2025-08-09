@@ -401,7 +401,7 @@ export function BookingManagement() {
                         setSelectedBooking(booking);
                         setIsRefundDialogOpen(true);
                       }}
-                      disabled={booking.status === "refunded" || booking.status === "canceled"}
+                      disabled={booking.status === "refunded" || booking.status === "cancelled"}
                     >
                       <DollarSign className="h-4 w-4 mr-1" />
                       Refund
@@ -414,7 +414,7 @@ export function BookingManagement() {
                         setSelectedBooking(booking);
                         setIsReleaseDialogOpen(true);
                       }}
-                      disabled={booking.status === "canceled" || booking.status === "refunded"}
+                      disabled={booking.status === "cancelled" || booking.status === "refunded"}
                     >
                       <RotateCw className="h-4 w-4 mr-1" />
                       Release
@@ -427,7 +427,7 @@ export function BookingManagement() {
                         setSelectedBooking(booking);
                         setIsSeatsDialogOpen(true);
                       }}
-                      disabled={booking.status === "canceled" || booking.status === "refunded"}
+                      disabled={booking.status === "cancelled" || booking.status === "refunded"}
                     >
                       <Pencil className="h-4 w-4 mr-1" />
                       Seats
@@ -440,7 +440,7 @@ export function BookingManagement() {
                         setSelectedBooking(booking);
                         setIsFoodDialogOpen(true);
                       }}
-                      disabled={booking.status === "canceled" || booking.status === "refunded"}
+                      disabled={booking.status === "cancelled" || booking.status === "refunded"}
                     >
                       <RefreshCw className="h-4 w-4 mr-1" />
                       Food
@@ -454,7 +454,7 @@ export function BookingManagement() {
                           cancelBookingMutation.mutate(booking.id);
                         }
                       }}
-                      disabled={booking.status === "canceled" || booking.status === "refunded"}
+                      disabled={booking.status === "cancelled" || booking.status === "refunded"}
                     >
                       <Ban className="h-4 w-4 mr-1" />
                       Cancel

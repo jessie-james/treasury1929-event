@@ -3701,6 +3701,16 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "Booking not found" });
       }
 
+      // Sync availability for the event after cancellation
+      console.log(`🔄 Syncing availability for event ${originalBooking.eventId} after cancellation`);
+      try {
+        const syncResult = await storage.syncEventAvailability(originalBooking.eventId);
+        console.log(`✅ Event ${originalBooking.eventId} availability synced: ${JSON.stringify(syncResult)}`);
+      } catch (syncError) {
+        console.error("Failed to sync availability after cancellation:", syncError);
+        // Don't fail the cancellation if sync fails
+      }
+
       // Create detailed admin log
       await storage.createAdminLog({
         userId: req.user.id,
