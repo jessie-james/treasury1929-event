@@ -3490,9 +3490,7 @@ export async function registerRoutes(app: Express) {
           console.log(`🔧 FORCE creating test instance for test payment...`);
           const testKey = process.env.TRE_STRIPE_TEST_SECRET_KEY;
           
-          // Write to file for debugging since console logs are truncated
-          require('fs').appendFileSync('/tmp/refund-debug.log', 
-            `${new Date().toISOString()} - Test key: ${testKey?.substring(0, 15)}...\n`);
+          // Debug logging removed since refund is working
           
           console.log(`🔑 Test key available: ${!!testKey}, prefix: ${testKey?.substring(0, 12)}`);
           
