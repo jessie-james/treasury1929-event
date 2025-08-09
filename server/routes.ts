@@ -3484,7 +3484,7 @@ export async function registerRoutes(app: Express) {
         console.log(`🔄 Creating Stripe refund for payment intent: ${booking.stripePaymentId}`);
         console.log(`💰 Refund amount in cents: ${Math.round(amount * 100)}`);
         
-        const refund = await stripe.refunds.create({
+        const refund = await stripeInstance.refunds.create({
           payment_intent: booking.stripePaymentId,
           amount: Math.round(amount * 100), // Convert to cents
         });
