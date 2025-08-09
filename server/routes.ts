@@ -3464,10 +3464,19 @@ export async function registerRoutes(app: Express) {
         // Update booking record with refund info and status
         const updatedBooking = await storage.processRefund(
           bookingId,
-          amount,
+          Math.round(amount * 100), // Convert to cents for storage
           refund.id,
           req.user.id
         );
+
+        // Release the table by updating its status to available
+        await storage.updateTableStatus(booking.tableId, 'available');
+        console.log(`✅ Table ${booking.tableId} released after refund`);
+
+        // Sync availability after refund to update table counts
+        const { AvailabilitySync } = await import('./availability-sync.js');
+        await AvailabilitySync.syncEventAvailability(booking.eventId);
+        console.log(`✅ Availability synced for event ${booking.eventId} after refund`);
 
         // Send refund confirmation email
         try {
@@ -3509,7 +3518,17 @@ export async function registerRoutes(app: Express) {
               }
             };
             
-            await EmailService.sendCancellationEmail(emailData, Math.round(amount * 100));
+            await EmailService.sendRefundNotification({
+              booking: emailData.booking,
+              event: emailData.event,
+              table: emailData.table,
+              venue: emailData.venue,
+              refund: {
+                amount: Math.round(amount * 100),
+                reason: req.body.reason || "Manual refund by admin",
+                refundId: refund.id
+              }
+            });
           }
         } catch (emailError) {
           console.error("Failed to send refund confirmation email:", emailError);

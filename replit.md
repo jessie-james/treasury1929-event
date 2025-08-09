@@ -11,10 +11,18 @@ Preferred communication style: Simple, everyday language.
   - Fixed table number display (now shows correct Table 8 instead of wrong table numbers)
   - Added proper event timing ("Doors: 5:45 PM • Concert: 6:30 PM") 
   - Implemented complete food selections display with guest-specific choices
+  - Added wine selections display to both Payment Success page and PDF tickets
   - Resolved TypeScript errors preventing My Tickets tab from loading
 - **Customer Dashboard Enhanced**: Updated booking data retrieval to always fetch fresh data
 - **Authentication System Fixed**: Resolved critical session deserialization issue that was preventing user logins
 - **Session Management**: Fixed PostgreSQL session store configuration and passport middleware ordering
+- **Refund System Fixed**: Complete resolution of refund functionality issues
+  - Fixed refund processing to properly update booking status to 'refunded'
+  - Added automatic table release when refunds are processed
+  - Fixed amount conversion (dollars to cents) for database storage
+  - Implemented proper availability sync after refund processing
+  - Added refund notification email system with proper template
+  - Fixed admin UI to disable buttons for refunded/canceled bookings
 
 ## System Architecture
 
