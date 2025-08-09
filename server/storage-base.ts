@@ -112,6 +112,10 @@ export interface IStorage {
   getAdminLogs(): Promise<AdminLog[]>;
   getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]>;
   
+  // Webhook event tracking methods (optional for backward compatibility)
+  getProcessedWebhookEvents?(): Promise<string[]>;
+  markProcessedWebhookEvent?(eventId: string): Promise<void>;
+  
   // Food methods
   getFoodOptionsByDisplayOrder(): Promise<any[]>;
   getRandomizedFoodOptions(eventId: number): Promise<any[]>;

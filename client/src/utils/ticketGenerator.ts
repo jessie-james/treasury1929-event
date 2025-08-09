@@ -93,9 +93,20 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
   ctx.fillText(`Booking #${booking.id}`, canvas.width / 2, currentY);
   currentY += 20;
 
-  // Table and party info
-  if (booking.table?.tableNumber || booking.tableId) {
-    const tableNumber = booking.table?.tableNumber || booking.tableId;
+  // Table and party info - ONLY use customer-facing tableNumber, never internal IDs
+  if (booking.table?.tableNumber) {
+    const tableNumber = booking.table.tableNumber;
+    
+    // Validate table number is in expected range (floor: 1-32, mezzanine: 201-207)
+    if (typeof tableNumber !== 'number') {
+      throw new Error(`[TICKET] Missing customer table label for booking ${booking.id}`);
+    }
+    
+    const isValidLabel = (tableNumber >= 1 && tableNumber <= 32) || (tableNumber >= 201 && tableNumber <= 207);
+    if (!isValidLabel) {
+      console.warn('[TABLE] Suspicious table label', { tableNumber, bookingId: booking.id });
+    }
+    
     ctx.fillText(`Table ${tableNumber} • ${booking.partySize} guests`, canvas.width / 2, currentY);
   } else {
     ctx.fillText(`${booking.partySize} ${booking.partySize === 1 ? 'ticket' : 'tickets'}`, canvas.width / 2, currentY);

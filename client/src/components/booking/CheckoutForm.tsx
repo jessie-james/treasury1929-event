@@ -145,7 +145,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
           {tableId > 0 && (
             <div className="flex justify-between">
               <span>Table:</span>
-              <span>{(table as any)?.tableNumber || tableId}</span>
+              <span>{(table as any)?.tableNumber}</span>
             </div>
           )}
           <div className="flex justify-between">

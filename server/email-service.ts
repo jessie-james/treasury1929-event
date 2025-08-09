@@ -9,29 +9,29 @@ interface User {
 
 interface BookingEmailData {
   booking: {
-    id: number;
+    id: number | string; // Allow both for flexibility during type migration
     customerEmail: string;
     partySize: number;
     status: string;
     notes?: string;
     stripePaymentId?: string;
-    createdAt: Date;
+    createdAt: Date | string; // Allow both Date and ISO string
     guestNames?: string[];
   };
   event: {
-    id: number;
+    id: number | string; // Allow both for flexibility
     title: string;
-    date: Date;
+    date: Date | string; // Allow both Date and ISO string
     description: string;
   };
   table: {
-    id: number;
+    id: number | string; // Allow both for flexibility
     tableNumber: number;
     floor: string;
     capacity: number;
   };
   venue: {
-    id: number;
+    id: number | string; // Allow both for flexibility
     name: string;
     address?: string;
   };
@@ -39,40 +39,76 @@ interface BookingEmailData {
 
 let emailInitialized = false;
 
+// Centralized email initialization and error handling
+export function initializeEmailService(): void {
+  const key = process.env.SENDGRID_API_KEY_NEW;
+  if (!key) {
+    console.error('[EMAIL] Missing SENDGRID_API_KEY_NEW - Treasury account key required');
+    emailInitialized = false;
+    return;
+  }
+  
+  try {
+    sgMail.setApiKey(key);
+    emailInitialized = true;
+    console.info('[EMAIL] SendGrid initialized successfully with Treasury key');
+  } catch (err) {
+    emailInitialized = false;
+    console.error('[EMAIL] Initialization error:', serializeEmailError(err));
+  }
+}
+
+export function ensureEmailReady(): void {
+  if (!emailInitialized) {
+    throw new Error('EMAIL_NOT_INITIALIZED - call initializeEmailService() first');
+  }
+}
+
+export async function sendEmail(msg: sgMail.MailDataRequired): Promise<any> {
+  ensureEmailReady();
+  try {
+    const [res] = await sgMail.send(msg);
+    console.debug('[EMAIL] Sent successfully', { 
+      status: res.statusCode, 
+      to: typeof msg.to === 'string' ? msg.to : 'multiple',
+      messageId: res.headers?.['x-message-id']
+    });
+    return res;
+  } catch (err: any) {
+    const serializedError = serializeEmailError(err);
+    console.error('[EMAIL] Send failed:', serializedError);
+    throw new Error(`EMAIL_SEND_FAILED:${serializedError.code ?? 'UNKNOWN'}`);
+  }
+}
+
+function serializeEmailError(err: any): any {
+  return {
+    code: err?.code,
+    message: err?.message,
+    responseBody: err?.response?.body,
+    status: err?.response?.statusCode,
+    timestamp: new Date().toISOString()
+  };
+}
+
 export class EmailService {
   private static readonly FROM_EMAIL = 'The Treasury 1929 <info@thetreasury1929.com>';
   private static readonly ADMIN_EMAIL = 'info@thetreasury1929.com';
 
   static async initialize(): Promise<void> {
-    // ONLY use Treasury account key - no fallback as per user requirement
-    const sendgridApiKey = process.env.SENDGRID_API_KEY_NEW;
-    
-    if (!sendgridApiKey) {
-      console.log('⚠️  No SENDGRID_API_KEY_NEW found - email service disabled (Treasury account key required)');
-      return;
-    }
-    
-    try {
-      sgMail.setApiKey(sendgridApiKey);
-      emailInitialized = true;
-      console.log('✓ SendGrid email service initialized (FIXED)');
-    } catch (error) {
-      console.error('✗ Failed to initialize SendGrid:', error);
-    }
+    // Use the centralized initialization
+    initializeEmailService();
   }
 
   static async sendBookingConfirmation(data: BookingEmailData): Promise<boolean> {
-    if (!emailInitialized) {
-      console.log('📧 Email service not initialized - skipping booking confirmation');
-      return false;
-    }
-
     try {
+      ensureEmailReady(); // Throw error if not initialized instead of silent skip
+      
       const { booking, event, table, venue } = data;
       
       // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
       const PHOENIX_TZ = 'America/Phoenix';
-      const eventDateObj = new Date(event.date);
+      const eventDateObj = typeof event.date === 'string' ? new Date(event.date) : event.date;
       
       // Format date in Phoenix timezone
       const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
@@ -176,7 +212,7 @@ export class EmailService {
         `
       };
 
-      await sgMail.send(emailContent);
+      await sendEmail(emailContent);
       console.log(`✓ Booking confirmation sent to ${booking.customerEmail} (FIXED)`);
       
       // Send admin copy for monitoring and verification
@@ -197,7 +233,7 @@ export class EmailService {
           `
         };
         
-        await sgMail.send(adminEmailContent);
+        await sendEmail(adminEmailContent);
         console.log(`✓ Admin copy sent to ${this.ADMIN_EMAIL} for booking ${booking.id}`);
       } catch (adminEmailError) {
         console.error(`⚠️ Failed to send admin copy (customer email was successful):`, adminEmailError);
@@ -235,8 +271,8 @@ export class EmailService {
     try {
       const { booking, event, table, venue } = data;
       
-      // All events are in Phoenix, Arizona timezone
-      const eventDateObj = new Date(event.date);
+      // All events are in Phoenix, Arizona timezone  
+      const eventDateObj = typeof event.date === 'string' ? new Date(event.date) : event.date;
       const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
@@ -338,7 +374,7 @@ export class EmailService {
         `
       };
 
-      await sgMail.send(emailContent);
+      await sendEmail(emailContent);
       console.log(`✓ Event reminder sent to ${booking.customerEmail} (FIXED)`);
       return true;
 
@@ -356,12 +392,8 @@ export class EmailService {
 
 
   static async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
-    if (!emailInitialized) {
-      console.log('📧 Email service not initialized - skipping password reset');
-      return false;
-    }
-
     try {
+      ensureEmailReady();
       // Use the correct public-facing deployment URL
       const baseUrl = process.env.REPLIT_URL || 'https://venue-master-remix.replit.app';
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
@@ -406,7 +438,7 @@ export class EmailService {
         `
       };
 
-      await sgMail.send(emailContent);
+      await sendEmail(emailContent);
       console.log(`✓ Password reset email sent to ${email}`);
       return true;
 
@@ -420,12 +452,8 @@ export class EmailService {
   }
 
   static async sendCancellationEmail(data: BookingEmailData, refundAmountCents: number): Promise<boolean> {
-    if (!emailInitialized) {
-      console.log('📧 Email service not initialized - skipping customer cancellation');
-      return false;
-    }
-
     try {
+      ensureEmailReady();
       const { booking, event, table, venue } = data;
       
       // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
@@ -583,7 +611,7 @@ export class EmailService {
         `
       };
 
-      await sgMail.send(emailContent);
+      await sendEmail(emailContent);
       console.log(`✓ Venue cancellation email sent to ${booking.customerEmail}`);
       return true;
 
@@ -595,12 +623,8 @@ export class EmailService {
 
   // Send refund notification email for automatic Stripe refunds
   static async sendRefundNotification(data: any): Promise<boolean> {
-    if (!emailInitialized) {
-      console.log('📧 Email service not initialized - skipping refund notification');
-      return false;
-    }
-
     try {
+      ensureEmailReady();
       const { booking, event, table, venue, refund } = data;
       
       // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
@@ -669,7 +693,7 @@ export class EmailService {
         `
       };
 
-      await sgMail.send(emailContent);
+      await sendEmail(emailContent);
       console.log(`✓ Refund notification email sent to ${booking.customerEmail}`);
       return true;
 
@@ -680,12 +704,8 @@ export class EmailService {
   }
 
   static async sendAdminBookingNotification(data: BookingEmailData): Promise<boolean> {
-    if (!emailInitialized) {
-      console.log('📧 Email service not initialized - skipping admin notification');
-      return false;
-    }
-
     try {
+      ensureEmailReady();
       const { booking, event, table, venue } = data;
       
       // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
@@ -736,7 +756,7 @@ export class EmailService {
         `
       };
 
-      await sgMail.send(emailContent);
+      await sendEmail(emailContent);
       console.log(`✓ Admin booking notification sent for booking ${booking.id}`);
       return true;
 

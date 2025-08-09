@@ -930,7 +930,7 @@ export function registerPaymentRoutes(app: Express) {
     }
   });
 
-  // Add a webhook endpoint for Stripe events
+  // Add a webhook endpoint for Stripe events with deduplication
   app.post("/api/stripe-webhook", async (req, res) => {
     const stripe = getStripe();
     if (!stripe) {
@@ -956,6 +956,17 @@ export function registerPaymentRoutes(app: Express) {
     } catch (err: any) {
       console.error(`Webhook signature verification failed: ${err.message}`);
       return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+    
+    // Check for duplicate webhook events using Stripe event ID
+    try {
+      const processedEvents = await storage.getProcessedWebhookEvents?.() || [];
+      if (processedEvents.includes(webhookEvent.id)) {
+        console.log(`[WEBHOOK] Event ${webhookEvent.id} already processed - skipping duplicate`);
+        return res.json({ received: true, duplicate: true });
+      }
+    } catch (err) {
+      console.warn('[WEBHOOK] Could not check for duplicate events, proceeding with processing');
     }
     
     // Handle specific webhook events
@@ -1057,52 +1068,60 @@ export function registerPaymentRoutes(app: Express) {
             await AvailabilitySync.syncEventAvailability(booking.eventId);
             console.log(`✅ Table ${booking.tableId} released for event ${booking.eventId} after refund`);
             
-            // Send refund notification email
-            const { EmailService } = await import('./email-service');
-            
-            // Get event, table, and venue details for email
-            const event = await storage.getEventById(booking.eventId);
-            const table = await storage.getTableById(booking.tableId);
-            const venue = table ? await storage.getVenueById(table.venueId) : null;
-            
-            if (event && table && venue) {
-              const emailData = {
-                booking: {
-                  id: booking.id.toString(),
-                  customerEmail: booking.customerEmail,
-                  partySize: booking.partySize || 1,
-                  status: 'refunded',
-                  stripePaymentId: booking.stripePaymentId,
-                  createdAt: booking.createdAt,
-                  guestNames: booking.guestNames || []
-                },
-                event: {
-                  id: event.id.toString(),
-                  title: event.title,
-                  date: event.date,
-                  description: event.description || ''
-                },
-                table: {
-                  id: table.id.toString(),
-                  tableNumber: table.tableNumber,
-                  floor: booking.selectedVenue || 'Main Floor',
-                  capacity: table.capacity
-                },
-                venue: {
-                  id: venue.id.toString(),
-                  name: venue.name,
-                  address: '2 E Congress St, Ste 100'
-                },
-                refund: {
-                  amount: refundAmount,
-                  reason: webhookEvent.type.includes('dispute') ? 'Payment dispute filed' : 'Refund processed',
-                  processedAt: new Date(),
-                  refundId: chargeOrIntent.id
-                }
-              };
+            // Send refund notification email using centralized email service
+            try {
+              const { sendEmail } = await import('./email-service');
               
-              const emailSent = await EmailService.sendRefundNotification(emailData);
-              console.log(`Refund notification email ${emailSent ? 'sent' : 'failed'} for booking #${booking.id}`);
+              // Get event, table, and venue details for email
+              const event = await storage.getEventById(booking.eventId);
+              const table = await storage.getTableById(booking.tableId);
+              const venue = table ? await storage.getVenueById(table.venueId) : null;
+              
+              if (event && table && venue) {
+                const emailData = {
+                  booking: {
+                    id: booking.id,
+                    customerEmail: booking.customerEmail,
+                    partySize: booking.partySize || 1,
+                    status: 'refunded',
+                    stripePaymentId: booking.stripePaymentId,
+                    createdAt: booking.createdAt,
+                    guestNames: booking.guestNames || []
+                  },
+                  event: {
+                    id: event.id,
+                    title: event.title,
+                    date: event.date,
+                    description: event.description || ''
+                  },
+                  table: {
+                    id: table.id,
+                    tableNumber: table.tableNumber, // Only use customer-facing label
+                    floor: booking.selectedVenue || 'Main Floor',
+                    capacity: table.capacity
+                  },
+                  venue: {
+                    id: venue.id,
+                    name: venue.name,
+                    address: '2 E Congress St, Ste 100'
+                  },
+                  refund: {
+                    amount: refundAmount,
+                    currency: 'usd',
+                    reason: webhookEvent.type.includes('dispute') ? 'Payment dispute filed' : 'Refund processed',
+                    refundId: chargeOrIntent.id
+                  }
+                };
+                
+                const { EmailService } = await import('./email-service');
+                const emailSent = await EmailService.sendRefundNotification(emailData);
+                console.log(`[REFUND EMAIL] ${emailSent ? 'SUCCESS' : 'FAILED'} - Booking #${booking.id}, Customer: ${booking.customerEmail}`);
+              } else {
+                console.warn(`[REFUND EMAIL] Missing data - Event: ${!!event}, Table: ${!!table}, Venue: ${!!venue} for booking ${booking.id}`);
+              }
+            } catch (emailError) {
+              console.error(`[REFUND EMAIL] Error sending notification for booking ${booking.id}:`, emailError);
+              // Don't fail the webhook if email fails
             }
             
             // Log the automatic refund processing
@@ -1136,7 +1155,17 @@ export function registerPaymentRoutes(app: Express) {
       }
     }
     
-    res.json({ received: true });
+    // Mark event as processed to prevent duplicates
+    try {
+      if (storage.markProcessedWebhookEvent) {
+        await storage.markProcessedWebhookEvent(webhookEvent.id);
+        console.log(`[WEBHOOK] Marked event ${webhookEvent.id} as processed`);
+      }
+    } catch (err) {
+      console.warn('[WEBHOOK] Could not mark event as processed:', err);
+    }
+    
+    res.json({ received: true, eventId: webhookEvent.id, type: webhookEvent.type });
   });
 
   // Test endpoint to simulate Stripe refund webhook (for testing)
