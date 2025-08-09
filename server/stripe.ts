@@ -22,14 +22,14 @@ export function initializeStripe(): boolean {
     console.log(`Initializing Stripe (attempt ${initAttempts})...`);
     
     // Check for live Stripe key first, fallback to test key
-    const liveStripeKey = process.env.STRIPE_SECRET_KEY;
+    const liveStripeKey = process.env.STRIPE_SECRET_KEY_NEW;
     const testStripeKey = process.env.TRE_STRIPE_TEST_SECRET_KEY;
     
     const stripeSecretKey = liveStripeKey || testStripeKey;
     const isLiveMode = !!liveStripeKey;
     
     if (!stripeSecretKey) {
-      console.error("Missing Stripe keys - need either STRIPE_SECRET_KEY (live) or TRE_STRIPE_TEST_SECRET_KEY (test)");
+      console.error("Missing Stripe keys - need either STRIPE_SECRET_KEY_NEW (live) or TRE_STRIPE_TEST_SECRET_KEY (test)");
       return false;
     }
     
@@ -62,12 +62,12 @@ export function getStripe(): Stripe | null {
 
 // Check if running in live mode
 export function isLiveMode(): boolean {
-  return !!process.env.STRIPE_SECRET_KEY;
+  return !!process.env.STRIPE_SECRET_KEY_NEW;
 }
 
 // Get the publishable key for frontend
 export function getPublishableKey(): string | null {
-  const liveKey = process.env.STRIPE_PUBLISHABLE_KEY;
+  const liveKey = process.env.STRIPE_PUBLISHABLE_KEY_NEW;
   const testKey = process.env.TRE_STRIPE_TEST_PUBLISHABLE_KEY;
   
   return liveKey || testKey || null;
