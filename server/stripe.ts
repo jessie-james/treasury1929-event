@@ -21,16 +21,22 @@ export function initializeStripe(): boolean {
     initAttempts++;
     console.log(`Initializing Stripe (attempt ${initAttempts})...`);
     
-    // Check for required environment variable - Treasury test account
-    const stripeSecretKey = process.env.TRE_STRIPE_TEST_SECRET_KEY;
+    // Check for live Stripe key first, fallback to test key
+    const liveStripeKey = process.env.STRIPE_SECRET_KEY;
+    const testStripeKey = process.env.TRE_STRIPE_TEST_SECRET_KEY;
+    
+    const stripeSecretKey = liveStripeKey || testStripeKey;
+    const isLiveMode = !!liveStripeKey;
+    
     if (!stripeSecretKey) {
-      console.error("Missing TRE_STRIPE_TEST_SECRET_KEY environment variable");
+      console.error("Missing Stripe keys - need either STRIPE_SECRET_KEY (live) or TRE_STRIPE_TEST_SECRET_KEY (test)");
       return false;
     }
     
     // Log first few characters of the key for debugging (never full key)
     const keyPrefix = stripeSecretKey.substring(0, 12);
-    console.log(`Using Stripe key with prefix: ${keyPrefix}... (TREASURY_TEST)`);
+    const modeLabel = isLiveMode ? "LIVE_MODE" : "TEST_MODE";
+    console.log(`Using Stripe key with prefix: ${keyPrefix}... (${modeLabel})`);
     
     // Create Stripe instance - without specifying API version to avoid type conflicts
     stripe = new Stripe(stripeSecretKey);
@@ -52,6 +58,19 @@ export function getStripe(): Stripe | null {
     initializeStripe();
   }
   return stripe;
+}
+
+// Check if running in live mode
+export function isLiveMode(): boolean {
+  return !!process.env.STRIPE_SECRET_KEY;
+}
+
+// Get the publishable key for frontend
+export function getPublishableKey(): string | null {
+  const liveKey = process.env.STRIPE_PUBLISHABLE_KEY;
+  const testKey = process.env.TRE_STRIPE_TEST_PUBLISHABLE_KEY;
+  
+  return liveKey || testKey || null;
 }
 
 // Simple helper to create a payment intent
