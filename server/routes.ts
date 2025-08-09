@@ -3440,9 +3440,13 @@ export async function registerRoutes(app: Express) {
 
       // Process the refund with Stripe
       try {
+        console.log(`🔄 Starting refund process for booking ${bookingId}, amount: $${amount}`);
+        console.log(`📊 Stripe status: ${stripe ? 'initialized' : 'NOT initialized'}`);
+        console.log(`💳 Payment ID: ${booking.stripePaymentId}`);
+        
         // Check if Stripe is properly initialized
         if (!stripe) {
-          console.error("Stripe is not initialized. Cannot process refund.");
+          console.error("❌ Stripe is not initialized. Cannot process refund.");
           return res.status(500).json({ 
             error: "Refund service unavailable. Please contact support." 
           });
@@ -3456,10 +3460,15 @@ export async function registerRoutes(app: Express) {
           });
         }
 
+        console.log(`🔄 Creating Stripe refund for payment intent: ${booking.stripePaymentId}`);
+        console.log(`💰 Refund amount in cents: ${Math.round(amount * 100)}`);
+        
         const refund = await stripe.refunds.create({
           payment_intent: booking.stripePaymentId,
           amount: Math.round(amount * 100), // Convert to cents
         });
+        
+        console.log(`✅ Stripe refund created successfully: ${refund.id}`);
 
         // Update booking record with refund info and status
         const updatedBooking = await storage.processRefund(
@@ -3579,7 +3588,13 @@ export async function registerRoutes(app: Express) {
 
         res.json(updatedBooking);
       } catch (stripeError: any) {
-        console.error("Stripe refund error:", stripeError);
+        console.error("❌ Stripe refund error:", stripeError);
+        console.error("❌ Error details:", {
+          message: stripeError.message,
+          type: stripeError.type,
+          code: stripeError.code,
+          param: stripeError.param
+        });
         return res.status(400).json({
           message: "Failed to process refund with Stripe",
           error: stripeError.message
