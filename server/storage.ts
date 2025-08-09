@@ -1171,6 +1171,22 @@ export class PgStorage implements IStorage {
       this.processedWebhookEvents = new Set(eventsArray.slice(-1000));
     }
   }
+
+  // Admin Log methods
+  async createAdminLog(logData: InsertAdminLog): Promise<number> {
+    const result = await db.insert(schema.adminLogs).values(logData).returning();
+    return result[0].id;
+  }
+
+  async getAdminLogs(): Promise<AdminLog[]> {
+    return await db.select().from(schema.adminLogs).orderBy(desc(schema.adminLogs.createdAt));
+  }
+
+  async getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]> {
+    return await db.select().from(schema.adminLogs)
+      .where(eq(schema.adminLogs.entityType, entityType))
+      .orderBy(desc(schema.adminLogs.createdAt));
+  }
 }
 
 export const storage = new PgStorage();

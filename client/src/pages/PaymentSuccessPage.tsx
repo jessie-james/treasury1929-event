@@ -30,8 +30,11 @@ export default function PaymentSuccessPage() {
     
     if (bookingIdParam) {
       // We have the booking ID from the URL
-      setBookingId(parseInt(bookingIdParam));
-      setBookingReference(bookingIdParam);
+      const parsedId = parseInt(bookingIdParam);
+      if (!isNaN(parsedId)) {
+        setBookingId(parsedId);
+        setBookingReference(bookingIdParam);
+      }
     } else if (sessionId) {
       // Fallback: fetch from user bookings API if no booking ID in URL
       fetch('/api/user/bookings', { credentials: 'include' })

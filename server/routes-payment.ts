@@ -57,7 +57,7 @@ export async function createBookingFromStripeSession(session: any) {
     const { EmailService } = await import('./email-service');
     
     // Get the created booking with full details
-    const createdBooking = await storage.getBooking(bookingId);
+    const createdBooking = await storage.getBooking(bookingId.id);
     const event = await storage.getEventById(eventId);
     const table = await storage.getTableById(tableId);
     const venue = await storage.getVenueById(parseInt(metadata.selectedVenue) || 4);
@@ -376,7 +376,7 @@ export function registerPaymentRoutes(app: Express) {
           const { EmailService } = await import('./email-service');
           
           // Get the created booking with full details
-          const createdBooking = await storage.getBooking(bookingId);
+          const createdBooking = await storage.getBooking(bookingId.id);
           const event = await storage.getEventById(parseInt(session.metadata!.eventId));
           const table = await storage.getTableById(parseInt(session.metadata!.tableId));
           const venue = await storage.getVenueById(parseInt(session.metadata!.selectedVenue || '4'));
@@ -757,7 +757,7 @@ export function registerPaymentRoutes(app: Express) {
       
       // Send confirmation email
       const { EmailService } = await import('./email-service');
-      const booking = await storage.getBookingWithDetails(bookingId);
+      const booking = await storage.getBookingWithDetails(bookingId.id);
       
       let emailSent = false;
       if (booking) {
