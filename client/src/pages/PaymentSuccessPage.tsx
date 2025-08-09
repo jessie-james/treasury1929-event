@@ -349,13 +349,7 @@ export default function PaymentSuccessPage() {
                           <div className="flex justify-between items-center">
                             <div className="space-y-1">
                               <div className="font-medium text-primary">{quantity}x {wineName}</div>
-                              {price > 0 && (
-                                <div className="text-xs text-gray-500">${(price / 100).toFixed(2)} each</div>
-                              )}
                             </div>
-                            {price > 0 && (
-                              <div className="font-medium">${((price * quantity) / 100).toFixed(2)}</div>
-                            )}
                           </div>
                         </div>
                       );

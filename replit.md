@@ -13,6 +13,13 @@ Preferred communication style: Simple, everyday language.
   - Implemented complete food selections display with guest-specific choices
   - Added wine selections display to both Payment Success page and PDF tickets
   - Resolved TypeScript errors preventing My Tickets tab from loading
+- **Wine Selection System Completely Overhauled**: Fixed logic from per-guest to per-table basis
+  - Added missing `/api/menu-items` backend route connecting to foodOptions database table
+  - Updated wine selection display logic to be table-based instead of guest-based
+  - Wine selections now show as "Table X Wine Selections" with quantity format (e.g., "2x Prosecco - Zonin")
+  - Removed wine pricing display from Payment Success page (prices only show during booking flow)
+  - PDF tickets now properly display table-based wine selections without pricing
+  - Fixed all TypeScript errors and ensured backward compatibility with existing bookings
 - **Customer Dashboard Enhanced**: Updated booking data retrieval to always fetch fresh data
 - **Authentication System Fixed**: Resolved critical session deserialization issue that was preventing user logins
 - **Session Management**: Fixed PostgreSQL session store configuration and passport middleware ordering
