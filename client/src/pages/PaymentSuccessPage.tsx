@@ -182,13 +182,37 @@ export default function PaymentSuccessPage() {
             </div>
           )}
 
-          {/* Full Ticket Display - Matching Customer Dashboard Format */}
+          {/* Complete Event Details */}
           {booking && !isLoading && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Event Title */}
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-primary mb-2">{booking.event.title}</h2>
+                <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-1">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    {(() => {
+                      try {
+                        if (!booking.event?.date) return 'Date TBD';
+                        const { eventDate, timeDisplay } = formatEventTimes(booking.event.date);
+                        return `${eventDate} at ${timeDisplay}`;
+                      } catch (error) {
+                        console.error('Date formatting error:', error);
+                        return format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a");
+                      }
+                    })()}
+                  </span>
+                </div>
+                <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Confirmed
+                </div>
+              </div>
+
+              {/* Booking Details */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span>Table {booking.table?.tableNumber || booking.tableId}</span>
+                  <span>Table {booking.table?.tableNumber || 'TBD'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-muted-foreground" />
@@ -273,16 +297,16 @@ export default function PaymentSuccessPage() {
                 </div>
               )}
 
-              {/* Complete Ticket Display - Matching Customer Dashboard */}
-              <div className="mt-6 p-4 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
+              {/* Complete Ticket Display */}
+              <div className="mt-6 p-6 bg-white border-2 border-gray-200 rounded-lg shadow-sm">
+                <div className="flex items-center gap-2 mb-6">
                   <Ticket className="h-5 w-5 text-primary" />
                   <h4 className="text-lg font-semibold">Your Ticket</h4>
                 </div>
                 
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="text-center">
-                    <h5 className="text-lg font-bold text-primary mb-2">{booking.event.title}</h5>
+                    <h5 className="text-xl font-bold text-primary mb-2">{booking.event.title}</h5>
                     <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
@@ -290,16 +314,16 @@ export default function PaymentSuccessPage() {
                           try {
                             if (!booking.event?.date) return 'Date TBD';
                             const { eventDate, timeDisplay } = formatEventTimes(booking.event.date);
-                            return `${eventDate} • ${timeDisplay}`;
+                            return `${eventDate} at ${timeDisplay}`;
                           } catch (error) {
                             console.error('Date formatting error:', error);
-                            return 'Date formatting error';
+                            return format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a");
                           }
                         })()}
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
-                        Table {booking.table?.tableNumber || booking.tableId}
+                        Table {booking.table?.tableNumber || 'TBD'}
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
@@ -308,7 +332,7 @@ export default function PaymentSuccessPage() {
                     </div>
                   </div>
 
-                  {/* QR Code - always visible */}
+                  {/* QR Code */}
                   <div className="flex justify-center">
                     <div className="p-4 bg-white rounded border-2 border-gray-200">
                       <div className="text-xs text-center mb-2 font-medium">Booking #{booking.id}</div>
