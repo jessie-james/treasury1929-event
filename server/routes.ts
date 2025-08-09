@@ -42,11 +42,14 @@ import { EmailService } from "./email-service";
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 
-// Initialize Stripe with Treasury 1929 keys - separate test and live keys
-const stripeLiveKey = process.env.STRIPE_SECRET_KEY_TREASURY || process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY;
-const stripeTestKey = process.env.STRIPE_SECRET_KEY_TEST || process.env.STRIPE_SECRET_KEY; // Dedicated test key
+// Initialize Stripe with Treasury 1929 keys - separate test and live keys  
+const stripeLiveKey = process.env.STRIPE_SECRET_KEY_NEW; // Live key
+const stripeTestKey = process.env.STRIPE_SECRET_KEY; // Test key (from second initialization)
 
 // Log key types for debugging
+console.log(`🔑 Live key available: ${stripeLiveKey ? 'YES' : 'NO'} ${stripeLiveKey ? '(' + stripeLiveKey.substring(0, 7) + '...)' : ''}`);
+console.log(`🔑 Test key available: ${stripeTestKey ? 'YES' : 'NO'} ${stripeTestKey ? '(' + stripeTestKey.substring(0, 7) + '...)' : ''}`);
+
 if (stripeLiveKey) {
   const isTestKey = stripeLiveKey.startsWith('sk_test_');
   console.log(`Primary Stripe key detected as: ${isTestKey ? 'TEST' : 'LIVE'} (${stripeLiveKey.substring(0, 7)}...)`);
@@ -89,22 +92,25 @@ function initializeStripe() {
 
       console.log("✓ Stripe initialized successfully");
       
-      // Initialize test instance - if primary key is already test, use it for both
+      // Initialize test instance - always try to use a test key for test operations
       if (isActuallyTestKey) {
         console.log("Primary key is test mode - using same instance for test operations");
         stripeTest = stripe;
-      } else if (stripeTestKey && stripeTestKey !== stripeLiveKey) {
-        // Use dedicated test key if available and different
-        stripeTest = new Stripe(stripeTestKey, {
-          apiVersion: stripeApiVersion,
-          timeout: 20000,
-          maxNetworkRetries: 3,
-          httpAgent: undefined,
-        });
-        console.log("✓ Stripe test instance initialized successfully");
       } else {
-        console.log("No separate test key available - using primary instance for test operations");
-        stripeTest = stripe;
+        // Initialize test instance with dedicated test key
+        if (stripeTestKey) {
+          stripeTest = new Stripe(stripeTestKey, {
+            apiVersion: stripeApiVersion,
+            timeout: 20000,
+            maxNetworkRetries: 3,
+            httpAgent: undefined,
+          });
+          const testKeyType = stripeTestKey.startsWith('sk_test_') ? 'TEST' : 'LIVE';
+          console.log(`✓ Stripe test instance initialized with ${testKeyType} key: ${stripeTestKey.substring(0, 7)}...`);
+        } else {
+          console.log("⚠️ No test key found - refunds for test payments may fail");
+          stripeTest = stripe; // Fallback to live instance
+        }
       }
       
       return true;
@@ -3479,7 +3485,12 @@ export async function registerRoutes(app: Express) {
         
         // Choose the correct Stripe instance based on payment type
         const stripeInstance = isTestPayment ? (stripeTest || stripe) : stripe;
-        console.log(`📊 Using Stripe instance: ${isTestPayment ? 'TEST' : 'LIVE'} (${stripeInstance ? 'initialized' : 'NOT initialized'})`);
+        
+        // Log which instance we're actually using
+        const instanceIdentifier = stripeInstance === stripe ? 'PRIMARY' : stripeInstance === stripeTest ? 'TEST' : 'UNKNOWN';
+        console.log(`📊 Using Stripe instance: ${isTestPayment ? 'TEST' : 'LIVE'} mode -> ${instanceIdentifier} instance (${stripeInstance ? 'initialized' : 'NOT initialized'})`);
+        console.log(`🔍 Instance check: stripe === stripeTest: ${stripe === stripeTest}`);
+        console.log(`🔍 stripeTest exists: ${!!stripeTest}, stripe exists: ${!!stripe}`);
         
         // Check if the appropriate Stripe instance is initialized
         if (!stripeInstance) {
