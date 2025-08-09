@@ -724,6 +724,20 @@ export async function registerRoutes(app: Express) {
     });
   });
 
+  // Menu items endpoint for food and wine selection
+  app.get("/api/menu-items", async (_req, res) => {
+    try {
+      const foodOptions = await storage.getFoodOptionsByDisplayOrder();
+      res.json(foodOptions);
+    } catch (error) {
+      console.error("Error fetching menu items:", error);
+      res.status(500).json({ 
+        message: "Failed to fetch menu items",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // Test database connection
   app.get("/api/health", async (_req, res) => {
     try {

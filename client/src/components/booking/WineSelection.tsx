@@ -27,7 +27,7 @@ export function WineSelection({ eventId, onComplete, onSkip, onBack }: WineSelec
 
   // Fetch wine options
   const { data: wineOptions = [], isLoading } = useQuery<FoodOption[]>({
-    queryKey: ["/api/food-options"],
+    queryKey: ["/api/menu-items"],
     select: (data) => data.filter(option => 
       option.type === 'wine_glass' || option.type === 'wine_bottle'
     ),

@@ -31,6 +31,11 @@ export async function createBookingFromStripeSession(session: any) {
     throw new Error(`Table ${tableId} is already booked for this event`);
   }
   
+  // DEBUG: Log metadata wine selections
+  console.log("🍷 WINE DEBUG: Metadata wine selections from Stripe:", metadata.wineSelections);
+  const parsedWineSelections = metadata.wineSelections ? JSON.parse(metadata.wineSelections) : [];
+  console.log("🍷 WINE DEBUG: Parsed wine selections:", JSON.stringify(parsedWineSelections, null, 2));
+
   const bookingData = {
     eventId,
     tableId,
@@ -43,7 +48,7 @@ export async function createBookingFromStripeSession(session: any) {
     amount: session.amount_total || 0,
     status: 'confirmed' as const,
     foodSelections: metadata.foodSelections ? JSON.parse(metadata.foodSelections) : [],
-    wineSelections: metadata.wineSelections ? JSON.parse(metadata.wineSelections) : [],
+    wineSelections: parsedWineSelections,
     guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : [],
     selectedVenue: metadata.selectedVenue || null,
     holdStartTime: new Date()
@@ -133,6 +138,9 @@ export function registerPaymentRoutes(app: Express) {
       }
 
       const { eventId, tableId, selectedSeats, amount, foodSelections, wineSelections, guestNames, selectedVenue, partySize } = req.body;
+      
+      // DEBUG: Log wine selections received from frontend
+      console.log("🍷 WINE DEBUG: Wine selections received from frontend:", JSON.stringify(wineSelections, null, 2));
       
       // Use selectedSeats or derive from partySize, and calculate amount if not provided
       const seats = selectedSeats || Array.from({length: partySize || 2}, (_, i) => i + 1);
