@@ -231,8 +231,7 @@ app.get("/api/stripe/config", (_req, res) => {
     }
 
     res.json({
-      publishableKey,
-      keySource: "TREASURY_TEST"
+      publishableKey
     });
   } catch (error) {
     console.error("Error getting Stripe config:", error);
