@@ -84,7 +84,13 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
   ctx.font = '14px Arial';
   ctx.fillStyle = '#374151'; // Gray-700
   const eventDate = booking.event.date instanceof Date ? booking.event.date : new Date(booking.event.date);
-  ctx.fillText(`${format(eventDate, "EEEE, MMMM d, yyyy 'at' h:mm a")}`, canvas.width / 2, currentY);
+  ctx.fillText(`${format(eventDate, "EEEE, MMMM d, yyyy")}`, canvas.width / 2, currentY);
+  currentY += 20;
+  
+  // Add doors and concert timing
+  ctx.font = '12px Arial';
+  ctx.fillStyle = '#6b7280';
+  ctx.fillText('Doors: 5:45 PM • Concert: 6:30 PM', canvas.width / 2, currentY);
   currentY += 30;
 
   // Booking details
@@ -137,7 +143,7 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
     currentY += 10;
   }
 
-  // Food selections
+  // Food selections - handle the actual booking structure
   if (booking.foodSelections && booking.foodSelections.length > 0) {
     ctx.font = 'bold 14px Arial';
     ctx.fillStyle = '#374151';
@@ -148,14 +154,32 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
     ctx.fillStyle = '#6b7280';
     
     booking.foodSelections.forEach((selection: any, index: number) => {
-      // Find the food option details
-      const foodOption = foodOptions?.find(opt => opt.id === selection.foodOptionId);
-      if (foodOption) {
-        const quantity = selection.quantity || 1;
-        const text = `${quantity}x ${foodOption.name}`;
-        ctx.fillText(text, canvas.width / 2, currentY);
+      const guestNumber = (index + 1).toString();
+      const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
+        ? booking.guestNames[guestNumber] || `Guest ${index + 1}`
+        : `Guest ${index + 1}`;
+      
+      // Find food items by their IDs
+      const saladItem = foodOptions?.find(item => item.id === selection.salad);
+      const entreeItem = foodOptions?.find(item => item.id === selection.entree);
+      const dessertItem = foodOptions?.find(item => item.id === selection.dessert);
+      
+      ctx.fillText(`${guestName}:`, canvas.width / 2, currentY);
+      currentY += 12;
+      
+      if (saladItem) {
+        ctx.fillText(`  Salad: ${saladItem.name}`, canvas.width / 2, currentY);
         currentY += 12;
       }
+      if (entreeItem) {
+        ctx.fillText(`  Entree: ${entreeItem.name}`, canvas.width / 2, currentY);
+        currentY += 12;
+      }
+      if (dessertItem) {
+        ctx.fillText(`  Dessert: ${dessertItem.name}`, canvas.width / 2, currentY);
+        currentY += 12;
+      }
+      currentY += 8; // Space between guests
     });
     currentY += 15;
   }
