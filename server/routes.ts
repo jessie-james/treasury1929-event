@@ -42,10 +42,17 @@ import { EmailService } from "./email-service";
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 
-// Initialize Stripe with Treasury 1929 keys - NEW key is Treasury, regular key is Sahuaro
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY_TREASURY || process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY;
-const stripeTestKey = process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY; // Use same key for now as it's test mode
-if (!stripeSecretKey) {
+// Initialize Stripe with Treasury 1929 keys - separate test and live keys
+const stripeLiveKey = process.env.STRIPE_SECRET_KEY_TREASURY || process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY;
+const stripeTestKey = process.env.STRIPE_SECRET_KEY_TEST || process.env.STRIPE_SECRET_KEY; // Dedicated test key
+
+// Log key types for debugging
+if (stripeLiveKey) {
+  const isTestKey = stripeLiveKey.startsWith('sk_test_');
+  console.log(`Primary Stripe key detected as: ${isTestKey ? 'TEST' : 'LIVE'} (${stripeLiveKey.substring(0, 7)}...)`);
+}
+
+if (!stripeLiveKey) {
   console.error("STRIPE_SECRET_KEY_TREASURY, STRIPE_SECRET_KEY_NEW or STRIPE_SECRET_KEY environment variable not set. Stripe payments will not work.");
 }
 
@@ -62,26 +69,32 @@ const MAX_INIT_ATTEMPTS = 3;
 function initializeStripe() {
   stripeInitAttempt++;
   try {
-    if (stripeSecretKey) {
+    // Initialize live Stripe instance
+    if (stripeLiveKey) {
       console.log(`Initializing Stripe (attempt ${stripeInitAttempt})...`);
 
-      // Additional logging for deployment debugging
-      const keyPrefix = stripeSecretKey.substring(0, 7);
+      // Determine if this is actually a test or live key
+      const isActuallyTestKey = stripeLiveKey.startsWith('sk_test_');
+      const keyPrefix = stripeLiveKey.substring(0, 7);
       const keySource = process.env.STRIPE_SECRET_KEY_TREASURY ? "TREASURY" : process.env.STRIPE_SECRET_KEY_NEW ? "TREASURY_NEW" : "SAHUARO_OLD";
       console.log(`Using Stripe key with prefix: ${keyPrefix}... (${keySource})`);
 
-      // Create Stripe instance with more resilient settings for deployment
-      stripe = new Stripe(stripeSecretKey, {
+      // Create primary Stripe instance
+      stripe = new Stripe(stripeLiveKey, {
         apiVersion: stripeApiVersion,
-        timeout: 20000, // 20 second timeout for API requests in deployment
-        maxNetworkRetries: 3, // Retry network requests up to 3 times
-        httpAgent: undefined, // Let Stripe handle the HTTP agent
+        timeout: 20000,
+        maxNetworkRetries: 3,
+        httpAgent: undefined,
       });
 
       console.log("✓ Stripe initialized successfully");
       
-      // Also initialize test Stripe instance using the same key (which is actually test mode)
-      if (stripeTestKey) {
+      // Initialize test instance - if primary key is already test, use it for both
+      if (isActuallyTestKey) {
+        console.log("Primary key is test mode - using same instance for test operations");
+        stripeTest = stripe;
+      } else if (stripeTestKey && stripeTestKey !== stripeLiveKey) {
+        // Use dedicated test key if available and different
         stripeTest = new Stripe(stripeTestKey, {
           apiVersion: stripeApiVersion,
           timeout: 20000,
@@ -89,6 +102,9 @@ function initializeStripe() {
           httpAgent: undefined,
         });
         console.log("✓ Stripe test instance initialized successfully");
+      } else {
+        console.log("No separate test key available - using primary instance for test operations");
+        stripeTest = stripe;
       }
       
       return true;
