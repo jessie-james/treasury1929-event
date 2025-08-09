@@ -22,64 +22,63 @@ export default function PaymentSuccessPage() {
   const [bookingId, setBookingId] = useState<number | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
 
-  // On component mount, check URL parameters for information
+  // On component mount, always fetch the most recent booking
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session_id');
-    const bookingIdParam = urlParams.get('booking_id');
-    
-    if (bookingIdParam) {
-      // We have the booking ID from the URL
-      const parsedId = parseInt(bookingIdParam);
-      if (!isNaN(parsedId)) {
-        setBookingId(parsedId);
-        setBookingReference(bookingIdParam);
-      }
-    } else if (sessionId) {
-      // Fallback: fetch from user bookings API if no booking ID in URL
-      fetch('/api/user/bookings', { credentials: 'include' })
-        .then(response => response.json())
-        .then(bookings => {
-          if (bookings && bookings.length > 0) {
-            // Get the most recent booking (should be the one just created)
-            const recentBooking = bookings[0];
-            setBookingId(recentBooking.id);
-            setBookingReference(recentBooking.id.toString());
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching bookings:', error);
-        });
-    } else {
-      // Last resort: if no session ID and no booking ID, try to get the most recent booking
-      fetch('/api/user/bookings', { credentials: 'include' })
-        .then(response => response.json())
-        .then(bookings => {
-          if (bookings && bookings.length > 0) {
-            // Get the most recent booking
-            const recentBooking = bookings[0];
-            setBookingId(recentBooking.id);
-            setBookingReference(recentBooking.id.toString());
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching bookings:', error);
-        });
-    }
+    console.log('🔄 Fetching most recent booking for payment success page...');
+    fetch('/api/user/bookings', { credentials: 'include' })
+      .then(response => response.json())
+      .then(bookings => {
+        if (bookings && bookings.length > 0) {
+          // Get the most recent booking (first in array since ordered by creation date desc)
+          const recentBooking = bookings[0];
+          console.log('🔄 Setting most recent booking:', recentBooking.id, 'Table:', recentBooking.table?.tableNumber);
+          setBookingId(recentBooking.id);
+          setBookingReference(recentBooking.id.toString());
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching recent bookings:', error);
+      });
   }, []);
 
   // Fetch booking details if we have a booking ID
   const { data: booking, isLoading } = useQuery({
     queryKey: ['/api/user/bookings', bookingId],
     queryFn: async () => {
-      if (!bookingId) return null;
+      if (!bookingId) {
+        // If no specific booking ID, get the most recent booking
+        const allBookingsResponse = await fetch('/api/user/bookings', { credentials: 'include' });
+        if (allBookingsResponse.ok) {
+          const allBookings = await allBookingsResponse.json();
+          if (allBookings && allBookings.length > 0) {
+            const recentBooking = allBookings[0]; // Most recent booking
+            console.log('🎫 Using most recent booking:', JSON.stringify(recentBooking, null, 2));
+            return recentBooking;
+          }
+        }
+        return null;
+      }
+      
       const response = await fetch(`/api/user/bookings/${bookingId}`, { credentials: 'include' });
-      if (!response.ok) return null;
+      if (!response.ok) {
+        console.warn(`Failed to fetch booking ${bookingId}, trying most recent booking instead`);
+        // Fallback to most recent booking
+        const allBookingsResponse = await fetch('/api/user/bookings', { credentials: 'include' });
+        if (allBookingsResponse.ok) {
+          const allBookings = await allBookingsResponse.json();
+          if (allBookings && allBookings.length > 0) {
+            const recentBooking = allBookings[0];
+            console.log('🎫 Fallback to most recent booking:', JSON.stringify(recentBooking, null, 2));
+            return recentBooking;
+          }
+        }
+        return null;
+      }
       const bookingData = await response.json();
       console.log('🎫 Full booking data:', JSON.stringify(bookingData, null, 2));
       return bookingData;
     },
-    enabled: !!bookingId,
+    enabled: true, // Always try to fetch booking data
   });
 
   // Fetch food options for displaying food selections
@@ -190,20 +189,38 @@ export default function PaymentSuccessPage() {
               {/* Event Title */}
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-primary mb-2">{booking.event.title}</h2>
-                <div className="flex items-center justify-center gap-1 text-sm text-muted-foreground mb-1">
-                  <Calendar className="h-4 w-4" />
-                  <span>
+                <div className="flex flex-col items-center gap-1 text-sm text-muted-foreground mb-1">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    <span>
+                      {(() => {
+                        try {
+                          if (!booking.event?.date) return 'Date TBD';
+                          const { eventDate, timeDisplay } = formatEventTimes(booking.event.date);
+                          return `${eventDate}`;
+                        } catch (error) {
+                          console.error('Date formatting error:', error);
+                          return format(new Date(booking.event.date), "EEEE, MMMM d, yyyy");
+                        }
+                      })()}
+                    </span>
+                  </div>
+                  <div className="text-xs text-center">
                     {(() => {
                       try {
-                        if (!booking.event?.date) return 'Date TBD';
-                        const { eventDate, timeDisplay } = formatEventTimes(booking.event.date);
-                        return `${eventDate} at ${timeDisplay}`;
+                        if (!booking.event?.date) return 'Time TBD';
+                        return (
+                          <div className="space-y-1">
+                            <div>Doors Open: 5:45 PM</div>
+                            <div>Concert: 6:30 PM</div>
+                          </div>
+                        );
                       } catch (error) {
-                        console.error('Date formatting error:', error);
-                        return format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a");
+                        console.error('Time formatting error:', error);
+                        return 'Time TBD';
                       }
                     })()}
-                  </span>
+                  </div>
                 </div>
                 <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                   Confirmed
@@ -214,7 +231,7 @@ export default function PaymentSuccessPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span>Table {booking.table?.tableNumber || booking.tableId || 'TBD'}</span>
+                  <span>Table {booking.table?.tableNumber || 'TBD'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-muted-foreground" />
@@ -328,22 +345,27 @@ export default function PaymentSuccessPage() {
                   <div className="text-center">
                     <h5 className="text-xl font-bold text-primary mb-2">{booking.event.title}</h5>
                     <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {(() => {
-                          try {
-                            if (!booking.event?.date) return 'Date TBD';
-                            const { eventDate, timeDisplay } = formatEventTimes(booking.event.date);
-                            return `${eventDate} at ${timeDisplay}`;
-                          } catch (error) {
-                            console.error('Date formatting error:', error);
-                            return format(new Date(booking.event.date), "EEEE, MMMM d, yyyy 'at' h:mm a");
-                          }
-                        })()}
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          {(() => {
+                            try {
+                              if (!booking.event?.date) return 'Date TBD';
+                              const { eventDate } = formatEventTimes(booking.event.date);
+                              return eventDate;
+                            } catch (error) {
+                              console.error('Date formatting error:', error);
+                              return format(new Date(booking.event.date), "EEEE, MMMM d, yyyy");
+                            }
+                          })()}
+                        </div>
+                        <div className="text-xs">
+                          Doors: 5:45 PM • Concert: 6:30 PM
+                        </div>
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
-                        Table {booking.table?.tableNumber || booking.tableId || 'TBD'}
+                        Table {booking.table?.tableNumber || 'TBD'}
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
