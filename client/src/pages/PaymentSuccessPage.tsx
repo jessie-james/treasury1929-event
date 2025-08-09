@@ -75,7 +75,9 @@ export default function PaymentSuccessPage() {
       if (!bookingId) return null;
       const response = await fetch(`/api/user/bookings/${bookingId}`, { credentials: 'include' });
       if (!response.ok) return null;
-      return await response.json();
+      const bookingData = await response.json();
+      console.log('🎫 Full booking data:', JSON.stringify(bookingData, null, 2));
+      return bookingData;
     },
     enabled: !!bookingId,
   });
@@ -212,7 +214,7 @@ export default function PaymentSuccessPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <span>Table {booking.table?.tableNumber || 'TBD'}</span>
+                  <span>Table {booking.table?.tableNumber || booking.tableId || 'TBD'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4 text-muted-foreground" />
@@ -224,49 +226,67 @@ export default function PaymentSuccessPage() {
                 </div>
               </div>
 
-              {booking.guestNames && (
-                <div>
-                  <h4 className="font-medium mb-2">Guest Names:</h4>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {Array.isArray(booking.guestNames) ? (
-                      booking.guestNames.map((name: string, index: number) => (
-                        <div key={index} className="flex justify-between">
-                          <span>Guest {index + 1}:</span>
-                          <span className="font-medium">{name}</span>
-                        </div>
-                      ))
-                    ) : (
-                      Object.entries(booking.guestNames).map(([seatNumber, name]: [string, unknown]) => (
+              {/* Guest Names Section */}
+              {booking.guestNames && Object.keys(booking.guestNames).length > 0 && (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Guest Names:
+                  </h4>
+                  <div className="space-y-2 text-sm">
+                    {typeof booking.guestNames === 'object' && !Array.isArray(booking.guestNames) ? (
+                      Object.entries(booking.guestNames).map(([seatNumber, name]: [string, any]) => (
                         <div key={seatNumber} className="flex justify-between">
-                          <span>Guest {seatNumber}:</span>
+                          <span className="text-muted-foreground">Guest {seatNumber}:</span>
                           <span className="font-medium">{String(name)}</span>
                         </div>
                       ))
-                    )}
+                    ) : Array.isArray(booking.guestNames) ? (
+                      booking.guestNames.map((name: string, index: number) => (
+                        <div key={index} className="flex justify-between">
+                          <span className="text-muted-foreground">Guest {index + 1}:</span>
+                          <span className="font-medium">{name}</span>
+                        </div>
+                      ))
+                    ) : null}
                   </div>
                 </div>
               )}
 
+              {/* Food Selections Section */}
               {booking.foodSelections && booking.foodSelections.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Food Selections:</h4>
-                  <div className="text-sm space-y-1">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium mb-3 flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                    Food Selections:
+                  </h4>
+                  <div className="space-y-3 text-sm">
                     {booking.foodSelections.map((selection: any, index: number) => {
-                      const guestName = booking.guestNames 
-                        ? Array.isArray(booking.guestNames) 
-                          ? booking.guestNames[index] || `Guest ${index + 1}`
-                          : booking.guestNames[index + 1] || `Guest ${index + 1}`
+                      // Get guest name from the object structure
+                      const guestNumber = (index + 1).toString();
+                      const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
+                        ? booking.guestNames[guestNumber] || booking.guestNames[(index + 1)] || `Guest ${index + 1}`
                         : `Guest ${index + 1}`;
                       const saladItem = foodOptions?.find(item => item.id === selection.salad);
                       const entreeItem = foodOptions?.find(item => item.id === selection.entree);
                       const dessertItem = foodOptions?.find(item => item.id === selection.dessert);
                       
                       return (
-                        <div key={index} className="p-2 bg-gray-50 rounded">
-                          <span className="font-medium">{guestName}:</span>
-                          {saladItem && <span className="ml-2 block">Salad: {saladItem.name}</span>}
-                          {entreeItem && <span className="ml-2 block">Entree: {entreeItem.name}</span>}
-                          {dessertItem && <span className="ml-2 block">Dessert: {dessertItem.name}</span>}
+                        <div key={index} className="p-3 bg-white rounded border">
+                          <div className="font-medium text-primary mb-2">{guestName}:</div>
+                          <div className="space-y-1 text-xs">
+                            {saladItem && (
+                              <div>• Salad: {saladItem.name}</div>
+                            )}
+                            {entreeItem && (
+                              <div>• Entree: {entreeItem.name}</div>
+                            )}
+                            {dessertItem && (
+                              <div>• Dessert: {dessertItem.name}</div>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -323,7 +343,7 @@ export default function PaymentSuccessPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="h-4 w-4" />
-                        Table {booking.table?.tableNumber || 'TBD'}
+                        Table {booking.table?.tableNumber || booking.tableId || 'TBD'}
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
