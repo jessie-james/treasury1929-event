@@ -11,6 +11,7 @@ interface TicketOptions {
     tableId?: number;
     table?: { tableNumber: string };
     foodSelections?: any[];
+    wineSelections?: any[];
     guestNames?: { [seatNumber: number]: string } | string[];
   };
   qrCodeUrl: string;
@@ -156,7 +157,7 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
     booking.foodSelections.forEach((selection: any, index: number) => {
       const guestNumber = (index + 1).toString();
       const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
-        ? booking.guestNames[guestNumber] || `Guest ${index + 1}`
+        ? (booking.guestNames as any)[guestNumber] || `Guest ${index + 1}`
         : `Guest ${index + 1}`;
       
       // Find food items by their IDs
@@ -184,35 +185,40 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
     currentY += 15;
   }
 
-  // Wine selections - handle the actual booking structure
+  // Wine selections - table-based selections
   if (booking.wineSelections && booking.wineSelections.length > 0) {
     ctx.font = 'bold 14px Arial';
     ctx.fillStyle = '#374151';
-    ctx.fillText('Wine Selections:', canvas.width / 2, currentY);
+    ctx.fillText(`Table ${booking.table?.tableNumber || 'TBD'} Wine Selections:`, canvas.width / 2, currentY);
     currentY += 20;
 
     ctx.font = '10px Arial';
     ctx.fillStyle = '#6b7280';
     
-    booking.wineSelections.forEach((selection: any, index: number) => {
-      const guestNumber = (index + 1).toString();
-      const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
-        ? booking.guestNames[guestNumber] || `Guest ${index + 1}`
-        : `Guest ${index + 1}`;
+    booking.wineSelections.forEach((selection: any) => {
+      // Handle both old format (wine ID) and new format (wine object)
+      let wineName = '';
+      let quantity = selection.quantity || 1;
       
-      // Find wine item by ID
-      const wineItem = foodOptions?.find(item => item.id === selection.wine);
-      
-      ctx.fillText(`${guestName}:`, canvas.width / 2, currentY);
-      currentY += 12;
-      
-      if (wineItem) {
-        ctx.fillText(`  Wine: ${wineItem.name}`, canvas.width / 2, currentY);
-        currentY += 12;
+      if (selection.name) {
+        // New format: selection has name, price, quantity
+        wineName = selection.name;
+      } else if (selection.wine) {
+        // Old format: selection has wine ID
+        const wineItem = foodOptions?.find(item => item.id === selection.wine);
+        wineName = wineItem?.name || 'Unknown Wine';
+      } else if (selection.id) {
+        // Format with direct ID reference
+        const wineItem = foodOptions?.find(item => item.id === selection.id);
+        wineName = wineItem?.name || 'Unknown Wine';
       }
-      currentY += 8; // Space between guests
+      
+      if (wineName) {
+        ctx.fillText(`${quantity}x ${wineName}`, canvas.width / 2, currentY);
+        currentY += 15;
+      }
     });
-    currentY += 15;
+    currentY += 10;
   }
 
   // QR Code

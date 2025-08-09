@@ -317,28 +317,49 @@ export default function PaymentSuccessPage() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                    Wine Selections:
+                    Table {booking.table?.tableNumber || 'TBD'} Wine Selections:
                   </h4>
                   <div className="space-y-3 text-sm">
                     {booking.wineSelections.map((selection: any, index: number) => {
-                      // Get guest name from the object structure (same as food selections)
-                      const guestNumber = (index + 1).toString();
-                      const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
-                        ? booking.guestNames[guestNumber] || booking.guestNames[(index + 1)] || `Guest ${index + 1}`
-                        : `Guest ${index + 1}`;
-                      const wineItem = foodOptions?.find(item => item.id === selection.wine);
+                      // Handle table-based wine selections - different formats
+                      let wineName = '';
+                      let quantity = selection.quantity || 1;
+                      let price = 0;
+                      
+                      if (selection.name) {
+                        // New format: selection has name, price, quantity
+                        wineName = selection.name;
+                        price = selection.price || 0;
+                      } else if (selection.wine) {
+                        // Old format: selection has wine ID
+                        const wineItem = foodOptions?.find(item => item.id === selection.wine);
+                        wineName = wineItem?.name || 'Unknown Wine';
+                        price = wineItem?.price || 0;
+                      } else if (selection.id) {
+                        // Format with direct ID reference
+                        const wineItem = foodOptions?.find(item => item.id === selection.id);
+                        wineName = wineItem?.name || 'Unknown Wine';
+                        price = wineItem?.price || 0;
+                      }
+                      
+                      if (!wineName) return null;
                       
                       return (
                         <div key={index} className="p-3 bg-white rounded border">
-                          <div className="font-medium text-primary mb-2">{guestName}:</div>
-                          <div className="space-y-1 text-xs">
-                            {wineItem && (
-                              <div>• Wine: {wineItem.name}</div>
+                          <div className="flex justify-between items-center">
+                            <div className="space-y-1">
+                              <div className="font-medium text-primary">{quantity}x {wineName}</div>
+                              {price > 0 && (
+                                <div className="text-xs text-gray-500">${(price / 100).toFixed(2)} each</div>
+                              )}
+                            </div>
+                            {price > 0 && (
+                              <div className="font-medium">${((price * quantity) / 100).toFixed(2)}</div>
                             )}
                           </div>
                         </div>
                       );
-                    })}
+                    }).filter(Boolean)}
                   </div>
                 </div>
               )}
