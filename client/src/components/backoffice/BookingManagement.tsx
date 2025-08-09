@@ -114,10 +114,22 @@ export function BookingManagement() {
   
   const processRefundMutation = useMutation({
     mutationFn: async ({ bookingId, amount }: { bookingId: number; amount: number }) => {
+      console.log(`🔄 Frontend: Starting refund for booking ${bookingId}, amount: $${amount}`);
       const res = await apiRequest("POST", `/api/bookings/${bookingId}/refund`, { amount });
-      return await res.json();
+      console.log(`📊 Frontend: API response status: ${res.status}`);
+      
+      if (!res.ok) {
+        const errorData = await res.text();
+        console.error(`❌ Frontend: API error response:`, errorData);
+        throw new Error(`Refund failed: ${errorData}`);
+      }
+      
+      const result = await res.json();
+      console.log(`✅ Frontend: Refund successful:`, result);
+      return result;
     },
     onSuccess: () => {
+      console.log(`✅ Frontend: Refund mutation completed successfully`);
       toast({
         title: "Refund processed",
         description: "The refund has been successfully processed",
@@ -127,6 +139,7 @@ export function BookingManagement() {
       queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
     },
     onError: (error: Error) => {
+      console.error(`❌ Frontend: Refund mutation failed:`, error);
       toast({
         title: "Failed to process refund",
         description: error.message,

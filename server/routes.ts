@@ -44,6 +44,7 @@ import QRCode from "qrcode";
 
 // Initialize Stripe with Treasury 1929 keys - NEW key is Treasury, regular key is Sahuaro
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY_TREASURY || process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY;
+const stripeTestKey = process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY; // Use same key for now as it's test mode
 if (!stripeSecretKey) {
   console.error("STRIPE_SECRET_KEY_TREASURY, STRIPE_SECRET_KEY_NEW or STRIPE_SECRET_KEY environment variable not set. Stripe payments will not work.");
 }
@@ -53,6 +54,7 @@ const stripeApiVersion = "2023-10-16" as Stripe.LatestApiVersion;
 
 // Initialize Stripe with better error handling
 let stripe: Stripe | null = null;
+let stripeTest: Stripe | null = null;
 let stripeInitAttempt = 0;
 const MAX_INIT_ATTEMPTS = 3;
 
@@ -77,6 +79,18 @@ function initializeStripe() {
       });
 
       console.log("✓ Stripe initialized successfully");
+      
+      // Also initialize test Stripe instance using the same key (which is actually test mode)
+      if (stripeTestKey) {
+        stripeTest = new Stripe(stripeTestKey, {
+          apiVersion: stripeApiVersion,
+          timeout: 20000,
+          maxNetworkRetries: 3,
+          httpAgent: undefined,
+        });
+        console.log("✓ Stripe test instance initialized successfully");
+      }
+      
       return true;
     } else {
       console.error("× Cannot initialize Stripe: STRIPE_SECRET_KEY_NEW or STRIPE_SECRET_KEY is missing");
@@ -3441,12 +3455,19 @@ export async function registerRoutes(app: Express) {
       // Process the refund with Stripe
       try {
         console.log(`🔄 Starting refund process for booking ${bookingId}, amount: $${amount}`);
-        console.log(`📊 Stripe status: ${stripe ? 'initialized' : 'NOT initialized'}`);
         console.log(`💳 Payment ID: ${booking.stripePaymentId}`);
         
-        // Check if Stripe is properly initialized
-        if (!stripe) {
-          console.error("❌ Stripe is not initialized. Cannot process refund.");
+        // Detect if this is a test payment based on payment intent ID pattern
+        const isTestPayment = booking.stripePaymentId.includes('test') || booking.stripePaymentId.startsWith('pi_3Ru') || booking.stripePaymentId.startsWith('pi_3RT');
+        console.log(`🔍 Payment type detected: ${isTestPayment ? 'TEST' : 'LIVE'}`);
+        
+        // Choose the correct Stripe instance based on payment type
+        const stripeInstance = isTestPayment ? (stripeTest || stripe) : stripe;
+        console.log(`📊 Using Stripe instance: ${isTestPayment ? 'TEST' : 'LIVE'} (${stripeInstance ? 'initialized' : 'NOT initialized'})`);
+        
+        // Check if the appropriate Stripe instance is initialized
+        if (!stripeInstance) {
+          console.error("❌ Appropriate Stripe instance is not initialized. Cannot process refund.");
           return res.status(500).json({ 
             error: "Refund service unavailable. Please contact support." 
           });
