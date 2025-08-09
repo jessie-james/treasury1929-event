@@ -23,6 +23,10 @@ Preferred communication style: Simple, everyday language.
   - Implemented proper availability sync after refund processing
   - Added refund notification email system with proper template
   - Fixed admin UI to disable buttons for refunded/canceled bookings
+  - **CRITICAL FIX**: Resolved Stripe test/live key mismatch for refunds
+    - Test payments now use TRE_STRIPE_TEST_SECRET_KEY for refunds
+    - Live payments use STRIPE_SECRET_KEY_NEW for refunds
+    - Fresh Stripe instances created per refund to ensure correct key usage
 
 ## System Architecture
 

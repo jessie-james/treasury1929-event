@@ -97,18 +97,19 @@ function initializeStripe() {
         console.log("Primary key is test mode - using same instance for test operations");
         stripeTest = stripe;
       } else {
-        // Initialize test instance with dedicated test key
-        if (stripeTestKey) {
-          stripeTest = new Stripe(stripeTestKey, {
+        // Force create test instance with the actual test key from environment
+        const actualTestKey = process.env.STRIPE_SECRET_KEY; // This contains sk_test_51Rd... based on logs
+        
+        if (actualTestKey && actualTestKey.startsWith('sk_test_')) {
+          stripeTest = new Stripe(actualTestKey, {
             apiVersion: stripeApiVersion,
             timeout: 20000,
             maxNetworkRetries: 3,
             httpAgent: undefined,
           });
-          const testKeyType = stripeTestKey.startsWith('sk_test_') ? 'TEST' : 'LIVE';
-          console.log(`✓ Stripe test instance initialized with ${testKeyType} key: ${stripeTestKey.substring(0, 7)}...`);
+          console.log(`✓ Stripe TEST instance created with test key: ${actualTestKey.substring(0, 12)}...`);
         } else {
-          console.log("⚠️ No test key found - refunds for test payments may fail");
+          console.log("⚠️ STRIPE_SECRET_KEY does not contain test key - using fallback");
           stripeTest = stripe; // Fallback to live instance
         }
       }
@@ -3483,8 +3484,29 @@ export async function registerRoutes(app: Express) {
         const isTestPayment = booking.stripePaymentId.includes('test') || booking.stripePaymentId.startsWith('pi_3Ru') || booking.stripePaymentId.startsWith('pi_3RT');
         console.log(`🔍 Payment type detected: ${isTestPayment ? 'TEST' : 'LIVE'}`);
         
-        // Choose the correct Stripe instance based on payment type
-        const stripeInstance = isTestPayment ? (stripeTest || stripe) : stripe;
+        // Force create fresh test instance for test payments - bypassing all existing instances
+        let stripeInstance;
+        if (isTestPayment) {
+          console.log(`🔧 FORCE creating test instance for test payment...`);
+          const testKey = process.env.TRE_STRIPE_TEST_SECRET_KEY;
+          
+          // Write to file for debugging since console logs are truncated
+          require('fs').appendFileSync('/tmp/refund-debug.log', 
+            `${new Date().toISOString()} - Test key: ${testKey?.substring(0, 15)}...\n`);
+          
+          console.log(`🔑 Test key available: ${!!testKey}, prefix: ${testKey?.substring(0, 12)}`);
+          
+          // ALWAYS create a fresh instance for test payments, never use existing instances
+          stripeInstance = new Stripe(testKey!, {
+            apiVersion: '2023-10-16',
+            timeout: 20000,
+            maxNetworkRetries: 3,
+          });
+          console.log(`✅ FRESH TEST instance created successfully`);
+        } else {
+          stripeInstance = stripe;
+          console.log(`📋 Using LIVE instance for live payment`);
+        }
         
         // Log which instance we're actually using
         const instanceIdentifier = stripeInstance === stripe ? 'PRIMARY' : stripeInstance === stripeTest ? 'TEST' : 'UNKNOWN';
