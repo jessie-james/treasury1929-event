@@ -585,8 +585,8 @@ export default function PaymentsPage() {
           <TabsContent value="refunds" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Refund & Cancellation Management</CardTitle>
-                <CardDescription>Process refunds and cancel bookings</CardDescription>
+                <CardTitle>Refunded Bookings</CardTitle>
+                <CardDescription>View all processed refunds and canceled bookings</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -597,95 +597,57 @@ export default function PaymentsPage() {
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-full md:w-[180px]">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Status</SelectLabel>
-                        <SelectItem value="all">All bookings</SelectItem>
-                        <SelectItem value="confirmed">Confirmed</SelectItem>
-                        <SelectItem value="refunded">Refunded</SelectItem>
-                        <SelectItem value="canceled">Canceled</SelectItem>
-                        <SelectItem value="modified">Modified</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
                 </div>
                 
                 {isLoading ? (
                   <div className="text-center py-8">
-                    <p>Loading bookings...</p>
+                    <p>Loading refunded bookings...</p>
                   </div>
                 ) : filteredBookings && filteredBookings.length > 0 ? (
                   <div className="space-y-4">
                     {filteredBookings
-                      .filter(booking => booking.status !== "refunded" && booking.status !== "canceled")
+                      .filter(booking => booking.status === "refunded")
                       .map(booking => {
-                        // FIXED: Use correct pricing calculation
                         const basePrice = 130.00; // $130 per person (from events.base_price)
                         const partySize = booking.partySize || 1;
                         const bookingTotal = basePrice * partySize;
                         const refundAmount = booking.refundAmount || 0;
-                        const finalAmount = bookingTotal - refundAmount;
                         
                         return (
                           <Card key={booking.id} className="overflow-hidden">
                             <div className="p-6">
                               <div className="flex flex-col md:flex-row justify-between gap-4">
-                                <div>
+                                <div className="flex-1">
                                   <h3 className="font-medium">Booking #{booking.id}</h3>
                                   <p className="text-sm text-muted-foreground">
                                     {booking.customerEmail}
                                   </p>
                                   {booking.createdAt && (
                                     <p className="text-sm text-muted-foreground">
-                                      {format(parseISO(booking.createdAt.toString()), "MMM dd, yyyy h:mm a")}
+                                      Booked: {format(parseISO(booking.createdAt.toString()), "MMM dd, yyyy h:mm a")}
                                     </p>
                                   )}
-                                  <p className="text-sm font-medium mt-2">
-                                    Total Amount: ${finalAmount.toFixed(2)}
-                                  </p>
+                                  <div className="mt-2 space-y-1">
+                                    <p className="text-sm">
+                                      <span className="text-muted-foreground">Original Amount:</span> ${bookingTotal.toFixed(2)}
+                                    </p>
+                                    <p className="text-sm">
+                                      <span className="text-muted-foreground">Refund Amount:</span> ${refundAmount.toFixed(2)}
+                                    </p>
+                                    <p className="text-sm">
+                                      <span className="text-muted-foreground">Party Size:</span> {partySize} {partySize === 1 ? 'person' : 'people'}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div className="flex flex-col gap-2">
-                                  <div className="flex gap-2">
-                                    <Label htmlFor={`refund-amount-${booking.id}`}>Refund Amount:</Label>
-                                    <Input
-                                      id={`refund-amount-${booking.id}`}
-                                      type="number"
-                                      min="0.01"
-                                      max={finalAmount}
-                                      step="0.01"
-                                      defaultValue={finalAmount.toFixed(2)}
-                                      className="w-24"
-                                    />
-                                  </div>
-                                  <div className="flex gap-2 mt-2">
-                                    <Button 
-                                      variant="outline" 
-                                      onClick={() => handleCancel(booking.id)}
-                                    >
-                                      Cancel Booking
-                                    </Button>
-                                    <Button 
-                                      onClick={() => {
-                                        const input = document.getElementById(`refund-amount-${booking.id}`) as HTMLInputElement;
-                                        const amount = parseFloat(input.value);
-                                        if (!isNaN(amount) && amount > 0 && amount <= finalAmount) {
-                                          handleRefund(booking.id, amount);
-                                        } else {
-                                          toast({
-                                            title: "Invalid amount",
-                                            description: "Please enter a valid refund amount",
-                                            variant: "destructive",
-                                          });
-                                        }
-                                      }}
-                                    >
-                                      Process Refund
-                                    </Button>
-                                  </div>
+                                <div className="flex flex-col items-end gap-2">
+                                  <Badge variant="destructive">
+                                    Refunded
+                                  </Badge>
+                                  {booking.eventDate && (
+                                    <p className="text-sm text-muted-foreground">
+                                      Event: {format(parseISO(booking.eventDate.toString()), "MMM dd, yyyy")}
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -695,7 +657,7 @@ export default function PaymentsPage() {
                   </div>
                 ) : (
                   <div className="text-center py-8">
-                    <p className="text-muted-foreground">No eligible bookings found</p>
+                    <p className="text-muted-foreground">No refunded bookings found</p>
                   </div>
                 )}
               </CardContent>
