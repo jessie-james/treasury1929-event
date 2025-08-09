@@ -222,17 +222,17 @@ app.get("/api/health", (_req, res) => {
 // Stripe configuration endpoint for frontend
 app.get("/api/stripe/config", (_req, res) => {
   try {
-    const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY_NEW || process.env.STRIPE_PUBLISHABLE_KEY;
+    const publishableKey = process.env.TRE_STRIPE_TEST_PUBLISHABLE_KEY;
     
     if (!publishableKey) {
       return res.status(500).json({ 
-        error: "Stripe configuration not available" 
+        error: "Treasury Stripe test configuration not available" 
       });
     }
 
     res.json({
       publishableKey,
-      keySource: process.env.STRIPE_PUBLISHABLE_KEY_NEW ? "NEW" : "OLD"
+      keySource: "TREASURY_TEST"
     });
   } catch (error) {
     console.error("Error getting Stripe config:", error);
