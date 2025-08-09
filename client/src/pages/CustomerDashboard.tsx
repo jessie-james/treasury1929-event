@@ -19,10 +19,9 @@ type EnrichedBooking = Booking & {
 
 export default function CustomerDashboard() {
   const [, setLocation] = useLocation();
-  const { data: bookings, isLoading, error } = useQuery<EnrichedBooking[]>({
-    queryKey: ["/api/user/bookings", Date.now()], // Force refresh with timestamp
+  const { data: bookings = [], isLoading, error } = useQuery<EnrichedBooking[]>({
+    queryKey: ["/api/user/bookings"],
     staleTime: 0, // Always fetch fresh data
-    cacheTime: 0, // Don't cache at all
   });
 
   const { data: foodOptions } = useQuery<FoodOption[]>({
@@ -34,19 +33,19 @@ export default function CustomerDashboard() {
   // Generate QR codes for all bookings when they load
   useEffect(() => {
     if (bookings && bookings.length > 0) {
-      bookings.forEach(booking => {
+      bookings.forEach((booking: EnrichedBooking) => {
         if (!qrCodeUrls[booking.id]) {
           generateQRCode(booking.id);
         }
       });
     }
-  }, [bookings]);
+  }, [bookings, qrCodeUrls]);
 
   const generateQRCode = async (bookingId: number) => {
     if (qrCodeUrls[bookingId]) return; // Already generated
     
     try {
-      const booking = bookings?.find(b => b.id === bookingId);
+      const booking = bookings?.find((b: EnrichedBooking) => b.id === bookingId);
       if (!booking) return;
       
       // Just the booking ID number - exactly what the scanner expects
@@ -196,14 +195,14 @@ export default function CustomerDashboard() {
                     <div className="grid grid-cols-2 gap-2 text-sm">
                       {(() => {
                         if (Array.isArray(booking.guestNames)) {
-                          return booking.guestNames.map((name, index) => (
+                          return booking.guestNames.map((name: string, index: number) => (
                             <div key={index} className="flex justify-between">
                               <span>Guest {index + 1}:</span>
                               <span className="font-medium">{name}</span>
                             </div>
                           ));
                         } else if (typeof booking.guestNames === 'object' && booking.guestNames !== null) {
-                          return Object.entries(booking.guestNames).map(([seatNumber, name]) => (
+                          return Object.entries(booking.guestNames).map(([seatNumber, name]: [string, any]) => (
                             <div key={seatNumber} className="flex justify-between">
                               <span>Guest {seatNumber}:</span>
                               <span className="font-medium">{String(name)}</span>
@@ -220,7 +219,7 @@ export default function CustomerDashboard() {
                   <div>
                     <h4 className="font-medium mb-2">Food Selections:</h4>
                     <div className="text-sm space-y-1">
-                      {booking.foodSelections.map((selection, index) => {
+                      {booking.foodSelections.map((selection: any, index: number) => {
                         const guestNumber = (index + 1).toString();
                         const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
                           ? booking.guestNames[guestNumber] || `Guest ${index + 1}`
@@ -246,7 +245,7 @@ export default function CustomerDashboard() {
                   <div>
                     <h4 className="font-medium mb-2">Wine Selections:</h4>
                     <div className="text-sm space-y-1">
-                      {booking.wineSelections.map((selection, index) => {
+                      {booking.wineSelections.map((selection: any, index: number) => {
                         const guestNumber = (index + 1).toString();
                         const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
                           ? booking.guestNames[guestNumber] || `Guest ${index + 1}`
