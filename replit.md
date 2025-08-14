@@ -6,7 +6,16 @@ This project is a mobile-first event venue booking platform for live entertainme
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (August 9, 2025)
+## Recent Changes (August 14, 2025)
+- **Event Duplication System**: Successfully duplicated the "Pianist Sophia Su in Concert" event 4 times
+  - Created events for August 28, September 5, September 9, and September 12, 2025
+  - All events scheduled for 5:45 PM Phoenix time (doors open) with concert at 6:30 PM
+  - Duplicated complete event structure: venues (Main Floor + Mezzanine), food menus (9 options), pricing ($130/person)
+  - Fresh availability: All 32 tables and 98 seats available per event
+  - Clean slate: No bookings, holds, or orders transferred to new events
+  - Event IDs created: 39, 40, 41, 42
+
+## Previous Changes (August 9, 2025)
 - **PDF Ticket Generation Fixed**: Complete resolution of booking information display issues
   - Fixed table number display (now shows correct Table 8 instead of wrong table numbers)
   - Added proper event timing ("Doors: 5:45 PM • Concert: 6:30 PM") 
