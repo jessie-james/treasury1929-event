@@ -10,6 +10,14 @@ import { formatPhoenixDate } from "@/lib/timezone";
 
 export function EventCard({ event }: { event: Event }) {
   const [_, setLocation] = useLocation();
+  
+  // Debug logging to see what data we're getting
+  console.log('EventCard rendering:', {
+    id: event.id,
+    title: event.title,
+    date: event.date,
+    formattedDate: formatPhoenixDate(event.date, 'MMM d')
+  });
 
   // Check if event has venue layouts to determine actual booking type
   const { data: venueLayouts } = useQuery({
