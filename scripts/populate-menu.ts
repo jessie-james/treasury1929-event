@@ -56,7 +56,7 @@ const foodItems = [
   // Entrees
   {
     name: "Fresh Branzino Francaise",
-    description: "Sautéed in light batter, lemon Pinot Grigio sauce, vegetable rice",
+    description: "Sauteed in a light batter with lemon wine sauce, over vegetable rice",
     type: "entree",
     image: "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2",
     allergens: ["fish", "eggs"],
@@ -98,15 +98,6 @@ const foodItems = [
     allergens: ["gluten"],
     dietaryRestrictions: [],
     price: 2800
-  },
-  {
-    name: "Penne & Sausage",
-    description: "roasted red peppers, tomato sauce & baked fontina cheese",
-    type: "entree",
-    image: "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9",
-    allergens: ["gluten", "dairy"],
-    dietaryRestrictions: [],
-    price: 2600
   },
   {
     name: "Vegan Bolognese",
