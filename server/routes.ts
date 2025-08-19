@@ -810,9 +810,16 @@ export async function registerRoutes(app: Express) {
       // Ensure date is properly formatted as a Date object
       let formattedDate;
       try {
-        // Check if date is a string representation
+        // Parse date in timezone-neutral way to prevent date shifting
         if (typeof req.body.date === 'string') {
-          formattedDate = new Date(req.body.date);
+          // If it's a date-only string (YYYY-MM-DD), parse as local date
+          if (req.body.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = req.body.date.split('-').map(Number);
+            formattedDate = new Date(year, month - 1, day); // month is 0-indexed
+          } else {
+            // Otherwise parse normally (for ISO strings with time)
+            formattedDate = new Date(req.body.date);
+          }
           // Validate that the date was parsed correctly
           if (isNaN(formattedDate.getTime())) {
             throw new Error("Invalid date format");
@@ -897,8 +904,20 @@ export async function registerRoutes(app: Express) {
 
       if (req.body.date) {
         try {
-          // Convert string date to Date object
-          const formattedDate = new Date(req.body.date);
+          // Parse date in timezone-neutral way to prevent date shifting
+          let formattedDate;
+          if (typeof req.body.date === 'string') {
+            // If it's a date-only string (YYYY-MM-DD), parse as local date
+            if (req.body.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              const [year, month, day] = req.body.date.split('-').map(Number);
+              formattedDate = new Date(year, month - 1, day); // month is 0-indexed
+            } else {
+              // Otherwise parse normally (for ISO strings with time)
+              formattedDate = new Date(req.body.date);
+            }
+          } else {
+            formattedDate = new Date(req.body.date);
+          }
 
           // Validate date
           if (isNaN(formattedDate.getTime())) {
