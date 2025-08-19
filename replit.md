@@ -6,7 +6,14 @@ This project is a mobile-first event venue booking platform for live entertainme
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes (August 9, 2025)
+## Recent Changes (August 19, 2025)
+- **Frontend Date Display Fixed**: Complete resolution of hardcoded date issues
+  - Removed hardcoded "Aug 14" from EventDetails.tsx and EventCard.tsx 
+  - Both components now use dynamic `format(new Date(event.date), "EEEE, MMMM d, yyyy")` for proper date display
+  - Frontend now correctly displays August 28th and September 5th event dates from API data
+  - All date displays throughout booking flow now use real-time data from database
+
+## Previous Changes (August 9, 2025)
 - **PDF Ticket Generation Fixed**: Complete resolution of booking information display issues
   - Fixed table number display (now shows correct Table 8 instead of wrong table numbers)
   - Added proper event timing ("Doors: 5:45 PM • Concert: 6:30 PM") 
