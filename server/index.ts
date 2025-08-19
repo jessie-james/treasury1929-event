@@ -321,7 +321,8 @@ app.post("/api/demo-emails", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T18:30:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString(),
+        description: "Demo event"
       },
       table: {
         id: 286,
@@ -371,6 +372,7 @@ app.post("/api/demo-emails", async (req, res) => {
       await EmailService.sendBookingConfirmation(confirmationData);
       results.push("✅ Booking Confirmation sent (with admin copy)");
     } catch (error) {
+      console.error("Booking confirmation failed:", error);
       results.push("❌ Booking Confirmation failed");
     }
     
@@ -381,6 +383,7 @@ app.post("/api/demo-emails", async (req, res) => {
       await EmailService.sendCancellationEmail(mockBookingData as any, 8500);
       results.push("✅ Customer Cancellation sent");
     } catch (error) {
+      console.error("Customer cancellation failed:", error);
       results.push("❌ Customer Cancellation failed");
     }
     
@@ -391,6 +394,7 @@ app.post("/api/demo-emails", async (req, res) => {
       await EmailService.sendVenueCancellationEmail(mockBookingData as any, 8500);
       results.push("✅ Venue Cancellation sent");
     } catch (error) {
+      console.error("Venue cancellation failed:", error);
       results.push("❌ Venue Cancellation failed");
     }
     
@@ -401,6 +405,7 @@ app.post("/api/demo-emails", async (req, res) => {
       await EmailService.sendEventReminder(mockBookingData as any);
       results.push("✅ Event Reminder sent");
     } catch (error) {
+      console.error("Event reminder failed:", error);
       results.push("❌ Event Reminder failed");
     }
     
@@ -411,6 +416,7 @@ app.post("/api/demo-emails", async (req, res) => {
       await EmailService.sendPasswordResetEmail(targetEmail, "demo_token_12345");
       results.push("✅ Password Reset/Welcome sent");
     } catch (error) {
+      console.error("Password reset failed:", error);
       results.push("❌ Password Reset/Welcome failed");
     }
     
@@ -503,7 +509,8 @@ app.post("/api/test-jose-booking-confirmation", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T18:30:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString(),
+        description: "Demo booking confirmation email"
       },
       table: { id: 286, tableNumber: 1, floor: "main" },
       venue: { id: 4, name: "Main Floor" }
@@ -513,7 +520,8 @@ app.post("/api/test-jose-booking-confirmation", async (req, res) => {
     res.json({ success: true, message: "Booking confirmation sent to jose@sahuaroworks.com" });
   } catch (error) {
     console.error("Jose booking confirmation failed:", error);
-    res.status(500).json({ success: false, message: "Failed: " + error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ success: false, message: "Failed: " + errorMessage });
   }
 });
 
@@ -534,7 +542,8 @@ app.post("/api/test-jose-cancellation", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T18:30:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString(),
+        description: "Demo cancellation email"
       },
       table: { id: 286, tableNumber: 1, floor: "main" },
       venue: { id: 4, name: "Main Floor" }
@@ -544,7 +553,8 @@ app.post("/api/test-jose-cancellation", async (req, res) => {
     res.json({ success: true, message: "Customer cancellation sent to jose@sahuaroworks.com" });
   } catch (error) {
     console.error("Jose cancellation failed:", error);
-    res.status(500).json({ success: false, message: "Failed: " + error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ success: false, message: "Failed: " + errorMessage });
   }
 });
 
@@ -565,7 +575,8 @@ app.post("/api/test-jose-venue-cancellation", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T18:30:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString(),
+        description: "Demo venue cancellation email"
       },
       table: { id: 286, tableNumber: 1, floor: "main" },
       venue: { id: 4, name: "Main Floor" }
@@ -575,7 +586,8 @@ app.post("/api/test-jose-venue-cancellation", async (req, res) => {
     res.json({ success: true, message: "Venue cancellation sent to jose@sahuaroworks.com" });
   } catch (error) {
     console.error("Jose venue cancellation failed:", error);
-    res.status(500).json({ success: false, message: "Failed: " + error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ success: false, message: "Failed: " + errorMessage });
   }
 });
 
@@ -596,7 +608,8 @@ app.post("/api/test-jose-reminder", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T18:30:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString(),
+        description: "Demo reminder email"
       },
       table: { id: 286, tableNumber: 1, floor: "main" },
       venue: { id: 4, name: "Main Floor" }
@@ -606,7 +619,8 @@ app.post("/api/test-jose-reminder", async (req, res) => {
     res.json({ success: true, message: "Event reminder sent to jose@sahuaroworks.com" });
   } catch (error) {
     console.error("Jose reminder failed:", error);
-    res.status(500).json({ success: false, message: "Failed: " + error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ success: false, message: "Failed: " + errorMessage });
   }
 });
 
@@ -618,7 +632,8 @@ app.post("/api/test-jose-welcome", async (req, res) => {
     res.json({ success: true, message: "Welcome/password reset sent to jose@sahuaroworks.com" });
   } catch (error) {
     console.error("Jose welcome failed:", error);
-    res.status(500).json({ success: false, message: "Failed: " + error.message });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ success: false, message: "Failed: " + errorMessage });
   }
 });
 
@@ -630,8 +645,9 @@ app.post("/api/resend-ayla-confirmation", async (req, res) => {
     
     console.log("🔄 Resending Ayla's confirmation email...");
     
-    // Find Ayla's most recent booking
-    const aylaBookings = await storage.getUserBookings("ayla@thetreasury1929.com");
+    // Find Ayla's most recent booking by email
+    const allBookings = await storage.getBookings();
+    const aylaBookings = allBookings.filter(b => b.customerEmail === "ayla@thetreasury1929.com");
     
     if (!aylaBookings || aylaBookings.length === 0) {
       return res.status(404).json({ success: false, message: "No bookings found for Ayla" });
@@ -657,7 +673,7 @@ app.post("/api/resend-ayla-confirmation", async (req, res) => {
       booking: {
         id: latestBooking.id.toString(),
         customerEmail: "ayla@thetreasury1929.com",
-        partySize: latestBooking.partySize,
+        partySize: latestBooking.partySize || 2,
         status: latestBooking.status,
         notes: latestBooking.notes || "",
         stripePaymentId: latestBooking.stripePaymentId || "",
@@ -679,7 +695,7 @@ app.post("/api/resend-ayla-confirmation", async (req, res) => {
       venue: {
         id: venue.id.toString(),
         name: venue.name,
-        address: venue.address || "2 E Congress St, Ste 100"
+        address: "2 E Congress St, Ste 100, Tucson, AZ"
       }
     };
     
