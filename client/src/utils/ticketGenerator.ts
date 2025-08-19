@@ -1,4 +1,5 @@
 import { format } from 'date-fns';
+import { formatPhoenixDate } from '@/lib/timezone';
 
 interface TicketOptions {
   booking: {
@@ -114,8 +115,8 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
   // Event details
   ctx.font = '14px Arial';
   ctx.fillStyle = '#374151'; // Gray-700
-  const eventDate = booking.event.date instanceof Date ? booking.event.date : new Date(booking.event.date);
-  ctx.fillText(`${format(eventDate, "EEEE, MMMM d, yyyy")}`, canvas.width / 2, currentY);
+  // Use Phoenix timezone formatting to match email and confirmation page
+  ctx.fillText(`${formatPhoenixDate(booking.event.date, "EEEE, MMMM d, yyyy")}`, canvas.width / 2, currentY);
   currentY += 20;
   
   // Add doors and concert timing

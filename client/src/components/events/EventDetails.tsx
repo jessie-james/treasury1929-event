@@ -3,6 +3,7 @@ import { type Event, type Booking } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { parseEventDate } from "@/utils/dateUtils";
+import { formatPhoenixDate } from "@/lib/timezone";
 import { Calendar, MapPin, Ticket, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -108,7 +109,7 @@ export function EventDetails({
             <Calendar className="h-8 w-8 flex-shrink-0" />
             <div className="flex flex-col">
               <span className="text-2xl md:text-3xl leading-relaxed font-semibold">
-                {format(parseEventDate(event.date), "EEEE, MMMM d, yyyy")}
+                {formatPhoenixDate(event.date, "EEEE, MMMM d, yyyy")}
               </span>
               <span className="text-xl md:text-2xl leading-relaxed text-muted-foreground">
                 Time: Guest Arrival 5:45 PM, show starts 6:30 PM

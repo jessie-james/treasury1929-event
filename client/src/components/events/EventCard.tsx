@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { parseEventDate } from "@/utils/dateUtils";
+import { formatPhoenixDate } from "@/lib/timezone";
 import { type Event } from "@shared/schema";
 import { Link, useLocation } from "wouter";
 import { EventTypeIndicator } from "./EventTypeIndicator";
@@ -60,7 +61,7 @@ export function EventCard({ event }: { event: Event }) {
             />
           </div>
           <div className="text-xl md:text-2xl text-muted-foreground leading-relaxed">
-            <div className="font-semibold text-foreground">{format(parseEventDate(event.date), "EEEE, MMMM d, yyyy")}</div>
+            <div className="font-semibold text-foreground">{formatPhoenixDate(event.date, "EEEE, MMMM d, yyyy")}</div>
             <div>Time: Guest Arrival 5:45 PM, show starts 6:30 PM</div>
           </div>
           <Badge variant={availability.color as any} className="text-lg px-4 py-2">
