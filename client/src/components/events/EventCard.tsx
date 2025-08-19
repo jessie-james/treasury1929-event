@@ -6,9 +6,12 @@ import { type Event } from "@shared/schema";
 import { Link, useLocation } from "wouter";
 import { EventTypeIndicator } from "./EventTypeIndicator";
 import { useQuery } from "@tanstack/react-query";
+import { formatPhoenixDate } from "@/lib/timezone";
 
 export function EventCard({ event }: { event: Event }) {
   const [_, setLocation] = useLocation();
+  
+  // Removed debug logging
 
   // Check if event has venue layouts to determine actual booking type
   const { data: venueLayouts } = useQuery({
@@ -59,7 +62,7 @@ export function EventCard({ event }: { event: Event }) {
             />
           </div>
           <div className="text-xl md:text-2xl text-muted-foreground leading-relaxed">
-            <div className="font-semibold text-foreground">Event Date: Aug 14</div>
+            <div className="font-semibold text-foreground">Event Date: {formatPhoenixDate(event.date, 'MMM d')}</div>
             <div>Time: Guest Arrival 5:45 PM, show starts 6:30 PM</div>
           </div>
           <Badge variant={availability.color as any} className="text-lg px-4 py-2">

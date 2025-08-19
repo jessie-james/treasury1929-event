@@ -12,6 +12,9 @@ export function EventList() {
   
   const { data: events, isLoading } = useQuery<Event[]>({
     queryKey: ["/api/events"],
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const sortedEvents = useMemo(() => {
