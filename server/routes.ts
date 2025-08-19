@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
+import { zonedTimeToUtc, utcToZonedTime, format } from 'date-fns-tz';
 import { 
   insertAdminLogSchema, 
   bookings, 
@@ -897,15 +898,42 @@ export async function registerRoutes(app: Express) {
 
       if (req.body.date) {
         try {
-          // Convert string date to Date object
-          const formattedDate = new Date(req.body.date);
-
-          // Validate date
-          if (isNaN(formattedDate.getTime())) {
-            throw new Error("Invalid date format");
+          // Get original event data first to preserve the time
+          const originalEvent = await storage.getEventById(id);
+          if (!originalEvent) {
+            return res.status(404).json({ message: "Event not found" });
           }
 
-          // Update with proper Date object
+          // Parse the form date (YYYY-MM-DD format)
+          const formDateParts = req.body.date.split('-');
+          if (formDateParts.length !== 3) {
+            throw new Error("Invalid date format. Expected YYYY-MM-DD");
+          }
+
+          const [year, month, day] = formDateParts.map(Number);
+          if (isNaN(year) || isNaN(month) || isNaN(day)) {
+            throw new Error("Invalid date values");
+          }
+
+          // Get the original event date and extract the time in Phoenix timezone
+          const PHOENIX_TZ = 'America/Phoenix';
+          const originalDateInPhoenix = utcToZonedTime(originalEvent.date, PHOENIX_TZ);
+          const originalHour = originalDateInPhoenix.getHours();
+          const originalMinute = originalDateInPhoenix.getMinutes();
+          const originalSecond = originalDateInPhoenix.getSeconds();
+
+          // Create new date with form date and original time in Phoenix timezone
+          const newDateInPhoenix = new Date(year, month - 1, day, originalHour, originalMinute, originalSecond);
+          
+          // Convert back to UTC for storage
+          const formattedDate = zonedTimeToUtc(newDateInPhoenix, PHOENIX_TZ);
+
+          // Validate the resulting date
+          if (isNaN(formattedDate.getTime())) {
+            throw new Error("Invalid date after timezone conversion");
+          }
+
+          console.log(`Date update: ${req.body.date} + time ${originalHour}:${originalMinute}:${originalSecond} (Phoenix) -> ${formattedDate.toISOString()} (UTC)`);
           updateData.date = formattedDate;
 
         } catch (dateError) {
@@ -939,10 +967,13 @@ export async function registerRoutes(app: Express) {
 
       console.log("Updating event with data:", updateData);
 
-      // Get original event data for comparison
-      const originalEvent = await storage.getEventById(id);
-      if (!originalEvent) {
-        return res.status(404).json({ message: "Event not found" });
+      // Get original event data for comparison (skip if already fetched for date processing)
+      let originalEvent;
+      if (!req.body.date) {
+        originalEvent = await storage.getEventById(id);
+        if (!originalEvent) {
+          return res.status(404).json({ message: "Event not found" });
+        }
       }
 
       const event = await storage.updateEvent(id, updateData);
