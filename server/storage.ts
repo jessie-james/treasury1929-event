@@ -11,11 +11,7 @@ import type { IStorage } from "./storage-base.js";
 import { eq, and, desc, asc, gt, lt, sql } from "drizzle-orm";
 import { hashPassword } from "./auth.js";
 
-// Configure Neon with WebSocket support and better stability
 neonConfig.webSocketConstructor = ws;
-neonConfig.poolQueryViaFetch = true;
-neonConfig.useSecureWebSocket = true;
-neonConfig.pipelineConnect = false;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -23,13 +19,7 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Create pool with better error handling and connection settings
-const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const db = drizzle({ client: pool, schema });
 
 export class PgStorage implements IStorage {
@@ -1196,52 +1186,6 @@ export class PgStorage implements IStorage {
     return await db.select().from(schema.adminLogs)
       .where(eq(schema.adminLogs.entityType, entityType))
       .orderBy(desc(schema.adminLogs.createdAt));
-  }
-
-  // Missing interface methods - adding stubs for compatibility
-  async updateEventsOrder(orderedIds: number[]): Promise<boolean> {
-    // TODO: Implement event ordering functionality
-    return true;
-  }
-
-  async getBookingByQRCode(bookingId: number): Promise<Booking | null> {
-    // For now, just return the booking by ID
-    return await this.getBooking(bookingId);
-  }
-
-  async changeBookingSeats(bookingId: number, newTableId: number, newSeats: number[]): Promise<Booking | null> {
-    // Update booking with new table
-    const result = await db.update(schema.bookings)
-      .set({ tableId: newTableId })
-      .where(eq(schema.bookings.id, bookingId))
-      .returning();
-    return result[0] || null;
-  }
-
-  // Layout methods
-  async getFloors(venueId: number): Promise<any[]> {
-    // TODO: Implement floors functionality
-    return [];
-  }
-
-  async getZones(venueId: number): Promise<any[]> {
-    // TODO: Implement zones functionality  
-    return [];
-  }
-
-  async getLayoutTemplates(venueId: number): Promise<any[]> {
-    // TODO: Implement layout templates functionality
-    return [];
-  }
-
-  async saveLayoutTemplate(venueId: number, templateData: any): Promise<any> {
-    // TODO: Implement save layout template functionality
-    return null;
-  }
-
-  async updateFloorImage(venueId: number, floorId: string, imageUrl: string): Promise<boolean> {
-    // TODO: Implement floor image update functionality
-    return true;
   }
 }
 
