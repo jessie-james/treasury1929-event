@@ -21,12 +21,12 @@ export function initializeStripe(): boolean {
     initAttempts++;
     console.log(`Initializing Stripe (attempt ${initAttempts})...`);
     
-    // Check for live Stripe key first, fallback to test key
+    // Use test Stripe key first, fallback to live key for testing mode
     const liveStripeKey = process.env.STRIPE_SECRET_KEY_NEW;
     const testStripeKey = process.env.TRE_STRIPE_TEST_SECRET_KEY;
     
-    const stripeSecretKey = liveStripeKey || testStripeKey;
-    const isLiveMode = !!liveStripeKey;
+    const stripeSecretKey = testStripeKey || liveStripeKey;
+    const isLiveMode = !testStripeKey && !!liveStripeKey;
     
     if (!stripeSecretKey) {
       console.error("Missing Stripe keys - need either STRIPE_SECRET_KEY_NEW (live) or TRE_STRIPE_TEST_SECRET_KEY (test)");
@@ -62,7 +62,7 @@ export function getStripe(): Stripe | null {
 
 // Check if running in live mode
 export function isLiveMode(): boolean {
-  return !!process.env.STRIPE_SECRET_KEY_NEW;
+  return !process.env.TRE_STRIPE_TEST_SECRET_KEY && !!process.env.STRIPE_SECRET_KEY_NEW;
 }
 
 // Get the publishable key for frontend
@@ -70,7 +70,7 @@ export function getPublishableKey(): string | null {
   const liveKey = process.env.STRIPE_PUBLISHABLE_KEY_NEW;
   const testKey = process.env.TRE_STRIPE_TEST_PUBLISHABLE_KEY;
   
-  return liveKey || testKey || null;
+  return testKey || liveKey || null;
 }
 
 // Simple helper to create a payment intent
