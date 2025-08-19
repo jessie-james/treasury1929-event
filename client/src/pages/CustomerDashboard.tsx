@@ -28,6 +28,10 @@ export default function CustomerDashboard() {
     queryKey: ["/api/food-options"],
   });
 
+  const { data: menuItems } = useQuery({
+    queryKey: ["/api/menu-items"],
+  });
+
   const [qrCodeUrls, setQrCodeUrls] = useState<{ [key: number]: string }>({});
   
   // Generate QR codes for all bookings when they load
@@ -76,7 +80,7 @@ export default function CustomerDashboard() {
     await downloadTicket({
       booking,
       qrCodeUrl,
-      foodOptions
+      foodOptions: [...(foodOptions || []), ...(menuItems || [])]
     });
   };
 
@@ -243,19 +247,31 @@ export default function CustomerDashboard() {
 
                 {booking.wineSelections && booking.wineSelections.length > 0 && (
                   <div>
-                    <h4 className="font-medium mb-2">Wine Selections:</h4>
+                    <h4 className="font-medium mb-2">Table {booking.table?.tableNumber || 'TBD'} Wine Selections:</h4>
                     <div className="text-sm space-y-1">
                       {booking.wineSelections.map((selection: any, index: number) => {
-                        const guestNumber = (index + 1).toString();
-                        const guestName = booking.guestNames && typeof booking.guestNames === 'object' 
-                          ? booking.guestNames[guestNumber] || `Guest ${index + 1}`
-                          : `Guest ${index + 1}`;
-                        const wineItem = foodOptions?.find(item => item.id === selection.wine);
+                        // Handle multiple wine selection formats
+                        let wineName = '';
+                        let quantity = selection.quantity || 1;
+                        
+                        if (selection.name) {
+                          // New format: selection has name directly
+                          wineName = selection.name;
+                        } else if (selection.wine) {
+                          // Old format: selection has wine ID, look in both food and menu items
+                          const wineFromFood = foodOptions?.find(item => item.id === selection.wine);
+                          const wineFromMenu = menuItems?.find((item: any) => item.id === selection.wine);
+                          wineName = wineFromFood?.name || wineFromMenu?.name || 'Unknown Wine';
+                        } else if (selection.id) {
+                          // Direct ID reference
+                          const wineFromFood = foodOptions?.find(item => item.id === selection.id);
+                          const wineFromMenu = menuItems?.find((item: any) => item.id === selection.id);
+                          wineName = wineFromFood?.name || wineFromMenu?.name || 'Unknown Wine';
+                        }
                         
                         return (
                           <div key={index} className="p-2 bg-purple-50 rounded">
-                            <span className="font-medium">{guestName}:</span>
-                            {wineItem && <span className="ml-2 block">Wine: {wineItem.name}</span>}
+                            {wineName && <span className="block">{quantity}x {wineName}</span>}
                           </div>
                         );
                       })}

@@ -106,11 +106,16 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
   ctx.fillText('Event Ticket', canvas.width / 2, currentY);
   currentY += 30;
 
-  // Event title
-  ctx.font = 'bold 20px Arial';
+  // Event title - with text wrapping for long titles
+  ctx.font = 'bold 18px Arial';
   ctx.fillStyle = '#7c3aed'; // Primary color
-  ctx.fillText(booking.event.title, canvas.width / 2, currentY);
-  currentY += 30;
+  const maxLineWidth = canvas.width - 40; // Leave 20px margin on each side
+  const titleLines = wrapText(ctx, booking.event.title, maxLineWidth);
+  
+  titleLines.forEach((line, index) => {
+    ctx.fillText(line, canvas.width / 2, currentY + (index * 22));
+  });
+  currentY += (titleLines.length * 22) + 15;
 
   // Event details
   ctx.font = '14px Arial';
@@ -288,6 +293,31 @@ export const generateTicketCanvas = async (options: TicketOptions): Promise<HTML
   ctx.fillText('(520) 528-5270', canvas.width / 2, currentY);
 
   return canvas;
+};
+
+// Helper function to wrap text to fit within a given width
+const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const testLine = currentLine + (currentLine ? ' ' : '') + word;
+    const metrics = ctx.measureText(testLine);
+    
+    if (metrics.width > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  
+  return lines;
 };
 
 export const downloadTicket = async (options: TicketOptions) => {

@@ -113,14 +113,8 @@ export class EmailService {
       // Format date in Phoenix timezone
       const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
       
-      // Format show time in Phoenix timezone
-      const showTime = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'h:mm a');
-      
-      // Calculate arrival time (45 minutes before show) in Phoenix timezone
-      const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
-      const arrivalTimeFormatted = formatInTimeZone(arrivalTime, PHOENIX_TZ, 'h:mm a');
-      
-      const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
+      // Use consistent event timing: Doors at 5:45 PM, Concert at 6:30 PM
+      const timeDisplay = `Guest Arrival 5:45 PM, show starts 6:30 PM`;
       
       // Generate QR code using simple booking ID format expected by scanner
       const qrData = booking.id.toString();
@@ -271,31 +265,15 @@ export class EmailService {
     try {
       const { booking, event, table, venue } = data;
       
-      // All events are in Phoenix, Arizona timezone  
+      // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
+      const PHOENIX_TZ = 'America/Phoenix';
       const eventDateObj = typeof event.date === 'string' ? new Date(event.date) : event.date;
-      const eventDateFormatted = eventDateObj.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
       
-      // The event date contains the show start time  
-      const showTime = eventDateObj.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+      // Format date in Phoenix timezone
+      const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
       
-      // Calculate arrival time (45 minutes before show)
-      const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
-      const arrivalTimeFormatted = arrivalTime.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
-      
-      const timeDisplay = `Guest Arrival ${arrivalTimeFormatted}, show starts ${showTime}`;
+      // Use consistent event timing: Doors at 5:45 PM, Concert at 6:30 PM
+      const timeDisplay = `Guest Arrival 5:45 PM, show starts 6:30 PM`;
       
       // Generate QR code using simple booking ID format expected by scanner
       const qrData = booking.id.toString();
