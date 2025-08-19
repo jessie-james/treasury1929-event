@@ -97,7 +97,6 @@ export function VenueFloorSelection({ venues, onSelect, onBack }: VenueFloorSele
                       <h4 className="font-medium mb-2">Highlights:</h4>
                       <ul className="text-muted-foreground space-y-1 leading-relaxed">
                         <li>• Close to stage and performers</li>
-                        <li>• Intimate candlelit atmosphere</li>
                         <li>• Easy access to restrooms and bar</li>
                       </ul>
                     </div>
@@ -107,7 +106,6 @@ export function VenueFloorSelection({ venues, onSelect, onBack }: VenueFloorSele
                     <div className="text-xs sm:text-sm">
                       <h4 className="font-medium mb-2">Highlights:</h4>
                       <ul className="text-muted-foreground space-y-1 leading-relaxed">
-                        <li>• Elevated premium seating</li>
                         <li>• Panoramic view of the venue</li>
                         <li>• Quieter, more exclusive setting</li>
                       </ul>
