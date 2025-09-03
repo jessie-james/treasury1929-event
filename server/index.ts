@@ -6,6 +6,7 @@ import { registerVenueRoutes } from "./routes-venue";
 import { registerSeatSelectionRoutes } from "./routes-seat-selection";
 import { registerSeatHoldRoutes } from "./routes-seat-holds";
 import { setupVite, log, serveStatic } from "./vite";
+import adminBookingRoutes from "./routes-admin-bookings";
 import { storage } from "./storage";
 // import './api-server'; // Disabled to prevent port conflicts
 import cors from 'cors';
@@ -867,6 +868,10 @@ app.use((req, res, next) => {
     
     log("Setting up venue routes...");
     registerVenueRoutes(app);
+    
+    // PHASE 1: Setup admin booking routes
+    log("Setting up admin booking routes...");
+    app.use('/api/admin/bookings', adminBookingRoutes);
 
     // Error logging middleware
     app.use(async (err: any, req: Request, res: Response, next: NextFunction) => {

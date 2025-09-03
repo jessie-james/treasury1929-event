@@ -104,6 +104,11 @@ export function EventDetails({
         {/* ELDERLY-FRIENDLY: Much larger text for easy reading */}
         <h1 className="text-4xl md:text-5xl font-bold font-serif leading-tight">{event.title}</h1>
 
+        {/* PHASE 0: Price Display */}
+        <div className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          ${Math.round(((event.ticketPrice || event.basePrice) || 13000) / 100)} per guest — tax & gratuity included
+        </div>
+
         <div className="flex flex-col gap-6 text-muted-foreground">
           <div className="flex items-center gap-4">
             <Calendar className="h-8 w-8 flex-shrink-0" />

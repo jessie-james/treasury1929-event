@@ -19,13 +19,13 @@ export class AvailabilitySync {
         return;
       }
 
-      // Get all confirmed bookings for this event
+      // PHASE 0: Count status IN ('confirmed','reserved','comp') as specified
       const eventBookings = await db
         .select()
         .from(bookings)
         .where(and(
           eq(bookings.eventId, eventId),
-          sql`${bookings.status} NOT IN ('canceled', 'refunded')`
+          sql`${bookings.status} IN ('confirmed', 'reserved', 'comp')`
         ));
 
       // Calculate actual booked seats and tables
@@ -130,14 +130,14 @@ export class AvailabilitySync {
         throw new Error(`Event ${eventId} not found`);
       }
 
-      // Lightning-fast single query with optimized aggregation
+      // PHASE 0: Lightning-fast single query with optimized aggregation - count confirmed,reserved,comp
       const [bookingStats] = await db
         .select({
-          totalBookedSeats: sql<number>`COALESCE(SUM(${bookings.partySize}), 0)`,
-          totalBookedTables: sql<number>`COUNT(DISTINCT CASE WHEN ${bookings.status} = 'confirmed' THEN ${bookings.tableId} END)`
+          totalBookedSeats: sql<number>`COALESCE(SUM(CASE WHEN ${bookings.status} IN ('confirmed', 'reserved', 'comp') THEN ${bookings.partySize} ELSE 0 END), 0)`,
+          totalBookedTables: sql<number>`COUNT(DISTINCT CASE WHEN ${bookings.status} IN ('confirmed', 'reserved', 'comp') THEN ${bookings.tableId} END)`
         })
         .from(bookings)
-        .where(eq(bookings.eventId, eventId));  // Remove the status filter from WHERE for better index usage
+        .where(eq(bookings.eventId, eventId));
 
       const bookedSeats = Number(bookingStats?.totalBookedSeats || 0);
       const bookedTables = Number(bookingStats?.totalBookedTables || 0);

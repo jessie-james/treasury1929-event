@@ -93,17 +93,17 @@ export function setupAuth(app: Express) {
     );
   };
   
-  // Configure cookie settings for development compatibility
+  // PHASE 0: Configure cookie settings with proper security
   const cookieSettings: session.CookieOptions = {
-    // Always use non-secure cookies for development
-    secure: false,
+    // PHASE 0: Use secure cookies only in production
+    secure: process.env.NODE_ENV === 'production',
     
     // Use a longer session lifetime to reduce authentication issues
     maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
     
     httpOnly: true, // Prevent JavaScript access for security
     
-    // Use 'lax' for better compatibility
+    // PHASE 0: Use 'lax' for better compatibility
     sameSite: 'lax',
     
     path: '/', // Available across entire site
@@ -307,10 +307,10 @@ export function setupAuth(app: Express) {
             userId: -1, // We don't have a user ID for failed logins
             action: "FAILED_LOGIN_ERROR",
             entityType: "auth",
-            details: { 
+            details: JSON.stringify({ 
               email: req.body.email,
               error: err.message || "Authentication error"
-            }
+            })
           });
         }
         return res.status(500).json({ message: "Authentication system error" });
@@ -323,10 +323,10 @@ export function setupAuth(app: Express) {
             userId: -1, // We don't have a user ID for failed logins
             action: "FAILED_LOGIN",
             entityType: "auth",
-            details: { 
+            details: JSON.stringify({ 
               email: req.body.email,
               reason: "Invalid credentials"
-            }
+            })
           });
         }
         return res.status(401).json({ message: "Invalid email or password" });
@@ -340,10 +340,10 @@ export function setupAuth(app: Express) {
             userId: user.id,
             action: "FAILED_LOGIN_SESSION",
             entityType: "auth",
-            details: { 
+            details: JSON.stringify({ 
               email: user.email,
               error: err.message || "Session error"
-            }
+            })
           });
           return res.status(500).json({ message: "Session creation failed" });
         }
@@ -355,15 +355,15 @@ export function setupAuth(app: Express) {
             userId: user.id,
             action: "LOGIN",
             entityType: "auth",
-            details: { 
+            details: JSON.stringify({ 
               email: user.email,
               role: user.role
-            }
+            })
           });
         }
         
         // Remove password before sending response
-        const userResponse = { ...user };
+        const userResponse: any = { ...user };
         if ('password' in userResponse) {
           delete userResponse.password;
         }
@@ -389,10 +389,10 @@ export function setupAuth(app: Express) {
         userId: user.id,
         action: "LOGOUT",
         entityType: "auth",
-        details: { 
+        details: JSON.stringify({ 
           email: user.email,
           role: user.role
-        }
+        })
       });
     }
     
@@ -647,7 +647,7 @@ export function setupAuth(app: Express) {
       }
 
       // Generate reset token
-      const token = generateRandomToken();
+      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       const expires = Date.now() + (60 * 60 * 1000); // 1 hour
 
       // Store reset token

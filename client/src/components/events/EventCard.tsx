@@ -64,6 +64,10 @@ export function EventCard({ event }: { event: Event }) {
             <div className="font-semibold text-foreground">{formatPhoenixDate(event.date, "EEEE, MMMM d, yyyy")}</div>
             <div>Time: Guest Arrival 5:45 PM, show starts 6:30 PM</div>
           </div>
+          {/* PHASE 0: Price Display */}
+          <div className="text-xl md:text-2xl font-semibold text-foreground">
+            ${Math.round(((event.ticketPrice || event.basePrice) || 13000) / 100)} per guest — tax & gratuity included
+          </div>
           <Badge variant={availability.color as any} className="text-lg px-4 py-2">
             {availability.text}
           </Badge>

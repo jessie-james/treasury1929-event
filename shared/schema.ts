@@ -142,7 +142,11 @@ export const bookings = pgTable("bookings", {
   stripePaymentId: varchar("stripe_payment_id", { length: 255 }),
   amount: integer("amount"), // Actual Stripe charged amount in cents
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  // PHASE 1: Enhanced status support - 'pending'|'confirmed'|'refunded'|'cancelled'|'reserved'|'comp'
   status: varchar("status", { length: 50 }).default("pending").notNull(),
+  // PHASE 1: New fields for admin booking functionality
+  totalPaidCents: integer("total_paid_cents").notNull().default(0),
+  bookingType: varchar("booking_type", { length: 50 }).notNull().default("standard"), // 'standard', 'manual', 'comp'
   notes: text("notes"),
   refundAmount: integer("refund_amount"),
   refundId: varchar("refund_id", { length: 255 }),

@@ -65,6 +65,12 @@ export function ensureEmailReady(): void {
 }
 
 export async function sendEmail(msg: sgMail.MailDataRequired): Promise<any> {
+  // PHASE 0: Email suppression flag
+  if (process.env.EMAIL_SUPPRESS_OUTBOUND === 'true') {
+    console.log('[EMAIL] SUPPRESSED - EMAIL_SUPPRESS_OUTBOUND is true. Would have sent to:', typeof msg.to === 'string' ? msg.to : 'multiple');
+    return { statusCode: 202, body: 'SUPPRESSED' };
+  }
+
   ensureEmailReady();
   try {
     const [res] = await sgMail.send(msg);
