@@ -1,0 +1,209 @@
+Replit AI — APPLY & PR CREATOR (Write-Mode, Safe by Default)
+
+Goal: Implement and commit the scoped changes for The Treasury 1929 app (server + client), with tests and migrations, behind feature flags where appropriate.
+Repo layout reference: from prior audit (client/, server/, shared/).
+Absolutely avoid: using live Stripe/SendGrid keys, touching production data, or deleting anything from Aug 28 & Sept 5 events.
+
+OPERATING MODE (must obey)
+
+You may modify files, add new ones, install dev deps, run tests, and commit.
+
+Create a new git branch: feature/tre1929-sept-updates.
+
+Group changes into phased commits (Phase 0 → 3). Use conventional commit messages.
+
+DO NOT embed any secrets in code or tests. Use .env.example only.
+
+If no Git remote/PR is configured, still commit locally and output a patch file in the repo root: tre1929_feature_patch.diff.
+
+ENV & FLAGS (safe defaults)
+
+Update .env.example (do not create .env):
+
+EMAIL_SUPPRESS_OUTBOUND=true
+RESERVE_NO_PAY_ENABLED=true
+PROTECT_EVENT_IDS=28,35            # placeholder; keep string-based CSV
+BACKUPS_ENABLED=false
+STRIPE_WEBHOOK_SECRET=whsec_example
+TRE_STRIPE_TEST_SECRET_KEY=sk_test_example
+TRE_STRIPE_TEST_PUBLISHABLE_KEY=pk_test_example
+
+
+Document these in README.
+
+PHASE 0 — Hotfixes / Baseline Hardening (commit 1)
+
+Price visible pre-selection
+
+Show: “$130 per guest — tax & gratuity included” on event cards and event detail header.
+
+Files: client/src/components/EventCard.tsx, client/src/pages/EventPage.tsx.
+
+Fallback to (ticket_price || base_price) cents → dollars.
+
+Availability counter accuracy
+
+In server/availability-sync.ts, count status IN ('confirmed','reserved','comp').
+
+Session cookie security
+
+In server/auth.ts: cookie.secure = NODE_ENV==='production', sameSite:'lax', httpOnly:true.
+
+Email suppression flag
+
+In server/email-service.ts (all send methods): if EMAIL_SUPPRESS_OUTBOUND==='true', log and return true without sending.
+
+Name normalization
+
+New util server/utils/strings.ts → strip BOM/control chars, NFC normalize, trim().
+
+Apply on user/guest inputs, booking creation (webhook & admin), reports, and email templates (sender/recipient names).
+
+Backoffice timezone
+
+Add client/src/lib/date.ts with formatInTimeZone(...,'America/Phoenix', ...).
+
+Replace backoffice displays to use this util.
+
+Tests (Phase 0): add vitest + supertest. Create tests/normalize.spec.ts and a minimal tests/availability.spec.ts. Ensure npm test runs.
+
+PHASE 1 — Admin Bookings + Reporting (commit 2)
+Data model (Drizzle migrations)
+
+Create migrations (files with full SQL or Drizzle builder):
+
+20250902_01_booking_enums_and_totals
+
+bookings.status: support 'pending'|'confirmed'|'refunded'|'cancelled'|'reserved'|'comp'.
+
+bookings.total_paid_cents INT NOT NULL DEFAULT 0.
+
+bookings.booking_type TEXT NOT NULL DEFAULT 'standard'.
+
+Do not auto-apply to production; keep Dev instructions in README.
+
+New/changed routes (Admin only)
+
+POST /api/admin/bookings/reserve → create unpaid booking with full data; status:'reserved'|'comp', total_paid_cents=0, booking_type:'manual', call AvailabilitySync.
+
+POST /api/admin/bookings/manual → same shape; default status:'reserved'.
+
+POST /api/admin/bookings/:id/paylink → create Stripe Checkout session for exact seats/amount; return url. Webhook converts to confirmed. Never collect card data in backoffice.
+
+POST /api/admin/bookings/:id/mark-paid-offline → set status:'confirmed', set total_paid_cents, send confirmation email (respects suppression).
+
+Write-guard middleware (new): denies destructive writes for any eventId in PROTECT_EVENT_IDS. Attach to routes that update/delete bookings/events.
+
+Reporting tweaks
+
+Orders tab default sort: newest→oldest; keep column sort.
+
+Banner totals include wine using wine_selections aggregation.
+
+Server reports
+
+Strip stray symbols from names (use normalization util).
+
+New endpoint POST /api/reports/server-sections → printable HTML grouped course → table → seat for selected tables. Use data structure from “Server Food Charts.xlsx”.
+
+Menu/content
+
+Ensure entrée catalog includes Grilled King Salmon — mushroom, tomato, caper, fresh thyme sauce; scalloped potatoes. (image paths configurable).
+
+Tests (Phase 1):
+
+tests/reserve.spec.ts (admin reserve → capacity decrements; revenue remains 0; email stub called or suppressed).
+
+tests/paylink.spec.ts (mock Stripe Checkout session creation; assert webhook finalizes booking).
+
+tests/markPaidOffline.spec.ts (status confirmed; revenue set; email sent/suppressed).
+
+tests/reports.spec.ts (server sections returns grouped HTML).
+
+PHASE 2 — Scanning QoL (commit 3)
+
+New file server/routes-checkin.ts
+
+GET /api/checkin/search?q=<lastOrBookingId> → find bookings by last name or booking id for the current event (scope by eventId param).
+
+Update client/src/pages/backoffice/EntrancePage.tsx
+
+Keep camera stream open (debounced scanning).
+
+After scan: show modal with purchaser name, table number, party size; on confirm, mark checked-in.
+
+Refresh counters using /api/events/:id/availability.
+
+Tests (Phase 2): light integration test for checkin/search and a UI component test (if framework allows) for scan result reducer.
+
+PHASE 3 — Backups & Retention (commit 4)
+
+New table event_backups (id, event_id, snapshot jsonb, created_at) with index (event_id, created_at).
+
+New server/cron.ts (only runs when BACKUPS_ENABLED==='true')
+
+Daily 03:30 local: for events with date < now()-72h and no snapshot, store JSON snapshot of event, tables, bookings (minimal PII), emails sent metadata, transactions (no PAN).
+
+Delete snapshots older than 90 days.
+
+In server/index.ts, conditionally import/start cron if flag is true.
+
+Tests (Phase 3): unit test for snapshot builder (pure function); retention logic deletes >90d old rows.
+
+GLOBAL ACCEPTANCE CRITERIA (add as docs/acceptance.md)
+
+Price shows on cards and event header.
+
+Availability decrements for confirmed|reserved|comp.
+
+Admin can reserve, manual book, create pay link, mark paid offline.
+
+Orders sorted newest→oldest; wine totals included.
+
+Server can print by-course report for selected tables.
+
+Inactive event shows Sold Out publicly; admin sees “Inactive (Sales Paused)”; revenue unchanged.
+
+Scanning: continuous camera; modal shows purchaser + table + party; manual lookup works; counters update.
+
+Backups: code present but disabled unless BACKUPS_ENABLED=true.
+
+Protected events (Aug 28, Sept 5) cannot be modified (guard returns 403).
+
+All new features covered by tests; npm test passes.
+
+COMMANDS THE AGENT MAY RUN
+# ensure deps
+npm i -D vitest @types/jest supertest @types/supertest node-cron
+
+# format/types (if used)
+npm run check || true
+
+# run tests
+npm test
+
+DELIVERABLES
+
+Branch: feature/tre1929-sept-updates with 4 commits (Phase 0→3).
+
+Files added/changed list (print in final output).
+
+Patch file tre1929_feature_patch.diff at repo root (in case no remote).
+
+README updates explaining flags and test steps.
+
+.env.example updated with safe defaults.
+
+Test run summary pasted at the end of your output.
+
+QUALITY & SAFETY RULES
+
+Never add live keys. All email sends must obey EMAIL_SUPPRESS_OUTBOUND.
+
+All Stripe touches via Checkout sessions or webhook fixtures; no card data fields in backoffice.
+
+Write-guard must block destructive ops for eventIds in PROTECT_EVENT_IDS.
+
+Keep America/Phoenix timezone consistent in backoffice displays and emails.
+
+When done, print a concise CHANGELOG of commits, a manual verification checklist, and the paths of all new files. If any ambiguity arises, include a “Decision Needed” note and choose the safest default, but still complete the implementation.
