@@ -1187,6 +1187,49 @@ export class PgStorage implements IStorage {
       .where(eq(schema.adminLogs.entityType, entityType))
       .orderBy(desc(schema.adminLogs.createdAt));
   }
+
+  // Missing method implementations
+  async updateEventsOrder(orderedIds: number[]): Promise<boolean> {
+    try {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await db.update(schema.events)
+          .set({ displayOrder: i })
+          .where(eq(schema.events.id, orderedIds[i]));
+      }
+      return true;
+    } catch (error) {
+      console.error('Error updating events order:', error);
+      return false;
+    }
+  }
+
+  async changeBookingSeats(bookingId: number, newTableId: number, newSeats: number[]): Promise<Booking | null> {
+    try {
+      const result = await db.update(schema.bookings)
+        .set({ 
+          tableId: newTableId,
+          seatNumbers: newSeats as any
+        })
+        .where(eq(schema.bookings.id, bookingId))
+        .returning();
+      return result[0] || null;
+    } catch (error) {
+      console.error('Error changing booking seats:', error);
+      return null;
+    }
+  }
+
+  async getBookingByQRCode(bookingId: number): Promise<Booking | null> {
+    try {
+      const result = await db.select()
+        .from(schema.bookings)
+        .where(eq(schema.bookings.id, bookingId));
+      return result[0] || null;
+    } catch (error) {
+      console.error('Error getting booking by QR code:', error);
+      return null;
+    }
+  }
 }
 
 export const storage = new PgStorage();

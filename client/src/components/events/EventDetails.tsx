@@ -172,12 +172,12 @@ export function EventDetails({
                 setLocation(bookingPath);
               }
             }}
-            disabled={event.isActive === false || ((realTimeAvailability as any)?.isSoldOut ?? event.availableTables === 0)}
+            disabled={event.isActive === false || ((realTimeAvailability as any)?.isSoldOut ?? (event.availableTables === 0))}
             className="w-full lg:w-auto py-6 px-12 text-2xl font-semibold"
           >
             {event.isActive === false 
               ? "Sold Out"
-              : ((realTimeAvailability as any)?.isSoldOut ?? event.availableTables === 0) 
+              : ((realTimeAvailability as any)?.isSoldOut ?? (event.availableTables === 0)) 
               ? "Sold Out" 
               : hasBooking 
                 ? "Book More Tickets" 
@@ -246,12 +246,12 @@ export function EventDetails({
                 setLocation(bookingPath);
               }
             }}
-            disabled={event.isActive === false || ((realTimeAvailability as any)?.isSoldOut ?? event.availableTables === 0)}
+            disabled={event.isActive === false || ((realTimeAvailability as any)?.isSoldOut ?? (event.availableTables === 0))}
             className="w-full lg:w-auto py-6 px-12 text-2xl font-semibold"
           >
             {event.isActive === false 
               ? "Sold Out"
-              : ((realTimeAvailability as any)?.isSoldOut ?? event.availableTables === 0) 
+              : ((realTimeAvailability as any)?.isSoldOut ?? (event.availableTables === 0)) 
               ? "Sold Out" 
               : hasBooking 
                 ? "Book More Tickets" 

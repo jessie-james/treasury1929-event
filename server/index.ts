@@ -635,7 +635,9 @@ app.post("/api/resend-ayla-confirmation", async (req, res) => {
     console.log("🔄 Resending Ayla's confirmation email...");
     
     // Find Ayla's most recent booking
-    const aylaBookings = await storage.getUserBookings("ayla@thetreasury1929.com");
+    // First get user by email, then get their bookings
+    const aylaUser = await storage.getUserByEmail("ayla@thetreasury1929.com");
+    const aylaBookings = aylaUser ? await storage.getBookingsByUserId(aylaUser.id) : [];
     
     if (!aylaBookings || aylaBookings.length === 0) {
       return res.status(404).json({ success: false, message: "No bookings found for Ayla" });
