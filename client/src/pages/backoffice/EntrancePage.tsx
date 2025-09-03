@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { formatPhoenixTime } from "@/lib/timezone";
 import { QrScanner } from "@/components/backoffice/QrScanner";
@@ -25,7 +26,8 @@ import {
   User as UserIcon,
   Key,
   Utensils,
-  ArrowLeft
+  ArrowLeft,
+  Search
 } from "lucide-react";
 import { useLocation } from "wouter";
 
@@ -43,9 +45,20 @@ export default function EntrancePage() {
   const { toast } = useToast();
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [manualBookingId, setManualBookingId] = useState("");
-  const [activeTab, setActiveTab] = useState<"scanner" | "manual">("scanner");
+  const [activeTab, setActiveTab] = useState<"scanner" | "manual" | "search">("scanner");
   const [scanLog, setScanLog] = useState<ScanLogEntry[]>([]);
   const [debugLog, setDebugLog] = useState<string[]>([]);
+  
+  // PHASE 2: Enhanced check-in modal and search functionality
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingCheckIn, setPendingCheckIn] = useState<{
+    bookingId: number;
+    purchaserName: string;
+    tableNumber: number;
+    partySize: number;
+  } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   
   // Get all events
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
