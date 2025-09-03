@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { BackofficeLayout } from "@/components/backoffice/BackofficeLayout";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, CalendarDays, SortAsc, GripVertical, ArrowLeft } from "lucide-react";
+import { PlusCircle, CalendarDays, SortAsc, GripVertical, ArrowLeft, Archive } from "lucide-react";
 import { useState, useMemo } from "react";
 import { EventForm } from "@/components/backoffice/EventForm";
 import { useLocation } from "wouter";
@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type Event } from "@shared/schema";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -28,14 +29,19 @@ export default function EventsPage() {
   const [isCreating, setIsCreating] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("display-order");
   const [isReorderMode, setIsReorderMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
   const { toast } = useToast();
 
   const handleBackToDashboard = () => {
     setLocation('/backoffice');
   };
 
-  const { data: events, refetch } = useQuery<Event[]>({
+  const { data: activeEvents, refetch: refetchActive } = useQuery<Event[]>({
     queryKey: ["/api/events"],
+  });
+
+  const { data: archivedEvents, refetch: refetchArchived } = useQuery<Event[]>({
+    queryKey: ["/api/events/archived"],
   });
   
   const updateOrderMutation = useMutation({
@@ -49,7 +55,9 @@ export default function EventsPage() {
         description: "Event display order has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
-      refetch(); // Explicitly refetch events data
+      queryClient.invalidateQueries({ queryKey: ["/api/events/archived"] });
+      refetchActive(); // Explicitly refetch active events data
+      refetchArchived(); // Explicitly refetch archived events data
       
       // Switch back to non-reordering mode and show custom order
       setTimeout(() => {
@@ -66,11 +74,14 @@ export default function EventsPage() {
     },
   });
   
+  // Get events for the current tab
+  const currentTabEvents = activeTab === "active" ? activeEvents : archivedEvents;
+  
   const sortedEvents = useMemo(() => {
-    if (!events) return [];
+    if (!currentTabEvents) return [];
     
     // Create a copy of events to avoid modifying the original data
-    const eventsCopy = [...events];
+    const eventsCopy = [...currentTabEvents];
     
     if (isReorderMode) {
       // In reorder mode, always sort by display_order
@@ -90,9 +101,9 @@ export default function EventsPage() {
       case "title-desc":
         return eventsCopy.sort((a, b) => b.title.localeCompare(a.title));
       case "seats-asc":
-        return eventsCopy.sort((a, b) => a.availableSeats - b.availableSeats);
+        return eventsCopy.sort((a, b) => (a.availableSeats || 0) - (b.availableSeats || 0));
       case "seats-desc":
-        return eventsCopy.sort((a, b) => b.availableSeats - a.availableSeats);
+        return eventsCopy.sort((a, b) => (b.availableSeats || 0) - (a.availableSeats || 0));
       case "id-asc":
         return eventsCopy.sort((a, b) => a.id - b.id);
       case "id-desc":
@@ -101,10 +112,10 @@ export default function EventsPage() {
         // Default to display order if no sort is specified
         return eventsCopy.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
     }
-  }, [events, sortBy, isReorderMode]);
+  }, [currentTabEvents, sortBy, isReorderMode]);
   
   const handleDragEnd = (result: DropResult) => {
-    if (!result.destination || !events) return;
+    if (!result.destination || !currentTabEvents) return;
     
     const items = Array.from(sortedEvents);
     const [reorderedItem] = items.splice(result.source.index, 1);
@@ -116,6 +127,119 @@ export default function EventsPage() {
     // Update the order in the database
     updateOrderMutation.mutate(orderedIds);
   };
+
+  const renderEventsContent = () => (
+    <div>
+      {!isReorderMode ? (
+        <div className="grid gap-6">
+          {sortedEvents.map((event) => (
+            <Card key={event.id}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>{event.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" />
+                      {formatPhoenixDateShort(event.date)}
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setSelectedEvent(event)}
+                  >
+                    Edit
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <img 
+                      src={event.image || ''} 
+                      alt={event.title}
+                      className="rounded-lg w-full aspect-video object-cover"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {event.description}
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <span>Available Seats: {event.availableSeats}</span>
+                      <span>Total Seats: {event.totalSeats}</span>
+                      <span>Available Tables: {event.availableTables}</span>
+                      <span>Total Tables: {event.totalTables}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {sortedEvents.length === 0 && (
+            <div className="text-center py-12">
+              <Archive className="mx-auto h-12 w-12 text-muted-foreground" />
+              <h3 className="mt-4 text-lg font-medium">No {activeTab} events</h3>
+              <p className="text-sm text-muted-foreground">
+                {activeTab === "active" 
+                  ? "Create your first event to get started." 
+                  : "No events have been archived yet."
+                }
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="events">
+            {(provided) => (
+              <div
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="grid gap-4"
+              >
+                {sortedEvents.map((event, index) => (
+                  <Draggable key={event.id} draggableId={String(event.id)} index={index}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        className={`rounded-lg border p-4 transition-colors ${
+                          snapshot.isDragging ? "border-primary bg-accent" : ""
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div {...provided.dragHandleProps} className="cursor-grab">
+                              <GripVertical className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">{event.title}</h3>
+                              <p className="text-sm text-muted-foreground flex items-center gap-1">
+                                <CalendarDays className="h-3 w-3" />
+                                {formatPhoenixDateShort(event.date)}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="h-16 w-24 overflow-hidden rounded">
+                            <img
+                              src={event.image || ''}
+                              alt={event.title}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      )}
+    </div>
+  );
 
   return (
     <BackofficeLayout>
@@ -154,6 +278,7 @@ export default function EventsPage() {
                   variant="outline" 
                   onClick={() => setIsReorderMode(true)}
                   className="whitespace-nowrap"
+                  disabled={activeTab === "archived"}
                 >
                   <GripVertical className="h-4 w-4 mr-2" />
                   Reorder Events
@@ -192,102 +317,36 @@ export default function EventsPage() {
           />
         )}
 
-        {!isReorderMode ? (
-          <div className="grid gap-6">
-            {sortedEvents.map((event) => (
-              <Card key={event.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{event.title}</CardTitle>
-                      <CardDescription className="flex items-center gap-1">
-                        <CalendarDays className="h-3 w-3" />
-                        {formatPhoenixDateShort(event.date)}
-                      </CardDescription>
-                    </div>
-                    <Button 
-                      variant="outline"
-                      onClick={() => setSelectedEvent(event)}
-                    >
-                      Edit
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <img 
-                        src={event.image} 
-                        alt={event.title}
-                        className="rounded-lg w-full aspect-video object-cover"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground">
-                        {event.description}
-                      </p>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <span>Available Seats: {event.availableSeats}</span>
-                        <span>Total Seats: {event.totalSeats}</span>
-                        <span>Available Tables: {event.availableTables}</span>
-                        <span>Total Tables: {event.totalTables}</span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="events">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="grid gap-4"
-                >
-                  {sortedEvents.map((event, index) => (
-                    <Draggable key={event.id} draggableId={String(event.id)} index={index}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          className={`rounded-lg border p-4 transition-colors ${
-                            snapshot.isDragging ? "border-primary bg-accent" : ""
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div {...provided.dragHandleProps} className="cursor-grab">
-                                <GripVertical className="h-5 w-5 text-muted-foreground" />
-                              </div>
-                              <div>
-                                <h3 className="font-medium">{event.title}</h3>
-                                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                                  <CalendarDays className="h-3 w-3" />
-                                  {formatPhoenixDateShort(event.date)}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="h-16 w-24 overflow-hidden rounded">
-                              <img
-                                src={event.image}
-                                alt={event.title}
-                                className="h-full w-full object-cover"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "active" | "archived")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="active" className="flex items-center gap-2">
+              <CalendarDays className="h-4 w-4" />
+              Active Events
+              {activeEvents && (
+                <span className="ml-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                  {activeEvents.length}
+                </span>
               )}
-            </Droppable>
-          </DragDropContext>
-        )}
+            </TabsTrigger>
+            <TabsTrigger value="archived" className="flex items-center gap-2">
+              <Archive className="h-4 w-4" />
+              Archived Events
+              {archivedEvents && (
+                <span className="ml-1 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+                  {archivedEvents.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="active" className="mt-6">
+            {renderEventsContent()}
+          </TabsContent>
+          
+          <TabsContent value="archived" className="mt-6">
+            {renderEventsContent()}
+          </TabsContent>
+        </Tabs>
       </div>
     </BackofficeLayout>
   );

@@ -1077,6 +1077,17 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/events/archived", async (_req, res) => {
+    try {
+      // Get inactive/archived events
+      const events = await storage.getInactiveEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching archived events:", error);
+      res.status(500).json({ message: "Failed to fetch archived events" });
+    }
+  });
+
   app.get("/api/events/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

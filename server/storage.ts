@@ -247,6 +247,12 @@ export class PgStorage implements IStorage {
       .orderBy(asc(schema.events.date));
   }
 
+  async getInactiveEvents(): Promise<Event[]> {
+    return await db.select().from(schema.events)
+      .where(eq(schema.events.isActive, false))
+      .orderBy(desc(schema.events.date));
+  }
+
   async getEventById(id: number): Promise<Event | null> {
     const result = await db.select().from(schema.events).where(eq(schema.events.id, id));
     return result[0] || null;
