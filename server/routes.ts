@@ -1002,18 +1002,20 @@ export async function registerRoutes(app: Express) {
       }
 
       // Create detailed admin log for event update
-      await storage.createAdminLog({
-        userId: req.user.id,
-        action: "update_event",
-        entityType: "event",
-        entityId: id,
-        details: JSON.stringify({
-          title: event.title,
-          date: event.date,
-          changes: changes,
-          image: event.image
-        })
-      });
+      if (req.user?.id) {
+        await storage.createAdminLog({
+          userId: req.user.id,
+          action: "update_event",
+          entityType: "event",
+          entityId: id,
+          details: JSON.stringify({
+            title: event.title,
+            date: event.date,
+            changes: changes,
+            image: event.image
+          })
+        });
+      }
 
       res.json(event);
     } catch (error) {

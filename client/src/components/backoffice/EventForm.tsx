@@ -283,6 +283,7 @@ export function EventForm({ event, onClose }: Props) {
         totalSeats: totalSeats,
         availableTables: totalTables, // Initially all tables are available
         date: date.toISOString(), // Ensure we're sending a proper ISO string
+        ticketCapacity: data.eventType === 'ticket-only' ? 100 : null, // Add missing field for ticket events
       };
       
       console.log("Submitting event data:", formattedData);
@@ -357,11 +358,19 @@ export function EventForm({ event, onClose }: Props) {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => {
+            console.log("=== FORM SUBMISSION DEBUG ===");
             console.log("Form data before submission:", data);
             console.log("Form validation state:", form.formState);
-            if (form.formState.errors) {
-              console.log("Form errors:", form.formState.errors);
+            console.log("Is form valid:", form.formState.isValid);
+            console.log("Form errors:", form.formState.errors);
+            
+            if (form.formState.errors && Object.keys(form.formState.errors).length > 0) {
+              console.log("❌ FORM VALIDATION FAILED - Not submitting");
+              console.log("Specific errors:", form.formState.errors);
+              return;
             }
+            
+            console.log("✅ Form validation passed - calling saveEvent");
             saveEvent(data);
           })} className="space-y-4">
             <FormField
