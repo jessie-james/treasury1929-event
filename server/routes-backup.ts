@@ -12,10 +12,11 @@ const router = express.Router();
 
 // Backup configuration
 const BACKUP_CONFIG = {
-  retentionDays: 7, // Keep backups for 7 days
-  backupSchedule: '0 2 * * *', // Daily at 2 AM Phoenix time
+  retentionDays: 90, // Keep backups for 90 days
+  backupSchedule: '30 3 * * *', // Daily at 03:30 Phoenix time
   backupPath: '/tmp/backups',
-  maxBackups: 10, // Maximum number of backups to keep
+  maxBackups: 100, // Maximum number of backups to keep (90 days + buffer)
+  eventDelayHours: 72, // Only backup events ≥72h after completion
 };
 
 // Ensure backup directory exists
@@ -36,6 +37,12 @@ function generateBackupFilename(date: Date = new Date()): string {
 // Perform database backup
 async function performBackup(): Promise<{ success: boolean; filename?: string; error?: string }> {
   try {
+    // Check if backups are enabled
+    if (process.env.BACKUPS_ENABLED !== 'true') {
+      console.log('[BACKUP] Skipped - BACKUPS_ENABLED is not set to true');
+      return { success: false, error: 'Backups disabled' };
+    }
+    
     await ensureBackupDirectory();
     
     const filename = generateBackupFilename();
@@ -306,13 +313,46 @@ router.delete('/:filename', async (req, res) => {
   }
 });
 
+// Check if events are eligible for backup (≥72h after completion)
+async function getEligibleEvents(): Promise<number[]> {
+  try {
+    const cutoffTime = new Date();
+    cutoffTime.setHours(cutoffTime.getHours() - BACKUP_CONFIG.eventDelayHours);
+    
+    const events = await storage.getAllEvents();
+    const eligibleEventIds = events
+      .filter((event: any) => new Date(event.date) <= cutoffTime)
+      .map((event: any) => event.id);
+    
+    console.log(`[BACKUP] Found ${eligibleEventIds.length} events eligible for backup (≥72h old)`);
+    return eligibleEventIds;
+  } catch (error) {
+    console.error('[BACKUP] Error checking eligible events:', error);
+    return [];
+  }
+}
+
 // Initialize backup cron job
 export function initializeBackupScheduler() {
   console.log(`[BACKUP] Initializing backup scheduler: ${BACKUP_CONFIG.backupSchedule}`);
   
+  // Only initialize if backups are enabled
+  if (process.env.BACKUPS_ENABLED !== 'true') {
+    console.log('[BACKUP] Scheduler disabled - BACKUPS_ENABLED is not set to true');
+    return;
+  }
+  
   // Schedule automated backups
   cron.schedule(BACKUP_CONFIG.backupSchedule, async () => {
     console.log('[BACKUP] Scheduled backup starting...');
+    
+    // Verify eligible events exist before proceeding
+    const eligibleEvents = await getEligibleEvents();
+    if (eligibleEvents.length === 0) {
+      console.log('[BACKUP] No events eligible for backup (none ≥72h old)');
+      return;
+    }
+    
     await performBackup();
   }, {
     timezone: 'America/Phoenix'

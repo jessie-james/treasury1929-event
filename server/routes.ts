@@ -1172,6 +1172,24 @@ export async function registerRoutes(app: Express) {
       if (isNaN(eventId)) {
         return res.status(400).json({ message: "Invalid event ID" });
       }
+      
+      // Check if event is active before providing availability
+      const event = await storage.getEventById(eventId);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      if (event.isActive === false) {
+        // Return sold out response for inactive events
+        return res.json({
+          availableSeats: 0,
+          availableTables: 0,
+          totalSeats: event.totalSeats || 0,
+          totalTables: event.totalTables || 0,
+          isSoldOut: true,
+          inactive: true // Flag to indicate this is due to inactive status
+        });
+      }
 
       // Check endpoint-level cache first (even more aggressive than class-level cache)
       const cached = availabilityCache.get(eventId);

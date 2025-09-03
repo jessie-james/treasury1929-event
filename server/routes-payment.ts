@@ -158,6 +158,14 @@ export function registerPaymentRoutes(app: Express) {
       if (!event || !table) {
         return res.status(404).json({ message: "Event or table not found" });
       }
+      
+      // Block inactive events from checkout
+      if (event.isActive === false) {
+        return res.status(400).json({ 
+          message: "This event is no longer accepting bookings",
+          inactive: true 
+        });
+      }
 
       const stripe = getStripe();
       if (!stripe) {

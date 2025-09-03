@@ -35,7 +35,9 @@ export function EventCard({ event }: { event: Event }) {
   const totalSeats = (realTimeAvailability as any)?.totalSeats ?? event.totalSeats;
   
   const availability = 
-    isSoldOut
+    event.isActive === false
+      ? { text: "Sold out", color: "destructive" }
+      : isSoldOut
       ? { text: "Sold out", color: "destructive" }
       : availableSeats < totalSeats * 0.2
       ? { text: "Selling fast – Buy now!", color: "warning" }
@@ -93,9 +95,11 @@ export function EventCard({ event }: { event: Event }) {
               }
             }}
             className="w-full py-4 text-xl font-semibold"
-            disabled={isSoldOut || event.isPrivate}
+            disabled={event.isActive === false || isSoldOut || event.isPrivate}
           >
-            {isSoldOut
+            {event.isActive === false
+              ? "Sold Out"
+              : isSoldOut
               ? "Sold Out" 
               : event.isPrivate 
                 ? "Private Event" 
