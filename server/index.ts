@@ -10,6 +10,7 @@ import adminBookingRoutes from "./routes-admin-bookings";
 import reportsRoutes from "./routes-reports";
 import checkinRoutes from "./routes-checkin";
 import backupRoutes, { initializeBackupScheduler } from "./routes-backup";
+import artistsRoutes from "./routes-artists";
 import { storage } from "./storage";
 // import './api-server'; // Disabled to prevent port conflicts
 import cors from 'cors';
@@ -885,6 +886,10 @@ app.use((req, res, next) => {
     // PHASE 2: Setup check-in routes
     log("Setting up check-in routes...");
     app.use('/api/checkin', checkinRoutes);
+    
+    // PHASE 2.5: Setup artists routes
+    log("Setting up artists routes...");
+    app.use('/api', artistsRoutes);
     
     // PHASE 3: Setup backup routes
     log("Setting up backup routes...");

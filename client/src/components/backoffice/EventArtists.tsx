@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { ErrorBoundary } from "react-error-boundary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,10 +46,15 @@ export function EventArtists({ eventId, isEditing }: Props) {
   const [editingArtist, setEditingArtist] = useState<Artist | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
 
-  // Fetch artists for the event
-  const { data: artists = [], isLoading } = useQuery<Artist[]>({
+  // Fetch artists for the event with crash protection
+  const { data: artists = [], isLoading, error } = useQuery<Artist[]>({
     queryKey: [`/api/admin/events/${eventId}/artists`],
     enabled: !!eventId && isEditing,
+    retry: 1,
+    onError: (err) => {
+      console.error('Failed to load artists:', err);
+      toast({ title: "Warning", description: "Failed to load artists. Using default view.", variant: "destructive" });
+    },
   });
 
   const form = useForm<ArtistFormData>({
@@ -139,12 +145,19 @@ export function EventArtists({ eventId, isEditing }: Props) {
     }
   }, [editingArtist, form]);
 
-  // Ensure at least one artist form is shown for new events
+  // Ensure at least one artist form is shown for new events - crash safe
   useEffect(() => {
-    if (!isEditing && !eventId && artists.length === 0) {
+    try {
+      const safeArtists = Array.isArray(artists) ? artists : [];
+      if (!isEditing && !eventId && safeArtists.length === 0) {
+        setIsAddingNew(true);
+      }
+    } catch (error) {
+      console.error('Error in artist default logic:', error);
+      // Fallback: always show add form if there's an error
       setIsAddingNew(true);
     }
-  }, [isEditing, eventId, artists.length]);
+  }, [isEditing, eventId, artists]);
 
   const handleSubmit = (data: ArtistFormData) => {
     if (editingArtist) {
