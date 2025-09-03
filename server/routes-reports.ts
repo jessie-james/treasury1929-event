@@ -137,21 +137,28 @@ function generateServerSectionsHTML(event: any, sections: any, tableIds: number[
       <title>Server Food Charts - ${event.title}</title>
       <style>
         body { 
-          font-family: Arial, sans-serif; 
-          margin: 20px; 
-          font-size: 12px;
-          line-height: 1.4;
+          font-family: 'Helvetica Neue', Arial, sans-serif; 
+          margin: 15px; 
+          font-size: 13px;
+          line-height: 1.5;
+          color: #1a1a1a;
         }
         .header { 
           text-align: center; 
-          margin-bottom: 30px;
-          border-bottom: 2px solid #333;
-          padding-bottom: 15px;
+          margin-bottom: 25px;
+          border-bottom: 3px solid #2563eb;
+          padding-bottom: 12px;
+          background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+          border-radius: 6px;
+          padding: 20px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .event-title { 
-          font-size: 18px; 
-          font-weight: bold; 
-          margin-bottom: 5px;
+          font-size: 24px; 
+          font-weight: 700; 
+          margin-bottom: 8px;
+          color: #1e293b;
+          letter-spacing: -0.5px;
         }
         .event-date { 
           font-size: 14px; 
@@ -163,13 +170,16 @@ function generateServerSectionsHTML(event: any, sections: any, tableIds: number[
           page-break-after: always;
         }
         .section-title { 
-          font-size: 16px; 
-          font-weight: bold; 
-          background: #f0f0f0; 
-          padding: 8px;
-          margin-bottom: 15px;
+          font-size: 18px; 
+          font-weight: 700; 
+          background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); 
+          color: white;
+          padding: 12px 16px;
+          margin-bottom: 20px;
           text-transform: uppercase;
-          border-left: 4px solid #333;
+          border-radius: 6px;
+          letter-spacing: 1px;
+          box-shadow: 0 3px 6px rgba(37,99,235,0.2);
         }
         .table-group { 
           margin-bottom: 20px;
@@ -177,35 +187,78 @@ function generateServerSectionsHTML(event: any, sections: any, tableIds: number[
           padding: 10px;
         }
         .table-header { 
-          font-weight: bold; 
-          font-size: 14px;
-          margin-bottom: 8px;
-          color: #333;
-          background: #e8f4f8;
-          padding: 6px;
-          border-radius: 3px;
+          font-weight: 600; 
+          font-size: 16px;
+          margin-bottom: 12px;
+          color: #0f172a;
+          background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+          padding: 10px 14px;
+          border-radius: 8px;
+          border: 2px solid #cbd5e1;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .guest-item { 
-          margin: 3px 0;
-          padding: 2px 5px;
-          background: #f9f9f9;
-          border-radius: 2px;
+          margin: 6px 0;
+          padding: 8px 12px;
+          background: #f8fafc;
+          border-radius: 6px;
+          border-left: 3px solid #64748b;
+          font-size: 14px;
+          transition: background-color 0.2s ease;
+        }
+        .guest-item:hover {
+          background: #f1f5f9;
         }
         .wine-item {
-          margin: 3px 0;
-          padding: 4px 8px;
-          background: #fff3cd;
-          font-weight: bold;
-          border-radius: 2px;
+          margin: 6px 0;
+          padding: 10px 14px;
+          background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+          font-weight: 600;
+          border-radius: 8px;
+          border: 1px solid #f59e0b;
+          font-size: 14px;
+          box-shadow: 0 2px 4px rgba(245,158,11,0.1);
         }
         .no-selections { 
           color: #999; 
           font-style: italic;
         }
         @media print {
-          body { margin: 10px; }
-          .section { page-break-after: auto; }
-          .table-group { page-break-inside: avoid; }
+          body { 
+            margin: 8mm; 
+            font-size: 11px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .header {
+            background: #f8fafc !important;
+            box-shadow: none !important;
+          }
+          .section { 
+            page-break-after: auto; 
+            margin-bottom: 20px;
+          }
+          .section-title {
+            background: #2563eb !important;
+            color: white !important;
+            box-shadow: none !important;
+          }
+          .table-group { 
+            page-break-inside: avoid;
+            margin-bottom: 15px;
+          }
+          .table-header {
+            background: #f1f5f9 !important;
+            border: 1px solid #cbd5e1 !important;
+          }
+          .guest-item {
+            background: #f8fafc !important;
+            border-left: 2px solid #64748b !important;
+          }
+          .wine-item {
+            background: #fef3c7 !important;
+            border: 1px solid #f59e0b !important;
+          }
         }
       </style>
     </head>

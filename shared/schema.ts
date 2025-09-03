@@ -50,6 +50,7 @@ export const events = pgTable("events", {
   ticketCutoffDays: integer("ticket_cutoff_days").default(3),
   // PRICING SYSTEM - $130 per person for full events
   basePrice: integer("base_price").default(13000), // $130.00 per person in cents
+  priceDisplay: varchar("price_display", { length: 255 }), // Custom price display text
   // TICKET-ONLY PRICING - separate price for ticket-only events
   ticketPrice: integer("ticket_price").default(5000), // $50.00 per ticket in cents
   ticketCapacity: integer("ticket_capacity"), // Maximum tickets available for ticket-only events
@@ -240,6 +241,18 @@ export const eventFoodOptions = pgTable("event_food_options", {
   unique: unique().on(table.eventId, table.foodOptionId),
 }));
 
+// Event Artists Table (Part B)
+export const eventArtists = pgTable("event_artists", {
+  id: serial("id").primaryKey(),
+  eventId: integer("event_id").references(() => events.id, { onDelete: "cascade" }).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  role: varchar("role", { length: 100 }).notNull(),
+  bio: text("bio"),
+  photoUrl: text("photo_url"),
+  displayOrder: integer("display_order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Event Pricing Tiers Table
 export const eventPricingTiers = pgTable("event_pricing_tiers", {
   id: serial("id").primaryKey(),
@@ -315,6 +328,7 @@ export const eventsRelations = relations(events, ({ many, one }) => ({
   bookings: many(bookings),
   tickets: many(tickets),
   eventFoodOptions: many(eventFoodOptions),
+  eventArtists: many(eventArtists),
   pricingTiers: many(eventPricingTiers),
   tableAssignments: many(eventTableAssignments),
   eventVenues: many(eventVenues),
@@ -336,6 +350,13 @@ export const eventFoodOptionsRelations = relations(eventFoodOptions, ({ one }) =
   foodOption: one(foodOptions, {
     fields: [eventFoodOptions.foodOptionId],
     references: [foodOptions.id],
+  }),
+}));
+
+export const eventArtistsRelations = relations(eventArtists, ({ one }) => ({
+  event: one(events, {
+    fields: [eventArtists.eventId],
+    references: [events.id],
   }),
 }));
 

@@ -6,6 +6,11 @@ import { type Event } from "@shared/schema";
  * For 'ticket-only' events: uses ticketPrice ($50 per ticket)
  */
 export function formatPriceDisplay(event: Event): string {
+  // Use custom priceDisplay if provided
+  if (event.priceDisplay && event.priceDisplay.trim()) {
+    return event.priceDisplay;
+  }
+  
   if (event.eventType === 'full') {
     // For full dinner events, use basePrice and never fall back to ticketPrice
     const priceCents = event.basePrice || 13000; // Default to $130

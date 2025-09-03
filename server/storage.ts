@@ -209,6 +209,33 @@ export class PgStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
+  // Event Artists methods
+  async getEventArtists(eventId: number): Promise<any[]> {
+    const result = await db.select().from(schema.eventArtists)
+      .where(eq(schema.eventArtists.eventId, eventId))
+      .orderBy(schema.eventArtists.displayOrder, schema.eventArtists.id);
+    return result;
+  }
+
+  async createEventArtist(artistData: any): Promise<any> {
+    const result = await db.insert(schema.eventArtists).values(artistData).returning();
+    return result[0];
+  }
+
+  async updateEventArtist(artistId: number, updates: any): Promise<any | null> {
+    const result = await db.update(schema.eventArtists)
+      .set(updates)
+      .where(eq(schema.eventArtists.id, artistId))
+      .returning();
+    return result[0] || null;
+  }
+
+  async deleteEventArtist(artistId: number): Promise<boolean> {
+    const result = await db.delete(schema.eventArtists)
+      .where(eq(schema.eventArtists.id, artistId));
+    return (result.rowCount ?? 0) > 0;
+  }
+
   // Event methods
   async getAllEvents(): Promise<Event[]> {
     return await db.select().from(schema.events).orderBy(asc(schema.events.displayOrder), desc(schema.events.date));

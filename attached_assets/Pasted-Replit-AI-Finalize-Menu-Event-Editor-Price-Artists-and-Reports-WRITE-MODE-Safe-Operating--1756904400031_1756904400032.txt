@@ -1,0 +1,231 @@
+Replit AI — Finalize Menu, Event Editor (Price + Artists), and Reports (WRITE-MODE, Safe)
+Operating Mode
+
+WRITE-MODE allowed. Edit/add files, run tests, and commit.
+
+Branch: content/finalize-salmon-artists-price-report.
+
+Do NOT modify/delete data for events on Aug 28 or Sept 5 (write-guard stays on).
+
+No live keys in code/tests. Respect EMAIL_SUPPRESS_OUTBOUND.
+
+All dates/times America/Phoenix.
+
+Part 0 — Bind & Validate Price in Event Editor (no more blanks)
+
+Goal: Event Editor shows and saves base_price (cents) and priceDisplay. For “full” events, base_price is required; default to 13000 if unset. UI always shows “$130 per guest — tax & gratuity included” unless owner customizes priceDisplay.
+
+Tasks
+
+Server (events update/create route)
+
+Ensure zod schema requires base_price when event_type==='full'.
+
+If client sends empty, set base_price=13000.
+
+Preserve/allow priceDisplay string.
+
+Client (Event Editor UI)
+
+Add fields: Base Price (USD) (binds to base_price cents under the hood) and Price Display (string).
+
+Convert $ → cents on save; hydrate from cents on load.
+
+If event_type==='full' and base price empty, show inline validation and set default 13000 on save.
+
+Everywhere the editor previews price, use formatPriceDisplay(event) (your helper).
+
+Likely files (adjust to actual repo):
+
+server/routes-venue.ts or server/routes.ts (event create/update)
+
+client/src/pages/backoffice/EventEditor.tsx (or similar)
+
+shared/schema.ts if type changes needed
+
+Commit: fix(editor): bind+validate base_price/priceDisplay for full events
+
+Part A — Grilled King Salmon in real menu choices + tied to Sept events
+
+Goal: Salmon appears as an Entrée option wherever the booking UI pulls entrée choices, and it flows into reports.
+
+Detect & Wire
+
+Find current menu source (one of these patterns will exist):
+
+Client-side constants (e.g., client/src/constants/menu.ts)
+
+Server menu endpoints (e.g., /api/events/:id/menu)
+
+DB tables (e.g., menu_items, event_menu_items)
+
+Update in place: replace Branzino with Grilled King Salmon or add Salmon if Branzino must remain historically.
+
+Ensure Sept 9/12/19 events are associated to the Salmon entrée (if there’s an event↔menu mapping, upsert links).
+
+If no menu tables exist (fallback plan):
+
+Create Drizzle migration for:
+
+menu_items(id, name, description, course, image_url, is_active, created_at)
+
+event_menu_items(event_id, menu_item_id, course, display_order)
+
+Seed Grilled King Salmon:
+
+name: Grilled King Salmon
+
+description: mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes.
+
+course: entree
+
+image_url: /assets/menu/grilled-king-salmon.jpg (create placeholder)
+
+Upsert event_menu_items for the three Sept events linking the Salmon entrée.
+
+Booking UI: ensure entrée dropdown/selector pulls from the updated source (no Branzino for these Sept events).
+
+Commit: feat(menu): add Grilled King Salmon and wire to Sept 9/12/19 events
+
+Part B — Artists (1..N) bios & photos in Event Editor
+
+Goal: In backoffice, each event has an Artists section: at least 1 artist by default, with Add Artist to append more. Fields: Name, Role, Bio, Photo (URL for now; you’ll upload later and paste URLs). Orderable.
+
+Preferred Model: separate table (cleaner than JSON blobs)
+
+Migration (Drizzle)
+
+New table: event_artists
+
+id serial pk
+
+event_id int references events(id) on delete cascade
+
+name varchar(255) not null
+
+role varchar(100) not null
+
+bio text
+
+photo_url text
+
+display_order int default 0
+
+created_at timestamp default now()
+
+Server Routes (Admin only)
+
+GET /api/admin/events/:eventId/artists → list
+
+POST /api/admin/events/:eventId/artists → create {name, role, bio, photoUrl, displayOrder?}
+
+PATCH /api/admin/events/:eventId/artists/:id → update any field
+
+DELETE /api/admin/events/:eventId/artists/:id → remove
+
+Optional: PATCH /api/admin/events/:eventId/artists/reorder → bulk display_order update
+
+Client (Event Editor)
+
+New Artists panel:
+
+Renders 1 card by default if none exist.
+
+Fields: Name (req), Role (req), Bio (multiline), Photo URL (optional; placeholder used if empty).
+
+Buttons: Add Artist, Delete, Move Up/Down (affects display_order).
+
+Save uses the routes above.
+
+Seed the three Sept events with these artists (using placeholders for photos):
+
+Sept 9 & 12
+
+Sophia Su — Pianist — Collaborative pianist (DMA, University of Arizona). Master’s from UT Austin; performances with Butler Opera Center, Miami Music Festival, Chicago Summer Opera, and the International Lyric Academy (Italy). Winner of UA’s 2023–24 President’s Concerto Competition. — /assets/artists/sophia-su.jpg (placeholder)
+
+TBD Vocalists — Vocalists — Final lineup to be confirmed from: Jared Peterson, Aysen Idil Milliogullari, Emily Gibson, Diana Peralta. — (blank or placeholder)
+
+Sept 19
+
+Dr. Fanya Lin — Pianist — Described as a “striking interpreter” with “committed and heartfelt performance,” Dr. Lin has performed with the Royal Philharmonic, Utah Symphony, Savannah Philharmonic, and more. Her 2023 album Rhapsodic (Navona Records) features Gershwin’s Rhapsody in Blue and Rachmaninoff’s Rhapsody on a Theme of Paganini. She is Associate Professor of Practice in Piano at the University of Arizona. — /assets/artists/fanya-lin.jpg (placeholder)
+
+Commit: feat(editor): Event Artists (CRUD + UI) with placeholders
+
+Part C — Server Sections (By-Course) Print Report layout (apply formatting)
+
+Goal: Printable HTML grouped Course → Table → Seat. Courses in this order: Salad/Appetizer, Entrée, Dessert. Each table header like:
+TABLE 17 — Party 4 — Main Floor
+Row columns: Seat | Guest Name | Allergens/Dietary | Selection | Wine (bottle, qty) | Notes
+Include wine totals per table and course footers (counts). Normalize names (no stray chars). Page breaks between courses.
+
+Implement/Overwrite
+
+Route (Admin/Hostess): POST /api/reports/server-sections with { eventId, tableIds: number[] }
+
+Template file: server/templates/server-sections.ts exporting a function that returns the HTML string (print CSS included).
+
+Backoffice UI: On reports page, add Select Tables (multi-select) + Generate button → opens new tab with HTML (print dialog friendly).
+
+Ensure the report pulls entrée selections from the same source updated in Part A (so Salmon prints correctly).
+
+Commit: feat(reports): by-course Server Sections report with wine totals and print CSS
+
+Part D — Proof Report (READ-ONLY output)
+
+Generate TRE1929_Finalize_Content_Proof_<timestamp>.md with:
+
+Price Binding Evidence: file/line excerpts showing editor fields bound to base_price & priceDisplay (server + client).
+
+Menu/Salmon Evidence:
+
+Source of entrée choices updated (file paths)
+
+Confirmation Salmon appears for Sept 9/12/19 events
+
+If menu tables exist, show upsert IDs; if constants, show changed array lines.
+
+Artists Evidence:
+
+Migration file name & columns
+
+Server routes (paths) and client editor panel (component path)
+
+Seeded artists listed per event (names + roles + placeholder URLs)
+
+Report Formatting Evidence:
+
+Route path and template file (line ranges)
+
+40-line snippet of generated HTML showing course header, table header, and row columns
+
+Assets TODO: list placeholders you created:
+
+/assets/menu/grilled-king-salmon.jpg
+
+/assets/artists/sophia-su.jpg
+
+/assets/artists/fanya-lin.jpg
+
+(event hero placeholders are already present)
+
+Tests (add/extend)
+
+tests/price-display.spec.ts → editor save loads base_price correctly; helper renders correct phrase.
+
+tests/menu.spec.ts → Salmon present in entrée list for Sept events.
+
+tests/artists.spec.ts → CRUD routes create/update/delete; ordering persists.
+
+tests/reports.spec.ts → by-course layout includes headers, rows, and wine totals.
+
+Acceptance Criteria
+
+Event Editor shows Base Price and Price Display (no blank price); saving persists base_price cents and priceDisplay.
+
+Booking UI entrée choices for Sept 9/12/19 include Grilled King Salmon (Branzino not shown for those events).
+
+Artists panel exists with at least one artist; you can add more; seeded values match above; placeholders used for photos.
+
+Server Sections report prints by Course → Table → Seat, includes wine totals, and looks clean for printing.
+
+Proof report lists exact file/line evidence for all items.

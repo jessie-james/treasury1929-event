@@ -28,7 +28,9 @@ import { ImagePlus, Loader2, RefreshCw, X, Building, UtensilsCrossed, Check, Win
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { EventPricingManager } from "./EventPricingManager";
 import { EventVenueManager } from "./EventVenueManager";
+import { EventArtists } from "./EventArtists";
 import { formatPhoenixDateForInput } from "@/lib/timezone";
+import { formatPriceDisplay } from "@/lib/price";
 
 const eventFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -44,7 +46,19 @@ const eventFormSchema = z.object({
   isPrivate: z.boolean().default(false),
   eventType: z.enum(['full', 'ticket-only']).default('full'),
   maxTicketsPerPurchase: z.number().min(1).max(8).default(8),
+  // PRICING FIELDS
+  basePrice: z.number().min(100).default(13000), // $130.00 in cents - required for full events
+  priceDisplay: z.string().optional(), // Custom price display text
   ticketPrice: z.number().min(100).default(5000), // $50.00 in cents
+}).refine((data) => {
+  // Validate basePrice is set for full events
+  if (data.eventType === 'full' && (!data.basePrice || data.basePrice < 100)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Base price is required for full events (minimum $1.00)",
+  path: ["basePrice"]
 });
 
 type EventFormData = z.infer<typeof eventFormSchema>;
@@ -101,6 +115,8 @@ export function EventForm({ event, onClose }: Props) {
       isPrivate: event.isPrivate ?? false,
       eventType: event.eventType ?? 'full',
       maxTicketsPerPurchase: event.maxTicketsPerPurchase ?? 8,
+      basePrice: event.basePrice ?? 13000,
+      priceDisplay: event.priceDisplay || '',
       ticketPrice: event.ticketPrice ?? 5000,
       ticketCapacity: event.ticketCapacity ?? null,
     } : {
@@ -116,6 +132,8 @@ export function EventForm({ event, onClose }: Props) {
       isPrivate: false,
       eventType: 'full',
       maxTicketsPerPurchase: 8,
+      basePrice: 13000,
+      priceDisplay: '',
       ticketPrice: 5000,
       ticketCapacity: null,
     },
@@ -502,6 +520,67 @@ export function EventForm({ event, onClose }: Props) {
               )}
             />
 
+            {/* Base Price for Full Events */}
+            {form.watch('eventType') === 'full' && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="basePrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Base Price (USD)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          type="number" 
+                          min="1" 
+                          step="0.01"
+                          placeholder="130.00" 
+                          onChange={(e) => field.onChange(Math.round(parseFloat(e.target.value) * 100) || 13000)}
+                          value={field.value ? (field.value / 100).toFixed(2) : ''}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Base price per guest in dollars for full dinner events. Default: $130.00
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="priceDisplay"
+                  render={({ field }) => {
+                    const currentEvent = {
+                      eventType: form.watch('eventType'),
+                      basePrice: form.watch('basePrice') || 13000,
+                      priceDisplay: field.value
+                    };
+                    const previewPrice = formatPriceDisplay(currentEvent);
+                    
+                    return (
+                      <FormItem>
+                        <FormLabel>Price Display Text (Optional)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            {...field} 
+                            placeholder="$130 per guest — tax & gratuity included"
+                            value={field.value || ''}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Custom price display text. Leave empty to use default: <strong>{previewPrice}</strong>
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              </>
+            )}
+            
+            {/* Ticket Price for Ticket-Only Events */}
             {form.watch('eventType') === 'ticket-only' && (
               <>
                 <FormField
@@ -578,6 +657,14 @@ export function EventForm({ event, onClose }: Props) {
               )}
             />
 
+            <Separator className="my-6" />
+            
+            {/* Artists Section */}
+            <EventArtists 
+              eventId={event?.id} 
+              isEditing={!!event} 
+            />
+            
             <Separator className="my-6" />
             
             <div className="space-y-4">

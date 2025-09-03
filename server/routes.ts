@@ -855,7 +855,19 @@ export async function registerRoutes(app: Express) {
         totalTables: Number(req.body.totalTables) || Number(req.body.availableTables) || 32,
         availableTables: Number(req.body.availableTables) || 32,
         isActive: req.body.isActive !== undefined ? req.body.isActive : true,
-        displayOrder: maxDisplayOrder + 1
+        displayOrder: maxDisplayOrder + 1,
+        // PRICING FIELDS
+        eventType: req.body.eventType || 'full',
+        basePrice: req.body.eventType === 'full' ? (req.body.basePrice || 13000) : 13000,
+        priceDisplay: req.body.priceDisplay || null,
+        ticketPrice: req.body.ticketPrice || 5000,
+        // EVENT OPTIONS
+        includeFoodService: req.body.includeFoodService !== undefined ? req.body.includeFoodService : true,
+        includeBeverages: req.body.includeBeverages !== undefined ? req.body.includeBeverages : true,
+        includeAlcohol: req.body.includeAlcohol !== undefined ? req.body.includeAlcohol : true,
+        isPrivate: req.body.isPrivate || false,
+        maxTicketsPerPurchase: req.body.maxTicketsPerPurchase || 8,
+        ticketCapacity: req.body.ticketCapacity || null,
       };
       
       console.log("Final event data being saved:", eventData);
@@ -901,6 +913,11 @@ export async function registerRoutes(app: Express) {
 
       // Handle date formatting if it's being updated
       let updateData = { ...req.body };
+      
+      // Ensure basePrice validation for full events
+      if (updateData.eventType === 'full' && (!updateData.basePrice || updateData.basePrice < 100)) {
+        updateData.basePrice = 13000; // Default to $130.00
+      }
 
       if (req.body.date) {
         try {
