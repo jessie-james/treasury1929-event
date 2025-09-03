@@ -113,12 +113,11 @@ export function EventForm({ event, onClose }: Props) {
       includeBeverages: event.includeBeverages ?? true,
       includeAlcohol: event.includeAlcohol ?? true,
       isPrivate: event.isPrivate ?? false,
-      eventType: event.eventType ?? 'full',
+      eventType: (event.eventType ?? 'full') as 'full' | 'ticket-only',
       maxTicketsPerPurchase: event.maxTicketsPerPurchase ?? 8,
       basePrice: event.basePrice ?? 13000,
       priceDisplay: event.priceDisplay || '',
       ticketPrice: event.ticketPrice ?? 5000,
-      ticketCapacity: event.ticketCapacity ?? null,
     } : {
       title: "",
       description: "",
@@ -135,7 +134,6 @@ export function EventForm({ event, onClose }: Props) {
       basePrice: 13000,
       priceDisplay: '',
       ticketPrice: 5000,
-      ticketCapacity: null,
     },
   });
 
@@ -555,8 +553,17 @@ export function EventForm({ event, onClose }: Props) {
                     const currentEvent = {
                       eventType: form.watch('eventType'),
                       basePrice: form.watch('basePrice') || 13000,
-                      priceDisplay: field.value
-                    };
+                      priceDisplay: field.value,
+                      ticketPrice: form.watch('ticketPrice') || 5000,
+                      // Add other required fields to satisfy type
+                      id: event?.id || 0,
+                      title: form.watch('title') || '',
+                      description: form.watch('description') || '',
+                      image: form.watch('image') || '',
+                      date: new Date(),
+                      venueId: form.watch('venueId') || 1,
+                      isActive: true,
+                    } as any;
                     const previewPrice = formatPriceDisplay(currentEvent);
                     
                     return (
@@ -608,29 +615,6 @@ export function EventForm({ event, onClose }: Props) {
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="ticketCapacity"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ticket Capacity</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          type="number" 
-                          min="1" 
-                          max="10000"
-                          placeholder="100" 
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || null)}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Maximum number of tickets available for this event
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </>
             )}
 
