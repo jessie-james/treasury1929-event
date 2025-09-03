@@ -130,7 +130,7 @@ export function EventForm({ event, onClose }: Props) {
       includeBeverages: true,
       includeAlcohol: true,
       isPrivate: false,
-      eventType: 'full',
+      eventType: 'full' as const,
       maxTicketsPerPurchase: 8,
       basePrice: 13000,
       priceDisplay: '',
@@ -174,8 +174,8 @@ export function EventForm({ event, onClose }: Props) {
 
   // Load existing event food options
   useEffect(() => {
-    if (currentEventFoodOptions.length > 0) {
-      const selectedIds = currentEventFoodOptions.map((option: any) => option.id);
+    if (Array.isArray(currentEventFoodOptions) && currentEventFoodOptions.length > 0) {
+      const selectedIds = Array.isArray(currentEventFoodOptions) ? currentEventFoodOptions.map((option: any) => option.id) : [];
       setSelectedFoodOptions(selectedIds);
     }
   }, [currentEventFoodOptions]);
