@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Event, type Booking } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { formatPriceDisplay } from "@/lib/price";
 import { parseEventDate } from "@/utils/dateUtils";
 import { formatPhoenixDate } from "@/lib/timezone";
 import { Calendar, MapPin, Ticket, AlertTriangle, ArrowLeft } from "lucide-react";
@@ -106,7 +107,7 @@ export function EventDetails({
 
         {/* PHASE 0: Price Display */}
         <div className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-          ${Math.round(((event.ticketPrice || event.basePrice) || 13000) / 100)} per guest — tax & gratuity included
+          {formatPriceDisplay(event)}
         </div>
 
         <div className="flex flex-col gap-6 text-muted-foreground">

@@ -48,6 +48,19 @@ router.post('/server-sections', async (req, res) => {
       wines: {}
     };
 
+    // Get table details with venue information
+    const tablesMap: Record<number, any> = {};
+    for (const tableId of tableIds) {
+      const table = await storage.getTableById(tableId);
+      if (table) {
+        const venue = await storage.getVenueById(table.venueId);
+        tablesMap[tableId] = {
+          ...table,
+          venueName: venue?.name || 'Main Floor'
+        };
+      }
+    }
+
     for (const booking of bookings) {
       if (!['confirmed', 'reserved', 'comp'].includes(booking.status)) {
         continue; // Skip non-active bookings
@@ -73,7 +86,11 @@ router.post('/server-sections', async (req, res) => {
             sections[course][tableNumber].push({
               guestName: normalizeString(guestName),
               selection: normalizeString(selection[course]),
-              seatNumber: guestIndex + 1
+              seatNumber: guestIndex + 1,
+              allergens: selection.allergens || [],
+              dietaryRestrictions: selection.dietaryRestrictions || [],
+              notes: selection.notes || '',
+              tableInfo: tablesMap[tableNumber]
             });
           }
         });
@@ -95,8 +112,8 @@ router.post('/server-sections', async (req, res) => {
       }
     }
 
-    // Generate HTML report
-    const html = generateServerSectionsHTML(event, sections, tableIds);
+    // Generate HTML report with enhanced table information
+    const html = generateServerSectionsHTML(event, sections, tableIds, tablesMap);
     
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
@@ -110,7 +127,7 @@ router.post('/server-sections', async (req, res) => {
 /**
  * Generate HTML for server sections report
  */
-function generateServerSectionsHTML(event: any, sections: any, tableIds: number[]): string {
+function generateServerSectionsHTML(event: any, sections: any, tableIds: number[], tablesMap: Record<number, any>): string {
   const eventDate = formatInTimeZone(event.date, 'America/Phoenix', 'EEEE, MMMM d, yyyy');
   
   return `
@@ -143,6 +160,7 @@ function generateServerSectionsHTML(event: any, sections: any, tableIds: number[
         .section { 
           margin-bottom: 30px; 
           page-break-inside: avoid;
+          page-break-after: always;
         }
         .section-title { 
           font-size: 16px; 
@@ -163,17 +181,22 @@ function generateServerSectionsHTML(event: any, sections: any, tableIds: number[
           font-size: 14px;
           margin-bottom: 8px;
           color: #333;
+          background: #e8f4f8;
+          padding: 6px;
+          border-radius: 3px;
         }
         .guest-item { 
           margin: 3px 0;
           padding: 2px 5px;
           background: #f9f9f9;
+          border-radius: 2px;
         }
         .wine-item {
           margin: 3px 0;
-          padding: 2px 5px;
+          padding: 4px 8px;
           background: #fff3cd;
           font-weight: bold;
+          border-radius: 2px;
         }
         .no-selections { 
           color: #999; 
@@ -195,10 +218,10 @@ function generateServerSectionsHTML(event: any, sections: any, tableIds: number[
         </div>
       </div>
 
-      ${generateSectionHTML('Salads', sections.salads, tableIds)}
-      ${generateSectionHTML('Entrees', sections.entrees, tableIds)}  
-      ${generateSectionHTML('Desserts', sections.desserts, tableIds)}
-      ${generateWineSectionHTML('Wine Selections', sections.wines, tableIds)}
+      ${generateSectionHTML('Salad/Appetizer', sections.salads, tableIds, tablesMap)}
+      ${generateSectionHTML('Entrée', sections.entrees, tableIds, tablesMap)}  
+      ${generateSectionHTML('Dessert', sections.desserts, tableIds, tablesMap)}
+      ${generateWineSectionHTML('Wine Selections', sections.wines, tableIds, tablesMap)}
 
       <div style="margin-top: 40px; text-align: center; font-size: 10px; color: #666;">
         Generated: ${formatInTimeZone(new Date(), 'America/Phoenix', 'EEEE, MMMM d, yyyy HH:mm:ss')} (Phoenix Time)
@@ -211,7 +234,7 @@ function generateServerSectionsHTML(event: any, sections: any, tableIds: number[
 /**
  * Generate HTML for a food section (salads, entrees, desserts)
  */
-function generateSectionHTML(sectionTitle: string, sectionData: any, tableIds: number[]): string {
+function generateSectionHTML(sectionTitle: string, sectionData: any, tableIds: number[], tablesMap: Record<number, any>): string {
   let html = `<div class="section">
     <div class="section-title">${sectionTitle}</div>`;
 
@@ -221,14 +244,30 @@ function generateSectionHTML(sectionTitle: string, sectionData: any, tableIds: n
     const tableData = sectionData[tableId];
     if (tableData && tableData.length > 0) {
       hasContent = true;
+      const table = tablesMap[tableId];
+      const partySize = tableData.length;
+      const venueName = table?.venueName || 'Main Floor';
+      
       html += `
         <div class="table-group">
-          <div class="table-header">Table ${tableId}</div>`;
+          <div class="table-header">TABLE ${tableId} — Party ${partySize} — ${venueName}</div>
+          <div style="font-size: 11px; margin-bottom: 8px; color: #666; font-weight: normal;">
+            Seat | Guest Name | Allergens/Dietary | Selection | Wine | Notes
+          </div>`;
       
       tableData.forEach((item: any) => {
+        const allergensText = item.allergens?.length > 0 ? item.allergens.join(', ') : 'None';
+        const dietaryText = item.dietaryRestrictions?.length > 0 ? item.dietaryRestrictions.join(', ') : 'None';
+        const allergensDisplay = allergensText === 'None' && dietaryText === 'None' ? 'None' : `${allergensText} / ${dietaryText}`.replace('None / ', '').replace(' / None', '');
+        
         html += `
-          <div class="guest-item">
-            Seat ${item.seatNumber}: ${item.guestName} → ${item.selection}
+          <div class="guest-item" style="display: grid; grid-template-columns: 40px 1fr 1fr 1fr 1fr 1fr; gap: 8px; align-items: center; padding: 4px 8px;">
+            <span style="font-weight: bold;">${item.seatNumber}</span>
+            <span>${item.guestName}</span>
+            <span style="font-size: 10px;">${allergensDisplay}</span>
+            <span>${item.selection}</span>
+            <span style="color: #8B4513;">See wine section</span>
+            <span style="font-size: 10px; font-style: italic;">${item.notes || '—'}</span>
           </div>`;
       });
       
@@ -238,6 +277,19 @@ function generateSectionHTML(sectionTitle: string, sectionData: any, tableIds: n
 
   if (!hasContent) {
     html += '<div class="no-selections">No selections for this section</div>';
+  } else {
+    // Add course summary footer
+    let totalGuests = 0;
+    for (const tableId of tableIds) {
+      const tableData = sectionData[tableId];
+      if (tableData && tableData.length > 0) {
+        totalGuests += tableData.length;
+      }
+    }
+    html += `
+      <div style="margin-top: 15px; padding: 8px; background: #f8f9fa; border-top: 2px solid #dee2e6; font-weight: bold; text-align: center;">
+        ${sectionTitle} Summary: ${totalGuests} guest(s) across ${tableIds.length} table(s)
+      </div>`;
   }
 
   html += '</div>';
@@ -247,7 +299,7 @@ function generateSectionHTML(sectionTitle: string, sectionData: any, tableIds: n
 /**
  * Generate HTML for wine section (table-based)
  */
-function generateWineSectionHTML(sectionTitle: string, sectionData: any, tableIds: number[]): string {
+function generateWineSectionHTML(sectionTitle: string, sectionData: any, tableIds: number[], tablesMap: Record<number, any>): string {
   let html = `<div class="section">
     <div class="section-title">${sectionTitle}</div>`;
 
@@ -257,23 +309,53 @@ function generateWineSectionHTML(sectionTitle: string, sectionData: any, tableId
     const tableData = sectionData[tableId];
     if (tableData && tableData.length > 0) {
       hasContent = true;
+      const table = tablesMap[tableId];
+      const venueName = table?.venueName || 'Main Floor';
+      
+      // Calculate wine totals for this table
+      let totalBottles = 0;
+      tableData.forEach((item: any) => {
+        totalBottles += (item.quantity || 1);
+      });
+      
       html += `
         <div class="table-group">
-          <div class="table-header">Table ${tableId}</div>`;
+          <div class="table-header">TABLE ${tableId} — Wine Selections — ${venueName}</div>`;
       
       tableData.forEach((item: any) => {
         html += `
           <div class="wine-item">
-            ${item.quantity}x ${item.selection} (${item.type})
+            ${item.quantity || 1} bottle(s) × ${item.selection}
           </div>`;
       });
       
-      html += '</div>';
+      html += `
+          <div style="margin-top: 8px; padding: 4px; background: #fff3cd; font-weight: bold; border-left: 3px solid #8B4513;">
+            Table Total: ${totalBottles} bottle(s)
+          </div>
+        </div>`;
     }
   }
 
   if (!hasContent) {
     html += '<div class="no-selections">No wine selections</div>';
+  } else {
+    // Add wine summary footer
+    let totalBottles = 0;
+    let totalTables = 0;
+    for (const tableId of tableIds) {
+      const tableData = sectionData[tableId];
+      if (tableData && tableData.length > 0) {
+        totalTables++;
+        tableData.forEach((item: any) => {
+          totalBottles += (item.quantity || 1);
+        });
+      }
+    }
+    html += `
+      <div style="margin-top: 15px; padding: 8px; background: #fff3cd; border-top: 2px solid #8B4513; font-weight: bold; text-align: center;">
+        Wine Summary: ${totalBottles} bottle(s) total across ${totalTables} table(s)
+      </div>`;
   }
 
   html += '</div>';

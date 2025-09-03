@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { getEffectivePriceCents } from '@/lib/price';
+import { type Event as FullEvent } from '@shared/schema';
 import { ArrowLeft } from 'lucide-react';
 
 interface CheckoutFormProps {
@@ -53,15 +55,8 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
 
   // Calculate pricing based on event type
   const calculatePricing = () => {
-    let basePrice;
-    
-    if (event?.eventType === 'ticket-only') {
-      // Use ticket price for ticket-only events
-      basePrice = (event?.ticketPrice || 5000) * selectedSeats.length;
-    } else {
-      // Use base price for full events
-      basePrice = (event?.basePrice || 13000) * selectedSeats.length;
-    }
+    // Use the centralized price logic
+    const basePrice = event ? getEffectivePriceCents(event as FullEvent) * selectedSeats.length : 13000 * selectedSeats.length;
     
     const winePrice = wineSelections.reduce((total, wine) => {
       return total + (wine.price * wine.quantity);
@@ -164,9 +159,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
             <div className="flex justify-between">
               <span>
                 {selectedSeats.length} {event?.eventType === 'ticket-only' ? 'ticket' : 'person'}{selectedSeats.length > 1 ? 's' : ''} × 
-                ${event?.eventType === 'ticket-only' ? 
-                  ((event?.ticketPrice || 5000) / 100).toFixed(2) : 
-                  ((event?.basePrice || 13000) / 100).toFixed(2)}:
+                ${event ? (getEffectivePriceCents(event as FullEvent) / 100).toFixed(2) : '130.00'}:
               </span>
               <span>{pricing.basePriceFormatted}</span>
             </div>

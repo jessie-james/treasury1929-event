@@ -7,6 +7,7 @@ import { formatPhoenixDate } from "@/lib/timezone";
 import { type Event } from "@shared/schema";
 import { Link, useLocation } from "wouter";
 import { EventTypeIndicator } from "./EventTypeIndicator";
+import { formatPriceDisplay } from "@/lib/price";
 import { useQuery } from "@tanstack/react-query";
 
 export function EventCard({ event }: { event: Event }) {
@@ -68,7 +69,7 @@ export function EventCard({ event }: { event: Event }) {
           </div>
           {/* PHASE 0: Price Display */}
           <div className="text-xl md:text-2xl font-semibold text-foreground">
-            ${Math.round(((event.ticketPrice || event.basePrice) || 13000) / 100)} per guest — tax & gratuity included
+            {formatPriceDisplay(event)}
           </div>
           <Badge variant={availability.color as any} className="text-lg px-4 py-2">
             {availability.text}

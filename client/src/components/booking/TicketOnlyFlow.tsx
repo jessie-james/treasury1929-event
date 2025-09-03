@@ -7,6 +7,7 @@ import { Minus, Plus, Users, Calendar, MapPin } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import type { Event } from "@shared/schema";
 import { formatEventTimes } from "@/lib/timezone";
+import { getEffectivePriceCents } from "@/lib/price";
 
 interface TicketOnlyFlowProps {
   eventId: number;
@@ -27,7 +28,7 @@ export function TicketOnlyFlow({ eventId, onComplete }: TicketOnlyFlowProps) {
     throwOnError: false
   });
 
-  const ticketPrice = event?.ticketPrice ? event.ticketPrice / 100 : 25.00; // Convert cents to dollars
+  const ticketPrice = event ? getEffectivePriceCents(event) / 100 : 50.00; // Convert cents to dollars
   const totalAmount = quantity * ticketPrice;
 
   const updateQuantity = (newQuantity: number) => {
