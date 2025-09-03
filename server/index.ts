@@ -326,7 +326,8 @@ app.post("/api/demo-emails", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T18:30:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString(),
+        description: "Demo email"
       },
       table: {
         id: 286,
@@ -454,16 +455,19 @@ app.post("/api/test-booking-confirmation", async (req, res) => {
       event: {
         id: 1,
         title: "Candlelight Jazz: Tribute to Ella Fitzgerald",
-        date: "2025-08-14T18:30:00Z"
+        date: "2025-08-14T18:30:00Z",
+        description: "Test booking confirmation email"
       },
       table: {
         id: 1,
         tableNumber: 5,
-        floor: "main"
+        floor: "main",
+        capacity: 4
       },
       venue: {
         id: 1,
-        name: "Main Floor"
+        name: "Main Floor",
+        address: "2 E Congress St, Ste 100"
       }
     };
     
@@ -485,7 +489,7 @@ app.post("/api/test-booking-confirmation", async (req, res) => {
     console.error("Booking confirmation email test failed:", error);
     res.status(500).json({ 
       success: false, 
-      message: "Booking confirmation email test failed: " + error.message
+      message: "Booking confirmation email test failed: " + (error instanceof Error ? error.message : String(error))
     });
   }
 });
@@ -508,17 +512,18 @@ app.post("/api/test-jose-booking-confirmation", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T18:30:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString(),
+        description: "Demo email"
       },
-      table: { id: 286, tableNumber: 1, floor: "main" },
-      venue: { id: 4, name: "Main Floor" }
+      table: { id: 286, tableNumber: 1, floor: "main", capacity: 4 },
+      venue: { id: 4, name: "Main Floor", address: "2 E Congress St, Ste 100" }
     };
     
     await EmailService.sendBookingConfirmation(mockBookingData);
     res.json({ success: true, message: "Booking confirmation sent to jose@sahuaroworks.com" });
   } catch (error) {
     console.error("Jose booking confirmation failed:", error);
-    res.status(500).json({ success: false, message: "Failed: " + error.message });
+    res.status(500).json({ success: false, message: "Failed: " + (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -539,17 +544,18 @@ app.post("/api/test-jose-cancellation", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T18:30:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString(),
+        description: "Demo email"
       },
-      table: { id: 286, tableNumber: 1, floor: "main" },
-      venue: { id: 4, name: "Main Floor" }
+      table: { id: 286, tableNumber: 1, floor: "main", capacity: 4 },
+      venue: { id: 4, name: "Main Floor", address: "2 E Congress St, Ste 100" }
     };
     
     await EmailService.sendCancellationEmail(mockBookingData, 8500);
     res.json({ success: true, message: "Customer cancellation sent to jose@sahuaroworks.com" });
   } catch (error) {
     console.error("Jose cancellation failed:", error);
-    res.status(500).json({ success: false, message: "Failed: " + error.message });
+    res.status(500).json({ success: false, message: "Failed: " + (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -570,17 +576,18 @@ app.post("/api/test-jose-venue-cancellation", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T18:30:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString(),
+        description: "Demo email"
       },
-      table: { id: 286, tableNumber: 1, floor: "main" },
-      venue: { id: 4, name: "Main Floor" }
+      table: { id: 286, tableNumber: 1, floor: "main", capacity: 4 },
+      venue: { id: 4, name: "Main Floor", address: "2 E Congress St, Ste 100" }
     };
     
     await EmailService.sendVenueCancellationEmail(mockBookingData, 8500);
     res.json({ success: true, message: "Venue cancellation sent to jose@sahuaroworks.com" });
   } catch (error) {
     console.error("Jose venue cancellation failed:", error);
-    res.status(500).json({ success: false, message: "Failed: " + error.message });
+    res.status(500).json({ success: false, message: "Failed: " + (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -601,17 +608,18 @@ app.post("/api/test-jose-reminder", async (req, res) => {
       event: {
         id: 35,
         title: "Pianist Sophia Su in Concert with Clarinetist",
-        date: new Date('2025-08-14T18:30:00').toISOString()
+        date: new Date('2025-08-14T18:30:00').toISOString(),
+        description: "Demo email"
       },
-      table: { id: 286, tableNumber: 1, floor: "main" },
-      venue: { id: 4, name: "Main Floor" }
+      table: { id: 286, tableNumber: 1, floor: "main", capacity: 4 },
+      venue: { id: 4, name: "Main Floor", address: "2 E Congress St, Ste 100" }
     };
     
     await EmailService.sendEventReminder(mockBookingData);
     res.json({ success: true, message: "Event reminder sent to jose@sahuaroworks.com" });
   } catch (error) {
     console.error("Jose reminder failed:", error);
-    res.status(500).json({ success: false, message: "Failed: " + error.message });
+    res.status(500).json({ success: false, message: "Failed: " + (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -623,7 +631,7 @@ app.post("/api/test-jose-welcome", async (req, res) => {
     res.json({ success: true, message: "Welcome/password reset sent to jose@sahuaroworks.com" });
   } catch (error) {
     console.error("Jose welcome failed:", error);
-    res.status(500).json({ success: false, message: "Failed: " + error.message });
+    res.status(500).json({ success: false, message: "Failed: " + (error instanceof Error ? error.message : String(error)) });
   }
 });
 
@@ -664,7 +672,7 @@ app.post("/api/resend-ayla-confirmation", async (req, res) => {
       booking: {
         id: latestBooking.id.toString(),
         customerEmail: "ayla@thetreasury1929.com",
-        partySize: latestBooking.partySize,
+        partySize: latestBooking.partySize || 2,
         status: latestBooking.status,
         notes: latestBooking.notes || "",
         stripePaymentId: latestBooking.stripePaymentId || "",
@@ -686,7 +694,7 @@ app.post("/api/resend-ayla-confirmation", async (req, res) => {
       venue: {
         id: venue.id.toString(),
         name: venue.name,
-        address: venue.address || "2 E Congress St, Ste 100"
+        address: (venue as any).address || "2 E Congress St, Ste 100"
       }
     };
     

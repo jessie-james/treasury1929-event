@@ -519,7 +519,7 @@ export async function registerRoutes(app: Express) {
             booking: {
               id: newBooking.id,
               customerEmail: newBooking.customerEmail,
-              partySize: newBooking.partySize,
+              partySize: newBooking.partySize || 2,
               status: newBooking.status,
               notes: newBooking.notes || '',
               stripePaymentId: newBooking.stripePaymentId || '',
@@ -2676,16 +2676,23 @@ export async function registerRoutes(app: Express) {
       for (const booking of bookingsWithPayments) {
         try {
           console.log(`Checking booking #${booking.id} (table ${booking.tableId}) with payment ID: ${booking.stripePaymentId}`);
-          const paymentIntent = await stripe.paymentIntents.retrieve(booking.stripePaymentId!);
-          console.log(`Payment intent for booking #${booking.id}: amount_refunded=${paymentIntent.amount_refunded}`);
+          const paymentIntent = await stripe.paymentIntents.retrieve(booking.stripePaymentId!, {
+            expand: ['charges']
+          });
           
-          if (paymentIntent.amount_refunded && paymentIntent.amount_refunded > 0) {
+          // Get refund amount from charges data
+          const charges = (paymentIntent as any).charges?.data || [];
+          const totalRefunded = charges.reduce((sum: number, charge: any) => sum + (charge.amount_refunded || 0), 0);
+          
+          console.log(`Payment intent for booking #${booking.id}: amount_refunded=${totalRefunded}`);
+          
+          if (totalRefunded > 0) {
             // This booking has been refunded in Stripe
             if (!booking.refundAmount || booking.refundAmount === 0 || booking.status !== 'refunded') {
-              console.log(`Found unsynced refund for booking #${booking.id}: $${paymentIntent.amount_refunded/100} (current status: ${booking.status})`);
+              console.log(`Found unsynced refund for booking #${booking.id}: $${totalRefunded/100} (current status: ${booking.status})`);
               
               // Update booking with refund information
-              await storage.updateBookingRefund(booking.id, paymentIntent.amount_refunded, 'stripe_sync');
+              await storage.updateBookingRefund(booking.id, totalRefunded, 'stripe_sync');
               await storage.updateBookingStatus(booking.id, 'refunded');
               
               // Sync availability - table becomes available again
@@ -2697,13 +2704,13 @@ export async function registerRoutes(app: Express) {
               }
               
               refundCount++;
-            } else if (booking.refundAmount !== paymentIntent.amount_refunded) {
+            } else if (booking.refundAmount !== totalRefunded) {
               // Refund amount discrepancy
-              console.log(`Refund amount discrepancy for booking #${booking.id}: DB has $${booking.refundAmount/100}, Stripe has $${paymentIntent.amount_refunded/100}`);
-              await storage.updateBookingRefund(booking.id, paymentIntent.amount_refunded, 'stripe_sync');
+              console.log(`Refund amount discrepancy for booking #${booking.id}: DB has $${booking.refundAmount/100}, Stripe has $${totalRefunded/100}`);
+              await storage.updateBookingRefund(booking.id, totalRefunded, 'stripe_sync');
               discrepancyCount++;
             }
-          } else if (booking.status === 'refunded' && (!paymentIntent.amount_refunded || paymentIntent.amount_refunded === 0)) {
+          } else if (booking.status === 'refunded' && totalRefunded === 0) {
             // Booking is marked as refunded in our system but not in Stripe
             console.log(`Warning: Booking #${booking.id} marked as refunded in DB but not in Stripe`);
             discrepancyCount++;
