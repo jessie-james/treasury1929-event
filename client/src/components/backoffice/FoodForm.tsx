@@ -201,19 +201,33 @@ export function FoodForm({ food, onClose }: Props) {
       console.log("Food data being submitted:", data);
       console.log("Food object:", food);
       
-      // Check authentication status first
+      // Check authentication status first with more detailed debugging
       try {
+        console.log("🔐 Checking authentication status...");
         const authCheck = await fetch('/api/user', {
           method: 'GET',
           credentials: 'include',
           headers: { 'Accept': 'application/json' }
         });
-        const authUser = authCheck.ok ? await authCheck.json() : null;
+        
+        console.log("Auth check response status:", authCheck.status);
+        console.log("Auth check response headers:", [...authCheck.headers.entries()]);
+        
+        if (!authCheck.ok) {
+          console.error("Auth check failed with status:", authCheck.status);
+          const authError = await authCheck.text();
+          console.error("Auth error response:", authError);
+          throw new Error(`Authentication failed: ${authCheck.status} ${authError}`);
+        }
+        
+        const authUser = await authCheck.json();
         console.log("Current authenticated user:", authUser);
         
         if (!authUser || authUser.role !== 'admin') {
           throw new Error("You must be logged in as an admin to save food items");
         }
+        
+        console.log("✅ Authentication confirmed for admin:", authUser.email);
       } catch (authError) {
         console.error("Authentication check failed:", authError);
         throw new Error("Authentication required. Please log in as admin.");
