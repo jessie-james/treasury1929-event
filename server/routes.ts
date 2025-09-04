@@ -41,7 +41,6 @@ import { registerOrderTrackingRoutes } from "./routes-order-tracking";
 import { EmailService } from "./email-service";
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
-import { upload, saveImage, removeImages, validateImageFile } from './lib/upload';
 
 // Initialize Stripe with Treasury 1929 keys - separate test and live keys  
 const stripeLiveKey = process.env.STRIPE_SECRET_KEY_NEW; // Live key
@@ -4253,91 +4252,6 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Error deleting food option:", error);
       res.status(500).json({ message: "Failed to delete food option" });
-    }
-  });
-
-  // Menu item photo upload routes
-  app.post("/api/admin/menu/items/:id/photo", upload.single('file'), async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || req.user?.role === "customer") {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'Invalid menu item ID' });
-      }
-
-      if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
-      }
-
-      try {
-        validateImageFile(req.file);
-      } catch (error) {
-        return res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid file' });
-      }
-
-      // Save image using upload utility
-      const result = await saveImage({
-        buffer: req.file.buffer,
-        subdir: 'menu',
-        id: id
-      });
-
-      // Update menu item photo URL in database
-      const updatedItem = await storage.updateFoodOption(id, { 
-        image: result.photoUrl 
-      });
-
-      if (!updatedItem) {
-        return res.status(404).json({ error: 'Menu item not found' });
-      }
-
-      res.json({ 
-        ok: true, 
-        photoUrl: result.photoUrl 
-      });
-
-    } catch (error) {
-      console.error('Error uploading menu item photo:', error);
-      res.status(500).json({ error: 'Failed to upload photo' });
-    }
-  });
-
-  app.delete("/api/admin/menu/items/:id/photo", async (req, res) => {
-    try {
-      if (!req.isAuthenticated() || req.user?.role === "customer") {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'Invalid menu item ID' });
-      }
-
-      // Remove images from filesystem
-      try {
-        await removeImages('menu', id);
-      } catch (error) {
-        console.error('Error removing menu item images:', error);
-        // Continue with database update even if file removal fails
-      }
-
-      // Update menu item photo URL in database
-      const updatedItem = await storage.updateFoodOption(id, { 
-        image: null 
-      });
-
-      if (!updatedItem) {
-        return res.status(404).json({ error: 'Menu item not found' });
-      }
-
-      res.json({ ok: true });
-
-    } catch (error) {
-      console.error('Error removing menu item photo:', error);
-      res.status(500).json({ error: 'Failed to remove photo' });
     }
   });
 

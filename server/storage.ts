@@ -230,12 +230,6 @@ export class PgStorage implements IStorage {
     return result[0] || null;
   }
 
-  async getEventArtistById(artistId: number): Promise<any | null> {
-    const result = await db.select().from(schema.eventArtists)
-      .where(eq(schema.eventArtists.id, artistId));
-    return result[0] || null;
-  }
-
   async deleteEventArtist(artistId: number): Promise<boolean> {
     const result = await db.delete(schema.eventArtists)
       .where(eq(schema.eventArtists.id, artistId));
