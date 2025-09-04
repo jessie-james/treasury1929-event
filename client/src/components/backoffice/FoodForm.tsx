@@ -67,6 +67,10 @@ export function FoodForm({ food, onClose }: Props) {
   const [uploadedImage, setUploadedImage] = useState<string | null>(food?.image || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  console.log("=== FOOD FORM COMPONENT LOADED ===");
+  console.log("Food prop:", food);
+  console.log("User:", user);
+  
   // Set existing food image as uploaded image on component mount
   useEffect(() => {
     if (food?.image) {
@@ -547,7 +551,16 @@ export function FoodForm({ food, onClose }: Props) {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending}>
+              <Button 
+                type="submit" 
+                disabled={isPending}
+                onClick={() => {
+                  console.log("=== UPDATE BUTTON CLICKED ===");
+                  console.log("Form is valid:", form.formState.isValid);
+                  console.log("Form errors:", form.formState.errors);
+                  console.log("Form values:", form.getValues());
+                }}
+              >
                 {isPending ? "Saving..." : food ? "Update" : "Create"}
               </Button>
             </div>
