@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { formatPriceDisplay } from "@/lib/price";
 import { parseEventDate } from "@/utils/dateUtils";
-import { formatPhoenixDate } from "@/lib/timezone";
+import { formatEventDateForCard } from "@/lib/datetime";
 import { Calendar, MapPin, Ticket, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -95,9 +95,13 @@ export function EventDetails({
       
       <div className="aspect-[21/9] relative rounded-lg overflow-hidden">
         <img
-          src={event.image || ''}
-          alt={event.title}
+          src={event.image || '/assets/placeholder-event.jpg'}
+          alt={event.title || 'Event'}
           className="object-cover w-full h-full"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = '/assets/placeholder-event.jpg';
+          }}
         />
       </div>
 
@@ -115,7 +119,7 @@ export function EventDetails({
             <Calendar className="h-8 w-8 flex-shrink-0" />
             <div className="flex flex-col">
               <span className="text-2xl md:text-3xl leading-relaxed font-semibold">
-                {formatPhoenixDate(event.date, "EEEE, MMMM d, yyyy")}
+                {formatEventDateForCard(event.date)}
               </span>
               <span className="text-xl md:text-2xl leading-relaxed text-muted-foreground">
                 Time: Guest Arrival 5:45 PM, show starts 6:30 PM

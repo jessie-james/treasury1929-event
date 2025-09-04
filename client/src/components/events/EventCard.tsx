@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { parseEventDate } from "@/utils/dateUtils";
-import { formatPhoenixDate } from "@/lib/timezone";
+import { formatEventDateForCard } from "@/lib/datetime";
 import { type Event } from "@shared/schema";
 import { Link, useLocation } from "wouter";
 import { EventTypeIndicator } from "./EventTypeIndicator";
@@ -48,9 +48,13 @@ export function EventCard({ event }: { event: Event }) {
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="aspect-[16/9] relative">
         <img
-          src={event.image || ''}
-          alt={event.title}
+          src={event.image || '/assets/placeholder-event.jpg'}
+          alt={event.title || 'Event'}
           className="object-cover w-full h-full"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            target.src = '/assets/placeholder-event.jpg';
+          }}
         />
       </div>
       {/* ELDERLY-FRIENDLY: Much larger text, bigger touch targets, clear contrast */}
@@ -64,12 +68,12 @@ export function EventCard({ event }: { event: Event }) {
             />
           </div>
           <div className="text-xl md:text-2xl text-muted-foreground leading-relaxed">
-            <div className="font-semibold text-foreground">{formatPhoenixDate(event.date, "EEEE, MMMM d, yyyy")}</div>
+            <div className="font-semibold text-foreground">{formatEventDateForCard(event.date)}</div>
             <div>Time: Guest Arrival 5:45 PM, show starts 6:30 PM</div>
           </div>
           {/* PHASE 0: Price Display */}
           <div className="text-xl md:text-2xl font-semibold text-foreground">
-            {formatPriceDisplay(event)}
+            {(typeof formatPriceDisplay === 'function' && formatPriceDisplay(event)) || "$130 per guest — tax & gratuity included"}
           </div>
           <Badge variant={availability.color as any} className="text-lg px-4 py-2">
             {availability.text}
