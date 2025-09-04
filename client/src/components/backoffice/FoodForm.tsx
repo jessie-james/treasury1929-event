@@ -47,7 +47,7 @@ const foodFormSchema = z.object({
   // Allow empty string for image - not all food items may have images
   image: z.string().optional(),
   price: z.number().min(0, "Price must be greater than or equal to 0").optional(),
-  type: z.enum(["salad", "entree", "dessert"]),
+  type: z.enum(["salad", "entree", "dessert", "wine_bottle"]),
   allergens: z.array(z.string()).optional(),
   dietaryRestrictions: z.array(z.string()).optional(),
 });
@@ -83,7 +83,7 @@ export function FoodForm({ food, onClose }: Props) {
           image: food.image || "",
           // Convert price from cents to dollars for display (database stores in cents)
           price: food.price ? (food.price / 100) : 0,
-          type: food.type as "salad" | "entree" | "dessert",
+          type: food.type as "salad" | "entree" | "dessert" | "wine_bottle",
           allergens: food.allergens ?? [],
           dietaryRestrictions: food.dietaryRestrictions ?? [],
         }
@@ -458,6 +458,7 @@ export function FoodForm({ food, onClose }: Props) {
                       <SelectItem value="salad">Salad</SelectItem>
                       <SelectItem value="entree">Entree</SelectItem>
                       <SelectItem value="dessert">Dessert</SelectItem>
+                      <SelectItem value="wine_bottle">Wine</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
