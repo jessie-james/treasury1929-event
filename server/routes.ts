@@ -2478,6 +2478,7 @@ export async function registerRoutes(app: Express) {
   };
 
   // Handle food image uploads with improved error handling
+  console.log("🔧 REGISTERING /api/upload/food-image route");
   app.post("/api/upload/food-image", (req, res, next) => {
     // Explicitly wrap multer to catch and handle any errors
     console.log("Starting food image upload request");

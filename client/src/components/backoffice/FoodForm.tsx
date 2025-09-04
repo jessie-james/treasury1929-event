@@ -115,11 +115,18 @@ export function FoodForm({ food, onClose }: Props) {
         size: file.size
       });
       
-      const response = await fetch('/api/upload/food-image', {
+      const uploadUrl = '/api/upload/food-image';
+      console.log('Making upload request to:', uploadUrl);
+      console.log('Full URL:', window.location.origin + uploadUrl);
+      
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formData,
         credentials: 'include',
       });
+      
+      console.log('Upload response status:', response.status);
+      console.log('Upload response headers:', [...response.headers.entries()]);
       
       // Get response text first to debug any potential issues
       const responseText = await response.text();
