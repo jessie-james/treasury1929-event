@@ -43,9 +43,9 @@ export function EventList() {
         case "title-desc":
           return b.title.localeCompare(a.title);
         case "availability-asc":
-          return a.availableSeats - b.availableSeats;
+          return (a.availableSeats ?? 0) - (b.availableSeats ?? 0);
         case "availability-desc":
-          return b.availableSeats - a.availableSeats;
+          return (b.availableSeats ?? 0) - (a.availableSeats ?? 0);
         default:
           return 0;
       }

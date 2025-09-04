@@ -1,6 +1,6 @@
 import { formatInTimeZone } from 'date-fns-tz';
 
-const PHX = (import.meta.env.VITE_PHOENIX_TZ as string) || 'America/Phoenix';
+const PHX = 'America/Phoenix';
 
 /** 
  * Accepts `Date` or strings like "2025-09-10 01:30:00" or ISO; treats space-format as UTC.
