@@ -11,9 +11,10 @@ const router = express.Router();
 
 // Initialize Stripe for payment links (using environment-appropriate key)
 const getStripeInstance = () => {
-  // TEMPORARILY FORCE TEST MODE FOR TESTING
-  const isTestMode = true; // Force test mode
-  const stripeKey = process.env.TRE_STRIPE_TEST_SECRET_KEY || process.env.STRIPE_SECRET_KEY_NEW;
+  const isTestMode = process.env.NODE_ENV !== 'production';
+  const stripeKey = isTestMode 
+    ? process.env.TRE_STRIPE_TEST_SECRET_KEY 
+    : process.env.STRIPE_SECRET_KEY_NEW;
   
   if (!stripeKey) {
     throw new Error(`Missing Stripe key for ${isTestMode ? 'test' : 'live'} mode`);
