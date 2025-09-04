@@ -294,13 +294,7 @@ export default function FoodPage() {
                                 </div>
                                 <Button
                                   variant="outline"
-                                  onClick={() => {
-                                    console.log("=== EDIT BUTTON CLICKED ===");
-                                    console.log("Current editingFoodId:", editingFoodId);
-                                    console.log("Food ID:", food.id);
-                                    console.log("Will set editingFoodId to:", editingFoodId === food.id ? null : food.id);
-                                    setEditingFoodId(editingFoodId === food.id ? null : food.id);
-                                  }}
+                                  onClick={() => setEditingFoodId(editingFoodId === food.id ? null : food.id)}
                                 >
                                   {editingFoodId === food.id ? 'Cancel' : 'Edit'}
                                 </Button>
@@ -330,15 +324,10 @@ export default function FoodPage() {
                           </Card>
                           
                           {editingFoodId === food.id && (
-                            <div>
-                              <div style={{padding: '10px', backgroundColor: 'yellow', margin: '10px 0'}}>
-                                DEBUG: Rendering FoodForm for food ID {food.id}
-                              </div>
-                              <FoodForm
-                                food={food}
-                                onClose={() => setEditingFoodId(null)}
-                              />
-                            </div>
+                            <FoodForm
+                              food={food}
+                              onClose={() => setEditingFoodId(null)}
+                            />
                           )}
                         </div>
                       ))}

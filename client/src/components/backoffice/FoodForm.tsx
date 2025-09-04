@@ -67,10 +67,6 @@ export function FoodForm({ food, onClose }: Props) {
   const [uploadedImage, setUploadedImage] = useState<string | null>(food?.image || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  console.log("=== FOOD FORM COMPONENT LOADED ===");
-  console.log("Food prop:", food);
-  console.log("User:", user);
-  
   // Set existing food image as uploaded image on component mount
   useEffect(() => {
     if (food?.image) {
@@ -293,37 +289,7 @@ export function FoodForm({ food, onClose }: Props) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(
-              (data) => {
-                console.log("=== FORM SUBMIT SUCCESS ===");
-                console.log("Form data:", data);
-                console.log("Form state:", form.formState);
-                console.log("Form values:", form.getValues());
-                console.log("Form errors:", form.formState.errors);
-                saveFood(data);
-              },
-              (errors) => {
-                console.log("=== FORM VALIDATION ERRORS ===");
-                console.log("Validation errors:", errors);
-                console.log("Form state:", form.formState);
-                console.log("Current form values:", form.getValues());
-                console.log("All form errors:", form.formState.errors);
-                
-                // Show specific error messages
-                const errorMessages = Object.entries(errors).map(([field, error]) => 
-                  `${field}: ${error.message}`
-                ).join(', ');
-                
-                toast({
-                  title: "Form validation failed",
-                  description: `Issues found: ${errorMessages}`,
-                  variant: "destructive",
-                });
-              }
-            )}
-            className="space-y-4"
-          >
+          <form onSubmit={form.handleSubmit(saveFood)} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
@@ -551,16 +517,7 @@ export function FoodForm({ food, onClose }: Props) {
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
-                disabled={isPending}
-                onClick={() => {
-                  console.log("=== UPDATE BUTTON CLICKED ===");
-                  console.log("Form is valid:", form.formState.isValid);
-                  console.log("Form errors:", form.formState.errors);
-                  console.log("Form values:", form.getValues());
-                }}
-              >
+              <Button type="submit" disabled={isPending}>
                 {isPending ? "Saving..." : food ? "Update" : "Create"}
               </Button>
             </div>
