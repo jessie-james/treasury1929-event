@@ -50,7 +50,8 @@ export function EventCard({ event }: { event: Event }) {
         <img
           src={event.image || '/assets/placeholder-event.jpg'}
           alt={event.title || 'Event'}
-          className="object-cover object-top w-full h-full"
+          className="object-cover w-full h-full"
+          style={{ objectPosition: '50% 20%' }}
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = '/assets/placeholder-event.jpg';
