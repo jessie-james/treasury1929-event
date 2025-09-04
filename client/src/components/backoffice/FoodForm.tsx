@@ -289,7 +289,24 @@ export function FoodForm({ food, onClose }: Props) {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(saveFood)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(
+            (data) => {
+              console.log("🎯 FORM SUBMIT HANDLER CALLED");
+              console.log("Form is valid:", form.formState.isValid);
+              console.log("Form data:", data);
+              console.log("Form errors:", form.formState.errors);
+              saveFood(data);
+            },
+            (errors) => {
+              console.log("❌ FORM VALIDATION FAILED");
+              console.log("Validation errors:", errors);
+              toast({
+                title: "Please fix the errors",
+                description: Object.keys(errors).join(", "),
+                variant: "destructive"
+              });
+            }
+          )} className="space-y-4">
             <FormField
               control={form.control}
               name="name"
