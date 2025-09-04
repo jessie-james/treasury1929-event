@@ -963,14 +963,27 @@ app.use((req, res, next) => {
     });
 
     // Set up serving mode based on environment BEFORE client routes
-    if (app.get("env") === "development") {
-      log("Setting up Vite development server...");
-      const { mountViteDevMiddleware } = await import('./dev-vite.js');
-      await mountViteDevMiddleware(app, server);
-    } else {
-      log("Setting up static file serving for production...");
-      const { serveStatic } = await import('./dev-vite.js');  
-      serveStatic(app);
+    try {
+      if (app.get("env") === "development") {
+        log("Setting up Vite development server...");
+        const { mountViteDevMiddleware } = await import('./dev-vite.js');
+        await mountViteDevMiddleware(app, server);
+      } else {
+        log("Setting up static file serving for production...");
+        const { serveStatic } = await import('./dev-vite.js');  
+        serveStatic(app);
+      }
+    } catch (error) {
+      console.warn("Vite setup failed (missing packages), running in basic mode:", error.message);
+      // Fallback: serve basic static files if dist/public exists
+      const express = (await import("express")).default;
+      const path = (await import("path")).default;
+      try {
+        app.use(express.static(path.resolve(process.cwd(), 'dist/public')));
+        log("Fallback: Serving static files from dist/public");
+      } catch (staticError) {
+        log("No static files found, API-only mode");
+      }
     }
 
     // Only start server if not in test mode
