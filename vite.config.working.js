@@ -6,9 +6,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export default defineConfig({
-  plugins: [
-    // Minimal config without problematic plugins for now
-  ],
+  plugins: [],
+  esbuild: {
+    jsx: 'automatic', // Use automatic JSX transform - no React import needed
+    jsxImportSource: 'react'
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
