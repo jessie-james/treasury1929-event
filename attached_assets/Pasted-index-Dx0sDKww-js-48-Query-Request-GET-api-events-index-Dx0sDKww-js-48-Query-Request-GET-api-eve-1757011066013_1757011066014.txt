@@ -1,0 +1,80 @@
+index-Dx0sDKww.js:48 Query Request: GET /api/events
+index-Dx0sDKww.js:48 Query Request: GET /api/events/40/venue-layouts
+index-Dx0sDKww.js:48 Query Request: GET /api/events/40/availability
+index-Dx0sDKww.js:48 Query Request: GET /api/events/45/venue-layouts
+index-Dx0sDKww.js:48 Query Request: GET /api/events/45/availability
+/api/events/45/venue-layouts:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+index-Dx0sDKww.js:48 Query Request: GET /api/bookings
+index-Dx0sDKww.js:48 Query Request: GET /api/food-options
+food:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+index-Dx0sDKww.js:721 Starting food image upload...
+index-Dx0sDKww.js:721 File info: {name: '3903319682894371069.jpeg', type: 'image/jpeg', size: 501401}
+index-Dx0sDKww.js:721 Upload response: {path: '/uploads/25de3c97-dbb5-4652-bfd0-975ae9593c4f.jpeg', filename: '25de3c97-dbb5-4652-bfd0-975ae9593c4f.jpeg', originalname: '3903319682894371069.jpeg', mimetype: 'image/jpeg', size: 501401, …}
+index-Dx0sDKww.js:721 === FORM SUBMIT SUCCESS ===
+index-Dx0sDKww.js:721 Form data: {name: 'Grilled King Salmon', description: 'mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes.', image: '/uploads/25de3c97-dbb5-4652-bfd0-975ae9593c4f.jpeg', price: 3800, type: 'entree', …}
+index-Dx0sDKww.js:721 Form state: {…}
+index-Dx0sDKww.js:721 === FOOD FORM SUBMISSION ===
+index-Dx0sDKww.js:721 Food data being submitted: {name: 'Grilled King Salmon', description: 'mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes.', image: '/uploads/25de3c97-dbb5-4652-bfd0-975ae9593c4f.jpeg', price: 3800, type: 'entree', …}
+index-Dx0sDKww.js:721 Food object: {id: 50, name: 'Grilled King Salmon', description: 'mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes.', type: 'entree', price: 3800, …}
+index-Dx0sDKww.js:721 Current authenticated user: {id: 39, email: 'jose@sahuaroworks.com', role: 'admin', createdAt: '2025-08-05T05:55:17.716Z', firstName: 'Jose', …}
+index-Dx0sDKww.js:721 API endpoint: /api/food-options/50
+index-Dx0sDKww.js:721 HTTP method: PATCH
+index-Dx0sDKww.js:48 API Request: PATCH /api/food-options/50
+index-Dx0sDKww.js:48  PATCH https://5fb93cb7-e64f-4141-8ab1-be0d88d65709-00-1t9h9g6wq1o6d.kirk.replit.dev/api/food-options/50 500 (Internal Server Error)
+Ot @ index-Dx0sDKww.js:48
+mutationFn @ index-Dx0sDKww.js:721
+await in mutationFn
+fn @ index-Dx0sDKww.js:48
+g @ index-Dx0sDKww.js:48
+start @ index-Dx0sDKww.js:48
+execute @ index-Dx0sDKww.js:48
+await in execute
+mutate @ index-Dx0sDKww.js:48
+(anonymous) @ index-Dx0sDKww.js:48
+(anonymous) @ index-Dx0sDKww.js:721
+(anonymous) @ index-Dx0sDKww.js:455
+await in (anonymous)
+u7 @ index-Dx0sDKww.js:37
+f7 @ index-Dx0sDKww.js:37
+h7 @ index-Dx0sDKww.js:37
+_C @ index-Dx0sDKww.js:37
+N6 @ index-Dx0sDKww.js:37
+(anonymous) @ index-Dx0sDKww.js:37
+c5 @ index-Dx0sDKww.js:40
+HA @ index-Dx0sDKww.js:37
+U1 @ index-Dx0sDKww.js:37
+ON @ index-Dx0sDKww.js:37
+A7 @ index-Dx0sDKww.js:37
+index-Dx0sDKww.js:48 Network error with PATCH request to /api/food-options/50: Error: 500: Failed to update food option
+    at nT (index-Dx0sDKww.js:48:43520)
+    at async Ot (index-Dx0sDKww.js:48:44960)
+    at async Object.mutationFn (index-Dx0sDKww.js:721:45323)
+Ot @ index-Dx0sDKww.js:48
+await in Ot
+mutationFn @ index-Dx0sDKww.js:721
+await in mutationFn
+fn @ index-Dx0sDKww.js:48
+g @ index-Dx0sDKww.js:48
+start @ index-Dx0sDKww.js:48
+execute @ index-Dx0sDKww.js:48
+await in execute
+mutate @ index-Dx0sDKww.js:48
+(anonymous) @ index-Dx0sDKww.js:48
+(anonymous) @ index-Dx0sDKww.js:721
+(anonymous) @ index-Dx0sDKww.js:455
+await in (anonymous)
+u7 @ index-Dx0sDKww.js:37
+f7 @ index-Dx0sDKww.js:37
+h7 @ index-Dx0sDKww.js:37
+_C @ index-Dx0sDKww.js:37
+N6 @ index-Dx0sDKww.js:37
+(anonymous) @ index-Dx0sDKww.js:37
+c5 @ index-Dx0sDKww.js:40
+HA @ index-Dx0sDKww.js:37
+U1 @ index-Dx0sDKww.js:37
+ON @ index-Dx0sDKww.js:37
+A7 @ index-Dx0sDKww.js:37
+index-Dx0sDKww.js:721 API request successful: Response {isNetworkError: true, type: 'default', url: '', redirected: false, status: 503, …}
+index-Dx0sDKww.js:721 === MUTATION SUCCESS ===
+index-Dx0sDKww.js:721 Response data: Response {isNetworkError: true, type: 'default', url: '', redirected: false, status: 503, …}
+index-Dx0sDKww.js:48 Query Request: GET /api/food-options

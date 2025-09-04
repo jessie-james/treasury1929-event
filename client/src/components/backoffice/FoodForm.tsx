@@ -160,12 +160,11 @@ export function FoodForm({ food, onClose }: Props) {
       const imagePath = data.path;
       
       // Update the form field with the new image path
-      console.log("🖼️ Setting image path:", imagePath);
       form.setValue('image', imagePath);
       setUploadedImage(imagePath);
       
       // Trigger form validation after image upload
-      console.log("Form validation after image upload:", await form.trigger('image'));
+      await form.trigger('image');
       
       toast({
         title: 'Image uploaded successfully',

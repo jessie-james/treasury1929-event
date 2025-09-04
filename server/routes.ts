@@ -248,6 +248,19 @@ export async function registerRoutes(app: Express) {
     }
     next();
   });
+
+  // Add error handling middleware for all requests
+  app.use((err, req, res, next) => {
+    if (req.method === 'PATCH' && req.url.includes('food-options')) {
+      console.error("🚨 MIDDLEWARE ERROR for PATCH food-options:", {
+        error: err.message,
+        stack: err.stack,
+        url: req.url,
+        body: req.body
+      });
+    }
+    next(err);
+  });
   
   // Emergency diagnostic endpoints for phantom layouts
   app.get("/api/debug/phantom-layouts/:eventId", async (req, res) => {
