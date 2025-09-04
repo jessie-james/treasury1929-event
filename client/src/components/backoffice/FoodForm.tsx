@@ -81,7 +81,8 @@ export function FoodForm({ food, onClose }: Props) {
           name: food.name,
           description: food.description || "",
           image: food.image || "",
-          price: food.price ?? 0,
+          // Convert price from cents to dollars for display (database stores in cents)
+          price: food.price ? (food.price / 100) : 0,
           type: food.type as "salad" | "entree" | "dessert",
           allergens: food.allergens ?? [],
           dietaryRestrictions: food.dietaryRestrictions ?? [],
@@ -213,8 +214,16 @@ export function FoodForm({ food, onClose }: Props) {
       console.log("API endpoint:", endpoint);
       console.log("HTTP method:", method);
       
+      // Convert price to cents for storage (like BeverageForm does)
+      const payload = {
+        ...data,
+        price: data.price !== undefined ? Math.round(data.price * 100) : undefined,
+      };
+      
+      console.log("Final payload with converted price:", payload);
+      
       try {
-        const result = await apiRequest(method, endpoint, data);
+        const result = await apiRequest(method, endpoint, payload);
         console.log("API request successful:", result);
         return result;
       } catch (error) {
