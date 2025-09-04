@@ -46,11 +46,11 @@ export function EventCard({ event }: { event: Event }) {
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="aspect-square relative" style={{ aspectRatio: '1 / 1' }}>
+      <div className="relative" style={{ aspectRatio: '1 / 1', width: '100%', paddingBottom: '100%', height: '0' }}>
         <img
           src={event.image || '/assets/placeholder-event.jpg'}
           alt={event.title || 'Event'}
-          className="object-cover w-full h-full"
+          className="absolute inset-0 object-cover w-full h-full"
           style={{ objectPosition: '50% 10%' }}
           onError={(e) => {
             const target = e.target as HTMLImageElement;
