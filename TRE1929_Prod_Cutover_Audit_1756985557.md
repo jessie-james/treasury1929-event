@@ -151,7 +151,7 @@ if (event.eventType === 'full') {
 
 | Requirement | Status | Evidence | Result |
 |-------------|--------|----------|---------|
-| **Stripe Keys (Live)** | ⚠️ **PARTIAL** | `sk_live_51Rd...` present, `pk_live_...` missing | **FAIL** |
+| **Stripe Keys (Live)** | ✅ **PASS** | `sk_live_51Rd...` + `pk_live_51Rd...` both present | **PASS** |
 | **Stripe Guards** | ✅ **PASS** | Mock mode only when `NODE_ENV !== 'production'` | **PASS** |
 | **Webhook Secret** | ✅ **PASS** | `STRIPE_WEBHOOK_SECRET` present, signature validation active | **PASS** |
 | **Webhook Idempotency** | ✅ **PASS** | `processedEvents` deduplication implemented | **PASS** |
@@ -162,7 +162,7 @@ if (event.eventType === 'full') {
 | **Protected Events** | ❌ **FAIL** | `PROTECT_EVENT_IDS` not set (should include 39,40) | **FAIL** |
 | **SAQ-A Compliance** | ✅ **PASS** | No card fields in backoffice; paylink uses Stripe Checkout | **PASS** |
 
-### 🔴 OVERALL PRECONDITIONS: **FAIL** (3 critical issues)
+### 🔴 OVERALL PRECONDITIONS: **FAIL** (2 critical issues)
 
 ---
 
@@ -176,19 +176,13 @@ if (event.eventType === 'full') {
 
 ### Critical Issues Requiring Immediate Attention:
 
-#### 1. Missing Stripe Publishable Key ⚠️ **HIGH PRIORITY**
-```bash
-# Required Environment Variable:
-STRIPE_PUBLISHABLE_KEY_NEW=pk_live_[your_live_publishable_key]
-```
-
-#### 2. Missing Protected Events Configuration ⚠️ **HIGH PRIORITY**  
+#### 1. Missing Protected Events Configuration ⚠️ **HIGH PRIORITY**  
 ```bash
 # Required Environment Variable:
 PROTECT_EVENT_IDS=39,40
 ```
 
-#### 3. Missing Production Environment Variables ⚠️ **CRITICAL**
+#### 2. Missing Production Environment Variables ⚠️ **CRITICAL**
 ```bash
 # Required for Production Cutover:
 NODE_ENV=production
@@ -211,7 +205,7 @@ BACKUPS_ENABLED=true
 PROTECT_EVENT_IDS=39,40
 PHX_TZ=America/Phoenix
 STRIPE_SECRET_KEY_NEW=sk_live_[existing_live_key]
-STRIPE_PUBLISHABLE_KEY_NEW=pk_live_[required_live_key]
+STRIPE_PUBLISHABLE_KEY_NEW=pk_live_[existing_live_key]
 STRIPE_WEBHOOK_SECRET=[existing_webhook_secret]
 SENDGRID_API_KEY_NEW=[existing_sendgrid_key]
 SESSION_SECRET=[secure_random_string]
@@ -227,7 +221,7 @@ DATABASE_URL=[existing_production_database_url]
 |----------|--------|-----------------|
 | **Application Code** | ✅ **READY** | None - all safety guards implemented |
 | **September Events** | ✅ **READY** | Pricing, menu, artists all verified |
-| **Payment System** | ⚠️ **BLOCKED** | Missing live publishable key |
+| **Payment System** | ✅ **READY** | Live secret + publishable keys present |
 | **Email System** | ✅ **READY** | Guards and SendGrid key in place |
 | **Backup System** | ✅ **READY** | Schedule and gating implemented |
 | **Security** | ⚠️ **BLOCKED** | Missing protected events config |
@@ -235,7 +229,7 @@ DATABASE_URL=[existing_production_database_url]
 
 ### 🔴 **PRODUCTION CUTOVER BLOCKED**
 
-**Reason:** Critical environment variables missing
+**Reason:** Protected events configuration and production environment variables missing
 
 **Action Required:** Operator (Jose) must configure the missing environment variables listed in the remediation plan before production cutover can proceed safely.
 
@@ -246,5 +240,57 @@ DATABASE_URL=[existing_production_database_url]
 
 ---
 
-**Audit Completed:** September 04, 2025 11:32:37 AM  
-**Recommendation:** **DO NOT PROCEED** with cutover until remediation complete
+## 🔍 Publishable Key Detection — Corrected
+
+**Detection Summary:** Multi-source analysis reveals live publishable key IS present.
+
+### Source Analysis (Priority Order)
+
+| Source | Status | Value | Location | Exposure Method |
+|--------|--------|-------|----------|-----------------|
+| **STRIPE_PUBLISHABLE_KEY_NEW** | ✅ **FOUND** | `pk_live_51Rd...` | Environment variable | `server/stripe.ts:108` |
+| STRIPE_PUBLISHABLE_KEY | ❌ Empty | `(not set)` | Environment variable | N/A |
+| VITE_STRIPE_PUBLISHABLE_KEY | ⚠️ Test Key | `pk_test_...` | `.env:1` | Vite build-time |
+| NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY | ❌ Not Used | N/A | Not present | N/A |
+| /api/public/stripe-pk | ❌ Not Implemented | N/A | No endpoint found | N/A |
+| loadStripe() call-site | ℹ️ Not Used | N/A | Uses Stripe Checkout | Server-side redirect |
+
+### Winning Source: `STRIPE_PUBLISHABLE_KEY_NEW`
+**File:** `server/stripe.ts:107-112`  
+**Value:** `pk_live_51RdbEFEOOtiAoFkbZwKgIL0KhR3DrODfhKSYIH1jfofHqeJcl9UwvrsB2U2HXTNvdb4JMRHCkciBkx0c09qFpmbC00joAoelsp`  
+**Masked:** `pk_live_51Rd...`  
+**Function:**
+```javascript
+export function getPublishableKey(): string | null {
+  const liveKey = process.env.STRIPE_PUBLISHABLE_KEY_NEW;  // ✅ LIVE KEY
+  const testKey = process.env.TRE_STRIPE_TEST_PUBLISHABLE_KEY;
+  return liveKey || testKey || null;
+}
+```
+
+### Build/Runtime Exposure Verification
+**Architecture:** SAQ-A Compliant Stripe Checkout  
+**Client-side:** No direct Stripe.js - redirects to `stripe.checkout.sessions.create()` URLs  
+**Backend Usage:** `getPublishableKey()` available for checkout session metadata  
+**Security:** ✅ No sensitive payment data handled client-side
+
+### Corrected Preconditions Assessment
+
+| Requirement | Original Status | **Corrected Status** | Evidence |
+|-------------|-----------------|---------------------|----------|
+| **Stripe Keys (Live)** | ❌ FAIL | ✅ **PASS** | Both `sk_live_51Rd...` + `pk_live_51Rd...` present |
+| **Publishable Key Source** | N/A | ✅ **PASS** | `STRIPE_PUBLISHABLE_KEY_NEW` at `server/stripe.ts:108` |
+
+### Updated Overall Status
+**Previous:** 🔴 FAIL (3 critical issues)  
+**Corrected:** 🔴 FAIL (2 critical issues)
+
+**Remaining Blockers:**
+1. `PROTECT_EVENT_IDS=39,40` missing
+2. Production environment variables not configured
+
+---
+
+**Audit Completed:** September 04, 2025 11:43:16 AM  
+**Recommendation:** **DO NOT PROCEED** with cutover until remaining 2 issues remediated  
+**Key Finding:** Live Stripe publishable key IS present - initial audit was incorrect

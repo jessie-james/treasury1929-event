@@ -1,0 +1,41 @@
+Replit AI — Correct Publishable Key Detection (No External Calls, No Writes to 39/40)
+
+Rules
+- READ-ONLY. Do not call Stripe/SendGrid; do not modify events 39/40.
+- Goal: fix the audit to correctly detect the live publishable key from ALL legitimate sources and update the report.
+
+Tasks
+1) Publishable Key Discovery (multi-source)
+   Detect the effective Stripe publishable key from these sources, in order, stopping at the first non-empty value:
+   a) process.env.STRIPE_PUBLISHABLE_KEY_NEW
+   b) process.env.STRIPE_PUBLISHABLE_KEY
+   c) import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY (inspect build config / vite define)
+   d) import.meta.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (if present in code)
+   e) Public config endpoint (if exists): /api/public/stripe-pk – READ ONLY, no external calls (local server only)
+   f) Code call-site: where loadStripe(...) is invoked; capture the variable it passes.
+
+   Output for each detected candidate: 
+   - source name (e.g., VITE_STRIPE_PUBLISHABLE_KEY),
+   - masked value prefix (e.g., pk_live_...),
+   - path/file:line where it’s wired,
+   - how it reaches the browser (vite define, public endpoint, or direct constant).
+
+2) Vite/Build Exposure Check
+   - Confirm that whichever key is used client-side is actually exposed at build: 
+     - If using Vite, keys must be VITE_* or supplied via define() in vite.config.ts.
+     - If using a server endpoint, show the handler path and confirm it returns a non-empty string (mask output).
+
+3) Update the Production Cutover Audit
+   - Replace the previous “Missing publishable key” FAIL with PASS if any discovered key starts with pk_live_.
+   - Add a new row “Publishable key source” with the winning source and file/line evidence.
+   - Keep all other preconditions the same (PROTECT_EVENT_IDS, backups, NODE_ENV toggles, etc).
+
+4) Output
+   - Append a section to the existing TRE1929_Prod_Cutover_Audit_<timestamp>.md titled:
+     “Publishable Key Detection — Corrected”
+   - Include a concise PASS/FAIL table and the chosen source with masked prefix.
+   - Do not make network calls to Stripe. Do not modify any protected events.
+
+Acceptance
+- Report shows a PASS for publishable key with its real source (env var name or endpoint), masked as pk_live_….
+- No writes to events 39/40. No external network calls.
