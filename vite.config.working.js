@@ -7,7 +7,7 @@ const __dirname = dirname(__filename);
 
 export default defineConfig({
   plugins: [
-    // Using minimal config without problematic plugins
+    // Minimal config without problematic plugins for now
   ],
   resolve: {
     alias: {
@@ -20,4 +20,12 @@ export default defineConfig({
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
   },
+  css: {
+    postcss: {
+      plugins: [], // Empty plugins array to bypass PostCSS issues
+    },
+  },
+  define: {
+    global: 'globalThis',
+  }
 });
