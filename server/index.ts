@@ -981,6 +981,26 @@ app.use((req, res, next) => {
       try {
         app.use(express.static(path.resolve(process.cwd(), 'dist/public')));
         log("Fallback: Serving static files from dist/public");
+        
+        // Add catch-all route for React Router
+        app.get('*', (req, res, next) => {
+          // Skip API routes, assets, and specific backend routes
+          if (req.path.startsWith('/api/') || 
+              req.path.startsWith('/assets/') ||
+              req.path.startsWith('/booking-success') ||
+              req.path.includes('.')) {
+            return next();
+          }
+          
+          // Serve React app for all other routes
+          const indexPath = path.resolve(process.cwd(), 'dist/public/index.html');
+          res.sendFile(indexPath, (err) => {
+            if (err) {
+              console.error('Error serving index.html:', err);
+              res.status(404).send('Page not found');
+            }
+          });
+        });
       } catch (staticError) {
         log("No static files found, API-only mode");
       }
