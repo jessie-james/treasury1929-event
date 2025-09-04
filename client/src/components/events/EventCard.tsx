@@ -46,7 +46,7 @@ export function EventCard({ event }: { event: Event }) {
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="aspect-[16/9] relative">
+      <div className="aspect-square relative">
         <img
           src={event.image || '/assets/placeholder-event.jpg'}
           alt={event.title || 'Event'}
