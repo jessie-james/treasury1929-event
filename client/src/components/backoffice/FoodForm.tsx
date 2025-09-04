@@ -291,18 +291,19 @@ export function FoodForm({ food, onClose }: Props) {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(
             (data) => {
-              console.log("🎯 FORM SUBMIT HANDLER CALLED");
-              console.log("Form is valid:", form.formState.isValid);
+              console.log("🎯 FORM SUBMIT SUCCESS");
               console.log("Form data:", data);
               console.log("Form errors:", form.formState.errors);
+              console.log("About to call saveFood mutation");
               saveFood(data);
             },
             (errors) => {
               console.log("❌ FORM VALIDATION FAILED");
               console.log("Validation errors:", errors);
+              console.log("All form state:", form.formState);
               toast({
-                title: "Please fix the errors",
-                description: Object.keys(errors).join(", "),
+                title: "Form validation failed",
+                description: `Errors: ${Object.keys(errors).join(", ")}`,
                 variant: "destructive"
               });
             }
@@ -534,7 +535,19 @@ export function FoodForm({ food, onClose }: Props) {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending}>
+              <Button 
+                type="submit" 
+                disabled={isPending}
+                onClick={() => {
+                  console.log("🔲 UPDATE BUTTON CLICKED");
+                  console.log("Form state:", {
+                    isValid: form.formState.isValid,
+                    isDirty: form.formState.isDirty,
+                    errors: form.formState.errors,
+                    values: form.getValues()
+                  });
+                }}
+              >
                 {isPending ? "Saving..." : food ? "Update" : "Create"}
               </Button>
             </div>
