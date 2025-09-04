@@ -153,8 +153,12 @@ export function FoodForm({ food, onClose }: Props) {
       const imagePath = data.path;
       
       // Update the form field with the new image path
+      console.log("🖼️ Setting image path:", imagePath);
       form.setValue('image', imagePath);
       setUploadedImage(imagePath);
+      
+      // Trigger form validation after image upload
+      console.log("Form validation after image upload:", await form.trigger('image'));
       
       toast({
         title: 'Image uploaded successfully',
@@ -217,6 +221,8 @@ export function FoodForm({ food, onClose }: Props) {
       // Convert price to cents for storage (like BeverageForm does)
       const payload = {
         ...data,
+        // Use uploaded image if available, otherwise use form data
+        image: uploadedImage || data.image || "",
         price: data.price !== undefined ? Math.round(data.price * 100) : undefined,
       };
       
