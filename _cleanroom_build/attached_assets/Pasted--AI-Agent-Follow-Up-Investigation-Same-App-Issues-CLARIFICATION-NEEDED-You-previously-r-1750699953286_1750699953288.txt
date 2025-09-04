@@ -1,0 +1,135 @@
+# AI Agent: Follow-Up Investigation - Same App Issues
+
+## **CLARIFICATION NEEDED**
+
+You previously reported "100% Bug Resolution Achieved" but now we're seeing the same Lucide "Bottle" error again. Let's investigate what happened.
+
+---
+
+## **IMMEDIATE STATUS CHECK**
+
+### Question 1: Current State Verification
+**Answer these questions:**
+- Did you restart your development server after our previous fixes?
+- Are you seeing the SAME Lucide "Bottle" error we thought was fixed?
+- Did any of the previous fixes get reverted or undone?
+- Is this happening in a different component than before?
+
+---
+
+## **STEP 1: Verify Previous Fixes Are Still Applied**
+
+### Check if our auth fixes are still in place:
+
+**File:** `client/src/hooks/use-auth.tsx`
+**Look for:** The custom fetch function we implemented
+**Should contain:**
+```typescript
+queryFn: async () => {
+  try {
+    const res = await fetch('/api/user', {
+      method: 'GET',
+      credentials: 'include',
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (res.status === 401 || res.status === 204) {
+      return null;
+    }
+    // ... rest of function
+  } catch (error) {
+    return null;
+  }
+},
+```
+
+**Report:** Is this code still there? YES/NO
+
+**File:** `server/auth.ts` 
+**Look for:** The endpoint returning 204 instead of 401
+**Should contain:**
+```typescript
+app.get("/api/user", (req, res) => {
+  if (req.isAuthenticated() && req.user) {
+    // ... user logic
+    return res.json(userObj);
+  }
+  
+  // Return 204 instead of 401
+  return res.status(204).send();
+});
+```
+
+**Report:** Is this code still there? YES/NO
+
+---
+
+## **STEP 2: Find the ACTUAL Bottle Import Issue**
+
+Since we thought this was fixed before, let's do a more thorough search:
+
+### Search Commands:
+```bash
+# Search for Bottle in ALL files (not just client/src)
+find . -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" | xargs grep -l "Bottle"
+
+# Search for all lucide-react imports across the entire project
+find . -name "*.ts" -o -name "*.tsx" | xargs grep -l "lucide-react"
+
+# Check if there are multiple WineSelection components
+find . -name "*Wine*" -o -name "*wine*"
+
+# Look for any build artifacts that might be cached
+ls -la node_modules/.vite/ 2>/dev/null || echo "No .vite cache found"
+```
+
+---
+
+## **STEP 3: Current Browser Console Status**
+
+### Real-Time Error Check:
+1. **Clear browser cache completely** (Ctrl+Shift+Del)
+2. **Restart your dev server** (`npm run dev`)
+3. **Open fresh browser tab**
+4. **Go to your app**
+5. **Open DevTools console**
+
+**Report the CURRENT console errors:**
+```
+=== CURRENT CONSOLE ERRORS ===
+[Copy all current errors - not old ones]
+
+=== CURRENT UNHANDLED REJECTIONS ===
+Count: [NUMBER]
+Details: [PASTE DETAILS]
+```
+
+---
+
+## **STEP 4: Check if Vite Cache Issues Returned**
+
+The Lucide error might be caused by Vite cache corruption again. Let's clear it more thoroughly:
+
+```bash
+# Stop your dev server first (Ctrl+C)
+
+# Clear ALL caches
+rm -rf node_modules/.vite
+rm -rf dist/
+rm -rf .next/ 2>/dev/null || true
+rm -rf node_modules/.cache/ 2>/dev/null || true
+
+# Clear npm cache
+npm cache clean --force
+
+# Reinstall dependencies
+rm -rf node_modules/
+npm install
+
+# Restart dev server
+npm run dev
+```
+
+**After clearing caches, report:**
+- Does the Bottle error still appear? YES/NO
+- How many console errors do you see now? [NUMBER]

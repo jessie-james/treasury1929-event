@@ -1,0 +1,263 @@
+# IMPORTANT: Replace Broken Stripe Code with Server-Side Solution
+
+## What You Need to Do:
+
+1. **REMOVE** all existing Stripe.js CDN loading code that's currently failing
+2. **DELETE** the `stripe-loader.ts` file and all fallback loading strategies
+3. **REPLACE** with this new server-side only approach
+4. **UPDATE** the frontend to use simple redirect instead of complex loading
+
+---
+
+## Backend Implementation - REPLACE Current Payment Routes
+
+```typescript
+// server/routes-payment.ts
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2023-10-16',
+});
+
+// Create checkout session instead of payment intent
+app.post("/api/create-checkout-session", async (req, res) => {
+  try {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { eventId, tableId, selectedSeats, amount, foodSelections, guestNames } = req.body;
+    
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `Event Booking - ${selectedSeats.length} seats`,
+              description: `Event ID: ${eventId}, Table: ${tableId}`,
+            },
+            unit_amount: Math.round(amount / selectedSeats.length), // amount per seat
+          },
+          quantity: selectedSeats.length,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${process.env.CLIENT_URL}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.CLIENT_URL}/booking-cancelled`,
+      metadata: {
+        eventId: eventId.toString(),
+        tableId: tableId.toString(),
+        userId: req.user.id.toString(),
+        seats: selectedSeats.join(','),
+        foodSelections: JSON.stringify(foodSelections),
+        guestNames: JSON.stringify(guestNames),
+      },
+    });
+
+    res.json({ sessionId: session.id, url: session.url });
+  } catch (error) {
+    console.error('Checkout session creation failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Handle successful payment callback
+app.get("/api/payment-success", async (req, res) => {
+  try {
+    const { session_id } = req.query;
+    
+    if (!session_id) {
+      return res.status(400).json({ error: 'Missing session ID' });
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(session_id as string);
+    
+    if (session.payment_status === 'paid') {
+      // Create booking in database
+      const bookingData = {
+        eventId: parseInt(session.metadata.eventId),
+        tableId: parseInt(session.metadata.tableId),
+        userId: parseInt(session.metadata.userId),
+        selectedSeats: session.metadata.seats.split(',').map(Number),
+        foodSelections: JSON.parse(session.metadata.foodSelections),
+        guestNames: JSON.parse(session.metadata.guestNames),
+        paymentStatus: 'completed',
+        stripeSessionId: session.id,
+        amount: session.amount_total,
+      };
+
+      // Insert booking into database
+      const booking = await createBooking(bookingData);
+      
+      res.json({ success: true, booking });
+    } else {
+      res.status(400).json({ error: 'Payment not completed' });
+    }
+  } catch (error) {
+    console.error('Payment verification failed:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+```
+
+## Frontend Implementation - REPLACE Current CheckoutForm
+
+```typescript
+// client/src/components/booking/CheckoutForm.tsx
+import React, { useState } from 'react';
+
+const CheckoutForm = ({ eventId, tableId, selectedSeats, foodSelections, guestNames, onSuccess }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handlePayment = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          eventId,
+          tableId,
+          selectedSeats,
+          foodSelections,
+          guestNames,
+          amount: Math.round(19.99 * selectedSeats.length * 100), // amount in cents
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Payment setup failed');
+      }
+
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+      
+    } catch (error) {
+      console.error('Payment failed:', error);
+      setError(error.message);
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="checkout-form">
+      <div className="booking-summary">
+        <h3>Booking Summary</h3>
+        <p>Seats: {selectedSeats.length}</p>
+        <p>Total: ${(19.99 * selectedSeats.length).toFixed(2)}</p>
+      </div>
+      
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+      
+      <button 
+        onClick={handlePayment}
+        disabled={isLoading}
+        className="pay-button"
+      >
+        {isLoading ? 'Processing...' : 'Pay Now'}
+      </button>
+    </div>
+  );
+};
+
+export default CheckoutForm;
+```
+
+## Required Environment Variables
+
+Make sure these are set:
+
+```env
+# server/.env
+STRIPE_SECRET_KEY=sk_test_your_secret_key_here
+CLIENT_URL=your_frontend_url_here
+
+# client/.env
+VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
+```
+
+## Success/Cancel Pages Needed
+
+Create these simple pages:
+
+```typescript
+// client/src/pages/BookingSuccess.tsx
+import React, { useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
+const BookingSuccess = () => {
+  const [searchParams] = useSearchParams();
+  const sessionId = searchParams.get('session_id');
+
+  useEffect(() => {
+    if (sessionId) {
+      // Optionally verify payment on frontend
+      fetch(`/api/payment-success?session_id=${sessionId}`)
+        .then(res => res.json())
+        .then(data => console.log('Booking confirmed:', data));
+    }
+  }, [sessionId]);
+
+  return (
+    <div className="success-page">
+      <h1>Payment Successful! 🎉</h1>
+      <p>Your booking has been confirmed.</p>
+      <p>Session ID: {sessionId}</p>
+    </div>
+  );
+};
+
+export default BookingSuccess;
+```
+
+```typescript
+// client/src/pages/BookingCancelled.tsx
+import React from 'react';
+
+const BookingCancelled = () => {
+  return (
+    <div className="cancelled-page">
+      <h1>Payment Cancelled</h1>
+      <p>Your booking was not completed.</p>
+      <button onClick={() => window.history.back()}>
+        Try Again
+      </button>
+    </div>
+  );
+};
+
+export default BookingCancelled;
+```
+
+## Critical Steps:
+
+1. ✅ **DELETE** `client/src/utils/stripe-loader.ts`
+2. ✅ **REMOVE** all CDN loading attempts from CheckoutForm
+3. ✅ **REPLACE** `/api/create-payment-intent` with `/api/create-checkout-session`
+4. ✅ **UPDATE** CheckoutForm to use simple redirect
+5. ✅ **CREATE** success and cancel pages
+6. ✅ **TEST** the new flow
+
+## Why This Works:
+
+- No more CDN loading issues
+- Stripe hosts the payment page
+- Simple redirect-based flow
+- More secure server-side handling
+- Reliable payment processing
+
+This completely bypasses the network connectivity issues you were experiencing!

@@ -1,0 +1,105 @@
+Replit AI — DETERMINISTIC CRASH RECOVERY AUDIT (No Data Touch)
+Goal
+Explain precisely why the app still crashes after the previous fix and, only if necessary, perform the minimal build/tooling repairs required to boot the server. DO NOT change product features, routes, DB data, or migrations. This is a recovery-focused audit with optional narrow build repairs.
+
+Absolute Guardrails (must obey)
+- READ-ONLY first. No DB writes, no migrations, no seeds, no changes to events 39 or 40.
+- No Stripe/SendGrid traffic. When booting, force:
+  EMAIL_SUPPRESS_OUTBOUND=true
+  STRIPE_MOCK_MODE=true
+  BACKUPS_ENABLED=false
+- Only if the crash is clearly caused by build/tooling/env drift, you may modify package.json scripts/devDependencies and tsconfig to restore the build. No library upgrades beyond the exact pinned versions listed below. No app code or route logic edits beyond what is needed to prevent vite/@vitejs/plugin-react from appearing in the production server bundle.
+
+Branch
+Create branch: hotfix/recovery-audit-only
+
+Deliverable
+Write a single markdown file at repo root:
+TRE1929_Recovery_Audit_<timestamp>.md
+Include every command output and exact file/line evidence. End with “No data writes. No migrations. No external calls.”
+
+PHASE 0 — Snapshot (READ-ONLY)
+- Print:
+  git rev-parse HEAD
+  git status --porcelain
+  node -v && npm -v
+  jq '.scripts, .dependencies, .devDependencies' package.json
+  ls -la dist | head -n 50
+  grep -nH -E "vite|@vitejs/plugin-react" dist/index.js || true
+- Record whether dist/index.js still references vite or @vitejs/plugin-react.
+
+PHASE 1 — Boot Attempt (READ-ONLY runtime)
+- Build (do not install new deps yet):
+  npm run build || echo "BUILD_FAILED"
+- Start with I/O suppressed:
+  NODE_ENV=production EMAIL_SUPPRESS_OUTBOUND=true STRIPE_MOCK_MODE=true BACKUPS_ENABLED=false node --trace-uncaught dist/index.js
+- If it crashes, capture the entire stack (first 120 lines) in the report.
+
+PHASE 2 — Root-Cause Classification (READ-ONLY)
+Categorize the failure with direct evidence:
+ A) dist/index.js imports vite/@vitejs/plugin-react
+ B) Missing tool binaries (esbuild/tsx) or broken npm path
+ C) TS config still missing libs/types
+ D) Stale dist vs src
+ E) Other (quote exact error lines)
+
+PHASE 3 — Minimal Tooling & Build Repair (WRITE ONLY IF NEEDED)
+If and only if PHASE 2 shows build/tooling drift, do the following minimal steps and nothing else:
+
+3.1 Clean workspace (safe)
+- rm -rf node_modules dist .vite .cache || true
+
+3.2 Ensure pinned dev tools (NO upgrades of app deps)
+- Add (or pin) these devDependencies exactly, if missing:
+  "esbuild": "0.25.0",
+  "tsx": "4.19.1",
+  "rimraf": "5.0.7",
+  "typescript": "^5.6.3"
+- Do NOT change any versions of react, express, drizzle, etc.
+- Install from lockfile if present:
+  npm ci || npm install --no-audit --no-fund
+
+3.3 Production-safe server build script (externalize vite)
+- Ensure package.json scripts contain:
+  "clean": "rimraf dist",
+  "build:server": "esbuild server/index.ts --platform=node --format=esm --bundle --outdir=dist --sourcemap --external:vite --external:@vitejs/plugin-react",
+  "build:client": "vite build",
+  "build": "npm run clean && npm run build:server && npm run build:client",
+  "start": "node dist/index.js"
+- Do NOT add other externals.
+- Do NOT edit application logic.
+
+3.4 TypeScript lib/types sanity
+- In tsconfig.json, ensure:
+  "compilerOptions": {
+    "lib": ["ES2015","ES2020","DOM","DOM.Iterable"],
+    "types": ["node"],
+    "skipLibCheck": true
+  }
+- Preserve all other options.
+
+PHASE 4 — Rebuild & Reboot (SAFE MODE)
+- npm run build
+- Verify that dist/index.js no longer mentions vite or @vitejs/plugin-react:
+  grep -nH -E "vite|@vitejs/plugin-react" dist/index.js || echo "NO_VITE_IN_DIST"
+- Start:
+  NODE_ENV=production EMAIL_SUPPRESS_OUTBOUND=true STRIPE_MOCK_MODE=true BACKUPS_ENABLED=false node dist/index.js
+- If it boots, hit READ-ONLY endpoints:
+  GET /health (expect 200)
+  GET /api/events (first 500 chars)
+
+PHASE 5 — Evidence Pack
+In TRE1929_Recovery_Audit_<timestamp>.md include:
+- All commands & outputs
+- Exact crash stack before fixes
+- Diffs (unified) for package.json and tsconfig.json if changed
+- Proof that dist/index.js has no vite/@vitejs/plugin-react
+- Boot log (first 40 lines)
+- HTTP checks (status + first 200–500 chars)
+- Explicit statement:
+  “No DB writes, no migrations, no seeds. No Stripe/SendGrid calls. Events 39 & 40 untouched.”
+
+Exit Criteria
+- If server boots successfully in safe mode, print:
+  READY_TO_TEST=TRUE
+- If it still crashes, print the exact topmost error and import chain with file:line, and STOP (no further edits).

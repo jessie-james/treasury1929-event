@@ -1,0 +1,177 @@
+Replit AI — Comprehensive Post-Change Audit (READ-ONLY, Zero-Risk)
+
+Do not modify files, do not install, do not run or build anything, do not start servers, do not connect to databases, do not call external APIs. Absolutely no Stripe or email activity.
+
+Operating Mode (must obey)
+
+READ-ONLY ONLY. No writes, no migrations, no npm/yarn/pnpm, no node/tsx/vite/jest/vitest, no HTTP calls, no DB connections, no cron starts.
+
+May read files and run local grep or git log commands that do not execute app code. Do not run any node/ts scripts.
+
+Never touch or query data for the Aug 28 or Sep 5 events. Treat them as protected context only.
+
+Output exactly one Markdown file named:
+TRE1929_Comprehensive_PostChange_Audit_<timestamp>.md
+
+Inputs / Context to Use
+
+The current repo state in this workspace.
+
+Prior materials if present in the repo:
+
+TRE1929_App_Audit_and_Change_Plan_*.md (initial audit)
+
+TRE1929_PostApply_Verification_*.md
+
+Any later proof reports we generated (content/price/report/UI/artist proofs)
+
+Jose’s master brief requirements (use verbatim checks for these items).
+
+Deliverable — Report Structure (use this exact order)
+1) Executive Summary — PASS/FAIL Matrix
+
+Make a table with columns: Item | Result (PASS/FAIL/UNKNOWN) | Evidence (file:lines) | Notes / Risk.
+Items to include (each a separate row):
+
+Price on Event Card header and Event Details shows “$130 per guest — tax & gratuity included.”
+
+Availability counts confirmed | reserved | comp (AvailabilitySync).
+
+Email suppression guard (EMAIL_SUPPRESS_OUTBOUND) wraps all send paths.
+
+Session cookies: secure in prod, sameSite:'lax', httpOnly:true.
+
+Name normalization (strip BOM/control chars, NFC) is applied on registration, webhook/admin booking, reports, email templates.
+
+Inactive = Sold Out: server blocks purchases when inactive; client shows “Sold Out”; revenue unaffected.
+
+Admin booking suite: routes exist with Zod validation:
+POST /api/admin/bookings/reserve, POST /api/admin/bookings/manual,
+POST /api/admin/bookings/:id/paylink (Stripe Checkout only),
+POST /api/admin/bookings/:id/mark-paid-offline (no card collection).
+
+Write-guard protects Aug 28 & Sep 5 (env PROTECT_EVENT_IDS) on destructive routes.
+
+Scanning QoL: continuous camera, scan-result modal (purchaser + table + party), counters refresh; manual lookup by last name / booking ID.
+
+Backups: cron set to 03:30 America/Phoenix, gated by BACKUPS_ENABLED, snapshots only ≥72h after event, 90-day retention, default OFF.
+
+Menu: Grilled King Salmon added as an entrée and wired so the three Sept events present it in the booking UI (Branzino not selectable for those Sept events).
+
+Event Editor (price): base_price bound (no blank), default 13000 for full events, priceDisplay editable, helper used for preview.
+
+Event Editor (artists): admin UI supports 1..N artists (name, role, bio, photo URL), reorderable; seeded for the three Sept events.
+
+Server Sections report: by-course printable HTML (Salad/Appetizer → Entrée → Dessert), grouped Course → Table → Seat, with wine totals and page breaks.
+
+SAQ-A compliance: No card fields in backoffice; paylink uses Stripe Checkout; idempotent webhook finalize.
+
+Rule: If you cannot confirm an item without running the app/DB, mark it UNKNOWN and explain what’s missing to verify safely.
+
+2) Evidence Deep-Dive (code-level, static only)
+
+For every PASS (and any FAIL), include short code excerpts (≤40 lines each) with exact file paths and line ranges:
+
+Price helper & usage sites
+client/src/lib/price.ts → formatPriceDisplay();
+client/src/components/events/EventCard*.tsx header;
+client/src/components/events/EventDetails*.tsx;
+Any checkout/summary components.
+Also include grep results proving no $50/5000 default remains for full events.
+
+AvailabilitySync counting logic
+server/availability-sync.ts (or equivalent) showing status IN ('confirmed','reserved','comp') and seats/tables roll-ups.
+
+Email suppression
+server/email-service.ts (all send methods) showing fast-exit when EMAIL_SUPPRESS_OUTBOUND==='true'.
+
+Session cookies
+server/auth.ts cookie options: secure prod, sameSite:'lax', httpOnly:true.
+
+Name normalization util & call sites
+server/utils/strings.ts (normalizeString/normalizeName) + imports/usage in registration, webhook/admin booking, reports, email templates.
+
+Inactive gating
+Server checks in purchase/availability endpoints (e.g., server/routes*.ts, server/routes-payment.ts) that block when event.isActive === false;
+Client “Sold Out” badges in Event Card & Details; statement that no revenue recalculation occurs.
+
+Admin booking routes (+ Zod schemas) and SAQ-A proof
+Paths and handler snippets for: reserve, manual, paylink (Stripe Checkout URL only), mark-paid-offline; webhook finalize idempotency; proof that no card inputs exist in backoffice UI.
+
+Write-guard middleware
+server/middleware/write-guard.ts or equivalent; env parsing of PROTECT_EVENT_IDS; list of routes that apply the middleware.
+
+Scanning QoL
+server/routes-checkin.ts and the backoffice page (client/src/pages/backoffice/EntrancePage*.tsx) showing continuous camera, modal details, counters refresh, manual lookup.
+
+Backups
+Cron expression '30 3 * * *'; time zone handling; BACKUPS_ENABLED gate; ≥72h delay prior to snapshot; 90-day retention delete; .env.example/README doc.
+Do not run cron or connect anywhere—show code only.
+
+Menu wiring: Grilled King Salmon
+The definitive source of entrée choices (constants, endpoint, or DB mapping). Show where Salmon is defined and where the three Sept events link to it; show Branzino hidden/inactive for those events.
+
+Event Editor (price)
+Server validation requiring base_price for event_type='full'; default to 13000 on empty; client binding of Base Price (USD) to cents; price preview using the helper.
+
+Event Editor (artists)
+Migration (if table used) with columns; Server CRUD routes; Client editor panel JSX with fields (Name, Role, Bio, Photo URL), Add Artist / Delete / Reorder controls; default to one artist if none exist; null-safe guards.
+
+Server Sections report
+Route + template returning HTML with Course → Table → Seat grouping; show wine totals and print CSS/page breaks. Include a 40-line snippet of generated HTML (static sample string or template).
+
+3) Spec Conformance Map (original brief → code reality)
+
+Build a two-column checklist mapping each requirement from Jose’s brief to actual implementation status (Met / Partially Met / Not Met / Unknown) with a pointer to the evidence section. Include:
+
+Critical hotfixes (price pre-selection, counter accuracy, session security, email suppression, name normalization, timezone America/Phoenix).
+
+Booking flow improv (prompt guest count up front).
+
+Scanning/Check-in QoL.
+
+Reporting (orders sort newest→oldest; banner totals include wine; by-course server sections).
+
+Admin/Data (Inactive behavior; manual backoffice booking; global list sorting default newest→oldest; backups @ 72h delay & 90d retention, flag-gated; data safety scope for Aug 28/Sep 5).
+
+Menu/content (Salmon entrée; copy blocks for Sept 9/12/19; placeholders for hero photos; Artists bios/photos N-of-1+).
+
+SAQ-A & Stripe usage (Checkout links only; no card fields).
+
+4) Gap Analysis & Risk Register
+
+For every FAIL or UNKNOWN, document:
+
+Impact (High/Med/Low), Area, Exact file(s) involved or missing.
+
+Root-cause hypothesis (e.g., missing binding, not wired route, legacy constant).
+
+Regression risk (what it might break).
+
+5) Minimal Remediation Plan (diff stubs only — do NOT apply)
+
+For each gap, provide a tight unified diff (≤40 lines per file) that would fix it, plus a 1-line acceptance test. Print diffs inline in fenced blocks. Do not write files.
+
+6) No-Op Guarantees & Safety Proof
+
+Confirm no commands were run that could start the app, send emails, or hit Stripe.
+
+Confirm no DB/network connections were attempted.
+
+If you used git or grep, list the commands (they are read-only) and their outputs.
+
+7) Appendix — Evidence Index
+
+Collate all file paths with line ranges cited in the report for quick verification.
+
+Special Rules (must follow)
+
+Never read, write, or mutate records for the Aug 28 or Sep 5 events. Do not open their data; you may only reference their IDs from code as protected examples.
+
+If an item requires runtime or DB to prove, mark it UNKNOWN and propose a safe, separate write-mode follow-up prompt (but do not execute it now).
+
+Keep quotations from code to ≤40 lines per excerpt. Do not paste entire files.
+
+Use the exact phrases from Jose’s brief when checking copy (e.g., the price line and event descriptions).
+
+Deliverable: one Markdown file TRE1929_Comprehensive_PostChange_Audit_<timestamp>.md with sections 1–7 above—nothing else.

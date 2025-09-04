@@ -1,0 +1,128 @@
+Replit AI — Live Discrepancy Investigator → (Conditionally) Autorepair
+Scope: Salmon choice wiring, EventCard price phrase, Artists UI (photo+bio) & crash, Server Sections report
+Safety Rules (must obey)
+
+Never read, write, or mutate records for Aug 28 or Sep 5 events. Keep PROTECT_EVENT_IDS active.
+
+No customer emails, no Stripe. Force:
+
+NODE_ENV=staging
+EMAIL_SUPPRESS_OUTBOUND=true
+STRIPE_MOCK_MODE=true
+BACKUPS_ENABLED=false
+PHX_TZ=America/Phoenix
+
+
+All fixes are minimal and scoped to the four issues below. No other refactors.
+
+Phase 1 — Live Validation (READ-ONLY first)
+
+Spin up the app locally (or staging) in safe mode and run these checks; capture screenshots and snippets:
+
+EventCard Price Phrase
+
+On the Events list, for Sept 9/12/19 cards, assert the header shows “$130 per guest — tax & gratuity included”.
+
+If absent on any card, mark FAIL for that card.
+
+Menu / Salmon Wiring
+
+For each Sept event detail page (or booking page), assert entrée options include “Grilled King Salmon — mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes.”
+
+If missing on any of the three events, mark FAIL for that event, and note from which source the menu is loaded (constants / API / DB mapping).
+
+Artists UI (photo + bio) & Crash Guard
+
+Open Backoffice → Event Editor for each Sept event.
+
+Verify Artists panel exists and loads with at least one row.
+
+Fields present: Name, Role, Bio (multiline), Photo URL.
+
+Create a temporary test artist row, then delete it. Confirm no crash and routes respond 2xx.
+
+If panel missing, fields missing, or the editor crashes/throws, mark FAIL and capture stack trace.
+
+Server Sections Report (by-course)
+
+From Backoffice Reports, generate the Server Sections report for 2–3 tables.
+
+Assert the printable HTML shows course order Salad/Appetizer → Entrée → Dessert, table headers TABLE <n> — Party <size> — <floor>, columns Seat | Guest Name | Allergens/Dietary | Selection | Wine (bottle, qty) | Notes, with wine totals and page breaks.
+
+If formatting differs or route 404s, mark FAIL.
+
+Deliverable (even if things pass):
+TRE1929_Live_Discrepancy_Check_<timestamp>.md with:
+
+PASS/FAIL table per item and per event (9/12/19),
+
+file/line references for the code path actually used,
+
+embedded screenshots (cards, menu selector, editor, report preview),
+
+exact GET/POST endpoints invoked (redact IDs).
+
+Phase 2 — Autorepair (only if FAIL was observed)
+
+If any check FAILS, perform the minimal fix, commit, rebuild, and re-run Phase 1 for the failing item(s) only. Allowed fixes:
+
+A) EventCard price phrase missing
+
+Ensure client/src/components/events/EventCard*.tsx renders:
+
+import { formatPriceDisplay } from '@/lib/price';
+<div className="text-sm font-semibold">{formatPriceDisplay(event)}</div>
+
+
+Ensure formatPriceDisplay returns the exact phrase for event_type='full' (and respects priceDisplay).
+
+Remove any lingering $50/5000 fallbacks on cards.
+Commit: fix(ui): restore price phrase on event cards via helper
+
+B) Salmon entrée not appearing on Sept events
+
+Determine authoritative menu source:
+
+DB tables (menu_items, event_menu_items): upsert Grilled King Salmon and link to Sept 9/12/19; deactivate Branzino for those events only.
+
+API JSON (/api/events/:id/menu): ensure response includes Salmon for those events.
+
+Client constants: update the array used by Sept events.
+
+Rebuild; confirm booking UI now shows Salmon.
+Commit: feat(menu): add Grilled King Salmon and map to Sept events
+
+C) Artists panel absent/crashing or missing Photo/Bio fields
+
+Add/repair event_artists table and CRUD routes if missing.
+
+In the editor panel component, initialize artists ?? [], add Photo URL field and Bio textarea; add null guards.
+
+Provide a placeholder preview when photoUrl is empty.
+Commit: feat(editor): artists panel (1..N) with photo+bio, null-safe
+
+D) Server Sections report format off
+
+Overwrite the template at server/templates/server-sections.ts (or route) to produce the required layout and print CSS; ensure it uses the same entrée source as in B).
+Commit: feat(reports): by-course Server Sections layout + print CSS
+
+After fixes: rebuild, re-run the failing Phase-1 checks, and append a “Post-Fix Verification” section to the report with new screenshots and file/line evidence.
+
+Phase 3 — Output
+
+Produce one consolidated markdown:
+TRE1929_Live_Discrepancy_Check_<timestamp>.md containing:
+
+The initial PASS/FAIL matrix with screenshots,
+
+If any fixes were applied: a short diff summary (files & hunks), and Post-Fix Verification proving the UI now behaves correctly,
+
+A final GO / NO-GO for each of the four items (cards price, Salmon, artists UI, report).
+
+Guardrails Recap
+
+Keep EMAIL_SUPPRESS_OUTBOUND=true, STRIPE_MOCK_MODE=true, BACKUPS_ENABLED=false.
+
+Do not touch Aug 28/Sep 5 data—use only the three September events for checks & temporary edits.
+
+No broad refactors; only the scoped fixes above.

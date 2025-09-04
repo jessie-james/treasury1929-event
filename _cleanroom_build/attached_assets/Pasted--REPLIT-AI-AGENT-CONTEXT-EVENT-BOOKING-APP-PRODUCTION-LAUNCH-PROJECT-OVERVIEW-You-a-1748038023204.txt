@@ -1,0 +1,136 @@
+# 🎯 REPLIT AI AGENT CONTEXT - EVENT BOOKING APP PRODUCTION LAUNCH
+
+## 📋 **PROJECT OVERVIEW**
+You are helping complete an **Event Booking Application** that needs to be **client-ready by tomorrow**. This is a full-stack React + Vite + Express + PostgreSQL app running on Replit that allows users to book tickets for events with Stripe payment processing.
+
+## 🚨 **CURRENT CRITICAL STATUS**
+- **Core booking functionality**: ✅ Working (payment, database, user auth)
+- **Email system**: ❌ **MISSING - CRITICAL FOR LAUNCH**
+- **Security hardening**: ❌ **MISSING - REQUIRED FOR PRODUCTION**
+- **Production deployment**: ⚠️ **NEEDS CONFIGURATION**
+
+## 🎯 **END GOAL**
+Transform this development app into a **production-ready client deliverable** with:
+1. **Email confirmations** for bookings and user registration
+2. **Security measures** to protect against attacks
+3. **Proper error handling** and logging
+4. **Client handover documentation**
+5. **Stable production deployment**
+
+## ⚡ **IMMEDIATE NEXT STEPS (PRIORITY ORDER)**
+
+### **STEP 1: EMAIL SERVICE INTEGRATION (CRITICAL - 45 MIN)**
+**Context**: Currently users get no confirmation emails when they book tickets or register accounts.
+
+**Task**: Implement SendGrid email service for:
+- Booking confirmation emails (with event details, booking ID, payment confirmation)
+- Welcome emails for new user registrations  
+- Password reset functionality
+- Admin notification emails for new bookings
+
+**Implementation Notes**:
+- Use `@sendgrid/mail` package (Replit compatible)
+- Store API key in Replit Secrets as `SENDGRID_API_KEY`
+- Create email templates for different scenarios
+- Integrate into existing booking and auth flows
+
+### **STEP 2: SECURITY HARDENING (CRITICAL - 30 MIN)**
+**Context**: App currently has no rate limiting, security headers, or protection against common attacks.
+
+**Task**: Add production security measures:
+- Install and configure `helmet` for security headers
+- Add `express-rate-limit` to prevent booking spam (max 3 bookings per 5 minutes)
+- Set up CORS properly for production domain
+- Add input validation and sanitization
+- Secure environment variable handling
+
+### **STEP 3: PAYMENT SECURITY (CRITICAL - 30 MIN)**
+**Context**: Stripe integration exists but needs webhook verification for production.
+
+**Task**: Implement secure payment verification:
+- Add Stripe webhook endpoint with signature verification
+- Handle payment success/failure events properly
+- Add payment status tracking in database
+- Implement booking confirmation only after payment verification
+
+### **STEP 4: ERROR HANDLING & LOGGING (IMPORTANT - 20 MIN)**
+**Context**: App needs proper error handling for production stability.
+
+**Task**: Add comprehensive error handling:
+- Global error middleware for Express
+- User-friendly error messages for frontend
+- Server logging for debugging issues
+- Database error handling and rollback logic
+
+### **STEP 5: PRODUCTION DEPLOYMENT (IMPORTANT - 20 MIN)**
+**Context**: App needs to be deployed on Replit with proper configuration.
+
+**Task**: Configure production deployment:
+- Set up Replit Autoscale deployment
+- Configure all environment variables in Replit Secrets
+- Set NODE_ENV=production
+- Test full deployment flow
+- Optimize build configuration
+
+## 🗄️ **CURRENT TECH STACK**
+- **Frontend**: React + Vite + TypeScript + Tailwind CSS
+- **Backend**: Express.js + Node.js
+- **Database**: PostgreSQL + Drizzle ORM
+- **Payment**: Stripe integration
+- **Auth**: Custom JWT-based authentication
+- **Hosting**: Replit
+
+## 📁 **KEY FILES TO WORK WITH**
+- `server/routes.ts` - Main API endpoints
+- `server/storage.ts` - Database operations
+- `server/index.ts` - Express app setup
+- `shared/schema.ts` - Database schema definitions
+- `client/src/components/` - React components
+- `package.json` - Dependencies
+
+## 🔧 **ENVIRONMENT VARIABLES NEEDED**
+```
+DATABASE_URL=postgresql://...
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+SENDGRID_API_KEY=SG...
+JWT_SECRET=random_secure_string
+NODE_ENV=production
+```
+
+## 🚀 **SUCCESS CRITERIA**
+By completion, the app should:
+- ✅ Send booking confirmation emails automatically
+- ✅ Handle user registration with welcome emails
+- ✅ Have password reset functionality
+- ✅ Be protected against common security attacks
+- ✅ Handle errors gracefully without crashing
+- ✅ Be deployed and accessible via public URL
+- ✅ Include admin documentation for client handover
+
+## ⚠️ **CRITICAL CONSTRAINTS**
+- **Timeline**: Must be completed tonight for tomorrow's client delivery
+- **Platform**: Must work within Replit's environment
+- **Budget**: Use free tiers where possible (SendGrid free tier = 100 emails/day)
+- **Simplicity**: Implement robust but simple solutions (no over-engineering)
+
+## 🎯 **CURRENT BLOCKING ISSUE**
+The main technical blocker was API routes not working in development due to Vite server interference, but this should be resolved by moving to production deployment.
+
+## 📋 **CLIENT HANDOVER REQUIREMENTS**
+After completion, provide:
+1. Admin login credentials
+2. List of all service accounts created (SendGrid, Stripe, etc.)
+3. Environment variables documentation
+4. Basic admin user guide
+5. Support contact information
+
+## 💡 **HELPFUL CONTEXT**
+- The core booking functionality is solid - focus on production readiness
+- Email service is the #1 missing piece that will make or break client acceptance
+- Security is non-negotiable for a payment processing app
+- Keep solutions simple but production-grade
+
+---
+
+**🎯 FOCUS**: Prioritize email service first, then security, then deployment. The goal is a working, secure, client-ready booking application that can process real customer bookings safely.

@@ -1,0 +1,193 @@
+Replit AI — Read-Only System Audit & Handoff Document (Do Not Modify Code)
+Operating Mode (Must Obey)
+
+READ-ONLY ONLY. DO NOT edit, refactor, run, install, delete, stage, commit, push, or redeploy anything.
+
+Single deliverable: Output one comprehensive Markdown document titled
+TRE1929_App_Audit_and_Change_Plan_<timestamp>.md.
+
+Maintain exact file paths, exact code snippets, and source locations for all references.
+
+If a section is not applicable, include it and write: _No instances found_.
+
+Project Context
+
+This repository powers The Treasury 1929 event booking platform. Known integrations include:
+
+Stripe (payments, webhooks)
+
+SendGrid (transactional email)
+
+America/Phoenix timezone handling across frontend, backend, emails
+
+Interactive seating/tables, event duplication workflows, pre-event food ordering
+
+Assume future changes must not break payments, refunds, confirmation emails, table re-opening logic, and scheduled jobs.
+
+Produce This Document Structure (exact section order)
+1) Repo Overview
+
+Tech stack & versions detected (framework, runtime, package manager).
+
+Primary entry points (server, client, workers).
+
+Monorepo layout or single app; include a visual folder tree (2–3 levels deep).
+
+2) Dependency & Build Graph
+
+All dependencies with versions from package.json, lockfile, or equivalent.
+
+Highlight Stripe, SendGrid, date/time libraries, ORM/DB client, and any scheduler/queue libs.
+
+Known compatibility risks (version conflicts, deprecated APIs).
+
+Build scripts and what they actually do.
+
+3) Environment & Secrets Map
+
+List all env vars the app reads (names only; redact values).
+
+For each, show where used (files + line ranges) and why (purpose).
+
+Identify required webhook secrets, API keys, domain/host URLs, and callback URLs.
+
+4) Services & Integrations Inventory
+
+Stripe: endpoints, webhook handlers, event types, idempotency usage, refund logic, error handling.
+
+SendGrid: templates, send functions, retry/backoff, suppression lists, sandbox/test modes.
+
+Timezone handling: where America/Phoenix is set; date boundaries; DST assumptions.
+
+Any other third-party (feature flags, logging, auth).
+
+5) API & Routes Catalog
+
+Table of all routes (method, path, file, handler function).
+
+Note auth requirements, input/output schemas, and side effects (DB writes, emails, Stripe calls).
+
+Identify routes touching seats/tables availability, event duplication, payments/refunds.
+
+6) Data Model Map
+
+List DB tables/collections/schemas with fields, types, constraints, and relations.
+
+Show migrations and their order.
+
+Point out fields used by: seating, orders, events, refunds, email audit trails.
+
+7) Email System
+
+All transactional templates (confirmation, refund, event cancel, password reset).
+
+Where each template is triggered; required merge variables; error handling.
+
+How failures are logged and surfaced.
+
+8) Payments & Refunds Flow (End-to-End)
+
+Diagram or bullet sequence from checkout → Stripe → webhook → DB → email → seat/table state.
+
+Clarify idempotency, double-charge prevention, and seat re-open on refund/cancel.
+
+Known edge cases (network retries, webhook delays, partial refunds).
+
+9) Jobs, Schedulers & Webhooks
+
+List cron/scheduled tasks (name, schedule, file, function).
+
+List webhooks (provider, event types, handler paths).
+
+Failure/retry behavior and alerting (if any).
+
+10) Config Flags & Safety Switches
+
+Feature flags or environment conditionals that change behavior (test vs prod).
+
+Any kill-switches for Stripe/SendGrid or email suppression.
+
+11) Frontend Map
+
+Framework, routing, page structure.
+
+State management approach.
+
+Components that render events, seats/tables, checkout, confirmations.
+
+12) Tests & Observability
+
+All test files; coverage focus (payments, refunds, seating).
+
+Logging strategy; where logs go; sensitive-data scrubbing.
+
+Any monitors/health checks.
+
+13) Known Issues & Risk Register
+
+For each issue, include: Title, Impact, Area, Likelihood, Evidence (file+line), Proposed Fix (high-level).
+Seed with anything detected (e.g., type errors in booking email data, intermittent SendGrid sends, table label consistency).
+
+14) Reproducible Dev Setup (Read-Only)
+
+Exact steps to set up and run locally (without changing code).
+
+How to run payments in test mode and trigger webhooks locally.
+
+How to preview emails in dev/sandbox.
+
+15) Change-Safe Extension Points
+
+Recommend insertion points for adding new features without breaking:
+
+Payments/Refunds
+
+Seat re-open logic
+
+Event duplication
+
+Emails & templates
+
+For each, provide: file path, function boundaries, expected contracts, and guardrails.
+
+16) Pre-Change Safety Checklist (to be used by Engineers)
+
+Verify env values present and correct (names only).
+
+Enable idempotency for any new Stripe calls.
+
+Add/extend unit tests for affected flows.
+
+Confirm email preview & suppression in non-prod.
+
+Run dry-run duplication of an event and verify seating and emails.
+
+Validate America/Phoenix timestamps across logs, DB, and emails.
+
+17) Appendix — Critical Code References
+
+For each critical flow (checkout, webhook, refund, email-send, seat re-open), include a short, exact code excerpt (≤40 lines each) with file path and line numbers.
+
+Extraction & Reporting Rules
+
+For every item claimed, include file path and if possible line numbers (e.g., apps/api/src/payments/webhook.ts:42–118).
+
+Use fenced code blocks for snippets; tables for catalogs; bullets elsewhere.
+
+Keep the document self-contained (no external links).
+
+If a concept is implied but not found in code, mark as Assumption and explain why.
+
+Acceptance Criteria
+
+The output is one Markdown document that lets another engineer:
+
+Understand the system quickly,
+
+Identify safe extension points, and
+
+Make changes without breaking payments, refunds, emails, or seating.
+
+No code or config was changed by this session.
+
+All sections above are present, even if marked _No instances found_.

@@ -1,0 +1,172 @@
+Replit AI — Single-Run VERIFY → (conditionally) FIX
+Operating Mode (must obey)
+
+Start in READ-ONLY. Generate one verification report markdown:
+TRE1929_PostApply_Verification_<timestamp>.md
+
+Then conditionally switch to WRITE-MODE only if the Critical Fixable Deviations below are detected.
+
+If writing, create branch fix/tre1929-spec-corrections, make minimal edits, run tests, commit, and re-verify.
+
+Never touch production keys or data. Do not change anything related to Aug 28 & Sept 5 protected events except to enforce write-guard.
+
+Inputs / Context
+
+Repo as-is after the last update.
+
+Spec highlights to verify:
+
+Price pre-selection visible on event card + header: “$130 per guest — tax & gratuity included.”
+
+Availability counts statuses: confirmed, reserved, comp.
+
+Email suppression: global fast-exit when EMAIL_SUPPRESS_OUTBOUND='true'.
+
+Session cookies: secure in prod, sameSite:'lax', httpOnly:true.
+
+Name normalization: strip BOM/control chars, NFC normalize; applied on registration, webhook/admin booking, reports, email templates.
+
+Inactive event behavior: public = “Sold Out” and purchase blocked; revenue unchanged; admin sees badge.
+
+Scanning QoL: continuous camera, scan-result modal (purchaser/table/party), counters update; manual lookup by last name or booking ID.
+
+Admin booking routes: reserve, manual, :id/paylink (Stripe Checkout), :id/mark-paid-offline; idempotent webhook finalize.
+
+Write-guard: PROTECT_EVENT_IDS blocks destructive writes for Aug 28 & Sept 5 event IDs.
+
+Backups: cron 03:30 America/Phoenix, snapshots only ≥72h after event, 90-day retention, and entirely gated behind BACKUPS_ENABLED==='true' (default off).
+
+Phase 1 — READ-ONLY Verification Tasks
+
+Produce TRE1929_PostApply_Verification_<timestamp>.md with these sections and evidence:
+
+Price & Availability
+
+Show exact file paths + line ranges where the price string renders on EventCard and EventPage.
+
+Show AvailabilitySync logic counting confirmed|reserved|comp.
+
+Safety & Hygiene
+
+Email suppression: show every send method’s guard (file/lines).
+
+Session cookies: show config snippet (file/lines).
+
+Name normalization: show util and all call sites (registration, webhook/admin booking, reports, email templates).
+
+Inactive Behavior
+
+Server gate that blocks public purchase when events.is_active=false (file/lines).
+
+Client “Sold Out” display and admin badge (files/lines).
+
+Statement confirming no revenue recalculation on inactive toggle.
+
+Admin Booking Suite
+
+Paths, zod schemas, and status transitions for:
+POST /api/admin/bookings/reserve, POST /api/admin/bookings/manual,
+POST /api/admin/bookings/:id/paylink (Stripe Checkout URL only),
+POST /api/admin/bookings/:id/mark-paid-offline.
+
+Webhook idempotency for finalize; confirm no card fields in backoffice.
+
+Scanning QoL
+
+Routes and client code for continuous scanning, modal details, counters update, manual lookup.
+
+Write-Guard
+
+Middleware code, env var parsing for PROTECT_EVENT_IDS, and list of protected routes.
+
+Backups Spec
+
+Cron schedule string, timezone handling, gating (BACKUPS_ENABLED), ≥72h after event logic, retention days and delete query.
+
+Tests
+
+List new test files and summarize key assertions (reserve flow, paylink finalize, mark-paid-offline, inactive behavior, normalization).
+
+Deviations
+
+List anything missing or off-spec (with short rationale).
+
+Flag specifically if backups schedule/retention/gating or inactive behavior are incorrect/missing.
+
+Critical Fixable Deviations (allowed WRITE-MODE scope)
+
+If any of the below are not exactly per spec, apply the minimal fix, commit, and re-verify:
+
+A) Backups
+
+Set cron to 03:30 America/Phoenix.
+
+Run only if BACKUPS_ENABLED==='true'.
+
+Only snapshot events ≥72h past (Phoenix time).
+
+90-day retention (delete older snapshots).
+
+Update .env.example and README to document the above, with BACKUPS_ENABLED=false by default.
+
+Commit message: fix(backups): 03:30 Phoenix, 72h delay, 90d retention, flag-gated.
+
+B) Inactive = Sold Out
+
+Server: block public purchase when events.is_active=false (do not alter revenue).
+
+Client: show “Sold Out” badge/state publicly; show “Inactive (Sales Paused)” badge in admin.
+
+Commit message: feat(events): enforce inactive sold-out gating (no revenue change).
+
+Do not modify anything else. Any other deviations must remain documented, not changed.
+
+Phase 2 — WRITE-MODE (conditional)
+
+If A and/or B are off-spec, create branch fix/tre1929-spec-corrections, apply minimal changes, run tests, and commit.
+
+Update .env.example (safe placeholders only) & README for backups.
+
+Re-run the READ-ONLY Verification and append a “Post-Fix Verification” section to the same markdown file confirming compliance (with file/line evidence).
+
+Outputs (must produce)
+
+TRE1929_PostApply_Verification_<timestamp>.md
+
+Sections 1–9, plus Post-Fix Verification if changes were made.
+
+If fixes were applied:
+
+Branch fix/tre1929-spec-corrections with commits above.
+
+A compact unified diff summary printed at the end of your output (files touched & hunks).
+
+Test run summary (vitest output).
+
+A final Manual Verification Checklist to follow in dev:
+
+Price shows on card & header.
+
+Reserve decrements availability; revenue = 0.
+
+Paylink returns Stripe Checkout URL; webhook confirms booking.
+
+Mark-paid-offline confirms and increments revenue; email suppressed in dev.
+
+Inactive shows “Sold Out” publicly; admin badge visible; revenue unchanged.
+
+Continuous scan + modal works; manual lookup by last name/booking ID; counters update.
+
+With BACKUPS_ENABLED=false, no cron runs; with true, cron = 03:30 Phoenix, ≥72h rule, 90-day retention.
+
+Write-guard blocks edits to Aug 28 & Sept 5 events.
+
+Safety & Constraints
+
+Never add live keys; keep email suppressed in dev.
+
+Maintain SAQ-A: no card inputs in backoffice; paylink uses Stripe Checkout only.
+
+Do not change or delete historical data; only enforce write-guard.
+
+Keep America/Phoenix formatting consistent.

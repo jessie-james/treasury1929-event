@@ -1,0 +1,162 @@
+# AI Agent: Post-Fix Diagnostic Report
+
+## **GREAT JOB! Now let's verify everything is working correctly.**
+
+Since you've implemented the bug fixes, I need you to run a comprehensive diagnostic to confirm all issues are resolved and identify any remaining problems.
+
+---
+
+## **IMMEDIATE STATUS CHECK**
+
+### 1. Browser Console Verification
+**Open your browser DevTools console and report:**
+- [ ] **Unhandled Promise Rejections**: How many do you see now? (Should be 0)
+- [ ] **Lucide Import Errors**: Any "Bottle" import errors? (Should be none)
+- [ ] **Auth-related Errors**: Any 401 or authentication failures? (Should be minimal/none)
+- [ ] **General JavaScript Errors**: Any other red errors in console?
+
+**Paste the exact console output here:**
+```
+[Copy and paste any remaining console errors or "No errors" if clean]
+```
+
+---
+
+## **FUNCTIONAL TESTING**
+
+### 2. Authentication Flow Test
+**Test these scenarios and report results:**
+
+**Scenario A: Fresh Page Load**
+- Clear browser cache/cookies
+- Navigate to your app
+- Check: Does the app load without errors?
+- Check: Do you see authentication-related console errors?
+
+**Scenario B: Login/Logout Flow** (if applicable)
+- Try logging in
+- Try logging out  
+- Check: Any console errors during auth flow?
+
+**Report results:**
+```
+Fresh page load: [SUCCESS/FAILED - describe any issues]
+Login flow: [SUCCESS/FAILED - describe any issues]  
+Logout flow: [SUCCESS/FAILED - describe any issues]
+```
+
+---
+
+## **NETWORK REQUESTS VERIFICATION**
+
+### 3. API Calls Analysis
+**Open Browser DevTools → Network tab, then:**
+- Navigate around your app
+- Look for `/api/user` requests
+- Look for `/api/events` requests
+
+**Report the status codes you see:**
+```
+/api/user requests: [Status codes: 200, 204, etc.]
+/api/events requests: [Status codes: 200, 401, etc.]
+Other API calls: [List any other failing requests]
+```
+
+---
+
+## **REMAINING ISSUES SCAN**
+
+### 4. Check for New/Remaining Bugs
+**Run these diagnostic commands and paste output:**
+
+```bash
+# Check for any remaining Lucide icon issues
+grep -r "Bottle\|Bottles" client/src/
+
+# Check for unhandled rejection patterns
+grep -r "unhandledrejection\|UnhandledPromiseRejection" client/src/
+
+# Check server logs for errors
+# [Paste any error logs from your server console]
+```
+
+---
+
+## **PERFORMANCE CHECK**
+
+### 5. Application Stability
+**Test these and report:**
+- [ ] **Hot Module Replacement**: Does HMR work without disconnections?
+- [ ] **Page Navigation**: Can you navigate between pages smoothly?
+- [ ] **Component Interactions**: Do buttons, forms, and UI elements work properly?
+- [ ] **Stripe/Payments**: Do payment flows still work? (Don't process real payments, just test the flow)
+
+**Report any issues:**
+```
+HMR Status: [WORKING/ISSUES - describe]
+Navigation: [WORKING/ISSUES - describe]  
+UI Interactions: [WORKING/ISSUES - describe]
+Payment Flow: [WORKING/ISSUES - describe]
+```
+
+---
+
+## **DATABASE STATUS** (If applicable)
+
+### 6. Venue Layout Issues
+**If you have admin access to manage venues:**
+- Check if you can create/edit venue layouts
+- Look for any duplicate or phantom layouts
+- Report if venue management is working properly
+
+**Status:**
+```
+Venue management: [WORKING/ISSUES - describe any problems]
+```
+
+---
+
+## **OVERALL APPLICATION HEALTH**
+
+### 7. Summary Report
+**Provide a brief summary:**
+
+**✅ FIXED Issues:**
+- [ ] Unhandled promise rejections eliminated
+- [ ] Lucide import errors resolved  
+- [ ] Auth flow stability improved
+- [ ] [Other fixes that worked]
+
+**🔍 REMAINING Issues:**
+- [ ] [List any issues you discovered]
+- [ ] [Include severity: CRITICAL/HIGH/MEDIUM/LOW]
+
+**🎯 NEW Issues Found:**
+- [ ] [Any new problems that appeared after the fixes]
+
+---
+
+## **PASTE YOUR COMPLETE DIAGNOSTIC BELOW**
+
+```
+=== CONSOLE ERRORS ===
+[Paste browser console output]
+
+=== NETWORK REQUESTS ===
+[Paste network tab analysis]
+
+=== COMMAND OUTPUTS ===
+[Paste grep command results]
+
+=== FUNCTIONAL TESTS ===
+[Paste test results]
+
+=== OVERALL STATUS ===
+Application Health: [EXCELLENT/GOOD/NEEDS WORK]
+Ready for Production: [YES/NO - explain why]
+Critical Issues Remaining: [NUMBER]
+```
+
+---
+
+**After providing this diagnostic, I'll analyze the results and give you any additional fixes needed to make your application rock-solid!**

@@ -1,0 +1,146 @@
+Replit AI — HOTFIX: Event Card Dates Show “Aug 14” + Prod Crash Guard
+Mode & Guardrails
+- Phase 1: READ-ONLY analyze; Phase 2: WRITE-MODE only if root cause is confirmed.
+- Do NOT modify events 39 or 40 (Aug 28, Sep 5).
+- No external network calls to Stripe/SendGrid.
+- Keep prices/menus/artists/data intact. Only fix rendering/formatting and null-safety.
+
+Symptoms
+- All event cards show the same wrong date “Aug 14”.
+- App crashed in production build.
+
+Expected
+- Sept 9 / Sept 12 / Sept 19 at 6:30 PM Phoenix on cards and details.
+- No crashes when artists/photos/priceDisplay are missing.
+
+PHASE 1 — READ-ONLY: Diagnose
+1) DB snapshot (read-only) for events 43,44,45:
+   - id, title, date as returned by API (raw string), is_active.
+   - Convert each to Phoenix using date-fns-tz (without relying on app code)
+     `formatInTimeZone(new Date(isoLike), 'America/Phoenix', "EEE, MMM d 'at' h:mm a")`
+   - Note if the server returns `YYYY-MM-DD HH:mm:ss` (no “T/Z”).
+
+2) Frontend date pipeline:
+   - Open and show the exact lines that render the date on card & details:
+     client/src/components/events/EventCard.tsx
+     client/src/components/events/EventDetails.tsx
+     client/src/components/events/EventList.tsx (or container)
+   - Open any date utils in client/src/lib (date.ts/datetime.ts).
+   - Grep the codebase for literals: "Aug 14", "August", "Event Date:".
+
+3) Production crash fingerprint:
+   - Build for production, run a headless render of the events list route.
+   - Capture any stack traces. Identify top failing expression (likely undefined access:
+     `event.artists[0]`, `event.heroImage`, `formatPriceDisplay(event)`).
+
+Classify Root Cause (choose one or more with evidence):
+- CONST_FALLBACK (hardcoded date)
+- SHARED_VAR (date computed once outside map)
+- TZ_PARSE (string without timezone parsed via new Date)
+- NULL_ACCESS (artists/photo/price path unsafe)
+
+Write `TRE1929_DateCrash_Triage_<ts>.md` with:
+- DB rows (masked) + Phoenix conversions
+- The exact card/details lines causing the wrong date
+- Crash stack (top 3 frames)
+- Minimal fix plan
+
+PHASE 2 — WRITE-MODE: Minimal Hotfix (apply only if confirmed)
+A) Phoenix-safe date utility (client)
+Create/replace `client/src/lib/datetime.ts`:
+
+```ts
+import { formatInTimeZone } from 'date-fns-tz';
+
+const PHX = (import.meta.env.VITE_PHOENIX_TZ as string) || 'America/Phoenix';
+
+/** Accepts `Date` or strings like "2025-09-10 01:30:00" or ISO; treats space-format as UTC. */
+export function parseDbToUtc(input: string | Date): Date {
+  if (input instanceof Date) return input;
+  if (!input) return new Date(NaN);
+  // If "YYYY-MM-DD HH:mm:ss" (no timezone), treat as UTC and coerce to ISO
+  const spaceFmt = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(input);
+  const iso = spaceFmt ? input.replace(' ', 'T') + 'Z' : input;
+  return new Date(iso);
+}
+
+export function formatEventDate(input: string | Date, pattern = "EEE, MMM d 'at' h:mm a") {
+  const dt = parseDbToUtc(input);
+  return formatInTimeZone(dt, PHX, pattern);
+}
+B) Use the util everywhere dates render
+
+In EventCard.tsx & EventDetails.tsx (and any list container):
+
+Replace any new Date(...), .toLocaleString(), .toDateString(), or custom formatter with:
+formatEventDate(event.date, "EEE, MMM d 'at' h:mm a")
+
+Ensure the date formatting is computed inside the .map so each card uses its own event row.
+
+C) Remove any hardcoded placeholders / shared vars
+
+Delete any constants like const FALLBACK_DATE = 'Aug 14' or shared const formattedDate = ... above the map.
+
+Confirm no template strings contain literal “Aug 14”.
+
+D) Crash hardening (null-safe UI)
+
+In cards/details/backoffice, guard optional paths:
+
+tsx
+Copy code
+const artists = event?.artists ?? [];
+const hero = event?.heroImage ?? "/assets/placeholder-event.jpg";
+const priceText = (typeof formatPriceDisplay === 'function' && formatPriceDisplay(event))
+                  || "$130 per guest — tax & gratuity included";
+Where images render: add onError fallback to a placeholder.
+
+Any import.meta.env.X reads → default values to avoid undefined in prod.
+
+E) (Conditional) Server serializer nudge (only if Step 1 shows space-format):
+
+If /api/events returns "YYYY-MM-DD HH:mm:ss" (no time zone), modify serialization only to return ISO UTC (no data change):
+In the events list/detail route (show file & line in report), wrap before JSON:
+
+ts
+Copy code
+const isoEvent = { ...row, date: new Date(row.date).toISOString() };
+Do NOT alter stored DB values; just the outbound JSON.
+
+F) Tests & build
+
+Add tests/dates.spec.ts:
+
+Given three rows with 2025-09-10 01:30:00, 2025-09-13 01:30:00, 2025-09-20 01:30:00,
+cards render three distinct Phoenix dates (Sep 9/12/19).
+
+Add tests/crash-guards.spec.ts to mount EventCard with missing artists/hero/price.
+
+Build production; headless render events list; assert dates differ and no runtime errors.
+
+G) Branch & commits
+
+Branch: fix/tre1929-dates-phx-crashguard
+
+Commits:
+
+fix(events): correct per-card PHX date rendering (UTC-safe parsing)
+
+fix(ui): null-safe artists/images/price to prevent prod crash
+
+If applied: chore(api): send ISO UTC date in events JSON
+
+PHASE 3 — Report back
+Append to TRE1929_DateCrash_Triage_<ts>.md:
+
+Before/After snippets of the date line on each card
+
+Test & build summaries
+
+Files touched + line ranges
+
+Manual checklist:
+[ ] Cards show Sept 9 / Sept 12 / Sept 19 at 6:30 PM (Phoenix)
+[ ] Event Details shows the same
+[ ] Navigate to each booking page without crash
+[ ] Remove STRIPE_UNAVAILABLE and complete a real card test (operator later)

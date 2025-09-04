@@ -1,0 +1,98 @@
+Replit AI — SAFE WORKSPACE REBUILD (No Data / No Features)
+Objective
+Reconstruct the broken build/tooling environment so the server can build and boot safely. Do NOT touch database data, schemas, migrations, routes, or app features. No Stripe or SendGrid calls.
+
+Safety (must enforce)
+- No DB writes, no migrations, no seeds.
+- Do not modify code that affects routes/features beyond build scripts and tsconfig.
+- All runtime checks in SAFE MODE:
+  EMAIL_SUPPRESS_OUTBOUND=true
+  STRIPE_MOCK_MODE=true
+  BACKUPS_ENABLED=false
+- Protected events 39,40 must not be read/written (not needed for this task).
+
+If git operations are blocked, proceed without branching and note it in the report.
+
+Deliverable
+Write a markdown report at repo root:
+TRE1929_Workspace_Rebuild_Proof_<timestamp>.md
+Include every command output, diffs, and boot logs. End the report with “No data writes. No migrations. No external calls.”
+
+PHASE 0 — Snapshot (READ-ONLY)
+- Print:
+  node -v && npm -v
+  test -f package-lock.json && echo "LOCKFILE=present" || echo "LOCKFILE=missing"
+  jq '.scripts, .devDependencies' package.json || cat package.json
+- Note any git lock issues but do not attempt to fix them.
+
+PHASE 1 — Clean stale artifacts (SAFE)
+- Remove only build/tool folders (do NOT touch .cache):
+  rm -rf node_modules dist .vite .turbo .parcel-cache 2>/dev/null || true
+- Verify they’re gone:
+  ls -la node_modules || echo "node_modules removed"
+  ls -la dist || echo "dist removed"
+
+PHASE 2 — Restore toolchain (NO upgrades of app deps)
+- Prefer lockfile:
+  npm ci || npm install --no-audit --no-fund
+- Ensure required dev tools exist (install ONLY if missing, pin versions):
+  # Check presence first; install if absent
+  npx --yes esbuild --version || npm i -D esbuild@0.25.0
+  npx --yes tsx --version     || npm i -D tsx@4.19.1
+  npx --yes vite --version    || npm i -D vite@5.4.19
+  node -e "try{require('@vitejs/plugin-react');console.log('plugin-react OK')}catch(e){process.exit(1)}" || npm i -D @vitejs/plugin-react@4.3.1
+
+- Re-print:
+  npx vite --version
+  node -e "console.log('esbuild',require('esbuild').version)"
+  node -e "console.log('tsx OK')"
+
+PHASE 3 — Production-safe build scripts (WRITE ONLY IF NEEDED)
+- Open package.json and ensure scripts exactly include:
+  "clean": "rimraf dist",
+  "build:server": "esbuild server/index.ts --platform=node --format=esm --bundle --outdir=dist --sourcemap --external:vite --external:@vitejs/plugin-react",
+  "build:client": "vite build",
+  "build": "npm run clean && npm run build:server && npm run build:client",
+  "start": "NODE_ENV=production node dist/index.js"
+- If "clean" missing, install rimraf only if absent:
+  node -e "try{require('rimraf');process.exit(0)}catch(e){process.exit(1)}" || npm i -D rimraf@5.0.7
+- Record a unified diff of package.json in the report.
+
+PHASE 4 — TypeScript sanity (WRITE ONLY IF NEEDED)
+- In tsconfig.json ensure (preserve everything else):
+  "compilerOptions": {
+    "lib": ["ES2015","ES2020","DOM","DOM.Iterable"],
+    "types": ["node"],
+    "skipLibCheck": true
+  }
+- If changes made, include a unified diff in the report.
+
+PHASE 5 — Rebuild & verify bundle
+- Run:
+  npm run build
+- Verify dist/index.js has NO references to vite or @vitejs/plugin-react:
+  (grep -nH -E "vite|@vitejs/plugin-react" dist/index.js && echo "FORBIDDEN_IMPORT_FOUND") || echo "NO_VITE_IN_DIST"
+- Add first 40 lines of build logs to the report.
+
+PHASE 6 — Safe boot smoke test (no external I/O)
+- Start in safe mode:
+  NODE_ENV=production EMAIL_SUPPRESS_OUTBOUND=true STRIPE_MOCK_MODE=true BACKUPS_ENABLED=false node dist/index.js & pid=$!; sleep 3; kill $pid || true
+- Capture the first 60 lines of stdout/stderr to the report.
+- HTTP (read-only) check via curl if server accepts connections during the window:
+  curl -sSf http://127.0.0.1:5000/health | head -c 200 || echo "health-check skipped/unavailable"
+- Do NOT call any endpoints that mutate data.
+
+PHASE 7 — Result & breadcrumb
+- If build and safe boot succeed, print:
+  READY_TO_TEST=TRUE
+- If they fail, print the topmost error stack with file:line and STOP (no further edits).
+
+Report MUST include
+- Versions & tool presence
+- Any devDeps installed and why
+- package.json and tsconfig.json diffs (if edited)
+- Evidence that dist/index.js contains no vite/@vitejs/plugin-react
+- Safe boot log excerpt (or the exact crash stack)
+- Explicit statement: “No data writes. No migrations. No external calls. Protected events untouched.”
+
+Do not do anything outside of the steps above.

@@ -1,0 +1,46 @@
+<!-- Table positions for mezzanine floor plan -->
+<div class="table-circle available" style="width: 56px; height: 56px; top: 356px; left: 853px; transform: translate(-50%, -50%);" data-table-id="1">
+  1
+  <div class="tooltip">Table 1: 2 seats</div>
+</div>
+
+<div class="table-circle available" style="width: 40px; height: 40px; top: 410px; left: 763px; transform: translate(-50%, -50%);" data-table-id="2">
+  2
+  <div class="tooltip">Table 2: 2 seats</div>
+</div>
+
+<div class="table-circle available" style="width: 40px; height: 40px; top: 409px; left: 617px; transform: translate(-50%, -50%);" data-table-id="3">
+  3
+  <div class="tooltip">Table 3: 2 seats</div>
+</div>
+
+<div class="table-circle available" style="width: 40px; height: 40px; top: 408px; left: 476px; transform: translate(-50%, -50%);" data-table-id="4">
+  4
+  <div class="tooltip">Table 4: 2 seats</div>
+</div>
+
+<div class="table-circle available" style="width: 40px; height: 40px; top: 409px; left: 319px; transform: translate(-50%, -50%);" data-table-id="5">
+  5
+  <div class="tooltip">Table 5: 2 seats</div>
+</div>
+
+<div class="table-circle available" style="width: 40px; height: 40px; top: 421px; left: 159px; transform: translate(-50%, -50%);" data-table-id="6">
+  6
+  <div class="tooltip">Table 6: 2 seats</div>
+</div>
+
+<div class="table-circle available" style="width: 40px; height: 40px; top: 362px; left: 59px; transform: translate(-50%, -50%);" data-table-id="7">
+  7
+  <div class="tooltip">Table 7: 2 seats</div>
+</div>
+
+/* JavaScript table definitions */
+const tables = [
+  { id: 1, left: 853, top: 356, width: 56, height: 56, status: 'available' },
+  { id: 2, left: 763, top: 410, width: 40, height: 40, status: 'available' },
+  { id: 3, left: 617, top: 409, width: 40, height: 40, status: 'available' },
+  { id: 4, left: 476, top: 408, width: 40, height: 40, status: 'available' },
+  { id: 5, left: 319, top: 409, width: 40, height: 40, status: 'available' },
+  { id: 6, left: 159, top: 421, width: 40, height: 40, status: 'available' },
+  { id: 7, left: 59, top: 362, width: 40, height: 40, status: 'available' },
+];

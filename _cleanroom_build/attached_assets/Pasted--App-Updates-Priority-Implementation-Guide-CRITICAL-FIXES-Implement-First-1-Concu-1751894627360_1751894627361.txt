@@ -1,0 +1,95 @@
+# App Updates - Priority Implementation Guide
+
+## **CRITICAL FIXES (Implement First)**
+
+### 1. Concurrency & Booking Safety
+- **PRIORITY 1**: Ensure 100+ concurrent users can safely purchase tickets
+- **PRIORITY 2**: When a user has a timer running on ticket selection, those specific seats MUST be locked from other users
+- **PRIORITY 3**: Prevent duplicate ticket purchases by the same user
+- **PRIORITY 4**: Fix duplicate food quantities appearing in orders and PDFs
+
+### 2. Admin Seat Management Protection
+- Block admins from modifying seats that are currently on hold or sold
+- Show specific alert: "Cannot modify seat [X] - currently [ON HOLD/SOLD]"
+- This prevents conflicts during active booking sessions
+
+## **PRICING SYSTEM OVERHAUL**
+
+### Remove Individual Food Pricing
+- Delete all individual food item prices from the system
+- Implement flat rate: **$130 per person** (covers salad + entrée + dessert selection)
+- Price calculation: $130 × number of people + wine selections
+- Update all checkout flows to reflect this new pricing structure
+
+### Food Display Updates
+- In orders section and PDFs: Show actual food names instead of "salad 1" or "salad selection 1"
+- Ensure admins can see: Food Item → Table Number → Customer Name mapping in orders
+
+## **BEVERAGE MANAGEMENT**
+
+### New Beverages Tab
+- Add "Beverages" tab inside Food Management section (backoffice)
+- Include wine selections and any other beverages here
+
+### Alcohol Requirements & Notices
+- Add prominent notice: "Must be 21+ to purchase alcohol"
+- Add notice: "ID verification required at venue for alcoholic beverages"
+- Add notice: "Mixed drinks available at venue - arrive 10 minutes early to order"
+
+### Water Service
+- Add notice in appropriate location: "Water provided with all meals"
+
+## **EVENT FLEXIBILITY FEATURES**
+
+### Event Configuration Toggles
+- Add toggle options for new events:
+  - ☐ Include Food Service
+  - ☐ Include Beverages  
+  - ☐ Include Alcohol
+- When toggled off, hide these options completely in the booking flow (same interface, just hidden sections)
+
+### Food-Optional Events
+- Allow saving venues with no tables or stage
+- For non-food events: Maximum 6 tickets per purchase (prevent 7+ ticket purchases)
+- These events show only: Event title, description, available tickets, ticket selection (1-6 max)
+
+## **PRIVATE EVENTS SYSTEM**
+
+### Private Event Creation
+- Add "Private Event" toggle in event creation
+- Private events are hidden from main app display
+- When marked private, generate shareable link that goes directly to event page
+- Private events have all same features as regular events (food, seating, etc.)
+
+## **UI/UX FIXES**
+
+### Table Layout Consistency
+- Fix discrepancy between ticket selection view and venue editor
+- Ensure table spacing/sizing appears identical in both views
+- Maintain accurate perception of table distances and venue layout
+
+### Order Management Improvements
+- Orders section must clearly show which food goes to which table
+- Display customer name associated with each food order
+- Fix any remaining display issues with food names
+
+## **TESTING REQUIREMENTS**
+
+Before marking complete, verify:
+1. **Stress test**: 100+ concurrent users can book without conflicts
+2. **Hold system**: Timer-based seat holds work correctly across multiple users
+3. **Duplicate prevention**: Same user cannot buy same ticket twice
+4. **Admin protection**: Cannot modify held/sold seats with proper alerts
+5. **Pricing accuracy**: $130 per person + wine calculations are correct
+6. **Private links**: Generated links work and bypass main app display
+
+## **IMPLEMENTATION ORDER**
+1. Critical fixes (concurrency, duplicates, seat protection)
+2. Pricing system changes
+3. Beverage management updates
+4. Event flexibility features
+5. Private events system
+6. UI/UX improvements
+7. Comprehensive testing
+
+Focus on the critical fixes first to ensure a stable booking system, then implement the feature additions.

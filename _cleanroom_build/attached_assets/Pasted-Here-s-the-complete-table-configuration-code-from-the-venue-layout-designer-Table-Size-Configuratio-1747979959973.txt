@@ -1,0 +1,169 @@
+Here's the complete table configuration code from the venue layout designer:
+Table Size Configuration (9 Sizes)
+javascript// Get table dimensions based on size
+getTableDimensions() {
+  const sizeConfig = {
+    1: { tableRadius: 25, seatRadius: 8,  gap: 8  }, // Tiny
+    2: { tableRadius: 30, seatRadius: 10, gap: 10 }, // Small  
+    3: { tableRadius: 35, seatRadius: 12, gap: 12 }, // Compact
+    4: { tableRadius: 40, seatRadius: 14, gap: 14 }, // Medium-Small
+    5: { tableRadius: 45, seatRadius: 16, gap: 16 }, // Medium
+    6: { tableRadius: 50, seatRadius: 18, gap: 18 }, // Medium-Large
+    7: { tableRadius: 55, seatRadius: 19, gap: 19 }, // Large
+    8: { tableRadius: 60, seatRadius: 20, gap: 20 }, // Extra Large (default)
+    9: { tableRadius: 70, seatRadius: 22, gap: 22 }  // Jumbo
+  };
+  
+  return sizeConfig[this.tableSize] || sizeConfig[8];
+}
+Table Colors & Styling
+javascript// Full Circle Table
+const tableShape = new fabric.Circle({
+  radius: tableRadius, 
+  fill: '#e0e0e0',        // Light gray table surface
+  stroke: '#555',         // Dark gray border
+  strokeWidth: 2,
+  originX: 'center', 
+  originY: 'center',
+  shadow: new fabric.Shadow({
+    color: 'rgba(0,0,0,0.2)',
+    blur: 5,
+    offsetX: 0,
+    offsetY: 2
+  })
+});
+
+// Half Circle Table
+const halfCircleShape = new fabric.Path(
+  `M ${-tableRadius},0 A ${tableRadius},${tableRadius} 0 0,1 ${tableRadius},0 L 0,0 Z`, 
+  {
+    fill: '#e0e0e0',        // Light gray table surface
+    stroke: '#555',         // Dark gray border
+    strokeWidth: 2,
+    originX: 'center',
+    originY: 'center',
+    angle: 0,
+    shadow: new fabric.Shadow({
+      color: 'rgba(0,0,0,0.2)',
+      blur: 5,
+      offsetX: 0,
+      offsetY: 2
+    })
+  }
+);
+Seat Colors & Styling
+javascriptconst seat = new fabric.Circle({
+  radius: radius, 
+  fill: '#4CAF50',        // Green seat color
+  left: px, 
+  top: py,
+  originX: 'center', 
+  originY: 'center',
+  stroke: '#2E7D32',      // Darker green border
+  strokeWidth: 1,
+  shadow: new fabric.Shadow({
+    color: 'rgba(0,0,0,0.2)',
+    blur: 3,
+    offsetX: 0,
+    offsetY: 1
+  })
+});
+Seat Count & Angle Configuration
+javascript// Seat count limits
+const count = Math.max(1, Math.min(8, this.seatCount));  // 1-8 seats allowed
+
+// Full Circle Tables - Even distribution
+for (let i = 0; i < count; i++) {
+  const angle = i * (360 / count);  // Evenly spaced around 360°
+  this.addSeat(angle, seatOffset, seatR, i);
+}
+
+// Half Circle Tables - Smart positioning
+for (let i = 0; i < count; i++) {
+  let angle;
+  
+  if (count === 1) {
+    // Single seat at the back center
+    angle = 270;
+  } else if (count === 2) {
+    // Two seats: 90° separation (±45° from back center)
+    const angles = [225, 315]; // 90° total spread
+    angle = angles[i];
+  } else if (count === 3) {
+    // Three seats: spread them wider (back center ±50°)
+    const angles = [220, 270, 320]; // 100° total spread
+    angle = angles[i];
+  } else {
+    // 4+ seats: use 40° spacing method
+    const totalSpan = (count - 1) * 40;
+    const startAngle = 270 - (totalSpan / 2);
+    angle = startAngle + (i * 40);
+  }
+  
+  this.addSeat(angle, seatOffset, seatR, i);
+}
+Table & Seat Number Styling
+javascript// Table Numbers (scale with table size)
+const fontSize = Math.max(12, Math.min(24, 10 + this.tableSize * 1.5));
+
+const tableLabel = new fabric.Text(`${this.tableNumber}`, {
+  fontSize: fontSize,
+  fontFamily: 'Arial',
+  fontWeight: 'bold',
+  fill: '#333',           // Dark gray text
+  originX: 'center',
+  originY: 'center',
+  angle: 0,               // Always upright
+  top: type === 'half' ? -tableRadius * 0.5 : 0  // Higher for half tables
+});
+
+// Seat Numbers (scale with seat size)
+const fontSize = Math.max(8, Math.min(16, radius - 4));
+
+const seatLabel = new fabric.Text(`${seatNumber + 1}`, {
+  left: px,
+  top: py,
+  fontSize: fontSize,
+  fontFamily: 'Arial',
+  fontWeight: 'bold',
+  fill: 'white',          // White text on green seats
+  originX: 'center',
+  originY: 'center',
+  angle: 0                // Always upright
+});
+Table Positioning & Distance
+javascript// Distance calculation
+const tableRadius = dimensions.tableRadius;
+const seatR = dimensions.seatRadius;
+const seatOffset = tableRadius + seatR;  // Seats touch table edge
+
+// Seat positioning
+const rad = angle * Math.PI / 180;
+const px = seatOffset * Math.cos(rad);
+const py = seatOffset * Math.sin(rad);
+Smart Table Numbering
+javascriptfunction getNextTableNumber() {
+  const existingTables = canvas.getObjects().filter(obj => obj.tableRef);
+  
+  if (existingTables.length === 0) {
+    return 1;  // Start with table 1
+  }
+  
+  const existingNumbers = existingTables.map(table => table.tableRef.tableNumber).sort((a, b) => a - b);
+  
+  // Find first missing number starting from 1
+  for (let i = 1; i <= Math.max(...existingNumbers) + 1; i++) {
+    if (!existingNumbers.includes(i)) {
+      return i;  // Fill gaps (e.g., if tables 1,3,5 exist, return 2)
+    }
+  }
+}
+Configuration Summary
+
+Table Types: Full Circle, Half Circle
+Sizes: 9 sizes (25px to 70px radius)
+Seat Count: 1-8 seats per table
+Colors: Gray tables (#e0e0e0), Green seats (#4CAF50)
+Numbering: Smart gap-filling (1,2,3... fills missing numbers)
+Positioning: Seats touch table edge, angles optimized per count
+Fonts: Arial, bold, auto-scaling with size, always upright

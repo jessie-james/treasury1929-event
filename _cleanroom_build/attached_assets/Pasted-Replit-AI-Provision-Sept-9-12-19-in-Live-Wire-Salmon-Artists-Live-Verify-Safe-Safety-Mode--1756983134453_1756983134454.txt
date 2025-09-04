@@ -1,0 +1,262 @@
+Replit AI — Provision Sept 9/12/19 in Live + Wire Salmon + Artists + Live Verify (Safe)
+Safety Mode (must obey)
+
+WRITE-MODE allowed only for:
+
+Upserting Sept 9/12/19 events and their artist/menu data,
+
+Creating a temporary admin user for this audit, then deleting it.
+
+Absolutely do NOT read/write/modify anything for Aug 28 or Sep 5 events.
+
+Force safe env:
+
+NODE_ENV=staging
+EMAIL_SUPPRESS_OUTBOUND=true
+STRIPE_MOCK_MODE=true
+BACKUPS_ENABLED=false
+PHX_TZ=America/Phoenix
+
+
+Do not add/alter Stripe keys, do not send emails, do not change backup schedules.
+
+Keep SAQ-A: backoffice must not collect card data; paylink = Stripe Checkout only.
+
+Phase 0 — Live Environment Sanity (READ-ONLY)
+
+Print masked DATABASE_URL host and current schema/search_path.
+
+List current events: id, title, date, is_active ordered by date.
+
+Explicitly print whether the following exist (by date):
+
+2025-09-09,
+
+2025-09-12,
+
+2025-09-19.
+
+If any of those three do not exist, proceed to Phase 1. If they already exist, treat Phase 1 as idempotent upsert (update missing fields only).
+
+Phase 1 — Upsert the 3 September Events (idempotent)
+
+Create/execute scripts/seed-sept-events.ts that upserts by (title, date) and sets:
+
+Common fields
+
+event_type: 'full'
+
+base_price: 13000 (cents)
+
+ticket_price: null
+
+priceDisplay: "$130 per guest — tax & gratuity included"
+
+include_food_service: true
+
+include_beverages: true
+
+ticket_cutoff_days: 3
+
+max_tickets_per_purchase: 8
+
+is_active: true
+
+alcoholNotes: "Wine bottles purchasable in-app; glasses of wine, beer, cocktails at the table."
+
+menuNotes: "Grilled King Salmon — mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes."
+
+heroImage placeholders created if missing:
+
+/assets/events/2025-09-09/sophia.jpg
+
+/assets/events/2025-09-12/sophia.jpg
+
+/assets/events/2025-09-19/fanya-lin.jpg
+
+Event 1 — Sept 9, 2025
+
+title: An Evening of Fine Dining & Music: Sophia Su with Artists of The Arizona Opera
+
+date: 2025-09-09T18:30:00-07:00
+
+shortTeaser: An elegant evening of fine dining and live opera at The Treasury 1929. 3-course dinner, two 30-minute performances. $130 (tax & gratuity included).
+
+fullDescription:
+
+Join us for the launch of our Dinner Concert Series, an elegant evening where culinary artistry and live classical performance come together inside the historic setting of The Treasury 1929. This immersive experience features a handcrafted, multi-course dinner by renowned chef Daniel Scordato, while being transported by the soaring melodies of Puccini’s La Bohème, Verdi’s La Traviata, and Bizet’s Carmen. Performed by talented vocalists, these iconic works bring to life the romance, fire, and beauty that make opera unforgettable.
+
+Tickets include a 3-course fine dining experience, two live 30-minute concert performances, and all non-alcoholic beverages. Bottles of wine are available for purchase through the app, while glasses of wine, beer, and craft cocktails will be available for purchase at your table. Please arrive by 5:45 PM to allow time for drink service.
+
+All tickets are purchasable online only—select your seats, choose your three-course dinner in advance, and complete payment securely online. No door tickets.
+
+
+schedule (array of {time, note}):
+
+5:45 PM — Doors open; seating; beverage service; amuse-bouche
+
+6:30 PM — First musical performance (30 min)
+
+7:00 PM — Dinner service (salad, pre-selected entrée, dessert)
+
+8:15 PM — Second musical performance (30 min)
+
+8:45 PM — Dinner and music conclude
+
+artists to seed (placeholders OK):
+
+Sophia Su — Pianist — Bio:
+Collaborative pianist (DMA, University of Arizona). Master’s from UT Austin; performances with Butler Opera Center, Miami Music Festival, Chicago Summer Opera, and the International Lyric Academy (Italy). Winner of UA’s 2023–24 President’s Concerto Competition. — Photo: /assets/artists/sophia-su.jpg
+
+TBD Vocalists — Vocalists — Bio:
+Final lineup to be confirmed from: Jared Peterson, Aysen Idil Milliogullari, Emily Gibson, Diana Peralta. — Photo: (blank or placeholder)
+
+Event 2 — Sept 12, 2025
+
+Same as Sept 9, with:
+
+date: 2025-09-12T18:30:00-07:00
+
+heroImage: /assets/events/2025-09-12/sophia.jpg
+
+shortTeaser: Another night of opera and fine dining at The Treasury 1929. 3-course dinner, two 30-minute performances. $130 (tax & gratuity included).
+
+Event 3 — Sept 19, 2025
+
+title: An Evening of Fine Dining & Music: Featuring Renowned Pianist Dr. Fanya Lin
+
+date: 2025-09-19T18:30:00-07:00
+
+heroImage: /assets/events/2025-09-19/fanya-lin.jpg
+
+shortTeaser: World-class piano with Dr. Fanya Lin plus a 3-course dinner at The Treasury 1929. Two 30-minute performances. $130 (tax & gratuity included).
+
+fullDescription:
+
+Join us for our Dinner Concert Series, where culinary artistry and live classical performance meet inside the historic Treasury 1929. Enjoy a handcrafted, multi-course dinner by Chef Daniel Scordato while being transported by the virtuosity of Steinway Artist Dr. Fanya Lin.
+
+Tickets include a 3-course fine dining experience, two live 30-minute concert performances, and all non-alcoholic beverages. Bottles of wine are available for purchase through the app; glasses of wine, beer, and craft cocktails will be available at your table. Please arrive by 5:45 PM to allow time for drink service.
+
+All tickets are purchasable online only—seat selection, dinner pre-selection, and secure checkout online. No door tickets.
+
+
+artists:
+
+Dr. Fanya Lin — Pianist — Bio:
+Described as a “striking interpreter” with “committed and heartfelt performance,” Dr. Lin has performed with the Royal Philharmonic, Utah Symphony, Savannah Philharmonic, and more. Her 2023 album Rhapsodic (Navona Records) features Gershwin’s Rhapsody in Blue and Rachmaninoff’s Rhapsody on a Theme of Paganini. She is Associate Professor of Practice in Piano at the University of Arizona. — Photo: /assets/artists/fanya-lin.jpg
+
+Artists storage: prefer event_artists table with CRUD if present; otherwise JSON field artists[]. Normalize to default [] if null.
+
+Commit: feat(content): upsert Sept 9/12/19 events with full copy, schedule, artists (placeholders)
+
+Phase 2 — Wire Grilled King Salmon to those 3 events
+
+Detect authoritative menu source:
+
+DB tables (menu_items, event_menu_items) or
+
+Server endpoint logic or
+
+Client constants.
+
+Upsert menu item:
+
+name: Grilled King Salmon
+
+description: mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes.
+
+course: entree
+
+image_url: /assets/menu/grilled-king-salmon.jpg (create placeholder)
+
+is_active: true
+
+Associate the Salmon entrée to Sept 9/12/19 (only). If Branzino exists, exclude/deactivate it for these three (do not alter Aug 28 / Sep 5).
+
+Ensure booking UI pulls from that source (no stale hard-coded arrays).
+
+Commit: feat(menu): add Grilled King Salmon and map to Sept 9/12/19
+
+Phase 3 — Temporary Admin (for report/auth), then cleanup
+
+Create temp admin user:
+
+Email: audit+temp@thetreasury1929.com
+
+Password: random strong string
+
+Role: admin
+
+Programmatically login to obtain session cookie for the next checks.
+
+After Phase 4, delete this temp admin and invalidate session.
+
+Commit (if any migration/seed added): chore(audit): temp admin for verification (auto-removed)
+
+Phase 4 — Live Verification (with safety)
+
+Event list & card header
+
+GET /api/events → ensure Sept 9/12/19 present.
+
+Grab the Events list page and confirm each card shows “$130 per guest — tax & gratuity included” in the header.
+
+Booking menu
+
+For each of the 3 events, open booking flow; confirm entrée options include Grilled King Salmon (exact description above) and do not include Branzino.
+
+Artists panel
+
+Backoffice → Event Editor for each event:
+
+Artists tab exists; fields: Name, Role, Bio, Photo URL.
+
+Ensure seeded artists match the entries above; placeholders OK.
+
+Server Sections report (by-course)
+
+Using the admin session, POST /api/reports/server-sections with { eventId, tableIds:[any 2–3 existing tables] }.
+
+Validate HTML contains: course order Salad/Appetizer → Entrée → Dessert, table header TABLE <n> — Party <size> — <floor>, columns Seat | Guest Name | Allergens/Dietary | Selection | Wine (bottle, qty) | Notes, wine totals, page-break CSS.
+
+Output file: TRE1929_Sept_Live_Provisioning_Proof_<timestamp>.md with:
+
+The 3 new event IDs and core fields set,
+
+Screenshot snippets (or DOM/HTML excerpts) confirming:
+
+Event card price phrase on each of the 3 cards,
+
+Salmon visible in entrée choices (and Branzino absent) for all 3,
+
+Artists panel present with rows for Sophia Su (9/12) & Dr. Fanya Lin (19),
+
+First 40 lines of the Server Sections HTML,
+
+A list of placeholder asset paths you created that Jose will upload later,
+
+Confirmation logs that:
+
+EMAIL_SUPPRESS_OUTBOUND=true,
+
+STRIPE_MOCK_MODE=true,
+
+No reads/writes to Aug 28 / Sep 5,
+
+Temp admin was deleted.
+
+Phase 5 — Cleanup
+
+Delete the temp admin user and clear the session/cookie.
+
+Do not remove the seeded Sept events or Salmon associations.
+
+Leave all safety env flags as set.
+
+Acceptance
+
+The 3 Sept events exist in live with correct copy, schedule, price phrase on cards, Salmon entrée selectable, artists seeded, and the by-course Server Sections report renders with the required layout.
+
+Zero Stripe/email activity; Aug 28 / Sep 5 untouched.
+
+Proof markdown generated with IDs, evidence, and screenshots/snippets.

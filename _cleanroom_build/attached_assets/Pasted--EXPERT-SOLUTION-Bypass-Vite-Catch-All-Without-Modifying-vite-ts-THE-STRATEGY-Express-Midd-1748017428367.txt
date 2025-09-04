@@ -1,0 +1,190 @@
+# EXPERT SOLUTION: Bypass Vite Catch-All Without Modifying vite.ts
+
+## 🎯 THE STRATEGY: Express Middleware Precedence
+
+Since Vite's catch-all `app.use("*", ...)` intercepts everything, we need to register API routes BEFORE Vite middleware loads.
+
+## 🔧 SOLUTION 1: Early API Route Registration (Recommended)
+
+### In your `server/index.ts` or main server file:
+
+```typescript
+import express from 'express';
+import { setupVite } from './vite'; // or however you import Vite setup
+
+const app = express();
+
+// 1. Body parsing middleware FIRST
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// 2. Register API routes BEFORE Vite setup
+// This is the key - register routes before Vite's catch-all
+app.post('/api/create-booking', async (req, res) => {
+  console.log('🟢 API ROUTE HIT - BYPASSING VITE');
+  
+  try {
+    // Your booking logic here
+    const bookingData = {
+      eventId: req.body.eventId,
+      userId: req.body.userId,
+      tableId: req.body.tableId,
+      partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
+      customerEmail: req.body.customerEmail,
+      stripePaymentId: req.body.stripePaymentId,
+      guestNames: req.body.guestNames || [],
+      foodSelections: req.body.foodSelections || [],
+      status: 'confirmed'
+    };
+
+    // Insert booking into database
+    const result = await db.insert(bookings).values(bookingData).returning();
+    
+    console.log('🟢 BOOKING CREATED SUCCESSFULLY');
+    
+    // Explicit JSON response
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json({
+      success: true,
+      message: 'Booking created successfully',
+      booking: result[0]
+    });
+    
+  } catch (error) {
+    console.log('🔴 BOOKING ERROR:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Booking creation failed',
+      error: error.message
+    });
+  }
+});
+
+// 3. Register ALL other API routes here (before Vite)
+app.use('/api', routes); // Your existing routes
+
+// 4. ONLY AFTER API routes, setup Vite (which includes the catch-all)
+if (process.env.NODE_ENV === 'development') {
+  setupVite(app);
+}
+
+// 5. Production static file serving (if needed)
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static('dist'));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+}
+```
+
+## 🔧 SOLUTION 2: API Route Guard (Alternative)
+
+If you can't control the order, add a guard to your API routes:
+
+```typescript
+// Add this middleware to protect ALL API routes
+app.use('/api/*', (req, res, next) => {
+  console.log('🛡️ API GUARD: Protecting', req.path);
+  
+  // Set headers to ensure JSON response
+  res.setHeader('Content-Type', 'application/json');
+  
+  // Mark this as an API request
+  req.isApiRequest = true;
+  next();
+});
+
+// Then your API routes
+app.post('/api/create-booking', (req, res) => {
+  // Your booking logic
+});
+```
+
+## 🔧 SOLUTION 3: Different API Path (Quick Fix)
+
+Use a path that Vite is less likely to intercept:
+
+```typescript
+// Instead of /api/create-booking, use:
+app.post('/booking-api/create', (req, res) => {
+  // Your booking logic - identical to before
+});
+
+// Update frontend to call:
+// POST /booking-api/create
+```
+
+## 🔧 SOLUTION 4: Environment-Specific Routing
+
+Handle development and production differently:
+
+```typescript
+// Check if we're in development with Vite
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+if (isDevelopment) {
+  // Development: Register API routes with higher specificity
+  app.post('/api/create-booking', bookingHandler);
+  app.use('/api', routes);
+  
+  // Then setup Vite
+  setupVite(app);
+} else {
+  // Production: Standard setup
+  app.use('/api', routes);
+  app.use(express.static('dist'));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+}
+```
+
+## 🎯 RECOMMENDED IMPLEMENTATION
+
+**Option 1 is your best bet** - register API routes before Vite setup. Here's the exact code to add:
+
+### Step 1: Modify your main server file
+```typescript
+// BEFORE setupVite() or any Vite-related code:
+
+app.post('/api/create-booking', async (req, res) => {
+  console.log('🟢 DIRECT API - BYPASSING VITE CATCH-ALL');
+  
+  const bookingData = {
+    eventId: req.body.eventId,
+    userId: req.body.userId,
+    tableId: req.body.tableId,
+    partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
+    customerEmail: req.body.customerEmail,
+    stripePaymentId: req.body.stripePaymentId,
+    guestNames: req.body.guestNames || [],
+    foodSelections: req.body.foodSelections || [],
+    status: 'confirmed'
+  };
+
+  try {
+    const result = await db.insert(bookings).values(bookingData).returning();
+    res.json({ success: true, booking: result[0] });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+```
+
+### Step 2: Test immediately
+Your frontend should now receive proper JSON instead of HTML.
+
+## 🔍 DEBUGGING VERIFICATION
+
+Add this logging to confirm the fix:
+
+```typescript
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    console.log(`🔍 ${req.method} ${req.path} - API route intercepted`);
+  }
+  next();
+});
+```
+
+The key is **middleware registration order** - API routes must be registered before Vite's catch-all gets a chance to intercept them.

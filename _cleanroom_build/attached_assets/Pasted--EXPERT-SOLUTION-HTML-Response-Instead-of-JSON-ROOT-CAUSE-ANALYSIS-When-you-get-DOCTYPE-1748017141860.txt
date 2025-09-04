@@ -1,0 +1,190 @@
+# EXPERT SOLUTION: HTML Response Instead of JSON
+
+## 🎯 ROOT CAUSE ANALYSIS
+
+When you get `<!DOCTYPE` instead of JSON, it means:
+1. ✅ Your API endpoint is working (200 status)
+2. ❌ Express is serving your React app's `index.html` instead of your API response
+3. 🔍 This happens when static file middleware intercepts API routes
+
+## 🚨 MOST LIKELY CULPRITS
+
+### 1. Static File Middleware Order Issue (90% Likely)
+Your Express app probably has static file serving that's intercepting API routes:
+
+```typescript
+// WRONG ORDER (causes your issue):
+app.use(express.static('dist')); // React app files
+app.use('/api', routes); // API routes - TOO LATE!
+
+// CORRECT ORDER:
+app.use('/api', routes); // API routes FIRST
+app.use(express.static('dist')); // Static files AFTER
+```
+
+### 2. Catch-All Route Interfering (80% Likely)
+Look for a catch-all route that serves your React app:
+
+```typescript
+// This might be intercepting your API:
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+```
+
+## 🔍 IMMEDIATE DEBUGGING STEPS
+
+### Step 1: Verify API Response Content
+Add this to your `/api/create-booking` endpoint:
+
+```typescript
+app.post("/api/create-booking", async (req, res) => {
+  console.log('🟢 CREATE-BOOKING: Route handler called');
+  
+  try {
+    // Your booking creation logic here
+    const result = await createBooking(bookingData);
+    
+    console.log('🟢 BOOKING CREATED:', result);
+    console.log('🟢 SENDING JSON RESPONSE');
+    
+    // Explicitly set content-type and send JSON
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json({
+      success: true,
+      message: 'Booking created successfully',
+      booking: result
+    });
+    
+    console.log('🟢 RESPONSE SENT');
+  } catch (error) {
+    console.log('🔴 BOOKING ERROR:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Booking creation failed',
+      error: error.message
+    });
+  }
+});
+```
+
+### Step 2: Check Your Server Setup Order
+Find your main server file and look for this pattern:
+
+```typescript
+// Check the ORDER of these middleware registrations:
+
+// 1. Body parsing (should be first)
+app.use(express.json());
+
+// 2. API routes (should be BEFORE static files)
+app.use('/api', routes);
+
+// 3. Static file serving (should be AFTER API routes)
+app.use(express.static('dist'));
+app.use(express.static('public'));
+
+// 4. Catch-all for React routing (should be LAST)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+```
+
+### Step 3: Test API Directly
+Test your API endpoint directly to confirm it works:
+
+```bash
+# Test with curl to see raw response
+curl -X POST http://localhost:3000/api/create-booking \
+  -H "Content-Type: application/json" \
+  -d '{"eventId":13,"tableId":51,"partySize":2,"seatNumbers":[1,2]}'
+```
+
+### Step 4: Check Frontend Request URL
+Verify your frontend is calling the right URL:
+
+```typescript
+// In your frontend booking code, add logging:
+console.log('🟡 FRONTEND: Making request to:', url);
+console.log('🟡 FRONTEND: Request data:', bookingData);
+
+const response = await fetch(url, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(bookingData)
+});
+
+console.log('🟡 FRONTEND: Response status:', response.status);
+console.log('🟡 FRONTEND: Response headers:', response.headers);
+
+const responseText = await response.text();
+console.log('🟡 FRONTEND: Raw response:', responseText);
+
+// Try to parse as JSON
+try {
+  const jsonResponse = JSON.parse(responseText);
+  console.log('🟢 FRONTEND: Parsed JSON:', jsonResponse);
+} catch (err) {
+  console.log('🔴 FRONTEND: JSON parse failed, received:', responseText.substring(0, 200));
+}
+```
+
+## 🎯 QUICK FIXES TO TRY
+
+### Fix 1: Reorder Middleware (Most Likely Solution)
+In your main server file, ensure this order:
+
+```typescript
+// 1. Body parsing first
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// 2. API routes BEFORE static files
+app.use('/api', routes);
+
+// 3. Static files AFTER API routes
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// 4. Catch-all LAST (and only for non-API routes)
+app.get('*', (req, res, next) => {
+  // Don't serve index.html for API routes
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+```
+
+### Fix 2: Explicit API Route Registration
+Make sure your API routes are explicitly registered:
+
+```typescript
+// Instead of using a routes file, temporarily register directly:
+app.post('/api/create-booking', (req, res) => {
+  res.json({ success: true, message: 'Direct route works!' });
+});
+```
+
+### Fix 3: Check for Conflicting Routes
+Search for any routes that might conflict:
+
+```bash
+# Search for routes that might intercept
+grep -r "create-booking" --include="*.ts" --include="*.js" server/
+grep -r "/api" --include="*.ts" --include="*.js" server/
+```
+
+## 🔍 INVESTIGATION CHECKLIST
+
+- [ ] Check middleware order in main server file
+- [ ] Add explicit content-type header to response
+- [ ] Test API endpoint with curl
+- [ ] Add frontend request/response logging
+- [ ] Verify no conflicting routes exist
+- [ ] Check for catch-all routes that might intercept
+
+## 🎯 MOST LIKELY SOLUTION
+
+Based on your success with the bypass route, the issue is almost certainly **middleware order**. Your static file serving is probably registered before your API routes, causing Express to serve `index.html` instead of your JSON response.
+
+**Expected Fix:** Reorder your Express middleware so API routes come before static file serving.

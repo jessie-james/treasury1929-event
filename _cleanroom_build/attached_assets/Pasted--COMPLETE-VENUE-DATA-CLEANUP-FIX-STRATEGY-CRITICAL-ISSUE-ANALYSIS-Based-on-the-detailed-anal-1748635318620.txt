@@ -1,0 +1,493 @@
+# COMPLETE VENUE DATA CLEANUP & FIX STRATEGY
+
+## CRITICAL ISSUE ANALYSIS
+
+Based on the detailed analysis, you have **multiple interconnected problems**:
+
+1. **Phantom Layouts**: Unknown layouts ("s" + unnamed) blocking user interaction
+2. **Table Duplication**: 70 duplicate table records in Main Floor (should be 32)
+3. **Failed Delete Operations**: Venue save method not properly cleaning up
+4. **Data Contamination**: Multiple creation batches with overlapping data
+
+## PHASE 1: EMERGENCY DIAGNOSTIC & PHANTOM LAYOUT REMOVAL
+
+### Step 1: Identify Phantom Layouts Source
+
+Add this diagnostic endpoint to find the phantom layouts:
+
+```typescript
+// Add to server/routes.ts - URGENT DIAGNOSTIC
+app.get("/api/debug/phantom-layouts/:eventId", async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.eventId);
+    
+    console.log(`🔍 PHANTOM LAYOUT DIAGNOSTIC for Event ${eventId}`);
+    
+    // Get ALL event-venue relationships (including potential phantom ones)
+    const allEventVenues = await db
+      .select({
+        id: eventVenues.id,
+        eventId: eventVenues.eventId,
+        venueId: eventVenues.venueId,
+        displayName: eventVenues.displayName,
+        displayOrder: eventVenues.displayOrder,
+        isActive: eventVenues.isActive,
+        createdAt: eventVenues.createdAt
+      })
+      .from(eventVenues)
+      .where(eq(eventVenues.eventId, eventId))
+      .orderBy(eventVenues.displayOrder);
+    
+    console.log(`📋 Found ${allEventVenues.length} event-venue records:`, allEventVenues);
+    
+    // Check if venues exist in venues table
+    const venueIds = allEventVenues.map(ev => ev.venueId);
+    const actualVenues = await db
+      .select()
+      .from(venues)
+      .where(inArray(venues.id, venueIds));
+    
+    console.log(`🏢 Actual venues found: ${actualVenues.length}`, actualVenues.map(v => ({ id: v.id, name: v.name })));
+    
+    // Identify orphaned event-venue records
+    const actualVenueIds = actualVenues.map(v => v.id);
+    const orphanedEventVenues = allEventVenues.filter(ev => !actualVenueIds.includes(ev.venueId));
+    
+    console.log(`👻 PHANTOM LAYOUTS FOUND: ${orphanedEventVenues.length}`, orphanedEventVenues);
+    
+    // Check for suspicious display names
+    const suspiciousEventVenues = allEventVenues.filter(ev => 
+      ev.displayName.length < 3 || 
+      ev.displayName.toLowerCase() === 's' ||
+      ev.displayName.includes('undefined') ||
+      ev.displayName.includes('null')
+    );
+    
+    console.log(`⚠️ SUSPICIOUS LAYOUTS: ${suspiciousEventVenues.length}`, suspiciousEventVenues);
+    
+    res.json({
+      eventId,
+      totalEventVenues: allEventVenues.length,
+      actualVenues: actualVenues.length,
+      phantomLayouts: orphanedEventVenues,
+      suspiciousLayouts: suspiciousEventVenues,
+      allEventVenues: allEventVenues,
+      actualVenueData: actualVenues
+    });
+    
+  } catch (error) {
+    console.error("❌ Phantom diagnostic failed:", error);
+    res.status(500).json({ error: "Diagnostic failed" });
+  }
+});
+```
+
+### Step 2: Remove Phantom Layouts (IMMEDIATE FIX)
+
+```typescript
+// Add this cleanup endpoint - USE WITH CAUTION
+app.post("/api/debug/cleanup-phantoms/:eventId", async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.eventId);
+    const { dryRun = true } = req.body; // Safety: defaults to dry run
+    
+    console.log(`🧹 PHANTOM CLEANUP for Event ${eventId} (dryRun: ${dryRun})`);
+    
+    // Find orphaned event-venue records
+    const allEventVenues = await db
+      .select()
+      .from(eventVenues)
+      .where(eq(eventVenues.eventId, eventId));
+    
+    const venueIds = allEventVenues.map(ev => ev.venueId);
+    const actualVenues = await db
+      .select({ id: venues.id })
+      .from(venues)
+      .where(inArray(venues.id, venueIds));
+    
+    const actualVenueIds = actualVenues.map(v => v.id);
+    const phantomRecords = allEventVenues.filter(ev => !actualVenueIds.includes(ev.venueId));
+    
+    // Also find suspicious display names
+    const suspiciousRecords = allEventVenues.filter(ev => 
+      ev.displayName.length < 3 || 
+      ev.displayName.toLowerCase() === 's' ||
+      !actualVenueIds.includes(ev.venueId)
+    );
+    
+    const recordsToDelete = [...new Set([...phantomRecords, ...suspiciousRecords])];
+    
+    console.log(`🎯 Found ${recordsToDelete.length} phantom records to delete:`, 
+      recordsToDelete.map(r => ({ id: r.id, displayName: r.displayName, venueId: r.venueId }))
+    );
+    
+    if (!dryRun && recordsToDelete.length > 0) {
+      const deletedIds = recordsToDelete.map(r => r.id);
+      const deleteResult = await db
+        .delete(eventVenues)
+        .where(inArray(eventVenues.id, deletedIds));
+      
+      console.log(`✅ Deleted ${deleteResult.rowCount} phantom records`);
+    }
+    
+    res.json({
+      eventId,
+      phantomRecordsFound: recordsToDelete.length,
+      phantomRecords: recordsToDelete,
+      deletedCount: dryRun ? 0 : recordsToDelete.length,
+      dryRun
+    });
+    
+  } catch (error) {
+    console.error("❌ Phantom cleanup failed:", error);
+    res.status(500).json({ error: "Cleanup failed" });
+  }
+});
+```
+
+## PHASE 2: TABLE DUPLICATION CLEANUP
+
+### Step 3: Safe Table Deduplication Strategy
+
+```typescript
+// Add this table deduplication endpoint
+app.post("/api/debug/deduplicate-tables/:venueId", async (req, res) => {
+  try {
+    const venueId = parseInt(req.params.venueId);
+    const { dryRun = true } = req.body;
+    
+    console.log(`🔧 TABLE DEDUPLICATION for Venue ${venueId} (dryRun: ${dryRun})`);
+    
+    // Get all tables for this venue with booking relationships
+    const allTables = await db
+      .select({
+        id: tables.id,
+        tableNumber: tables.tableNumber,
+        x: tables.x,
+        y: tables.y,
+        capacity: tables.capacity,
+        createdAt: tables.createdAt || new Date(0) // Handle missing timestamps
+      })
+      .from(tables)
+      .where(eq(tables.venueId, venueId))
+      .orderBy(tables.tableNumber, tables.id);
+    
+    // Check for existing bookings
+    const tablesWithBookings = await db
+      .select({
+        tableId: bookings.tableId,
+        bookingCount: sql<number>`count(*)`
+      })
+      .from(bookings)
+      .where(inArray(bookings.tableId, allTables.map(t => t.id)))
+      .groupBy(bookings.tableId);
+    
+    const bookedTableIds = new Set(tablesWithBookings.map(b => b.tableId));
+    
+    console.log(`📊 Found ${allTables.length} total tables, ${bookedTableIds.size} have bookings`);
+    
+    // Group by table number to find duplicates
+    const tableGroups = allTables.reduce((acc, table) => {
+      if (!acc[table.tableNumber]) {
+        acc[table.tableNumber] = [];
+      }
+      acc[table.tableNumber].push(table);
+      return acc;
+    }, {} as Record<number, typeof allTables>);
+    
+    const deduplicationPlan = [];
+    let tablesToDelete = [];
+    
+    for (const [tableNumber, duplicates] of Object.entries(tableGroups)) {
+      if (duplicates.length > 1) {
+        console.log(`🔍 Table ${tableNumber}: ${duplicates.length} duplicates`);
+        
+        // Find the best table to keep (prefer one with bookings, then oldest)
+        const bookedDuplicates = duplicates.filter(t => bookedTableIds.has(t.id));
+        const unbookedDuplicates = duplicates.filter(t => !bookedTableIds.has(t.id));
+        
+        let tableToKeep;
+        let toDelete;
+        
+        if (bookedDuplicates.length > 0) {
+          // Keep the oldest booked table
+          tableToKeep = bookedDuplicates.sort((a, b) => a.id - b.id)[0];
+          toDelete = duplicates.filter(t => t.id !== tableToKeep.id);
+        } else {
+          // Keep the oldest unbooked table  
+          tableToKeep = duplicates.sort((a, b) => a.id - b.id)[0];
+          toDelete = duplicates.slice(1);
+        }
+        
+        deduplicationPlan.push({
+          tableNumber: parseInt(tableNumber),
+          duplicateCount: duplicates.length,
+          keeping: { id: tableToKeep.id, hasBookings: bookedTableIds.has(tableToKeep.id) },
+          deleting: toDelete.map(t => ({ id: t.id, hasBookings: bookedTableIds.has(t.id) }))
+        });
+        
+        tablesToDelete.push(...toDelete.map(t => t.id));
+      }
+    }
+    
+    console.log(`🎯 Deduplication plan: ${deduplicationPlan.length} table numbers affected`);
+    console.log(`🗑️ Tables to delete: ${tablesToDelete.length}`);
+    
+    // Safety check: ensure no booked tables are deleted
+    const bookedTablesToDelete = tablesToDelete.filter(id => bookedTableIds.has(id));
+    if (bookedTablesToDelete.length > 0) {
+      console.error(`❌ SAFETY VIOLATION: ${bookedTablesToDelete.length} booked tables would be deleted!`);
+      return res.status(400).json({ 
+        error: "Cannot delete booked tables", 
+        bookedTablesAtRisk: bookedTablesToDelete 
+      });
+    }
+    
+    let deletedCount = 0;
+    if (!dryRun && tablesToDelete.length > 0) {
+      // Delete seats first (foreign key constraint)
+      await db.delete(seats).where(inArray(seats.tableId, tablesToDelete));
+      
+      // Then delete tables
+      const deleteResult = await db
+        .delete(tables)
+        .where(inArray(tables.id, tablesToDelete));
+      
+      deletedCount = deleteResult.rowCount || 0;
+      console.log(`✅ Successfully deleted ${deletedCount} duplicate tables`);
+    }
+    
+    res.json({
+      venueId,
+      totalTables: allTables.length,
+      duplicateTableNumbers: deduplicationPlan.length,
+      tablesToDelete: tablesToDelete.length,
+      deletedCount,
+      deduplicationPlan,
+      dryRun,
+      safety: {
+        tablesWithBookings: bookedTableIds.size,
+        bookedTablesAtRisk: bookedTablesToDelete.length
+      }
+    });
+    
+  } catch (error) {
+    console.error("❌ Table deduplication failed:", error);
+    res.status(500).json({ error: "Deduplication failed" });
+  }
+});
+```
+
+## PHASE 3: FIX VENUE SAVE METHOD
+
+### Step 4: Improve Venue Layout Save Logic
+
+```typescript
+// Fix the problematic venue save method in server/routes-venue.ts
+app.put("/api/venues/:id/layout", async (req, res) => {
+  try {
+    const venueId = parseInt(req.params.id);
+    const { tables, stages } = req.body;
+    
+    console.log(`💾 SAVING VENUE LAYOUT for venue ${venueId}`);
+    console.log(`   Tables to save: ${tables?.length || 0}`);
+    console.log(`   Stages to save: ${stages?.length || 0}`);
+    
+    // Begin transaction for data integrity
+    await db.transaction(async (tx) => {
+      
+      // Handle tables with proper cleanup
+      if (tables && Array.isArray(tables)) {
+        console.log(`🧹 Starting table cleanup for venue ${venueId}`);
+        
+        // Get existing tables with their booking status
+        const existingTables = await tx
+          .select({
+            id: schema.tables.id,
+            tableNumber: schema.tables.tableNumber,
+            hasBookings: sql<boolean>`EXISTS(SELECT 1 FROM ${schema.bookings} WHERE table_id = ${schema.tables.id})`
+          })
+          .from(schema.tables)
+          .where(eq(schema.tables.venueId, venueId));
+        
+        console.log(`   Found ${existingTables.length} existing tables`);
+        
+        // Separate booked and unbooked tables
+        const bookedTables = existingTables.filter(t => t.hasBookings);
+        const unbookedTables = existingTables.filter(t => !t.hasBookings);
+        
+        console.log(`   Booked tables: ${bookedTables.length}, Unbooked: ${unbookedTables.length}`);
+        
+        if (bookedTables.length > 0) {
+          console.log(`⚠️ WARNING: ${bookedTables.length} tables have bookings and will be preserved`);
+          // You may want to handle this case differently based on business rules
+        }
+        
+        // Only delete unbooked tables to prevent data loss
+        if (unbookedTables.length > 0) {
+          const unbookedIds = unbookedTables.map(t => t.id);
+          
+          // Delete seats first (foreign key constraint)
+          await tx.delete(schema.seats).where(inArray(schema.seats.tableId, unbookedIds));
+          
+          // Delete unbooked tables
+          const deleteResult = await tx
+            .delete(schema.tables)
+            .where(inArray(schema.tables.id, unbookedIds));
+          
+          console.log(`   ✅ Deleted ${deleteResult.rowCount} unbooked tables`);
+        }
+        
+        // Insert new tables
+        let insertedCount = 0;
+        for (const tableData of tables) {
+          try {
+            const validatedTable = insertTableSchema.parse({
+              ...tableData,
+              venueId
+            });
+            
+            await tx.insert(schema.tables).values(validatedTable);
+            insertedCount++;
+          } catch (error) {
+            console.error(`   ❌ Failed to insert table ${tableData.tableNumber}:`, error);
+            throw error; // This will rollback the transaction
+          }
+        }
+        
+        console.log(`   ✅ Inserted ${insertedCount} new tables`);
+      }
+      
+      // Handle stages similarly
+      if (stages && Array.isArray(stages)) {
+        console.log(`🎭 Updating stages for venue ${venueId}`);
+        
+        // Stages typically don't have bookings, so we can replace them
+        await tx.delete(schema.stages).where(eq(schema.stages.venueId, venueId));
+        
+        for (const stageData of stages) {
+          const validatedStage = insertStageSchema.parse({
+            ...stageData,
+            venueId
+          });
+          await tx.insert(schema.stages).values(validatedStage);
+        }
+        
+        console.log(`   ✅ Updated ${stages.length} stages`);
+      }
+      
+    }); // End transaction
+    
+    console.log(`✅ Venue layout save completed successfully`);
+    res.json({ success: true, message: "Venue layout updated successfully" });
+    
+  } catch (error) {
+    console.error("❌ Venue layout save failed:", error);
+    res.status(500).json({ 
+      error: "Failed to update venue layout",
+      details: error.message
+    });
+  }
+});
+```
+
+## PHASE 4: PREVENTION & VALIDATION
+
+### Step 5: Add Data Integrity Checks
+
+```typescript
+// Add venue data validation middleware
+const validateVenueIntegrity = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const venueId = parseInt(req.params.id || req.params.venueId);
+    
+    if (isNaN(venueId)) {
+      return res.status(400).json({ error: "Invalid venue ID" });
+    }
+    
+    // Check if venue exists
+    const venue = await db
+      .select()
+      .from(venues)
+      .where(eq(venues.id, venueId))
+      .limit(1);
+    
+    if (venue.length === 0) {
+      return res.status(404).json({ error: "Venue not found" });
+    }
+    
+    req.venueData = venue[0];
+    next();
+  } catch (error) {
+    console.error("Venue validation failed:", error);
+    res.status(500).json({ error: "Validation failed" });
+  }
+};
+
+// Add table number uniqueness validation
+const validateTableNumbers = (tables: any[]) => {
+  const tableNumbers = tables.map(t => t.tableNumber);
+  const duplicates = tableNumbers.filter((num, index) => tableNumbers.indexOf(num) !== index);
+  
+  if (duplicates.length > 0) {
+    throw new Error(`Duplicate table numbers in request: ${duplicates.join(', ')}`);
+  }
+  
+  return true;
+};
+```
+
+## EXECUTION PLAN
+
+### IMMEDIATE (Emergency Fix):
+1. **Deploy diagnostic endpoint** and call `/api/debug/phantom-layouts/13`
+2. **Identify phantom layouts** - look for records with missing venues or suspicious names
+3. **Remove phantoms** using cleanup endpoint (start with dryRun: true)
+4. **Test venue selection** - ensure only Mezzanine and Main Floor appear
+
+### SHORT TERM (Data Cleanup):
+5. **Run table deduplication** on Main Floor venue (ID: 4) with dryRun: true first
+6. **Verify booking safety** - ensure no booked tables are affected
+7. **Execute deduplication** to reduce 70 tables to 32 unique tables
+8. **Update venue save method** with the improved transaction-based approach
+
+### LONG TERM (Prevention):
+9. **Add data validation** middleware to all venue operations
+10. **Implement unique constraints** in database schema where possible
+11. **Add audit logging** for venue layout changes
+12. **Create backup/restore** procedures for venue data
+
+## TESTING PROTOCOL
+
+```bash
+# 1. Check current state
+curl GET /api/debug/phantom-layouts/13
+
+# 2. Test phantom cleanup (dry run)
+curl POST /api/debug/cleanup-phantoms/13 -d '{"dryRun": true}'
+
+# 3. Test table deduplication (dry run)  
+curl POST /api/debug/deduplicate-tables/4 -d '{"dryRun": true}'
+
+# 4. Execute fixes (when ready)
+curl POST /api/debug/cleanup-phantoms/13 -d '{"dryRun": false}'
+curl POST /api/debug/deduplicate-tables/4 -d '{"dryRun": false}'
+```
+
+## ROLLBACK PLAN
+
+If anything goes wrong:
+1. **Database backup** should be taken before any operations
+2. **Keep deleted record IDs** for potential restoration
+3. **Event-venue relationships** can be recreated manually if needed
+4. **Table data** can be restored from backup if deduplication fails
+
+## EXPECTED RESULTS
+
+After successful cleanup:
+- **Phantom layouts eliminated** - only Mezzanine and Main Floor visible
+- **Table count normalized** - Main Floor shows 32 tables instead of 70
+- **User interaction restored** - no more blocking overlay layouts
+- **Data integrity maintained** - no booking data lost during cleanup
+
+Start with the diagnostic endpoints to understand the exact scope of the phantom layout issue before proceeding with cleanup operations.

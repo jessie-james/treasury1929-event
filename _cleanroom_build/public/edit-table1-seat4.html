@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit Table 1 Seat 4</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+      background-color: #fafafa;
+      font-family: Arial, sans-serif;
+    }
+    
+    .container {
+      position: relative;
+      width: 1000px;
+      margin: 0 auto;
+      overflow: auto;
+    }
+    
+    .floor-plan {
+      display: block;
+      width: 1000px;
+      height: auto;
+    }
+    
+    .seat {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+      border: 2px solid transparent;
+      box-sizing: border-box;
+      background-color: rgba(34, 197, 94, 0.5);
+    }
+    
+    .seat:hover {
+      background-color: rgba(34, 197, 94, 0.7);
+      transform: translate(-50%, -50%) scale(1.1);
+    }
+    
+    .seat.selected {
+      background-color: rgba(59, 130, 246, 0.8);
+      border: 2px solid white;
+    }
+    
+    .seat.unavailable {
+      background-color: rgba(75, 85, 99, 0.8);
+      cursor: not-allowed;
+    }
+    
+    .seat.unavailable:hover {
+      background-color: rgba(75, 85, 99, 0.9);
+      transform: translate(-50%, -50%);
+    }
+    
+    .tooltip {
+      visibility: hidden;
+      width: 120px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      text-align: center;
+      padding: 5px;
+      border-radius: 4px;
+      position: absolute;
+      z-index: 20;
+      top: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 12px;
+      pointer-events: none;
+    }
+    
+    .seat.unavailable:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    .seat.movable {
+      background-color: #ff9800;
+      border: 2px dashed white;
+      cursor: grab;
+    }
+    
+    .seat.movable:hover {
+      background-color: #f57c00;
+    }
+    
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      z-index: 100;
+      display: flex;
+      gap: 10px;
+    }
+    
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    
+    .lock-btn {
+      background-color: #4caf50;
+      color: white;
+    }
+    
+    .lock-btn:hover {
+      background-color: #388e3c;
+    }
+    
+    .unlock-btn {
+      background-color: #f44336;
+      color: white;
+    }
+    
+    .unlock-btn:hover {
+      background-color: #d32f2f;
+    }
+    
+    .copy-btn {
+      background-color: #2196f3;
+      color: white;
+    }
+    
+    .copy-btn:hover {
+      background-color: #1976d2;
+    }
+    
+    .position-display {
+      font-size: 14px;
+      margin-right: 15px;
+      display: flex;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/mezzanine-floor.png" alt="Mezzanine Floor Plan" class="floor-plan" id="floorPlan">
+  </div>
+  
+  <div class="controls">
+    <div class="position-display">
+      Table 1, Seat 4 - Left: <span id="leftPos">908</span>, Top: <span id="topPos">329</span>
+    </div>
+    <button class="unlock-btn" id="unlockBtn">ENABLE MOVEMENT</button>
+    <button class="lock-btn" id="lockBtn" disabled>LOCK POSITION</button>
+    <button class="copy-btn" id="copyBtn">COPY POSITION</button>
+  </div>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const container = document.querySelector('.container');
+      const leftPosDisplay = document.getElementById('leftPos');
+      const topPosDisplay = document.getElementById('topPos');
+      const unlockBtn = document.getElementById('unlockBtn');
+      const lockBtn = document.getElementById('lockBtn');
+      const copyBtn = document.getElementById('copyBtn');
+      
+      // Set starting position for the movable seat (Table 1, Seat 4)
+      let movableSeatPos = {
+        tableId: 1,
+        seatNumber: 4,
+        left: 908,
+        top: 329
+      };
+      
+      // PERMANENT SEAT POSITIONS - These are the exact coordinates from the user
+      const fixedSeatPositions = [
+        {
+          "tableId": 1,
+          "seatNumber": 1,
+          "left": 930,
+          "top": 279
+        },
+        {
+          "tableId": 1,
+          "seatNumber": 2,
+          "left": 946,
+          "top": 304
+        },
+        {
+          "tableId": 1,
+          "seatNumber": 3,
+          "left": 933,
+          "top": 341
+        },
+        {
+          "tableId": 2,
+          "seatNumber": 1,
+          "left": 835,
+          "top": 389
+        },
+        {
+          "tableId": 2,
+          "seatNumber": 2,
+          "left": 796,
+          "top": 397
+        },
+        {
+          "tableId": 3,
+          "seatNumber": 1,
+          "left": 678,
+          "top": 390
+        },
+        {
+          "tableId": 3,
+          "seatNumber": 2,
+          "left": 641,
+          "top": 398
+        },
+        {
+          "tableId": 4,
+          "seatNumber": 1,
+          "left": 525,
+          "top": 393
+        },
+        {
+          "tableId": 4,
+          "seatNumber": 2,
+          "left": 485,
+          "top": 394
+        },
+        {
+          "tableId": 5,
+          "seatNumber": 1,
+          "left": 360,
+          "top": 394
+        },
+        {
+          "tableId": 5,
+          "seatNumber": 2,
+          "left": 321,
+          "top": 394
+        },
+        {
+          "tableId": 6,
+          "seatNumber": 1,
+          "left": 164,
+          "top": 412
+        },
+        {
+          "tableId": 6,
+          "seatNumber": 2,
+          "left": 136,
+          "top": 384
+        },
+        {
+          "tableId": 7,
+          "seatNumber": 1,
+          "left": 45,
+          "top": 347
+        },
+        {
+          "tableId": 7,
+          "seatNumber": 2,
+          "left": 31,
+          "top": 309
+        }
+      ];
+
+      // Unavailable seats
+      const unavailableSeats = [
+        { tableId: 2, seatNumber: 2 },
+        { tableId: 5, seatNumber: 1 },
+        { tableId: 7, seatNumber: 1 }
+      ];
+      
+      // Function to check if a seat is unavailable
+      function isSeatUnavailable(tableId, seatNumber) {
+        return unavailableSeats.some(
+          seat => seat.tableId === tableId && seat.seatNumber === seatNumber
+        );
+      }
+      
+      // Create and add the fixed seats to the container
+      fixedSeatPositions.forEach(pos => {
+        const seat = document.createElement('div');
+        seat.className = 'seat';
+        seat.setAttribute('data-table', pos.tableId);
+        seat.setAttribute('data-seat', pos.seatNumber);
+        seat.style.left = pos.left + 'px';
+        seat.style.top = pos.top + 'px';
+        
+        // Check if this seat is unavailable
+        const isUnavailable = isSeatUnavailable(pos.tableId, pos.seatNumber);
+        
+        if (isUnavailable) {
+          seat.classList.add('unavailable');
+          
+          // Add tooltip for unavailable seats
+          const tooltip = document.createElement('div');
+          tooltip.className = 'tooltip';
+          tooltip.textContent = 'Seat unavailable';
+          seat.appendChild(tooltip);
+        }
+        
+        container.appendChild(seat);
+      });
+      
+      // Create the movable seat (Table 1, Seat 4)
+      const movableSeat = document.createElement('div');
+      movableSeat.className = 'seat';
+      movableSeat.setAttribute('data-table', movableSeatPos.tableId);
+      movableSeat.setAttribute('data-seat', movableSeatPos.seatNumber);
+      movableSeat.style.left = movableSeatPos.left + 'px';
+      movableSeat.style.top = movableSeatPos.top + 'px';
+      movableSeat.textContent = '4';
+      container.appendChild(movableSeat);
+      
+      // Track if the seat is being dragged
+      let isDragging = false;
+      let isMovable = false;
+      
+      // Event listeners for Shift+Click and drag
+      function enableMovement() {
+        isMovable = true;
+        movableSeat.classList.add('movable');
+        unlockBtn.disabled = true;
+        lockBtn.disabled = false;
+      }
+      
+      function disableMovement() {
+        isMovable = false;
+        movableSeat.classList.remove('movable');
+        unlockBtn.disabled = false;
+        lockBtn.disabled = true;
+      }
+      
+      // Shift+click to start dragging
+      document.addEventListener('mousedown', function(e) {
+        if (isMovable && e.target === movableSeat) {
+          isDragging = true;
+          e.preventDefault();
+        }
+      });
+      
+      // Stop dragging on mouse up
+      document.addEventListener('mouseup', function() {
+        isDragging = false;
+      });
+      
+      // Move the seat on mouse move if dragging
+      document.addEventListener('mousemove', function(e) {
+        if (isDragging && isMovable) {
+          const containerRect = container.getBoundingClientRect();
+          const x = e.clientX - containerRect.left;
+          const y = e.clientY - containerRect.top;
+          
+          // Update position
+          movableSeatPos.left = x;
+          movableSeatPos.top = y;
+          
+          // Update display
+          movableSeat.style.left = x + 'px';
+          movableSeat.style.top = y + 'px';
+          leftPosDisplay.textContent = Math.round(x);
+          topPosDisplay.textContent = Math.round(y);
+        }
+      });
+      
+      // Button event listeners
+      unlockBtn.addEventListener('click', enableMovement);
+      
+      lockBtn.addEventListener('click', disableMovement);
+      
+      copyBtn.addEventListener('click', function() {
+        // Round the positions
+        const roundedLeft = Math.round(movableSeatPos.left);
+        const roundedTop = Math.round(movableSeatPos.top);
+        
+        // Create JSON for the seat position
+        const positionJSON = JSON.stringify({
+          tableId: movableSeatPos.tableId,
+          seatNumber: movableSeatPos.seatNumber,
+          left: roundedLeft,
+          top: roundedTop
+        }, null, 2);
+        
+        // Copy to clipboard
+        navigator.clipboard.writeText(positionJSON)
+          .then(() => {
+            alert('Position copied to clipboard: ' + positionJSON);
+          })
+          .catch(err => {
+            console.error('Failed to copy: ', err);
+            // Fallback for clipboard API not available
+            const textarea = document.createElement('textarea');
+            textarea.value = positionJSON;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert('Position copied to clipboard: ' + positionJSON);
+          });
+      });
+    });
+  </script>
+</body>
+</html>

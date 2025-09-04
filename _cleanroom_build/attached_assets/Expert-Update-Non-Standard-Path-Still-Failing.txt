@@ -1,0 +1,134 @@
+EXPERT UPDATE: Non-Standard Path Attempted - Still No Success
+==============================================================
+
+## ✅ IMPLEMENTED: Your Solution B (Non-Standard Path)
+
+Dear Expert,
+
+I implemented your Solution B exactly as recommended, but we're still experiencing the same issue. Here's what I tried:
+
+## 🔧 WHAT I IMPLEMENTED:
+
+### Complete Non-Standard Path Implementation
+```typescript
+// In server/index.ts - BEFORE any other middleware
+app.post('/booking-direct', async (req, res) => {
+  console.log('🟢 DIRECT BOOKING ROUTE - NO VITE INTERFERENCE POSSIBLE');
+  
+  try {
+    if (!req.isAuthenticated()) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ message: "Unauthorized" }));
+    }
+
+    const bookingData = {
+      eventId: req.body.eventId,
+      userId: req.body.userId,
+      tableId: req.body.tableId,
+      partySize: req.body.seatNumbers?.length || req.body.partySize || 2,
+      customerEmail: req.body.customerEmail,
+      stripePaymentId: req.body.stripePaymentId,
+      guestNames: req.body.guestNames || [],
+      foodSelections: req.body.foodSelections || [],
+      status: 'confirmed'
+    };
+
+    console.log('🟢 CREATING BOOKING WITH DIRECT ROUTE:', JSON.stringify(bookingData, null, 2));
+    const newBooking = await storage.createBooking(bookingData);
+    console.log('🟢 DIRECT BOOKING CREATED SUCCESSFULLY:', newBooking.id);
+    
+    // Used writeHead and end for maximum control
+    res.writeHead(200, {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache'
+    });
+    res.end(JSON.stringify({
+      success: true,
+      message: 'Booking created successfully',
+      booking: newBooking
+    }));
+    
+  } catch (error) {
+    console.log('🔴 DIRECT BOOKING ERROR:', error);
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: false,
+      message: 'Booking creation failed',
+      error: error instanceof Error ? error.message : String(error)
+    }));
+  }
+});
+```
+
+### Frontend Updated
+```typescript
+// Changed to use the non-standard path
+const bookingUrl = `${baseUrl}/booking-direct`;
+const response = await apiRequest("POST", bookingUrl, booking);
+```
+
+## 🚫 CRITICAL FINDING: No Server Logs At All
+
+### The Issue:
+- **Frontend Log**: `["API Request: POST /booking-direct"]`
+- **Backend Log**: **COMPLETE SILENCE** - No "DIRECT BOOKING ROUTE" message appears
+- **Pattern**: The endpoint isn't being hit AT ALL
+
+### Evidence:
+1. ✅ Payment processing works (shows in logs)
+2. ✅ Other `/api/*` endpoints work fine
+3. ❌ `/booking-direct` endpoint: **ZERO LOGS**
+4. ❌ Frontend still gets parsing error (HTML instead of JSON)
+
+## 🔍 DEEP ANALYSIS: The Request Never Reaches Express
+
+### Key Insight:
+The frontend shows `POST /booking-direct` but there's **no corresponding server log**. This means:
+
+1. **Request is being intercepted BEFORE reaching Express**
+2. **Something is serving HTML response instead**
+3. **The route handler never executes**
+
+### Server Order in index.ts:
+```typescript
+1. CORS setup
+2. express.json() middleware
+3. Basic endpoints (/api/health)
+4. Our new /booking-direct endpoint ✅ (should run)
+5. Performance middleware
+6. Auth setup
+7. Route registration
+8. Vite setup (conditionally)
+```
+
+## 🤔 EXPERT: What's Intercepting Non-API Routes?
+
+Since even `/booking-direct` (completely outside `/api` namespace) is being intercepted:
+
+### Questions for Expert:
+
+1. **Vite Catch-All Scope**: Could Vite be intercepting ALL routes, not just `/api/*`?
+
+2. **Middleware Order**: Is there hidden middleware running before our route registration?
+
+3. **Alternative Solution A**: Should we try your **different port strategy** (separate API server on port 3001)?
+
+4. **Response Debugging**: Should we add the debugging middleware you suggested?
+
+## 🎯 REQUESTED EXPERT GUIDANCE:
+
+### Immediate Action Needed:
+Since Solution B (non-standard path) failed, what should we try next?
+
+### Specific Options:
+A. **Solution A**: Separate port strategy (3001 for API)
+B. **Solution C**: Force response headers middleware
+C. **Solution D**: Environment variable override
+D. **Debugging**: Add response interception logging
+
+### Most Urgent Question:
+**What could be intercepting `/booking-direct` requests before they reach Express?**
+
+The fact that absolutely no server logs appear suggests something is handling these requests at a very low level, possibly before Express even processes them.
+
+EXPERT: What's the next most reliable approach to guarantee our booking endpoint works?

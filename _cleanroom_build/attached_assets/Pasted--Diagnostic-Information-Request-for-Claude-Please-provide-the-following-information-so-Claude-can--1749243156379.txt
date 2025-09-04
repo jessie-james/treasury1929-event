@@ -1,0 +1,86 @@
+# Diagnostic Information Request for Claude
+
+Please provide the following information so Claude can help fix the 403 error on the booking-success page:
+
+## 1. File Structure Check
+```bash
+# Run these commands and paste the output:
+find . -name "*.tsx" -path "*/pages/*" | head -10
+find . -name "App.tsx" -o -name "main.tsx" -o -name "index.tsx" | grep client
+ls -la client/src/pages/ 2>/dev/null || echo "No pages directory found"
+```
+
+## 2. App.tsx Content
+Please paste the COMPLETE content of your main App.tsx file:
+```
+Location: client/src/App.tsx
+Content: [PASTE FULL FILE HERE]
+```
+
+## 3. Server Routes Check
+Please paste the COMPLETE content of your main server file:
+```
+Location: server/index.ts (or server/app.ts or server/server.ts)
+Content: [PASTE FULL FILE HERE]
+```
+
+## 4. Package.json Dependencies
+```bash
+# Run this and paste output:
+cat package.json | grep -A 20 '"dependencies"'
+cat client/package.json | grep -A 20 '"dependencies"' 2>/dev/null || echo "No client package.json"
+```
+
+## 5. Current Route Configuration
+Search for routing setup and paste results:
+```bash
+# Run these and paste any results:
+grep -r "BrowserRouter\|Routes\|Route" client/src/ --include="*.tsx" --include="*.ts"
+grep -r "booking-success" . --include="*.ts" --include="*.tsx" --include="*.js"
+```
+
+## 6. Server Static File Serving
+Check how static files are served:
+```bash
+# Search for static file serving in server:
+grep -r "static\|express\.static" server/ --include="*.ts" --include="*.js"
+grep -r "sendFile\|app\.get.*\*" server/ --include="*.ts" --include="*.js"
+```
+
+## 7. Current Browser Console Errors
+When you visit `http://localhost:5000/booking-success` directly:
+- Open browser dev tools (F12)
+- Go to Console tab
+- Paste any red errors you see
+- Go to Network tab and paste any failed requests
+
+## 8. Development vs Production Setup
+```bash
+# Check how the app is built and served:
+cat package.json | grep -A 5 -B 5 '"scripts"'
+ls -la dist/ 2>/dev/null || ls -la build/ 2>/dev/null || echo "No dist/build folder found"
+```
+
+## 9. Current File Content Check
+If these files exist, paste their content:
+
+**BookingSuccess component (if exists):**
+```
+cat client/src/pages/BookingSuccess.tsx 2>/dev/null || echo "File not found"
+```
+
+**Main routing file:**
+```
+cat client/src/main.tsx 2>/dev/null || cat client/src/index.tsx 2>/dev/null || echo "No main/index file found"
+```
+
+## 10. Test Results
+Try these URLs and tell me what happens:
+- `http://localhost:5000/` → Works/Error?
+- `http://localhost:5000/api/health` → Works/Error?
+- `http://localhost:5000/booking-success` → What exact error?
+- `http://localhost:5000/nonexistent-page` → What happens?
+
+---
+
+**Please paste ALL the above information so Claude can identify exactly what's causing the 403 error and provide the correct fix.**

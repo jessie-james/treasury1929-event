@@ -1,0 +1,191 @@
+Replit AI — Fix Existing Sept Events (Activate + 6:30 PM), Enforce Price Phrase, Add Salmon, Seed Artists, Prove (SAFE)
+Operating Mode (must obey)
+
+WRITE-MODE allowed in THIS development workspace only.
+
+Never read/write/modify data for Aug 28 or Sep 5 events.
+
+No outbound I/O: keep EMAIL_SUPPRESS_OUTBOUND=true, STRIPE_MOCK_MODE=true, BACKUPS_ENABLED=false.
+
+Use America/Phoenix logic for all times; store as UTC if DB is UTC.
+
+Branch: content/sept-corrections-activate-price-salmon-artists.
+
+Context from your findings (act on these)
+
+Sept 9/12/19 events exist but are inactive.
+
+Their times are midnight, not 6:30 PM.
+
+Price display stored as just “$130”, not full phrase.
+
+Menu is empty (no Grilled King Salmon).
+
+Proceed to correct the existing September events (don’t re-create different titles).
+
+Phase 1 — Normalize the 3 September events (idempotent UPDATE)
+
+For each event with these titles/dates, update in place (do not touch Aug 28 / Sep 5):
+
+Targets
+
+Sept 9, 2025 — “An Evening of Fine Dining & Music: Sophia Su with Artists of The Arizona Opera”
+
+Sept 12, 2025 — same title/content as Sept 9 (second night)
+
+Sept 19, 2025 — “An Evening of Fine Dining & Music: Featuring Renowned Pianist Dr. Fanya Lin”
+
+Set:
+
+is_active = true
+
+event_type = 'full'
+
+base_price = 13000 (cents)
+
+ticket_price = null
+
+priceDisplay = "$130 per guest — tax & gratuity included"
+
+Date/time = 6:30 PM America/Phoenix
+
+Store as UTC equivalent:
+
+Sept 9 → 2025-09-10T01:30:00Z
+
+Sept 12 → 2025-09-13T01:30:00Z
+
+Sept 19 → 2025-09-20T01:30:00Z
+
+If the app expects local TZ timestamps, persist as Phoenix-local and ensure server renders Phoenix.
+
+Ensure include_food_service=true, include_beverages=true, ticket_cutoff_days=3, max_tickets_per_purchase=8.
+
+alcoholNotes = "Wine bottles purchasable in-app; glasses of wine, beer, cocktails at the table."
+
+menuNotes = "Grilled King Salmon — mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes."
+
+Keep existing hero image placeholders as-is.
+
+Copy blocks (ensure the long descriptions are saved exactly as below):
+
+Sept 9 & 12 — Full Description
+
+Join us for the launch of our Dinner Concert Series, an elegant evening where culinary artistry and live classical performance come together inside the historic setting of The Treasury 1929. This immersive experience features a handcrafted, multi-course dinner by renowned chef Daniel Scordato, while being transported by the soaring melodies of Puccini’s La Bohème, Verdi’s La Traviata, and Bizet’s Carmen. Performed by talented vocalists, these iconic works bring to life the romance, fire, and beauty that make opera unforgettable.
+
+Tickets include a 3-course fine dining experience, two live 30-minute concert performances, and all non-alcoholic beverages. Bottles of wine are available for purchase through the app, while glasses of wine, beer, and craft cocktails will be available for purchase at your table. Please arrive by 5:45 PM to allow time for drink service.
+
+All tickets are purchasable online only—select your seats, choose your three-course dinner in advance, and complete payment securely online. No door tickets.
+
+
+Sept 19 — Full Description
+
+Join us for our Dinner Concert Series, where culinary artistry and live classical performance meet inside the historic Treasury 1929. Enjoy a handcrafted, multi-course dinner by Chef Daniel Scordato while being transported by the virtuosity of Steinway Artist Dr. Fanya Lin.
+
+Tickets include a 3-course fine dining experience, two live 30-minute concert performances, and all non-alcoholic beverages. Bottles of wine are available for purchase through the app; glasses of wine, beer, and craft cocktails will be available at your table. Please arrive by 5:45 PM to allow time for drink service.
+
+All tickets are purchasable online only—seat selection, dinner pre-selection, and secure checkout online. No door tickets.
+
+
+Schedule for all 3 (persist as array):
+
+5:45 PM — Doors open; seating; beverage service; amuse-bouche
+
+6:30 PM — First musical performance (30 min)
+
+7:00 PM — Dinner service (salad, pre-selected entrée, dessert)
+
+8:15 PM — Second musical performance (30 min)
+
+8:45 PM — Dinner and music conclude
+
+Commit: fix(events): activate Sept 9/12/19, set 6:30 PM Phoenix, enforce priceDisplay
+
+Phase 2 — Enforce price phrase everywhere (UI)
+
+Ensure client/src/lib/price.ts returns the exact phrase for event_type='full' (default to 13000 if missing).
+
+Ensure EventCard header and EventDetails both render {formatPriceDisplay(event)} prominently (no regressions to just “$130”).
+
+Remove any $50/5000 fallbacks for full events.
+
+Commit: fix(ui): enforce "$130 per guest — tax & gratuity included" on cards and details
+
+Phase 3 — Add Grilled King Salmon and map to the 3 Sept events
+
+If menu tables exist (menu_items, event_menu_items), upsert:
+
+menu_items:
+
+name: Grilled King Salmon
+
+description: mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes.
+
+course: entree
+
+image_url: /assets/menu/grilled-king-salmon.jpg (create placeholder if missing)
+
+is_active: true
+
+event_menu_items: link the above to Sept 9/12/19 with course='entree'.
+
+If menu is API- or client-constant–driven, update the authoritative source so those 3 events show Salmon and do not show Branzino.
+
+Ensure the booking UI uses the authoritative source (no stale constants shadowing the DB).
+
+Commit: feat(menu): add Grilled King Salmon and associate to Sept 9/12/19
+
+Phase 4 — Seed Artists (photo + bio) for those events (no crash)
+
+Use existing event_artists CRUD (or JSON fallback) to ensure:
+
+Sept 9 & 12
+
+Sophia Su — Pianist — Bio:
+Collaborative pianist (DMA, University of Arizona). Master’s from UT Austin; performances with Butler Opera Center, Miami Music Festival, Chicago Summer Opera, and the International Lyric Academy (Italy). Winner of UA’s 2023–24 President’s Concerto Competition.
+Photo: /assets/artists/sophia-su.jpg (placeholder if missing)
+
+TBD Vocalists — Vocalists — Bio:
+Final lineup to be confirmed from: Jared Peterson, Aysen Idil Milliogullari, Emily Gibson, Diana Peralta.
+Photo: (blank or placeholder)
+
+Sept 19
+
+Dr. Fanya Lin — Pianist — Bio:
+Described as a “striking interpreter” with “committed and heartfelt performance,” Dr. Lin has performed with the Royal Philharmonic, Utah Symphony, Savannah Philharmonic, and more. Her 2023 album Rhapsodic (Navona Records) features Gershwin’s Rhapsody in Blue and Rachmaninoff’s Rhapsody on a Theme of Paganini. She is Associate Professor of Practice in Piano at the University of Arizona.
+Photo: /assets/artists/fanya-lin.jpg (placeholder)
+
+Backoffice Event Editor → Artists panel must show Name, Role, Bio, Photo URL; default to 1 row; no crash on empty lists.
+
+Commit: feat(content): seed artists (bio+photo placeholders) for Sept 9/12/19
+
+Phase 5 — Proof & Live Checks (READ-ONLY outputs)
+
+Generate TRE1929_Sept_Live_Fix_Proof_<timestamp>.md with:
+
+Event IDs & fields for Sept 9/12/19: is_active=true, UTC date matching 6:30 PM Phoenix, priceDisplay set, base_price=13000.
+
+Screenshots/DOM snippets showing on the Events list each card’s header includes:
+“$130 per guest — tax & gratuity included”.
+
+Booking UI evidence for each of the 3 events: entrée selector includes Grilled King Salmon (exact description) and excludes Branzino.
+
+Artists panel screenshot/snippet for each event showing rows as seeded; fields present; no crash.
+
+Server Sections report: first 40 lines of the printable HTML for any Sept event (2–3 tables) showing course order, table header TABLE <n> — Party <size> — <floor>, columns, and wine totals.
+
+Safety log: show env flags in effect and explicit note that Aug 28 / Sep 5 were not read/modified.
+
+Acceptance (all must pass)
+
+Sept 9/12/19 are active, scheduled at 6:30 PM Phoenix, correct UTC stored if DB is UTC.
+
+Event cards & details show full price phrase (not just “$130”).
+
+Grilled King Salmon selectable for all three; Branzino not shown for those events.
+
+Artists seeded & visible in Editor with photo URL + bio, panel stable.
+
+Proof file created with IDs, snippets, and safety log.
+
+If any acceptance item fails, apply the smallest fix, commit, and re-run only that item. Keep all safety rules.

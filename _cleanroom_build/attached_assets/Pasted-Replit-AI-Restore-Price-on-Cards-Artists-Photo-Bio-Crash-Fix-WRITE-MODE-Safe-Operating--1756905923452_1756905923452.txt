@@ -1,0 +1,208 @@
+Replit AI — Restore Price on Cards + Artists (Photo & Bio) + Crash Fix (WRITE-MODE, Safe)
+Operating Mode
+
+WRITE-MODE allowed. Edit/add files, run tests, and commit.
+
+Create branch: ui/hotfix-price-on-cards-artists-editor.
+
+Do NOT modify or delete data for events on Aug 28 or Sept 5 (write-guard stays on).
+
+No live keys in code/tests. Respect EMAIL_SUPPRESS_OUTBOUND.
+
+America/Phoenix time everywhere.
+
+Part 0 — Put “$130 per guest — tax & gratuity included” back on Event Cards’ title/header
+
+Goal: On every event card, the price phrase appears in the header area next to/under the title (exact phrase), and still appears on the event details page. Do not regress the centralized price helper.
+
+Tasks
+
+Ensure helper is correct
+
+In client/src/lib/price.ts, keep or create:
+
+export function formatPriceDisplay(event: any): string {
+  if (event.priceDisplay) return event.priceDisplay;
+
+  const eventType = event.eventType ?? event.event_type;
+  const basePrice = (event.basePrice ?? event.base_price) ?? null;
+  const ticketPrice = (event.ticketPrice ?? event.ticket_price) ?? null;
+
+  if (eventType === 'full') {
+    const cents = typeof basePrice === 'number' ? basePrice : 13000;
+    const dollars = Math.round(cents / 100);
+    return `$${dollars} per guest — tax & gratuity included`;
+  }
+
+  if (eventType === 'ticket-only' && typeof ticketPrice === 'number') {
+    const dollars = Math.round(ticketPrice / 100);
+    return `$${dollars} per ticket`;
+  }
+
+  return `$130 per guest — tax & gratuity included`;
+}
+
+
+Event Card header render
+
+In client/src/components/events/EventCard.tsx (or equivalent), in the title area:
+
+Render the event title as before.
+
+Directly beneath (or to the right in the header), render:
+
+<div className="text-sm font-semibold">
+  {formatPriceDisplay(event)}
+</div>
+
+
+Do not rely on any $50 fallback anywhere.
+
+Event Details page
+
+Ensure client/src/components/events/EventDetails.tsx also uses formatPriceDisplay(event) prominently near the title/hero.
+
+Tests
+
+Update/create tests/price-display.spec.ts:
+
+Assert EventCard renders exact phrase “$130 per guest — tax & gratuity included” for event_type='full' with base_price=13000.
+
+Assert no $50 appears for the three September events.
+
+Commit: fix(ui): restore price phrase on event card headers and details using centralized helper
+
+Part A — Artists (1..N) with photo & bio in Event Editor + Crash Fix
+
+Goal: Backoffice Event Editor has an Artists panel to manage one or more artists with Name, Role, Bio, Photo URL; defaults to one row if none exist; supports add/remove/reorder; no crashes.
+
+A1) Data model (if missing)
+
+Migration (Drizzle) to add event_artists:
+
+id serial pk
+
+event_id int references events(id) on delete cascade
+
+name varchar(255) not null
+
+role varchar(100) not null
+
+bio text
+
+photo_url text
+
+display_order int default 0
+
+created_at timestamp default now()
+
+If a JSON field for artists already exists, prefer the table above; otherwise keep JSON but normalize reader/writer to default [].
+
+A2) Server routes (Admin only)
+
+GET /api/admin/events/:eventId/artists → list (ordered by display_order, then id).
+
+POST /api/admin/events/:eventId/artists → create {name, role, bio, photoUrl, displayOrder?}.
+
+PATCH /api/admin/events/:eventId/artists/:id → update any field.
+
+DELETE /api/admin/events/:eventId/artists/:id → remove.
+
+PATCH /api/admin/events/:eventId/artists/reorder → {idsInOrder:number[]} updates display_order.
+
+Crash guards:
+
+All handlers must treat missing/empty arrays as [].
+
+Zod schemas must allow empty bio / photoUrl.
+
+Return consistent shapes {id, name, role, bio, photoUrl, displayOrder}.
+
+A3) Client — Event Editor UI
+
+Create/extend a panel Artists in client/src/pages/backoffice/EventEditor.tsx (or its component tree):
+
+On load, default to one artist card if list is empty.
+
+Each artist card fields: Name (required), Role (required), Bio (multiline), Photo URL (optional).
+
+Buttons: Add Artist, Delete, Move Up/Down (reorders).
+
+For empty/missing photo, show a placeholder avatar in preview (e.g., /assets/artists/placeholder.jpg).
+
+Save calls the Admin routes; optimistic UI or refetch on success.
+
+Crash fix:
+
+Ensure component state initializes with artists || [].
+
+Wrap the panel in a small error boundary; log errors but don’t crash the whole editor.
+
+A4) Seed the September events with initial artists
+
+Sept 9 & 12:
+
+Sophia Su — Pianist — bio:
+Collaborative pianist (DMA, University of Arizona). Master’s from UT Austin; performances with Butler Opera Center, Miami Music Festival, Chicago Summer Opera, and the International Lyric Academy (Italy). Winner of UA’s 2023–24 President’s Concerto Competition. — photoUrl: /assets/artists/sophia-su.jpg (placeholder)
+
+TBD Vocalists — Vocalists — bio:
+Final lineup to be confirmed from: Jared Peterson, Aysen Idil Milliogullari, Emily Gibson, Diana Peralta. — photoUrl: (leave empty or placeholder)
+
+Sept 19:
+
+Dr. Fanya Lin — Pianist — bio:
+Described as a “striking interpreter” with “committed and heartfelt performance,” Dr. Lin has performed with the Royal Philharmonic, Utah Symphony, Savannah Philharmonic, and more. Her 2023 album Rhapsodic (Navona Records) features Gershwin’s Rhapsody in Blue and Rachmaninoff’s Rhapsody on a Theme of Paganini. She is Associate Professor of Practice in Piano at the University of Arizona. — photoUrl: /assets/artists/fanya-lin.jpg (placeholder)
+
+Commit: feat(editor): Artists (CRUD + UI) with photo & bio; default row; crash-safe
+
+Part B — Proof Report (READ-ONLY)
+
+Generate TRE1929_UI_Artists_Price_Proof_<timestamp>.md including:
+
+Price on Cards Evidence
+
+File paths + line ranges showing the card header rendering formatPriceDisplay(event).
+
+A grep showing no $50 default is used for full events.
+
+Artists Admin Evidence
+
+Migration filename + columns for event_artists (or JSON fallback with default []).
+
+Route paths for artists CRUD (GET/POST/PATCH/DELETE/reorder).
+
+UI component path and a short JSX snippet showing the Add Artist button and fields (Name, Role, Bio, Photo URL).
+
+Confirmation that when artists are null/undefined, the editor initializes with one empty artist card (no crash).
+
+Seeds Applied
+
+IDs of artists seeded for Sept 9/12 (Sophia Su + TBD Vocalists) and Sept 19 (Dr. Fanya Lin) with their photoUrl values.
+
+Placeholders TODO
+
+List placeholder image paths created or referenced (so the owner can upload later), e.g.:
+
+/assets/artists/sophia-su.jpg
+
+/assets/artists/fanya-lin.jpg
+
+/assets/artists/placeholder.jpg (if added)
+
+Tests (add/extend)
+
+tests/price-display.spec.ts → EventCard renders price phrase; no $50 fallback path.
+
+tests/artists.spec.ts → CRUD + reorder; editor defaults to one row; no crash on missing data.
+
+If JSON fallback is used, include a unit test ensuring artists ?? [] normalization.
+
+Acceptance Criteria
+
+Event cards visibly show “$130 per guest — tax & gratuity included” in the title/header area and details page.
+
+Event Editor has an Artists panel with Name, Role, Bio, Photo URL; supports add/remove/reorder; defaults to one row; no crashes.
+
+Sept events have seeded artists as specified (with placeholder photos).
+
+Proof report TRE1929_UI_Artists_Price_Proof_<timestamp>.md shows the file/line evidence.

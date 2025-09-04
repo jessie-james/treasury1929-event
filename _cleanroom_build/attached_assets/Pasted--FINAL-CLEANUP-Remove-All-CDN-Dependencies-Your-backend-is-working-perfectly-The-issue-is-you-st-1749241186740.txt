@@ -1,0 +1,299 @@
+# FINAL CLEANUP: Remove All CDN Dependencies
+
+Your backend is working perfectly! The issue is you still have frontend code trying to load Stripe.js from CDN. Let's completely remove that and simplify.
+
+## Step 1: DELETE These Files Completely
+
+```bash
+# Remove these files entirely:
+client/src/utils/stripe-loader.ts
+client/src/components/booking/PaymentDiagnostics.tsx
+client/src/pages/StripeDiagnostics.tsx
+```
+
+## Step 2: CLEAN UP CheckoutForm.tsx
+
+Replace your current CheckoutForm.tsx with this simplified version:
+
+```typescript
+// client/src/components/booking/CheckoutForm.tsx
+import React, { useState } from 'react';
+
+interface CheckoutFormProps {
+  eventId: number;
+  tableId: number;
+  selectedSeats: number[];
+  foodSelections?: any[];
+  guestNames?: string[];
+  onSuccess?: () => void;
+}
+
+const CheckoutForm: React.FC<CheckoutFormProps> = ({ 
+  eventId, 
+  tableId, 
+  selectedSeats, 
+  foodSelections = [], 
+  guestNames = [],
+  onSuccess 
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleStripeCheckout = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          eventId,
+          tableId,
+          selectedSeats,
+          amount: Math.round(19.99 * selectedSeats.length * 100), // amount in cents
+          foodSelections,
+          guestNames
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Payment setup failed');
+      }
+
+      // Redirect to Stripe Checkout - this always works!
+      window.location.href = data.url;
+      
+    } catch (err: any) {
+      console.error('Payment failed:', err);
+      setError(err.message || 'Payment initialization failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="checkout-form">
+      <div className="booking-summary">
+        <h3>Booking Summary</h3>
+        <p><strong>Event:</strong> {eventId}</p>
+        <p><strong>Table:</strong> {tableId}</p>
+        <p><strong>Seats:</strong> {selectedSeats.length}</p>
+        <p><strong>Total:</strong> ${(19.99 * selectedSeats.length).toFixed(2)}</p>
+      </div>
+      
+      {error && (
+        <div className="error-message" style={{ 
+          color: 'red', 
+          padding: '10px', 
+          border: '1px solid red', 
+          borderRadius: '4px',
+          marginBottom: '10px'
+        }}>
+          {error}
+        </div>
+      )}
+      
+      <button 
+        onClick={handleStripeCheckout}
+        disabled={isLoading}
+        className="pay-button"
+        style={{
+          backgroundColor: isLoading ? '#ccc' : '#0070f3',
+          color: 'white',
+          padding: '12px 24px',
+          border: 'none',
+          borderRadius: '6px',
+          fontSize: '16px',
+          cursor: isLoading ? 'not-allowed' : 'pointer',
+          width: '100%'
+        }}
+      >
+        {isLoading ? 'Setting up payment...' : 'Pay with Stripe'}
+      </button>
+      
+      <p style={{ fontSize: '12px', color: '#666', marginTop: '10px' }}>
+        You'll be redirected to Stripe's secure checkout page
+      </p>
+    </div>
+  );
+};
+
+export default CheckoutForm;
+```
+
+## Step 3: UPDATE Success and Cancel Pages
+
+Make sure these exist and are simple:
+
+```typescript
+// client/src/pages/BookingSuccess.tsx
+import React, { useEffect, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+
+const BookingSuccess: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [verifying, setVerifying] = useState(true);
+  const [bookingData, setBookingData] = useState<any>(null);
+  const sessionId = searchParams.get('session_id');
+
+  useEffect(() => {
+    if (sessionId) {
+      // Verify the payment with your backend
+      fetch(`/api/payment-success?session_id=${sessionId}`, {
+        credentials: 'include'
+      })
+        .then(res => res.json())
+        .then(data => {
+          setBookingData(data);
+          setVerifying(false);
+        })
+        .catch(err => {
+          console.error('Verification failed:', err);
+          setVerifying(false);
+        });
+    } else {
+      setVerifying(false);
+    }
+  }, [sessionId]);
+
+  if (verifying) {
+    return (
+      <div style={{ textAlign: 'center', padding: '50px' }}>
+        <h2>Verifying your payment...</h2>
+        <p>Please wait while we confirm your booking.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ textAlign: 'center', padding: '50px' }}>
+      <h1 style={{ color: 'green' }}>🎉 Payment Successful!</h1>
+      <p>Your booking has been confirmed.</p>
+      
+      {bookingData && (
+        <div style={{ marginTop: '20px' }}>
+          <h3>Booking Details:</h3>
+          <p><strong>Booking ID:</strong> {bookingData.booking?.id}</p>
+          <p><strong>Session ID:</strong> {sessionId}</p>
+        </div>
+      )}
+      
+      <button 
+        onClick={() => navigate('/')}
+        style={{
+          backgroundColor: '#0070f3',
+          color: 'white',
+          padding: '12px 24px',
+          border: 'none',
+          borderRadius: '6px',
+          marginTop: '20px',
+          cursor: 'pointer'
+        }}
+      >
+        Back to Home
+      </button>
+    </div>
+  );
+};
+
+export default BookingSuccess;
+```
+
+```typescript
+// client/src/pages/BookingCancel.tsx
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+
+const BookingCancel: React.FC = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div style={{ textAlign: 'center', padding: '50px' }}>
+      <h1>Payment Cancelled</h1>
+      <p>Your booking was not completed. No charges were made.</p>
+      
+      <button 
+        onClick={() => navigate(-1)}
+        style={{
+          backgroundColor: '#0070f3',
+          color: 'white',
+          padding: '12px 24px',
+          border: 'none',
+          borderRadius: '6px',
+          marginTop: '20px',
+          cursor: 'pointer'
+        }}
+      >
+        Try Again
+      </button>
+    </div>
+  );
+};
+
+export default BookingCancel;
+```
+
+## Step 4: REMOVE CDN Dependencies from package.json
+
+Remove these if they exist (since you're not using them anymore):
+
+```bash
+npm uninstall @stripe/stripe-js @stripe/react-stripe-js
+```
+
+Keep only the server-side stripe package:
+```json
+{
+  "stripe": "^17.7.0"
+}
+```
+
+## Step 5: UPDATE Environment Variables
+
+Make sure these are set correctly:
+
+```env
+# server/.env
+STRIPE_SECRET_KEY=sk_test_51QOaSfEHxqQFTPx3kR9d5Sf9FQIFbfvr9JK9zLZ7tVrm3Ygh8Q31HpT3DpD2IqPVbWc0FmzZwqYs6a2k8l5fDNmP006jFELrO5
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
+CLIENT_URL=http://localhost:5000
+```
+
+**REMOVE** this from client/.env (you don't need it anymore):
+```env
+# DELETE THIS LINE:
+# VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
+```
+
+## Step 6: TEST the Flow
+
+1. User clicks "Pay with Stripe" 
+2. Gets redirected to Stripe's checkout page
+3. Completes payment
+4. Returns to your success page
+5. Booking is created in database
+
+## Why This Works Perfectly:
+
+✅ **No CDN loading** - eliminates all network issues  
+✅ **Server-side only** - more secure and reliable  
+✅ **Stripe handles everything** - payment forms, validation, security  
+✅ **Mobile friendly** - Stripe's pages work great on all devices  
+✅ **PCI compliant** - you don't handle card data  
+
+## What You've Eliminated:
+
+❌ CDN loading failures  
+❌ Frontend Stripe.js dependency  
+❌ Complex loading strategies  
+❌ Network connectivity issues  
+❌ Frontend payment form complexity  
+
+Your backend is already perfect - now your frontend will be bulletproof too! 🎯

@@ -1,0 +1,105 @@
+Replit AI — CRASH-FIX EXECUTION (Minimal, Targeted, Safe)
+Goal
+Fix the live boot crash found in TRE1929_Live_Crash_Audit_1756993002.md:
+  1) ERR_MODULE_NOT_FOUND: dist/index.js imports @vitejs/plugin-react (dev-only) in production.
+  2) TS config missing ES libs → 100+ diagnostics (Promise/Date/etc).
+
+Rules (must obey)
+- Touch only build config and server boot code paths needed to remove dev-only imports from the production bundle, and TypeScript config to restore standard libs.
+- DO NOT run migrations or seed scripts. DO NOT modify DB rows. DO NOT change any event data. DO NOT alter Stripe or SendGrid keys.
+- Keep existing application behavior and routes intact; no functional changes beyond boot reliability.
+- Keep protected events (39,40) untouched.
+
+Branch
+- Create: hotfix/prod-crash-bundle
+
+PHASE 1 — Locate offending imports (READ-ONLY)
+1) Grep server for any top-level imports of vite or @vitejs/plugin-react:
+   - Files likely: server/index.ts, server/vite.ts, server/express-only.ts, vite.config.ts
+   - Record exact lines where vite/@vitejs/plugin-react are imported at top level.
+
+PHASE 2 — Refactor dev-only imports behind production-safe boundary (WRITE)
+Objective: Ensure production code path cannot import dev-only modules at build time.
+
+2) Create a new file for dev server mounting (if not present):
+   - server/dev-vite.ts (ESM)
+     export async function mountViteDevMiddleware(app: import('express').Express) {
+       const vite = await import('vite');
+       const react = (await import('@vitejs/plugin-react')).default;
+       // Create Vite dev server and attach middleware as previously implemented.
+     }
+
+3) In server/index.ts (or the main server entry), change any top-level imports of vite/@vitejs/plugin-react to a guarded dynamic import:
+   - Remove: import vite from 'vite'; import react from '@vitejs/plugin-react';
+   - Add:
+       const isProd = process.env.NODE_ENV === 'production';
+       if (!isProd) {
+         const { mountViteDevMiddleware } = await import('./dev-vite.js');
+         await mountViteDevMiddleware(app);
+       }
+   - Ensure no remaining top-level references to vite/@vitejs/plugin-react exist in any production-executed files.
+
+PHASE 3 — Harden the server build not to bundle dev-only deps (WRITE)
+4) Update package.json scripts:
+   - Replace server build script to externalize dev-only deps explicitly.
+   - Example (adjust paths as needed):
+     "scripts": {
+       "build": "npm run clean && npm run build:server && npm run build:client",
+       "build:server": "esbuild server/index.ts --platform=node --format=esm --bundle --outdir=dist --sourcemap --external:@vitejs/plugin-react --external:vite",
+       "build:client": "vite build",
+       "clean": "rimraf dist"
+     }
+   - Add devDeps if missing: rimraf (for clean). Do NOT upgrade esbuild or vite.
+
+5) Ensure /dist only contains server output that does NOT import vite/@vitejs/plugin-react in production.
+
+PHASE 4 — TypeScript lib fix (WRITE)
+6) Edit tsconfig.json minimally to restore core ES libs and Node types. Keep existing options, just add the missing libs:
+   - Ensure:
+     "compilerOptions": {
+       "lib": ["ES2015", "ES2020", "DOM", "DOM.Iterable"],
+       "types": ["node"],
+       "skipLibCheck": true
+     }
+   - Do not remove existing options. If lib already exists, append ES2015 (and ES2020 if absent).
+
+PHASE 5 — Build & Boot Verification (NO external I/O)
+7) Full rebuild:
+   - npm ci
+   - npm run build
+
+8) Start in production mode with external I/O suppressed:
+   - NODE_ENV=production EMAIL_SUPPRESS_OUTBOUND=true STRIPE_MOCK_MODE=true node dist/index.js
+   - Expect: server boots; no ERR_MODULE_NOT_FOUND; no vite/@vitejs/plugin-react in stack.
+
+9) Confirm basic health routes only (READ-ONLY HTTP):
+   - GET /health → 200
+   - GET /api/events → 200 (no writes)
+   - Do NOT call any endpoints that mutate data.
+
+PHASE 6 — Evidence Report (OUTPUT)
+10) Write a markdown file at repo root:
+   TRE1929_Prod_Crash_Fix_<timestamp>.md
+   Include:
+   - Before/after snippets showing removed top-level imports and the new guarded dynamic import pattern.
+   - The exact esbuild command now used (from package.json).
+   - tsconfig.json diff (only the lib/types/skipLibCheck additions).
+   - Build and boot logs (first 40 lines) showing successful start.
+   - Confirmation that dist/index.js no longer contains any reference to '@vitejs/plugin-react' or 'vite' (quote a grep result).
+   - Confirmation that no DB writes, seeds, or migrations were executed.
+
+PHASE 7 — Minimal Commit
+11) Commit all changes on hotfix/prod-crash-bundle with messages:
+   - chore(build): externalize vite/@vitejs/plugin-react from server bundle
+   - fix(server): guard dev-only vite middleware with dynamic import in non-prod
+   - chore(tsconfig): add ES libs + node types to resolve Promise/Date diagnostics
+   - chore(scripts): add clean step to avoid stale dist artifacts
+
+Important Constraints
+- No changes to application features, routes behavior, pricing, events, artists, or media.
+- No DB schema or data modifications.
+- No emails or Stripe requests during verification.
+- Keep the diff as small as possible.
+
+Deliverables
+- Print path to TRE1929_Prod_Crash_Fix_<timestamp>.md at the end.

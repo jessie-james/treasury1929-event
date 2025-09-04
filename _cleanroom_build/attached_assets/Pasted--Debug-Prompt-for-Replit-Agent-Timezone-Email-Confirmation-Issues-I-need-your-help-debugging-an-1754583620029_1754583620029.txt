@@ -1,0 +1,69 @@
+# Debug Prompt for Replit Agent: Timezone & Email Confirmation Issues
+
+I need your help debugging and fixing critical issues in my application related to timezone handling and customer confirmation emails. Here are the problems:
+
+## Issues to Fix:
+1. **Customers are not receiving confirmation emails after purchase**
+2. **Timezone inconsistencies across the application** - different times showing for:
+   - Email timestamps
+   - Confirmation messages
+   - Ticket details
+   - Only the original event time is correct
+
+## Information I Need From You:
+
+### 1. Code Analysis
+- Show me all files that handle date/time operations
+- Identify where emails are sent (confirmation email logic)
+- Find all timezone-related code and configurations
+- Show me how event times are stored vs. how they're displayed in different contexts
+
+### 2. Email System Investigation
+- What email service/library is being used?
+- Show me the email sending functions
+- Check if email sending is properly triggered after purchases
+- Verify SMTP/email service configuration
+- Look for any error logs related to email sending
+
+### 3. Timezone Configuration Audit
+- What timezone is the server/application set to?
+- How are event times being stored in the database? (UTC, local time, with timezone info?)
+- Show me how dates are being converted between timezones
+- Identify where timezone conversions happen in the codebase
+- Check if there's a consistent timezone library being used (moment.js, date-fns, etc.)
+
+### 4. Data Flow Analysis
+- Trace the purchase flow: from purchase → confirmation email
+- Show me how event times flow from creation → storage → display in emails/tickets
+- Identify where timezone conversion losses might be occurring
+
+## What I Need You To Do:
+
+### Immediate Actions:
+1. **Fix the email confirmation system** - ensure emails are sent after every purchase
+2. **Standardize timezone handling** - make all displayed times consistent with the event's actual time
+3. **Add proper error logging** for email failures
+4. **Test the purchase flow** to verify fixes work
+
+### Code Standards to Follow:
+- Store all times in UTC in the database
+- Convert to user's local timezone only for display
+- Use a consistent date/time library throughout the app
+- Add proper error handling for email operations
+- Include timezone information in all date operations
+
+### Testing Requirements:
+- Test purchase flow with email confirmation
+- Verify timezone consistency across all components
+- Test with different user timezones
+- Check email content shows correct event times
+
+## Questions for You:
+1. What framework/language is this application built in?
+2. What database are you using and how are dates stored?
+3. What email service are you using (SendGrid, AWS SES, SMTP, etc.)?
+4. Do you have any existing error logs I should look at?
+5. What timezone should be considered the "default" for events?
+6. Are users in different timezones, or is this a local/single-timezone application?
+
+Please start by examining the codebase and providing a comprehensive analysis of the current implementation, then propose and implement fixes for both the email confirmation and timezone consistency issues.

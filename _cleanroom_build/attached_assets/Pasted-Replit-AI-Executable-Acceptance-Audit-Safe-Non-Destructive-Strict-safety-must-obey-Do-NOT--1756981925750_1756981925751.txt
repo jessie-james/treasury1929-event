@@ -1,0 +1,171 @@
+Replit AI — Executable Acceptance Audit (Safe, Non-Destructive)
+
+Strict safety (must obey):
+
+Do NOT modify or read production data for the Aug 28 or Sep 5 events.
+
+No customer emails and no Stripe calls. Stub all network I/O.
+
+Work in an isolated test schema (Postgres) and in test mode only.
+
+Output exactly one file: TRE1929_Executable_Audit_<timestamp>.md.
+
+Phase 0 — Safe test harness (write-mode setup, but no prod impact)
+
+Env for tests (do not change .env)
+Use runtime secrets or test runner env:
+
+NODE_ENV=test
+EMAIL_SUPPRESS_OUTBOUND=true
+BACKUPS_ENABLED=false
+STRIPE_MOCK_MODE=true
+PROTECT_EVENT_IDS=*,*             # keep guard active; we won’t write real events anyway
+TEST_SCHEMA=tre_audit_${RANDOM}   # e.g., tre_audit_20250904_1234
+PHX_TZ=America/Phoenix
+
+
+Isolated DB schema utility (new file): server/test/withTestSchema.ts
+
+Connect to DATABASE_URL; create schema ${TEST_SCHEMA} if not exists.
+
+Set search_path to ${TEST_SCHEMA} for the pool/knex/drizzle instance used in tests.
+
+Run migrations into this schema only.
+
+Export helpers: setupTestSchema(), teardownTestSchema() (drop schema unless KEEP_AUDIT_SCHEMA=true).
+
+Export Express app for supertest
+In server/index.ts, without starting the server, export the Express app behind a test guard:
+
+// at bottom of file
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(process.env.PORT || 5000, () => console.log('Server up'));
+}
+export { app }; // for supertest
+
+
+If that pattern already exists, keep it; don’t start the server in tests.
+
+Mock external services
+
+Create server/test/mocks.ts that stubs:
+
+SendGrid: modules/functions return resolved promises; log instead of send.
+
+Stripe: if constructor is used, return a client whose checkout.sessions.create returns a fake URL; webhooks are not verified against network.
+
+Use vi.mock(...) or jest-style mocks in Vitest.
+
+Test data seed (safe)
+
+Create server/test/seed.ts to insert fresh test copies of three audit events (titles/dates matching Sept 9/12/19) into the test schema only.
+
+Seed venue/tables minimal data, and a menu entry for “Grilled King Salmon — mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes.”
+
+Do not read or copy Aug 28 / Sep 5 rows from prod; this is independent test data.
+
+Phase 1 — Targeted acceptance tests (vitest + supertest + RTL)
+
+Create tests/owner_acceptance.e2e.spec.ts. Use setupTestSchema()/teardownTestSchema() in beforeAll/afterAll. Import { app } and call endpoints via supertest. For UI components, use React Testing Library (jsdom) to render components with responses from the test schema.
+
+A. Menu / Salmon wiring
+
+API: Assert the events/:id/menu (or equivalent source) includes Grilled King Salmon for each of the 3 test events; Branzino is not offered for these.
+
+Booking UI: Render the entrée selector; expect “Grilled King Salmon” to be visible.
+
+B. Event Editor — Price binding
+
+API: PATCH the event with base_price intentionally blank/null for event_type='full'; expect the server to coerce to 13000 (cents) and return it.
+
+UI: Render the Event Editor; verify Base Price shows $130 and preview shows “$130 per guest — tax & gratuity included”.
+
+Ensure priceDisplay persists and is editable.
+
+C. Event Editor — Artists (1..N) with photo + bio, no crash
+
+API:
+
+GET /api/admin/events/:eventId/artists returns [] initially → POST creates first artist (Sophia Su).
+
+Add second “TBD Vocalists” entry.
+
+PATCH updates bio/photoUrl; PATCH reorder changes order; DELETE removes an artist.
+
+UI: Render Editor’s Artists panel → must initialize with one empty card if none exist; add another; enter Name, Role, Bio, Photo URL; no crash (null/undefined guarded).
+
+D. Price phrase on Event Cards
+
+UI: Render EventCard for each test event; expect exact phrase: “$130 per guest — tax & gratuity included” in the header area.
+
+Grep check to ensure there is no $50 fallback path left for full events.
+
+E. Server Sections report layout
+
+API: POST /api/reports/server-sections with { eventId, tableIds:[...] } seeded from test data.
+
+Assert returned HTML contains:
+
+Course headers in order: Salad/Appetizer, Entrée, Dessert
+
+Table header format: TABLE <n> — Party <size> — <floor>
+
+Columns: Seat, Guest Name, Allergens/Dietary, Selection, Wine (bottle, qty), Notes
+
+Wine totals per table and page-break CSS between courses.
+
+F. Inactive = Sold Out
+
+API: Flip a test event’s is_active=false in the test schema.
+
+POST /api/create-checkout-session must refuse checkout for that event (status 4xx with clear message).
+
+UI: EventCard/EventDetails rendered for that event show “Sold Out” state.
+
+G. Scanning QoL
+
+API: Seed one booking; call GET /api/checkin/search?q=<last> and by booking ID.
+
+UI: Render Entrance page module; simulate “scan result” state and verify modal shows purchaser + table + party, and counters refresh logic is present (invalidate query or refetch).
+
+H. SAQ-A / Stripe & Email stubs
+
+Confirm no admin/backoffice UI renders any card input fields.
+
+Confirm paylink uses Stripe Checkout URL (from mock), never a direct charge call.
+
+Verify email functions exit early due to EMAIL_SUPPRESS_OUTBOUND=true.
+
+Phase 2 — Report output (Markdown)
+
+Generate TRE1929_Executable_Audit_<timestamp>.md with:
+
+PASS/FAIL Table (same items as your last matrix + these targeted checks), each with evidence (file:lines for code or assertion messages for tests).
+
+Failure Dossier: for any FAIL, include: short cause hypothesis, exact file(s), and a ≤30-line unified diff stub that would fix it (do not apply).
+
+Screens/HTML Snippets: include first 40 lines of the Server Sections HTML and a JSX/DOM snapshot for an EventCard showing the price phrase.
+
+Safety Proof: show the test log lines proving:
+
+isolated schema name used,
+
+EMAIL_SUPPRESS_OUTBOUND=true,
+
+Stripe mocked,
+
+Aug 28 & Sep 5 untouched.
+
+Tooling (install only dev deps if missing)
+npm i -D vitest @testing-library/react @testing-library/jest-dom jsdom supertest @types/supertest
+
+
+If app export is missing, add it per Phase 0. Do not start the server.
+
+Final output (must print)
+
+Summary counts: X PASS / Y FAIL / Z SKIP.
+
+Path to the generated report file.
+
+(Optional) If KEEP_AUDIT_SCHEMA is unset, drop the schema and log “Test schema dropped”.

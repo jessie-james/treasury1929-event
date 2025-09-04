@@ -1,0 +1,263 @@
+Replit AI — Sept Events Seeding + Price Fix + Report Finalizer (WRITE-MODE, Safe)
+Operating Mode (must obey)
+
+WRITE-MODE permitted. You may edit/add files, run tests, and commit.
+
+Create a branch: content/tre1929-sept-seed-pricefix-report.
+
+Do NOT modify or delete any records for Aug 28 or Sept 5 events. Enforce the existing write-guard.
+
+No live keys in code or tests. Respect EMAIL_SUPPRESS_OUTBOUND.
+
+Use America/Phoenix time consistently.
+
+Part 0 — Price Bug Fix ($50 showing instead of $130)
+
+Goal: Ensure all public/event list & detail views show $130 per guest — tax & gratuity included for these “full dinner” events, and prevent accidental fallbacks to $50.
+
+Tasks
+
+Diagnose & Normalize Price Logic
+
+Grep for usages of ticket_price, ticketPrice, and any default 5000 / 50 fallbacks in:
+
+client/src/components/**/EventCard*.tsx
+
+client/src/components/**/EventDetails*.tsx
+
+client/src/pages/**
+
+Any shared helpers (client + server) that format price.
+
+Implement a single helper on the client (e.g., client/src/lib/price.ts) and a mirrored server helper if needed:
+
+If event.event_type === 'full': use base_price (cents) and prefer priceDisplay if present.
+
+If event.event_type === 'ticket-only': use ticket_price (cents).
+
+Never fall back to 5000 for full dinner events.
+
+Provide formatPriceDisplay(event) that returns:
+"$130 per guest — tax & gratuity included" for these September events.
+
+Ensure event list API responses include a consistent field (e.g., effectivePriceCents and priceDisplay) to avoid component-level divergence.
+
+Apply Everywhere
+
+Update Event cards and event detail headers to use formatPriceDisplay.
+
+Remove/override any hard-coded $50 defaults or ticket_price fallbacks on “full” events.
+
+Keep $50 only for explicit event_type === 'ticket-only' events.
+
+Tests
+
+Add/extend tests (Vitest) to assert:
+
+A “full” event with base_price=13000 displays $130 per guest — tax & gratuity included on card and detail.
+
+No path renders $50 for the seeded Sept events.
+
+Commit message: fix(price): ensure full-dinner events render $130 incl. tax & grat everywhere
+
+Part A — Seed/Upsert September Events (full copy included; placeholders for images)
+
+Create scripts/seed-sept-events.ts (TypeScript, idempotent upsert via existing storage/Drizzle).
+
+Upsert by (title, date); do not touch Aug 28 / Sept 5 data.
+
+Set event_type: 'full', base_price: 13000, ticket_price: null (or keep unused), priceDisplay: "$130 per guest — tax & gratuity included".
+
+Set include_food_service: true, include_beverages: true, ticket_cutoff_days: 3, max_tickets_per_purchase: 8, is_active: true.
+
+Set menuNotes to salmon description below.
+
+Use placeholder images; create empty PNGs if needed.
+
+Common fields
+
+alcoholNotes: Wine bottles purchasable in-app; glasses of wine, beer, cocktails at the table.
+
+menuNotes: Grilled King Salmon — mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes.
+
+Event 1 — Sept 9, 2025
+
+title: An Evening of Fine Dining & Music: Sophia Su with Artists of The Arizona Opera
+
+date: 2025-09-09T18:30:00-07:00 (America/Phoenix)
+
+heroImage: /assets/events/2025-09-09/sophia.jpg (placeholder if missing)
+
+shortTeaser: An elegant evening of fine dining and live opera at The Treasury 1929. 3-course dinner, two 30-minute performances. $130 (tax & gratuity included).
+
+fullDescription (paste verbatim):
+
+Join us for the launch of our Dinner Concert Series, an elegant evening where culinary artistry and live classical performance come together inside the historic setting of The Treasury 1929. This immersive experience features a handcrafted, multi-course dinner by renowned chef Daniel Scordato, while being transported by the soaring melodies of Puccini’s La Bohème, Verdi’s La Traviata, and Bizet’s Carmen. Performed by talented vocalists, these iconic works bring to life the romance, fire, and beauty that make opera unforgettable.
+
+Tickets include a 3-course fine dining experience, two live 30-minute concert performances, and all non-alcoholic beverages. Bottles of wine are available for purchase through the app, while glasses of wine, beer, and craft cocktails will be available for purchase at your table. Please arrive by 5:45 PM to allow time for drink service.
+
+All tickets are purchasable online only—select your seats, choose your three-course dinner in advance, and complete payment securely online. No door tickets.
+
+
+schedule (JSON array of {time, note}):
+
+{"time":"5:45 PM","note":"Doors open; seating; beverage service; amuse-bouche"}
+
+{"time":"6:30 PM","note":"First musical performance (30 min)"}
+
+{"time":"7:00 PM","note":"Dinner service (salad, pre-selected entrée, dessert)"}
+
+{"time":"8:15 PM","note":"Second musical performance (30 min)"}
+
+{"time":"8:45 PM","note":"Dinner and music conclude"}
+
+artists:
+
+{ "name":"Sophia Su", "role":"Pianist", "bio":"Collaborative pianist (DMA, University of Arizona). Master’s from UT Austin; performances with Butler Opera Center, Miami Music Festival, Chicago Summer Opera, and the International Lyric Academy (Italy). Winner of UA’s 2023–24 President’s Concerto Competition.", "photoUrl":"/assets/artists/sophia-su.jpg" }
+
+{ "name":"TBD Vocalists", "role":"Vocalists", "bio":"Final lineup to be confirmed from: Jared Peterson, Aysen Idil Milliogullari, Emily Gibson, Diana Peralta.", "photoUrl":null }
+
+Event 2 — Sept 12, 2025
+
+Same as Sept 9; change only:
+
+date: 2025-09-12T18:30:00-07:00
+
+heroImage: /assets/events/2025-09-12/sophia.jpg
+
+shortTeaser: Another night of opera and fine dining at The Treasury 1929. 3-course dinner, two 30-minute performances. $130 (tax & gratuity included).
+
+Event 3 — Sept 19, 2025
+
+title: An Evening of Fine Dining & Music: Featuring Renowned Pianist Dr. Fanya Lin
+
+date: 2025-09-19T18:30:00-07:00
+
+heroImage: /assets/events/2025-09-19/fanya-lin.jpg
+
+shortTeaser: World-class piano with Dr. Fanya Lin plus a 3-course dinner at The Treasury 1929. Two 30-minute performances. $130 (tax & gratuity included).
+
+fullDescription:
+
+Join us for our Dinner Concert Series, where culinary artistry and live classical performance meet inside the historic Treasury 1929. Enjoy a handcrafted, multi-course dinner by Chef Daniel Scordato while being transported by the virtuosity of Steinway Artist Dr. Fanya Lin.
+
+Tickets include a 3-course fine dining experience, two live 30-minute concert performances, and all non-alcoholic beverages. Bottles of wine are available for purchase through the app; glasses of wine, beer, and craft cocktails will be available at your table. Please arrive by 5:45 PM to allow time for drink service.
+
+All tickets are purchasable online only—seat selection, dinner pre-selection, and secure checkout online. No door tickets.
+
+
+artists:
+
+{ "name":"Dr. Fanya Lin", "role":"Pianist", "bio":"Described as a “striking interpreter” with “committed and heartfelt performance,” Dr. Lin has performed with the Royal Philharmonic, Utah Symphony, Savannah Philharmonic, and more. Her 2023 album Rhapsodic (Navona Records) features Gershwin’s Rhapsody in Blue and Rachmaninoff’s Rhapsody on a Theme of Paganini. She is Associate Professor of Practice in Piano at the University of Arizona.", "photoUrl":"/assets/artists/fanya-lin.jpg" }
+
+Scripts
+
+Add npm script: "seed:sept": "tsx scripts/seed-sept-events.ts"
+
+Run it (workspace/local) and commit the changes.
+
+Commit message: feat(content): seed Sept 9/12/19 events with full copy, schedule, artists (placeholders for images)
+
+Part B — Menu Swap (Branzino → Grilled King Salmon)
+
+Upsert entrée item:
+
+Name: Grilled King Salmon
+
+Description: mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes.
+
+Image: /assets/menu/grilled-king-salmon.jpg (placeholder if missing)
+
+Ensure admin menu editor reflects this entrée; remove Branzino from selectable options for these events if hard-coded.
+
+Commit message: feat(menu): add Grilled King Salmon entrée and wire to events
+
+Part C — Server Sections (By-Course) Print Report for Selected Tables
+
+Requirements
+
+Endpoint (Admin/Hostess): POST /api/reports/server-sections with { eventId, tableIds: number[] }.
+
+Output: print-friendly HTML grouped Course → Table → Seat.
+
+Courses (order): Salad/Appetizer, Entrée, Dessert.
+
+Table header format: TABLE 17 — Party 4 — Main Floor.
+
+Row columns per seat: Seat | Guest Name | Allergens/Dietary | Selection | Wine (bottle, qty) | Notes.
+
+Include Wine totals per table and course footers with counts.
+
+Apply name normalization.
+
+Add page breaks between courses; readable fonts/line height.
+
+Implementation
+
+If route exists, update template; else add:
+
+server/routes-reports.ts route
+
+server/templates/server-sections.ts export function returning HTML string
+
+Backoffice UI: add a multi-select tables and Generate button; open resulting HTML in a new tab for print.
+
+Tests
+
+Extend tests/reports.spec.ts to assert course headers, table headers, seat rows, and wine totals present.
+
+Commit message: feat(reports): by-course Server Sections report (selected tables) with wine totals and print CSS
+
+Part D — Proof & TODO Output (READ-ONLY summary)
+
+Generate TRE1929_Content_Seed_PriceFix_Proof_<timestamp>.md containing:
+
+Price Fix Evidence: file paths & line ranges for all updated price rendering sites; show the helper used and confirm no $50 fallback for “full” events.
+
+Events Upsert Summary: IDs, titles, dates; fields set (priceDisplay, base_price, menuNotes, artists count).
+
+Assets TODO: list placeholder paths created:
+
+/assets/events/2025-09-09/sophia.jpg
+
+/assets/events/2025-09-12/sophia.jpg
+
+/assets/events/2025-09-19/fanya-lin.jpg
+
+/assets/menu/grilled-king-salmon.jpg
+
+/assets/artists/sophia-su.jpg
+
+/assets/artists/fanya-lin.jpg
+
+Report Template Evidence: route path, template file lines, and a 40-line snippet of generated HTML for one sample event & two tables.
+
+Test Summary: list tests added/updated and their assertions.
+
+Deliverables
+
+Branch content/tre1929-sept-seed-pricefix-report with commits for:
+
+Price fix (helpers + component updates + tests)
+
+Seeds for 9/12/19 with full descriptions & schedules
+
+Menu swap to Grilled King Salmon
+
+Server Sections report template/UI + tests
+
+New files: scripts/seed-sept-events.ts, client/src/lib/price.ts (or similar), server/templates/server-sections.ts if created.
+
+Proof report TRE1929_Content_Seed_PriceFix_Proof_<timestamp>.md.
+
+Acceptance (what success looks like)
+
+Event cards and detail pages show $130 per guest — tax & gratuity included (no $50 anywhere) for the three September events.
+
+Three events exist with full copy, schedules, and artist bios; is_active=true unless you toggle.
+
+Salmon entrée visible and selectable; Branzino not selectable for these events.
+
+Server Sections report prints grouped by course → table → seat, includes wine totals, and is readable.
+
+Proof report lists placeholder image paths you’ll replace later.

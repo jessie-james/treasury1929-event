@@ -1,0 +1,104 @@
+Replit AI — CLEAN-ROOM REBUILD (No Data, No Emails, No Payments)
+
+Goal
+Create a brand-new clean workspace alongside the current one, reinstall deps from lockfile, build artifacts, and prove the server can boot in SAFE MODE. Do NOT modify the original workspace code, DB, or settings.
+
+Hard Safety (must enforce)
+- No DB writes, no migrations, no seeds.
+- No Stripe or SendGrid calls (force SAFE MODE).
+- Do not change existing files in the original folder.
+- Do not edit production env values.
+- Do not read/write Events 39 or 40 (protected).
+
+Deliverables
+1) A new folder named: _cleanroom_build
+2) A markdown report at repo root: TRE1929_CleanRoom_Rebuild_Proof_<timestamp>.md
+3) If successful, print READY_TO_TEST=TRUE at the end. Otherwise print the exact topmost error.
+
+PHASE 0 — Snapshot (read-only)
+- Print Node/npm versions and confirm package-lock.json present.
+- Record current working directory.
+- Do NOT attempt any git operations.
+
+PHASE 1 — Create clean room (no edits to original)
+- Make a fresh sibling folder: ./_cleanroom_build
+- Copy project files into it, EXCLUDING these paths:
+  node_modules, dist, .vite, .turbo, .parcel-cache, .cache, .replit, .npm, .pnpm-store
+- Verify the copy by listing top-level files in ./_cleanroom_build
+
+PHASE 2 — Sanity checks inside clean room
+- cd ./_cleanroom_build
+- Print Node/npm versions again.
+- Print first 60 lines of package.json
+- Confirm package-lock.json exists.
+
+PHASE 3 — Cache + clean reinstall
+- Run:
+  npm cache clean --force
+  npm ci --no-audit --no-fund
+- After install, verify these modules actually exist and are non-empty directories:
+  node_modules/@vitejs/plugin-react
+  node_modules/esbuild
+  node_modules/vite
+- For each, print: path, file count, and first 5 entries.
+- If any directory is missing or empty:
+  - Re-run: npm ci --no-audit --no-fund --verbose
+  - If still empty, run targeted pins:
+      npm i -D @vitejs/plugin-react@4.7.0 vite@5.4.19 esbuild@0.25.9
+  - Re-verify non-empty directories.
+
+PHASE 4 — Build scripts (local to clean room only)
+- Without changing original workspace, ensure the following npm scripts exist in _cleanroom_build/package.json.
+  If any are missing, add them ONLY in _cleanroom_build:
+  {
+    "scripts": {
+      "clean": "rimraf dist",
+      "build:server": "esbuild server/index.ts --platform=node --format=esm --bundle --outdir=dist --sourcemap --external:vite --external:@vitejs/plugin-react",
+      "build:client": "vite build",
+      "build": "npm run clean && npm run build:server && npm run build:client",
+      "start": "NODE_ENV=production node dist/index.js"
+    }
+  }
+- If rimraf is missing in devDeps here, install: npm i -D rimraf@5.0.7
+- Print a unified diff of _cleanroom_build/package.json if modified.
+
+PHASE 5 — TypeScript config confirm (local to clean room)
+- Open _cleanroom_build/tsconfig.json and ensure:
+  "compilerOptions": {
+    "lib": ["ES2015","ES2020","DOM","DOM.Iterable"],
+    "types": ["node","vite/client"],
+    "skipLibCheck": true
+  }
+- If changes were needed, write them and include a unified diff in the report.
+
+PHASE 6 — Build & artifact validation
+- Run in _cleanroom_build:
+  npm run build
+- Confirm dist/index.js exists.
+- Verify dist/index.js contains NO references to vite or @vitejs/plugin-react:
+  (grep -nH -E "vite|@vitejs/plugin-react" dist/index.js && echo "FORBIDDEN_IMPORT_FOUND") || echo "NO_VITE_IN_DIST"
+- Capture the last 60 lines of the build logs for the report.
+
+PHASE 7 — Safe boot smoke test (no external I/O)
+- From _cleanroom_build, start the server briefly in SAFE MODE:
+  NODE_ENV=production EMAIL_SUPPRESS_OUTBOUND=true STRIPE_MOCK_MODE=true BACKUPS_ENABLED=false node dist/index.js & pid=$!; sleep 3; (curl -sSf http://127.0.0.1:5000/health || echo "health endpoint unavailable"); kill $pid || true
+- Capture stdout/stderr (first 80 lines) into the report.
+- Do NOT call any endpoint that mutates data.
+
+PHASE 8 — Report
+At repo root (NOT inside clean room), create TRE1929_CleanRoom_Rebuild_Proof_<timestamp>.md containing:
+- System versions
+- Clean room path and file copy summary
+- npm install logs summary (with any re-attempts)
+- Directory inspections for @vitejs/plugin-react, vite, esbuild (paths + file counts)
+- package.json and tsconfig.json diffs (if any)
+- Build result and “NO_VITE_IN_DIST” proof (or the forbidden match)
+- Safe boot output and /health response (if any)
+- Explicit safety line:
+  “No data writes. No migrations. No external calls. Protected events untouched.”
+
+PHASE 9 — Final status
+- If build + safe boot succeeded, print: READY_TO_TEST=TRUE
+- If any step failed, print the exact topmost error message (stack + file:line) and STOP.
+
+Do not perform any actions outside of the steps above. Do not touch the original workspace files. Do not fetch external resources. Do not alter database contents under any circumstance.

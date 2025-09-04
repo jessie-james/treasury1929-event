@@ -1,0 +1,124 @@
+Replit AI — Production Config Audit → Safe Cutover Plan (No External Calls)
+Mode & Guardrails (must obey)
+
+Start READ-ONLY. Do not call Stripe, SendGrid, or any external network.
+
+Do not read, write, or modify data for events 39 (Aug 28) and 40 (Sep 5).
+
+If (and only if) the “Cutover Preconditions” all PASS, generate a cutover checklist; do not flip anything yet.
+
+Output one file: TRE1929_Prod_Cutover_Audit_<timestamp>.md.
+
+Phase 0 — Detect Environment (read-only)
+
+Print NODE_ENV, app version/commit, server URL in use, and which env file loads in prod.
+
+Dump effective values (masked) for:
+
+STRIPE_SECRET_KEY_NEW, STRIPE_PUBLISHABLE_KEY_NEW, STRIPE_WEBHOOK_SECRET (only show sk_live_…/pk_live_… prefix)
+
+SENDGRID_API_KEY_NEW (mask middle)
+
+BACKUPS_ENABLED, cron expression (expect 03:30 America/Phoenix), ≥72h rule, 90-day retention
+
+Session cookie config (secure, httpOnly, sameSite)
+
+PROTECT_EVENT_IDS (should include 39,40)
+
+PHX_TZ or timezone handling
+
+Phase 1 — Production Data Read-Check (no writes)
+
+Verify the three September events are ready for sales:
+
+IDs for Sept 9 / 12 / 19 (should be active).
+
+For each: event_type='full', base_price=13000, priceDisplay=" $130 per guest — tax & gratuity included".
+
+Booking menu includes:
+Grilled King Salmon — mushroom, tomato, caper, fresh thyme sauce served with scalloped potatoes.
+and excludes Branzino.
+
+Artists exist:
+
+Sept 9/12: Sophia Su + TBD Vocalists
+
+Sept 19: Dr. Fanya Lin
+
+Public pages render the price phrase on Event Cards and Event Details.
+
+Evidence: file/line for helpers/components + a lightweight, local HTML render (no external calls), or static DOM snapshots.
+
+Phase 2 — Cutover Preconditions (must all PASS)
+
+Stripe keys present and live (sk_live / pk_live) and not used unless NODE_ENV=production.
+
+Webhook secret present; webhook route requires signature and is idempotent.
+
+Email key present (SendGrid) and runtime guard only allows real sends when NODE_ENV='production' and explicit suppression flag is false.
+
+Backups gated and scheduled: BACKUPS_ENABLED='true', cron 03:30 Phoenix, ≥72h after event, 90-day retention.
+
+Protected events: 39,40 are in PROTECT_EVENT_IDS.
+
+SAQ-A: no card fields in backoffice; paylink uses Stripe Checkout only.
+
+Print PASS/FAIL for each with pinpoint evidence.
+
+Phase 3 — Cutover Checklist (no writes; just print)
+
+If all preconditions PASS, produce a step-by-step checklist for the operator (Jose) to flip production safely:
+
+ Confirm NODE_ENV=production on the server.
+
+ Set:
+
+EMAIL_SUPPRESS_OUTBOUND=false
+
+STRIPE_MOCK_MODE=false
+
+BACKUPS_ENABLED=true
+
+ Confirm STRIPE_SECRET_KEY_NEW is sk_live_…, STRIPE_PUBLISHABLE_KEY_NEW pk_live_…, STRIPE_WEBHOOK_SECRET set.
+
+ Restart server/apply env (no code changes).
+
+ Post-restart smoke (read-only UI):
+
+Events list shows $130 per guest — tax & gratuity included on the three cards.
+
+Each booking flow shows Grilled King Salmon and not Branzino.
+
+Backoffice → Event Editor shows artists (Sophia Su / Fanya Lin) with bios.
+
+Include exact URLs/paths and which screen to look at. Do not create Stripe sessions or send emails.
+
+Phase 4 — If Any Preconditions FAIL
+
+Do not change anything.
+
+Emit a minimal remediation plan with ≤40-line unified diffs (no secrets) and the env keys the operator must set. Scope fixes to:
+
+Missing/incorrect envs,
+
+Backup schedule/gating,
+
+Price phrase not rendering on cards,
+
+Menu mapping of Salmon for Sept events,
+
+Artists linkage.
+
+Phase 5 — Final Output
+
+Write TRE1929_Prod_Cutover_Audit_<timestamp>.md with:
+
+Summary PASS/FAIL table,
+
+Evidence snippets (file:lines, masked env prefixes),
+
+The Cutover Checklist (if safe),
+
+Or the Remediation Plan (if not safe).
+
+Absolute rule: No Stripe/SendGrid calls, no writes to events 39/40, no DB mutations at all in this run.

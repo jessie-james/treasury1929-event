@@ -1,0 +1,594 @@
+# Treasury 1929 — Full Remediation Plan (DNS last)
+
+**Goal:** Fix email reliability, table/seat label consistency, webhook-driven refunds, TypeScript hygiene, observability, performance, and security. Save DNS cutover for the very end.
+
+---
+
+## Phase 0 — Pre‑Flight
+
+1. Create safety branch
+
+```bash
+git checkout -b fix/treasury-audit-2025-08-09
+```
+
+2. Turn on loud logging (non‑prod): add `LOG_LEVEL=debug` to env.
+
+3. Snapshot secrets: export current Replit secrets list to a secure note.
+
+4. Baseline checks
+
+```bash
+npm ci && npm run build && npm run check
+```
+
+Save outputs for “before/after.”
+
+---
+
+## Phase 1 — Email Reliability (CRITICAL)
+
+**Goal:** No silent failures; one canonical mailer; verified delivery for booking + refund.
+
+### 1.1 Centralize SendGrid init + guardrails
+
+**Create/replace** `server/email-service.ts`:
+
+```ts
+// server/email-service.ts
+import sgMail from '@sendgrid/mail';
+
+let emailInitialized = false;
+
+export function initializeEmailService() {
+  const key = process.env.SENDGRID_API_KEY_NEW;
+  if (!key) {
+    console.error('[EMAIL] Missing SENDGRID_API_KEY_NEW');
+    emailInitialized = false;
+    return;
+  }
+  try {
+    sgMail.setApiKey(key);
+    emailInitialized = true;
+    console.info('[EMAIL] SendGrid initialized');
+  } catch (err) {
+    emailInitialized = false;
+    console.error('[EMAIL] Init error', serializeEmailErr(err));
+  }
+}
+
+export function ensureEmailReady() {
+  if (!emailInitialized) throw new Error('EMAIL_NOT_INITIALIZED');
+}
+
+export async function sendEmail(msg: sgMail.MailDataRequired) {
+  ensureEmailReady();
+  try {
+    const [res] = await sgMail.send(msg);
+    console.debug('[EMAIL] Sent', { status: res.statusCode, to: msg.to });
+    return res;
+  } catch (err: any) {
+    const e = serializeEmailErr(err);
+    console.error('[EMAIL] Send failed', e);
+    throw new Error(`EMAIL_SEND_FAILED:${e.code ?? 'UNK'}`);
+  }
+}
+
+export function composeBookingConfirmation(user: {email:string,name?:string}, booking: any): sgMail.MailDataRequired {
+  return {
+    to: user.email,
+    from: { name: 'The Treasury 1929', email: 'info@thetreasury1929.com' },
+    templateId: process.env.BOOKING_TEMPLATE_ID as string,
+    dynamicTemplateData: {
+      name: user.name ?? 'Guest',
+      bookingId: booking.id,
+      tableNumber: booking.table?.tableNumber,
+      arrivalTime: booking.arrivalTimePhoenix,
+      showTime: booking.showTimePhoenix,
+    }
+  };
+}
+
+export function composeRefundEmail(booking: any, refund: any): sgMail.MailDataRequired {
+  return {
+    to: booking.userEmail,
+    from: { name: 'The Treasury 1929', email: 'info@thetreasury1929.com' },
+    templateId: process.env.REFUND_TEMPLATE_ID as string,
+    dynamicTemplateData: {
+      bookingId: booking.id,
+      tableNumber: booking.table?.tableNumber,
+      amount: (refund.amount / 100).toFixed(2),
+      currency: (refund.currency || 'usd').toUpperCase(),
+    }
+  };
+}
+
+function serializeEmailErr(err: any) {
+  return {
+    code: err?.code,
+    message: err?.message,
+    responseBody: err?.response?.body,
+    status: err?.response?.statusCode,
+  };
+}
+```
+
+**Wire up on server startup — add to** `server/index.ts`:
+
+```ts
+import { initializeEmailService } from './email-service';
+initializeEmailService();
+```
+
+### 1.2 Make all senders await and handle errors
+
+Replace any direct `sgMail.send(...)` usage with:
+
+```ts
+import { sendEmail, composeBookingConfirmation } from './email-service';
+
+// In booking completion handler
+res.json({ ok: true }); // respond fast
+sendEmail(composeBookingConfirmation(user, booking))
+  .catch(err => console.error('[EMAIL] post-send error', err));
+```
+
+### 1.3 Template & sender verification
+
+* Ensure template IDs are env-driven: `BOOKING_TEMPLATE_ID`, `REFUND_TEMPLATE_ID`, `CANCEL_TEMPLATE_ID`, `RESET_TEMPLATE_ID`.
+* Verified sender: `"The Treasury 1929" <info@thetreasury1929.com>`.
+
+### 1.4 Acceptance
+
+* Test order → confirmation email < 30s.
+* Refund → refund email < 30s.
+* Missing key → explicit log with error details; **no silent skip**.
+
+---
+
+## Phase 2 — Table/Seat Label Consistency (CRITICAL)
+
+**Goal:** Only show customer-facing numbers (floor `1–32`; mezzanine `201–207`). Never leak internal IDs.
+
+### 2.1 Remove unsafe fallback
+
+**Edit** `server/ticketGenerator.ts` (or equivalent):
+
+```ts
+const tableNumber = booking.table?.tableNumber;
+if (typeof tableNumber !== 'number') {
+  throw new Error(`[TICKET] Missing customer table label for booking ${booking.id}`);
+}
+```
+
+### 2.2 Enforce at booking creation
+
+```ts
+// In booking creation route/controller
+if (!payload.tableNumber || typeof payload.tableNumber !== 'number') {
+  return res.status(400).json({ error: 'TABLE_LABEL_REQUIRED' });
+}
+```
+
+### 2.3 Add validator (defensive)
+
+```ts
+function isValidLabel(n:number){ return (n>=1&&n<=32) || (n>=201&&n<=207); }
+if (!isValidLabel(tableNumber)) {
+  console.warn('[TABLE] Suspicious label', { tableNumber, bookingId: booking.id });
+}
+```
+
+### 2.4 Search/replace in all renderers
+
+Replace any use of `tableId`, `allocationId`, `seat_id` in templates/emails/PDFs with `tableNumber`.
+
+### 2.5 Acceptance
+
+* Generate 5 mixed tickets (floor + mezzanine): PDFs + emails show correct labels.
+* No “297/300” anywhere in UI, receipts, PDFs, emails.
+
+---
+
+## Phase 3 — Refund Flow via Webhook (Single Source of Truth)
+
+**Goal:** Refund emails fire once, reliably, even if refunds happen outside the app.
+
+**Edit** `server/routes-payment.ts` (Stripe webhook handler):
+
+```ts
+// Pseudocode/patch inside Stripe webhook route after verifying signature
+import { sendEmail, composeRefundEmail } from '../email-service';
+
+// Ensure you have storage helpers
+type Storage = {
+  findByPaymentIntent: (pi: string) => Promise<any>;
+  hasProcessedEvent: (id: string) => Promise<boolean>;
+  markProcessedEvent: (id: string) => Promise<void>;
+};
+
+if (await storage.hasProcessedEvent(event.id)) {
+  return res.json({ received: true, dedup: true });
+}
+
+switch (event.type) {
+  case 'charge.refunded':
+  case 'refund.updated': {
+    const refund = event.data.object as any;
+    const pi = refund.payment_intent; // may be ID string
+    if (pi) {
+      const booking = await storage.findByPaymentIntent(pi);
+      if (booking) {
+        try {
+          await sendEmail(composeRefundEmail(booking, refund));
+        } catch (e) {
+          console.error('[REFUND EMAIL]', e);
+        }
+      } else {
+        console.warn('[REFUND EMAIL] booking not found for PI', pi);
+      }
+    }
+    break;
+  }
+  // keep existing handlers for payment_intent.succeeded / checkout.session.completed
+}
+
+await storage.markProcessedEvent(event.id);
+return res.json({ received: true });
+```
+
+**Acceptance**
+
+* Refund from Stripe Dashboard → Exactly one refund email.
+* Re-delivery from Stripe → no duplicate (event ID dedup).
+
+---
+
+## Phase 4 — TypeScript Hygiene (24 diagnostics → 0)
+
+**Goal:** Zero TS errors so data shapes don’t drift.
+
+**Create/align** `shared/types.ts`:
+
+```ts
+// shared/types.ts
+export interface BookingEmailData {
+  id: number;
+  userEmail: string;
+  userName: string;
+  tableNumber: number;         // customer-facing
+  section?: 'floor' | 'mezzanine';
+  eventUtc: string;            // ISO UTC
+  eventLocalPhoenix: string;   // formatted string
+  priceCents: number;
+  createdAtUtc: string;        // ISO
+}
+```
+
+**Normalize dates at edges**
+
+* DB layer returns ISO UTC strings.
+* Only format right before display (`America/Phoenix`).
+
+**Run**
+
+```bash
+npm run check
+```
+
+Resolve remaining type mismatches (IDs as numbers, Dates as strings until render).
+
+---
+
+## Phase 5 — Time/Timezone Guardrails (Regression‑proof)
+
+**Create** `server/time.test.ts` (or your test dir):
+
+```ts
+// server/time.test.ts (using your preferred test runner)
+import { zonedTimeToUtc, utcToZonedTime, format } from 'date-fns-tz';
+
+const PHOENIX = 'America/Phoenix';
+
+test('arrival/show times render correctly in Phoenix', () => {
+  const eventUtc = '2025-08-15T01:30:00Z'; // 6:30 PM Phoenix
+  const zoned = utcToZonedTime(eventUtc, PHOENIX);
+  const show = format(zoned, 'h:mm aaa', { timeZone: PHOENIX });
+  const arrivalDate = new Date(zoned.getTime() - 45 * 60 * 1000);
+  const arrival = format(arrivalDate, 'h:mm aaa', { timeZone: PHOENIX });
+  expect(arrival).toBe('5:45 PM');
+  expect(show).toBe('6:30 PM');
+});
+```
+
+---
+
+## Phase 6 — Observability & Error Surfacing
+
+**Create** `server/utils/logger.ts`:
+
+```ts
+// server/utils/logger.ts
+export function log(level: 'debug'|'info'|'warn'|'error', msg: string, ctx: Record<string, any> = {}) {
+  const allowed = ['debug','info','warn','error'];
+  if (!allowed.includes(level)) level = 'info';
+  const out = {
+    ts: new Date().toISOString(),
+    level,
+    msg,
+    ...sanitize(ctx),
+  };
+  // eslint-disable-next-line no-console
+  console[level](JSON.stringify(out));
+}
+
+function sanitize(ctx: Record<string, any>) {
+  const clone: Record<string, any> = {};
+  for (const k of Object.keys(ctx)) {
+    const v = ctx[k];
+    if (k.toLowerCase().includes('email')) clone[k] = maskEmail(String(v));
+    else if (k.toLowerCase().includes('key') || k.toLowerCase().includes('secret')) clone[k] = '[redacted]';
+    else clone[k] = v;
+  }
+  return clone;
+}
+
+function maskEmail(e: string) {
+  const [u, d] = e.split('@');
+  if (!d) return e;
+  return (u.length > 1 ? u[0] + '***' : '*') + '@' + d;
+}
+```
+
+**Add request correlation** in your Express app (optional):
+
+```ts
+// server/index.ts
+import { randomUUID } from 'crypto';
+app.use((req, _res, next) => {
+  (req as any).rid = randomUUID();
+  next();
+});
+```
+
+**(Optional) Email diagnostics endpoint (non‑prod)**
+
+* Keep an in‑memory ring buffer of last 50 email attempts for quick inspection.
+
+---
+
+## Phase 7 — Performance Quick Wins
+
+* Verify DB indexes: `bookings(event_id, status)`, `tables(event_id)`, `holds(event_id, table_number)`.
+* Add a 60s in‑memory cache for static seating map.
+* Avoid N+1: fetch booked tableNumbers in a single query.
+
+---
+
+## Phase 8 — Security & Privacy Tightening
+
+* Secrets: keep only `SENDGRID_API_KEY_NEW`, `TRE_STRIPE_TEST_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`.
+* Mask PII in logs (emails masked; no phone/addresses in errors).
+* Helmet/CORS: restrict origins to your deployment host.
+* Rate‑limit webhook & refund routes.
+
+---
+
+## Phase 9 — Deployment Readiness (no DNS yet)
+
+* Ensure production build in deployment.
+* Replit Deployment variables contain **only** Treasury keys.
+* Add health check: `/healthz` → `{ ok: true, version, time }`.
+
+---
+
+## Phase 10 — QA Battery
+
+**Times**
+
+* [ ] UI, email, PDF: “Guest Arrival **5:45 PM**, show starts **6:30 PM**”, America/Phoenix
+
+**Emails**
+
+* [ ] Booking confirmation received
+* [ ] Refund email via **webhook** received; no duplicates
+* [ ] Forced SendGrid error logs full diagnostic (non‑prod)
+
+**Tables**
+
+* [ ] 5 floor samples show **1–32**
+* [ ] 3 mezzanine samples show **201–207**
+* [ ] No internal IDs surface anywhere
+
+**Payments**
+
+* [ ] Stripe test purchase flow completes
+* [ ] Webhook signature verified; idempotency works
+
+**Types**
+
+* [ ] `npm run check` → 0 errors
+
+**Perf**
+
+* [ ] Availability endpoint <100ms p95 under 20 concurrent users
+
+**Security**
+
+* [ ] No PII/secrets in logs
+* [ ] Only Treasury keys present
+
+---
+
+## Phase 11 — Runbook & Rollback
+
+* **Runbook:** restart steps, where logs live, how to resend a confirmation, trigger refund email re‑send.
+* **Rollback:** `git tag pre-fix`; redeploy that tag if needed.
+
+---
+
+## Definition of Done
+
+* All QA checks pass.
+* Treasury receives a demo video showing:
+
+  * Purchase → confirmation email
+  * Stripe dashboard refund → refund email
+  * Tickets/emails with correct **tableNumber**
+  * Times showing **5:45 PM / 6:30 PM** everywhere
+* `npm run check` = 0 errors; logs clean under a small live test.
+
+---
+
+# Ready‑to‑Paste Unified Diffs (optional)
+
+> Adjust paths if your file layout differs.
+
+## 1) Centralized Email Service
+
+```diff
+--- a/server/email-service.ts
++++ b/server/email-service.ts
+@@
++import sgMail from '@sendgrid/mail';
++let emailInitialized = false;
++export function initializeEmailService() {
++  const key = process.env.SENDGRID_API_KEY_NEW;
++  if (!key) { console.error('[EMAIL] Missing SENDGRID_API_KEY_NEW'); emailInitialized = false; return; }
++  try { sgMail.setApiKey(key); emailInitialized = true; console.info('[EMAIL] SendGrid initialized'); }
++  catch (err) { emailInitialized = false; console.error('[EMAIL] Init error', { err }); }
++}
++export function ensureEmailReady() { if (!emailInitialized) throw new Error('EMAIL_NOT_INITIALIZED'); }
++export async function sendEmail(msg: sgMail.MailDataRequired) {
++  ensureEmailReady();
++  try { const [res] = await sgMail.send(msg); console.debug('[EMAIL] Sent', { status: res.statusCode, to: msg.to }); return res; }
++  catch (err: any) { console.error('[EMAIL] Send failed', { code: err?.code, status: err?.response?.statusCode, body: err?.response?.body }); throw err; }
++}
+```
+
+## 2) Server Startup Hook
+
+```diff
+--- a/server/index.ts
++++ b/server/index.ts
+@@
++import { initializeEmailService } from './email-service';
++initializeEmailService();
+```
+
+## 3) Ticket Generator — Remove Fallback
+
+```diff
+--- a/server/ticketGenerator.ts
++++ b/server/ticketGenerator.ts
+@@
+-const tableNumber = booking.table?.tableNumber || booking.tableId;
++const tableNumber = booking.table?.tableNumber;
++if (typeof tableNumber !== 'number') {
++  throw new Error(`[TICKET] Missing customer table label for booking ${booking.id}`);
++}
+```
+
+## 4) Stripe Webhook — Refund Email + Idempotency
+
+```diff
+--- a/server/routes-payment.ts
++++ b/server/routes-payment.ts
+@@
++import { sendEmail, composeRefundEmail } from '../email-service';
+@@
++if (await storage.hasProcessedEvent(event.id)) {
++  return res.json({ received: true, dedup: true });
++}
++
+ switch (event.type) {
+   case 'payment_intent.succeeded':
+     // existing logic
+     break;
++  case 'charge.refunded':
++  case 'refund.updated': {
++    const refund = event.data.object as any;
++    const pi = refund.payment_intent;
++    if (pi) {
++      const booking = await storage.findByPaymentIntent(pi);
++      if (booking) {
++        try { await sendEmail(composeRefundEmail(booking, refund)); }
++        catch (e) { console.error('[REFUND EMAIL]', e); }
++      } else {
++        console.warn('[REFUND EMAIL] booking not found for PI', pi);
++      }
++    }
++    break;
++  }
+ }
+@@
++await storage.markProcessedEvent(event.id);
++return res.json({ received: true });
+```
+
+## 5) Shared Types — Canonical Email Payload
+
+```diff
+--- a/shared/types.ts
++++ b/shared/types.ts
+@@
++export interface BookingEmailData {
++  id: number;
++  userEmail: string;
++  userName: string;
++  tableNumber: number;
++  section?: 'floor'|'mezzanine';
++  eventUtc: string;
++  eventLocalPhoenix: string;
++  priceCents: number;
++  createdAtUtc: string;
++}
+```
+
+## 6) Logger Utility (optional)
+
+```diff
+--- /dev/null
++++ b/server/utils/logger.ts
+@@
++export function log(level: 'debug'|'info'|'warn'|'error', msg: string, ctx: Record<string, any> = {}) {
++  const allowed = ['debug','info','warn','error'];
++  if (!allowed.includes(level)) level = 'info';
++  const out = { ts: new Date().toISOString(), level, msg, ...sanitize(ctx) };
++  // eslint-disable-next-line no-console
++  console[level](JSON.stringify(out));
++}
++
++function sanitize(ctx: Record<string, any>) {
++  const clone: Record<string, any> = {};
++  for (const k of Object.keys(ctx)) {
++    const v = ctx[k];
++    if (k.toLowerCase().includes('email')) clone[k] = maskEmail(String(v));
++    else if (k.toLowerCase().includes('key') || k.toLowerCase().includes('secret')) clone[k] = '[redacted]';
++    else clone[k] = v;
++  }
++  return clone;
++}
++
++function maskEmail(e: string) {
++  const [u, d] = e.split('@');
++  if (!d) return e;
++  return (u.length > 1 ? u[0] + '***' : '*') + '@' + d;
++}
+```
+
+---
+
+## QA Checklist (Copy/Paste to Tracking)
+
+* [ ] UI/email/PDF show **Guest Arrival 5:45 PM** and **Show 6:30 PM** (America/Phoenix)
+* [ ] Booking confirmation email received reliably
+* [ ] Refund email from webhook received; no duplicates
+* [ ] Tickets/emails show correct **tableNumber** (1–32 floor, 201–207 mezzanine)
+* [ ] `npm run check` → 0 errors
+* [ ] Availability endpoint <100ms p95
+* [ ] No PII/secrets in logs
+* [ ] Only Treasury keys active
+* [ ] `/healthz` returns healthy
+
+**DNS cutover** comes **after** all the above pass.

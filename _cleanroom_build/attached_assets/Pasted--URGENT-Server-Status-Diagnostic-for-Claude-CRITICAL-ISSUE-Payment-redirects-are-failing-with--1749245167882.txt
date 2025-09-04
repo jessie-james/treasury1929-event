@@ -1,0 +1,131 @@
+# URGENT: Server Status Diagnostic for Claude
+
+## CRITICAL ISSUE
+Payment redirects are failing with ERR_CONNECTION_REFUSED on port 3002. We need to verify exactly what servers are running and on which ports.
+
+## 1. IMMEDIATE SERVER STATUS CHECK
+
+```bash
+# Check what's actually running on all ports
+netstat -tulpn | grep LISTEN | grep -E "300[0-9]|500[0-9]" 
+# OR if netstat not available:
+lsof -i :3000 -i :3001 -i :3002 -i :5000
+
+# Check specific ports
+curl -I http://localhost:3000/health 2>/dev/null || echo "Port 3000: NOT RESPONDING"
+curl -I http://localhost:3001/health 2>/dev/null || echo "Port 3001: NOT RESPONDING" 
+curl -I http://localhost:3002/health 2>/dev/null || echo "Port 3002: NOT RESPONDING"
+curl -I http://localhost:5000 2>/dev/null || echo "Port 5000: NOT RESPONDING"
+```
+
+## 2. CURRENT PROCESS STATUS
+
+```bash
+# Show all running Node processes
+ps aux | grep node | grep -v grep
+
+# Check if multiple servers are running
+ps aux | grep -E "(vite|express|server)" | grep -v grep
+```
+
+## 3. CURRENT STRIPE CONFIGURATION
+
+Please paste the EXACT content from your payment routes file:
+
+```bash
+# Find and show current Stripe URL configuration
+grep -r "success_url\|cancel_url" server/ --include="*.ts" --include="*.js" -A 2 -B 2
+
+# Show the exact URLs being used
+grep -r "localhost:300" server/ --include="*.ts" --include="*.js"
+```
+
+## 4. SERVER STARTUP CONFIGURATION
+
+```bash
+# Show package.json scripts
+cat package.json | grep -A 10 '"scripts"'
+
+# Check how servers are being started
+cat server/index.ts | grep -E "app\.listen|PORT|3001|3002" -A 3 -B 3
+```
+
+## 5. CURRENT RUNNING TERMINAL/PROCESSES
+
+Please tell me:
+- **How many terminals/processes do you have running?**
+- **What command did you use to start the server(s)?**
+- **What does your terminal output show when you start the server?**
+
+Example terminal output we need:
+```
+✓ Express server running on http://localhost:XXXX
+✓ Vite dev server running on http://localhost:XXXX
+```
+
+## 6. REPLIT SPECIFIC CHECKS
+
+```bash
+# Check Replit port configuration
+echo "REPLIT_PORT: $REPLIT_PORT"
+echo "PORT: $PORT"
+
+# Check if there are any Replit-specific port bindings
+env | grep -i port
+```
+
+## 7. DIRECT URL TESTS
+
+Try these URLs directly in your browser and tell me what happens:
+
+- `http://localhost:3001` → Result?
+- `http://localhost:3001/health` → Result?  
+- `http://localhost:3001/booking-success` → Result?
+- `http://localhost:3002` → Result?
+- `http://localhost:3002/health` → Result?
+- `http://localhost:5000` → Result?
+
+## 8. RECENT ERROR LOGS
+
+```bash
+# Check for any recent errors in server startup
+tail -50 ~/.pm2/logs/*.log 2>/dev/null || echo "No PM2 logs found"
+
+# Check for any server error logs
+ls -la *.log 2>/dev/null || echo "No log files found"
+```
+
+## 9. CURRENT WORKING DIRECTORY AND FILES
+
+```bash
+# Verify we're in the right directory
+pwd
+ls -la server/
+ls -la package.json
+
+# Check if there are multiple server files
+find . -name "*.ts" -path "*/server/*" | grep -E "(index|app|server)" | head -5
+```
+
+## 10. LATEST STRIPE SESSION INFO
+
+From your browser URL, I see this session ID: `cs_test_a1IPLerK4ruub5w3rLLII7jYH2gvkBTCBuBFIAFOLApaMwvjp0tSksd547`
+
+```bash
+# Check if this session exists in your recent logs
+grep -r "cs_test_a1IPLerK4ruub5w3rLLII7jYH2gvkBTCBuBFIAFOLApaMwvjp0tSksd547" . --include="*.log" || echo "Session not found in logs"
+```
+
+---
+
+## CRITICAL QUESTIONS FOR YOU TO ANSWER:
+
+1. **What port is your server ACTUALLY running on?** (check terminal output)
+2. **Did you restart the server after changing the port configuration?**
+3. **Are you running ONE server or TWO servers?**
+4. **What exact command did you run to start the server?**
+5. **What does your terminal show when the server starts?**
+
+## PLEASE PROVIDE ALL THE ABOVE INFORMATION
+
+**This will tell us exactly what's running where, so Claude can give you the precise fix for the port mismatch issue.**
