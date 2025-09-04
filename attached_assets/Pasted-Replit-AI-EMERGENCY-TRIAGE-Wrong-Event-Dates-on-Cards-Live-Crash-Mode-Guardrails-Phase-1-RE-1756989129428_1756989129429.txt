@@ -1,0 +1,110 @@
+Replit AI — EMERGENCY TRIAGE: Wrong Event Dates on Cards + Live Crash
+Mode & Guardrails
+- Phase 1 READ-ONLY. No external network calls. Do not read/write events 39 or 40.
+- If root cause is confirmed from code evidence, enter Phase 2 WRITE-MODE for a minimal hotfix only; otherwise report and stop.
+- Never alter pricing, menus, or event data values. Only fix rendering/logic.
+- Keep SAQ-A and all safety guards intact.
+
+Context
+- Symptoms: All event cards show the same date "Aug 14"; app crashed in production build.
+- Expected: Sept 9, Sept 12, Sept 19 at 6:30 PM Phoenix; cards must show correct dates. No crashes.
+
+Phase 1 — READ-ONLY DIAGNOSE
+A) Snapshot DB (read-only) for events 43,44,45:
+   - id, title, date (raw), is_active, base_price, priceDisplay.
+   - Compute Phoenix view using date-fns-tz formatInTimeZone(..., 'America/Phoenix', 'EEE MMM d yyyy HH:mm').
+   - Do NOT query or modify 39/40.
+
+B) Trace the date rendering pipeline:
+   - Dump code and line ranges for:
+     client/src/components/events/EventCard.tsx
+     client/src/components/events/EventList.tsx (or list container)
+     client/src/components/events/EventDetails.tsx
+     client/src/lib/date*.ts or any date util
+     client/src/lib/price.ts (for crash interactions)
+   - Grep for: "Event Date:", "Aug 14", "August", toLocale, toDateString, new Date(20, …), new Date('…Aug…'), formatInTimeZone, PHX_TZ.
+   - Flag anti-patterns:
+     • using a constant/fallback like const FALLBACK_DATE = 'Aug 14'
+     • using a shared date var outside the .map that is reused for all cards
+     • parsing Phoenix local strings as UTC or vice versa
+     • using new Date(year, month, day) with wrong zero-based month index
+     • unsafe access like event.date! or event.artists[0] without guards
+
+C) Reproduce production build behavior:
+   - Build client for production.
+   - Render the events list page in a headless DOM (no network) and capture the date text per card.
+   - Collect any runtime errors/stack traces from the built bundle.
+
+D) Crash fingerprint:
+   - Show stack (file:line) and failing expression for the production crash.
+   - Typical suspects to check with evidence:
+     • artists array or photo undefined access
+     • priceDisplay or eventType assumed non-null
+     • import.meta.env access not defined in prod
+     • optional chaining missed in JSX (e.g., event?.artists?.map vs event.artists.map)
+
+Phase 1 Output
+- Write TRE1929_Hotfix_Triage_<ts>.md including:
+  1) DB snapshot (masked) + Phoenix conversions for 43/44/45
+  2) The exact code lines responsible for date text on cards
+  3) The root-cause class (choose one): [CONST_FALLBACK | SHARED_VAR | TZ_PARSE | MONTH_INDEX | NULL_ACCESS]
+  4) Crash stack with top 3 frames
+  5) A one-paragraph proposed minimal fix
+
+Phase 2 — CONDITIONAL WRITE-MODE (only if cause is confirmed)
+Apply only the minimal changes needed:
+
+1) Date rendering fix (choose what matches evidence):
+   - If SHARED_VAR: move date computation inside the .map using the current event.
+   - If CONST_FALLBACK: remove fallback constant and use event.date.
+   - If TZ_PARSE: use date-fns-tz:
+       import { formatInTimeZone } from 'date-fns-tz';
+       const PHX = process.env.PHX_TZ || 'America/Phoenix';
+       export const formatEventDate = (iso: string) =>
+         formatInTimeZone(new Date(iso), PHX, "ccc, MMM d 'at' h:mm a");
+     Replace any toLocaleString/toDateString usage in cards/details with formatEventDate.
+   - If MONTH_INDEX: fix any new Date(y, m, d) to use (9-1) for September or switch to ISO strings.
+
+2) Crash hardening:
+   - Artists UI: treat missing/empty array safely
+       const artists = event.artists ?? [];
+   - Images: use null-safe src and a placeholder if undefined.
+   - Price text:
+       const phrase = formatPriceDisplay?.(event) ?? "$130 per guest — tax & gratuity included";
+   - Guard any import.meta.env access with defaults.
+
+3) Unit tests (add/update):
+   - tests/dates.spec.ts:
+       • renders 3 cards with 3 distinct Sept dates derived from event.date
+       • snapshot includes “Guest Arrival 5:45 PM, show starts 6:30 PM” (if applicable)
+   - tests/crash-guards.spec.ts:
+       • renders EventCard with missing artists and missing priceDisplay without throwing
+
+4) Build & verify:
+   - Build production client; re-run the headless render on events list.
+   - Confirm dates now show three distinct values (Sept 9, 12, 19) and no runtime errors.
+   - Do NOT mutate DB rows, pricing, menus, or events 39/40.
+
+5) Branch & commits:
+   - Branch: fix/tre1929-dates-crash-hotfix
+   - Commit messages:
+       fix(events): correct date rendering on cards (PHX-safe, per-card compute)
+       fix(ux): null-safe artists/price to prevent prod crash
+   - Produce a compact unified diff summary.
+
+Phase 3 — Report
+Append to TRE1929_Hotfix_Triage_<ts>.md:
+- “Post-Fix Verification” with:
+  • Before vs After HTML snippets (date lines only)
+  • Test run summary
+  • Exact files touched and line ranges
+  • Manual verification checklist:
+      [ ] Cards show Sept 9/12/19 correctly
+      [ ] Event Details shows same date format
+      [ ] Navigate to each booking page without crash
+      [ ] Toggle STRIPE_UNAVAILABLE=false and complete a test purchase (operator to do later)
+
+Safeguards
+- Never alter events 39/40.
+- No outbound Stripe/SendGrid calls.
+- No schema changes or seed mutations.
