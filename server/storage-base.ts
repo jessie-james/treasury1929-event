@@ -132,6 +132,13 @@ export interface IStorage {
   // Booking food selections methods
   updateBookingFoodSelections(bookingId: number, foodSelections: any, modifiedBy: number): Promise<any>;
 
+  // Artist methods
+  getEventArtists(eventId: number): Promise<any[]>;
+  getEventArtistById(artistId: number): Promise<any | null>;
+  createEventArtist(artistData: any): Promise<any>;
+  updateEventArtist(artistId: number, updates: any): Promise<any | null>;
+  deleteEventArtist(artistId: number): Promise<boolean>;
+
   // Layout methods
   getFloors(venueId: number): Promise<any[]>;
   getZones(venueId: number): Promise<any[]>;
@@ -647,5 +654,26 @@ export class MemStorage implements IStorage {
   
   async getAdminLogsByEntityType(entityType: string): Promise<AdminLog[]> {
     return [];
+  }
+
+  // Artist methods (stub implementations)
+  async getEventArtists(eventId: number): Promise<any[]> {
+    return [];
+  }
+
+  async getEventArtistById(artistId: number): Promise<any | null> {
+    return null;
+  }
+
+  async createEventArtist(artistData: any): Promise<any> {
+    return null;
+  }
+
+  async updateEventArtist(artistId: number, updates: any): Promise<any | null> {
+    return null;
+  }
+
+  async deleteEventArtist(artistId: number): Promise<boolean> {
+    return true;
   }
 }

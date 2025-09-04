@@ -104,7 +104,7 @@ export function FoodForm({ food, onClose }: Props) {
     setUploading(true);
     
     const formData = new FormData();
-    formData.append('image', file);
+    formData.append('photo', file);
     
     try {
       console.log('Starting food image upload...');
@@ -114,7 +114,7 @@ export function FoodForm({ food, onClose }: Props) {
         size: file.size
       });
       
-      const response = await fetch('/api/upload/food-image', {
+      const response = await fetch('/api/menu-items/photo', {
         method: 'POST',
         body: formData,
         credentials: 'include',

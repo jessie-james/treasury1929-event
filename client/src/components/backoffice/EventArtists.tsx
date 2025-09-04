@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { ErrorBoundary } from "react-error-boundary";
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, ChevronUp, ChevronDown, User, Camera } from "lucide-react";
+import { Plus, X, ChevronUp, ChevronDown, User, Camera, Upload, Trash2, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -45,6 +45,9 @@ export function EventArtists({ eventId, isEditing }: Props) {
   const queryClient = useQueryClient();
   const [editingArtist, setEditingArtist] = useState<Artist | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [currentArtistPhoto, setCurrentArtistPhoto] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch artists for the event with crash protection
   const { data: artists = [], isLoading, error } = useQuery<Artist[]>({
@@ -133,6 +136,81 @@ export function EventArtists({ eventId, isEditing }: Props) {
     },
   });
 
+  // Photo upload mutation
+  const { mutate: uploadPhoto, isPending: isUploadingPhoto } = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('photo', file);
+      
+      setUploadingPhoto(true);
+      
+      const response = await fetch(`/api/admin/events/${eventId}/artists/photo`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload photo');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setCurrentArtistPhoto(data.photoUrl);
+      form.setValue('photoUrl', data.photoUrl);
+      setUploadingPhoto(false);
+      toast({
+        title: "Success",
+        description: "Photo uploaded successfully.",
+      });
+    },
+    onError: (error: any) => {
+      setUploadingPhoto(false);
+      const errorMessage = error?.message || "Failed to upload photo";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Photo delete mutation  
+  const { mutate: deletePhoto } = useMutation({
+    mutationFn: async () => {
+      const currentPhotoUrl = form.getValues('photoUrl');
+      if (!currentPhotoUrl) return;
+      
+      const response = await fetch(`/api/admin/events/${eventId}/artists/photo`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoUrl: currentPhotoUrl })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete photo');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      setCurrentArtistPhoto(null);
+      form.setValue('photoUrl', '');
+      toast({
+        title: "Success", 
+        description: "Photo removed successfully.",
+      });
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.message || "Failed to delete photo";
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Load artist data when editing
   useEffect(() => {
     if (editingArtist) {
@@ -142,6 +220,9 @@ export function EventArtists({ eventId, isEditing }: Props) {
         bio: editingArtist.bio || "",
         photoUrl: editingArtist.photoUrl || "",
       });
+      setCurrentArtistPhoto(editingArtist.photoUrl || null);
+    } else {
+      setCurrentArtistPhoto(null);
     }
   }, [editingArtist, form]);
 
@@ -186,7 +267,45 @@ export function EventArtists({ eventId, isEditing }: Props) {
   const handleCancel = () => {
     setEditingArtist(null);
     setIsAddingNew(false);
+    setCurrentArtistPhoto(null);
     form.reset();
+  };
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "Please select a valid image file.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "Photo must be smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    uploadPhoto(file);
+  };
+
+  const handleRemovePhoto = () => {
+    if (currentArtistPhoto) {
+      deletePhoto();
+    }
+  };
+
+  const triggerPhotoUpload = () => {
+    fileInputRef.current?.click();
   };
 
   if (!isEditing) {
@@ -340,9 +459,69 @@ export function EventArtists({ eventId, isEditing }: Props) {
                   name="photoUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Photo URL (Optional)</FormLabel>
+                      <FormLabel>Artist Photo (Optional)</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="/assets/artists/artist-name.jpg" />
+                        <div className="space-y-3">
+                          {/* Hidden file input */}
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoUpload}
+                            className="hidden"
+                          />
+                          
+                          {/* Photo preview or placeholder */}
+                          <div className="flex items-start gap-4">
+                            <div className="flex flex-col items-center">
+                              {currentArtistPhoto ? (
+                                <img 
+                                  src={currentArtistPhoto} 
+                                  alt="Artist preview"
+                                  className="w-24 h-24 rounded-lg object-cover border"
+                                />
+                              ) : (
+                                <div className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center">
+                                  <Camera className="w-8 h-8 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex flex-col gap-2 flex-1">
+                              {/* Upload/Replace button */}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={triggerPhotoUpload}
+                                disabled={uploadingPhoto || isUploadingPhoto}
+                                className="w-fit"
+                              >
+                                {uploadingPhoto || isUploadingPhoto ? (
+                                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading...</>
+                                ) : (
+                                  <><Upload className="w-4 h-4 mr-2" />{currentArtistPhoto ? 'Replace' : 'Upload'} Photo</>
+                                )}
+                              </Button>
+                              
+                              {/* Remove button - only show if photo exists */}
+                              {currentArtistPhoto && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={handleRemovePhoto}
+                                  className="w-fit text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />Remove Photo
+                                </Button>
+                              )}
+                              
+                              {/* Format info */}
+                              <p className="text-xs text-muted-foreground">
+                                JPG, PNG or WebP. Max 5MB.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
