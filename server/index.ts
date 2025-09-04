@@ -960,29 +960,37 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // Force port 5000 for Replit
-    const port = 5000;
-    log(`Attempting to start server on port ${port}...`);
+    // Only start server if not in test mode
+    if (process.env.NODE_ENV !== 'test') {
+      // Force port 5000 for Replit
+      const port = 5000;
+      log(`Attempting to start server on port ${port}...`);
 
-    server.listen(port, "0.0.0.0", () => {
-      log(`Server successfully started on port ${port}`);
-    }).on('error', (err: NodeJS.ErrnoException) => {
-      if (err.code === 'EADDRINUSE') {
-        console.error(`Port ${port} is already in use, attempting to close existing connections...`);
-        setTimeout(() => {
-          server.close(() => {
-            console.log('Server closed. Retrying...');
-            server.listen(port, "0.0.0.0");
-          });
-        }, 1000);
-      } else {
-        console.error('Failed to start server:', err);
-        process.exit(1);
-      }
-    });
+      server.listen(port, "0.0.0.0", () => {
+        log(`Server successfully started on port ${port}`);
+      }).on('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EADDRINUSE') {
+          console.error(`Port ${port} is already in use, attempting to close existing connections...`);
+          setTimeout(() => {
+            server.close(() => {
+              console.log('Server closed. Retrying...');
+              server.listen(port, "0.0.0.0");
+            });
+          }, 1000);
+        } else {
+          console.error('Failed to start server:', err);
+          process.exit(1);
+        }
+      });
+    }
 
   } catch (error) {
     console.error("Failed to initialize server:", error);
-    process.exit(1);
+    if (process.env.NODE_ENV !== 'test') {
+      process.exit(1);
+    }
   }
 })();
+
+// Export app for testing
+export { app };
