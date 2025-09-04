@@ -50,7 +50,12 @@ export const events = pgTable("events", {
   ticketCutoffDays: integer("ticket_cutoff_days").default(3),
   // PRICING SYSTEM - $130 per person for full events
   basePrice: integer("base_price").default(13000), // $130.00 per person in cents
-  priceDisplay: varchar("price_display", { length: 255 }), // Custom price display text
+  priceDisplay: varchar("price_display", { length: 500 }), // Custom price display text
+  // Event schedule information
+  schedule: json("schedule").$type<{time: string, note: string}[]>().default([]),
+  // Event notes for alcohol and menu
+  alcoholNotes: text("alcohol_notes"),
+  menuNotes: text("menu_notes"),
   // TICKET-ONLY PRICING - separate price for ticket-only events
   ticketPrice: integer("ticket_price").default(5000), // $50.00 per ticket in cents
   ticketCapacity: integer("ticket_capacity"), // Maximum tickets available for ticket-only events
