@@ -295,15 +295,25 @@ export function FoodForm({ food, onClose }: Props) {
                 console.log("=== FORM SUBMIT SUCCESS ===");
                 console.log("Form data:", data);
                 console.log("Form state:", form.formState);
+                console.log("Form values:", form.getValues());
+                console.log("Form errors:", form.formState.errors);
                 saveFood(data);
               },
               (errors) => {
                 console.log("=== FORM VALIDATION ERRORS ===");
                 console.log("Validation errors:", errors);
                 console.log("Form state:", form.formState);
+                console.log("Current form values:", form.getValues());
+                console.log("All form errors:", form.formState.errors);
+                
+                // Show specific error messages
+                const errorMessages = Object.entries(errors).map(([field, error]) => 
+                  `${field}: ${error.message}`
+                ).join(', ');
+                
                 toast({
                   title: "Form validation failed",
-                  description: "Please check all required fields are filled correctly",
+                  description: `Issues found: ${errorMessages}`,
                   variant: "destructive",
                 });
               }
