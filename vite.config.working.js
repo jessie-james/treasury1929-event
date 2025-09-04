@@ -24,7 +24,10 @@ export default defineConfig({
   },
   css: {
     postcss: {
-      plugins: [], // Empty plugins array to bypass PostCSS issues
+      plugins: [
+        require('tailwindcss'),
+        require('autoprefixer'),
+      ],
     },
   },
   define: {
