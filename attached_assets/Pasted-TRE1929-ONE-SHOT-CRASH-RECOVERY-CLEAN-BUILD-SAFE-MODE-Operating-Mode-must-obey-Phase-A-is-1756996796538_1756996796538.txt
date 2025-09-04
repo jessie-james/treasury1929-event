@@ -1,0 +1,113 @@
+TRE1929 — ONE-SHOT CRASH RECOVERY & CLEAN BUILD (SAFE MODE)
+
+Operating Mode (must obey)
+- Phase A is READ-ONLY diagnostics.
+- Phase B is WRITE, but ONLY to tooling/config/build files. No DB writes, no migrations, no seeds, no content edits.
+- Never send real emails or Stripe calls. Do not touch events 39 or 40.
+
+Hard Safety
+- Set environment for all runtime checks: EMAIL_SUPPRESS_OUTBOUND=true, STRIPE_MOCK_MODE=true, BACKUPS_ENABLED=false, NODE_ENV=production (for boot logic only).
+- Absolutely no writes to application data or schema. No network calls to Stripe/SendGrid.
+
+Goal
+1) Restore a working toolchain and produce a production-safe server bundle that does NOT import vite or @vitejs/plugin-react at runtime.
+2) Build client separately.
+3) Boot server in SAFE MODE and return 200 from /health within 10s.
+4) Deliver a concise proof report with exact file paths, script outputs, and a grep showing no forbidden imports in dist/index.js.
+
+PHASE A — READ-ONLY FACT FINDING
+1) Print:
+   - node -v; npm -v
+   - Presence and real size (bytes) of:
+     - node_modules/vite
+     - node_modules/@vitejs/plugin-react
+     - node_modules/esbuild and node_modules/@esbuild/*/bin/esbuild
+   - First 40 lines of package.json (scripts + devDependencies).
+   - If dist/index.js exists, grep -nE "vite|@vitejs/plugin-react|vite.config" dist/index.js || echo "CLEAN".
+2) Summarize findings. If @vitejs/plugin-react dir is empty or esbuild binary missing from node_modules/.bin/, note it.
+
+PHASE B — CONTROLLED REPAIR (WRITE: tooling only)
+B1) Clean & reinstall (tooling only):
+   - Remove ONLY build artifacts and tool dirs: rm -rf dist .vite .parcel-cache .turbo
+   - If node_modules integrity is suspect, run: rm -rf node_modules && npm ci || npm install
+   - Ensure binaries available:
+     - npx --yes esbuild --version  (fallback ok)
+     - npx --yes vite --version
+     - npx --yes tsx --version
+   - If @vitejs/plugin-react is still missing/empty, run:
+     npm i -D @vitejs/plugin-react@^4.7.0
+     Then verify node_modules/@vitejs/plugin-react has files.
+
+B2) Production-safe server entry & dev isolation (only if needed):
+   - Ensure server imports Vite ONLY via dynamic import in development:
+     In server/index.ts, there must be NO top-level import of vite or vite plugins.
+     The dev middleware should be behind:
+       if (app.get('env') === 'development') {
+         const { mountViteDevMiddleware } = await import('./dev-vite.js');
+         await mountViteDevMiddleware(app, server);
+       } else {
+         const { serveStatic } = await import('./dev-vite.js');
+         serveStatic(app);
+       }
+   - Ensure server/dev-vite.ts is the ONLY file importing 'vite' or '@vitejs/plugin-react'.
+   - If server/index.ts references vite.config.ts directly or indirectly, remove that coupling.
+
+B3) Package.json scripts (update if different):
+   Set scripts EXACTLY to:
+   {
+     "clean": "rimraf dist",
+     "build:server": "esbuild server/index.ts --platform=node --format=esm --bundle --outdir=dist --sourcemap --external:vite --external:@vitejs/plugin-react --external:@replit/vite-plugin-runtime-error-modal --external:@replit/vite-plugin-cartographer --external:@replit/vite-plugin-shadcn-theme-json --external:./dev-vite.js",
+     "build:client": "vite build",
+     "build": "npm run clean && npm run build:server && npm run build:client",
+     "start": "NODE_ENV=production node dist/index.js",
+     "dev": "tsx server/index.ts",
+     "check": "tsc",
+     "db:push": "drizzle-kit push"
+   }
+   Notes:
+   - The --external:./dev-vite.js keeps dev-only module out of the server bundle.
+   - Do NOT change any other parts of package.json.
+
+B4) TypeScript sanity (verify only; fix if missing):
+   - tsconfig.json must include:
+     "lib": ["ES2015", "ES2020", "esnext", "dom", "dom.iterable"],
+     "types": ["node", "vite/client"],
+     "skipLibCheck": true
+
+B5) Build
+   - Run: npm run build:server
+     Then grep: grep -nE "vite|@vitejs/plugin-react|vite.config" dist/index.js || echo "CLEAN"
+     If any match appears, stop and:
+       * Add --external:./server/dev-vite.ts (if path differs) and rebuild
+       * Ensure no static vite imports remain in server/index.ts
+   - Run: npm run build:client
+     If it fails due to @vitejs/plugin-react, reinstall it and retry.
+
+B6) SAFE MODE Boot & Health
+   - Start (timeout 10s):
+     EMAIL_SUPPRESS_OUTBOUND=true STRIPE_MOCK_MODE=true BACKUPS_ENABLED=false NODE_ENV=production node dist/index.js &
+     Sleep 2s, then curl -sS -m 5 http://localhost:5000/health
+   - Expect HTTP 200 with a simple OK/JSON. If not 200, print first 200 lines of server log and stop.
+
+Deliverables (MANDATORY)
+- Print a compact report titled: TRE1929_Crash_Recovery_Proof_<epoch>.md containing:
+  1) Toolchain status (node/npm, vite/esbuild/tsx versions)
+  2) Module integrity (existence and non-empty for @vitejs/plugin-react, esbuild)
+  3) package.json scripts (final)
+  4) tsconfig.json key fields
+  5) Build logs (server + client) with lines showing success/failure
+  6) Forbidden import scan result on dist/index.js (must be CLEAN)
+  7) SAFE MODE boot result and /health HTTP code
+  8) Statement of compliance: no DB writes, no emails, no Stripe, events 39/40 untouched
+
+Constraints & Reminders
+- Do not run migrations/seeds.
+- Do not modify any app code beyond:
+  * server/index.ts (only to ensure dev-only dynamic imports)
+  * server/dev-vite.ts (if needed to isolate vite)
+  * package.json scripts
+  * tsconfig.json keys (if missing)
+- Never alter event data or pricing, and never email customers.
+- If any step cannot be completed, stop and explain exactly which command failed and why, with command output.
+
+Execute now.
