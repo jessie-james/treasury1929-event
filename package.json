@@ -109,6 +109,7 @@
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.5",
     "uuid": "^11.1.0",
     "vaul": "^1.1.0",
     "vitest": "^3.2.4",
@@ -136,7 +137,6 @@
     "esbuild": "^0.25.9",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "vite": "^5.4.19"
   },
