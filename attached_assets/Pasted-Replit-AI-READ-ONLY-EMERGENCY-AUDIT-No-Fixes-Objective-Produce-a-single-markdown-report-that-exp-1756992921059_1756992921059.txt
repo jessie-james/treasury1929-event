@@ -1,0 +1,103 @@
+Replit AI — READ-ONLY EMERGENCY AUDIT (No Fixes)
+Objective
+Produce a single markdown report that explains exactly why the live app crashes and what changed. DO NOT MODIFY CODE, DB, SECRETS, OR CONFIG. Do not run migrations. Do not create, update, or delete any records. Do not hit any endpoints that mutate state. This is an OBSERVE-ONLY audit.
+
+Operating Mode & Safety (must obey)
+- READ-ONLY ONLY. No git commits, no file edits, no package installs/updates, no DB schema changes, no data writes.
+- Never touch events 39 and 40 (Aug 28, Sep 5) beyond SELECT; absolutely no writes.
+- No emails, no Stripe calls. Force suppression/mocking for any runtime you start:
+  • EMAIL_SUPPRESS_OUTBOUND=true
+  • STRIPE_MOCK_MODE=true
+- Never run drizzle/db migrations. Never run scripts that seed or alter data.
+- You may compile and run the app to capture crash logs, but do not persist any configuration changes.
+
+Outputs (must produce)
+Create a single report file at repo root:
+TRE1929_Live_Crash_Audit_<timestamp>.md
+Include exact evidence (file paths + line numbers, command outputs, stack traces). No speculation without evidence.
+
+Scope of Audit (collect evidence for each item)
+
+0) Repo & Runtime Snapshot
+- git rev-parse HEAD
+- git status --porcelain
+- Last 10 commits: git --no-pager log -n 10 --pretty=oneline --abbrev-commit
+- Node version: node -v ; npm -v
+- package.json core deps versions vs installed (from package-lock.json)
+- File timestamps: ls -la dist/ and compare to src/ to detect stale build artifacts
+
+1) Environment & Safety Flags (MASK secrets)
+- Read effective env (mask values): NODE_ENV, PHX_TZ, BACKUPS_ENABLED, EMAIL_SUPPRESS_OUTBOUND, STRIPE_MOCK_MODE, PROTECT_EVENT_IDS, PORT
+- Stripe/SendGrid presence (mask): STRIPE_SECRET_KEY_NEW, STRIPE_PUBLISHABLE_KEY_NEW, STRIPE_WEBHOOK_SECRET, SENDGRID_API_KEY_NEW
+- Confirm server’s session/cookie settings in code (file + lines) reflect production when NODE_ENV='production'
+
+2) Server Boot & Crash Repro (NO external I/O)
+- Build prod: npm run build (do not change deps)
+- Start with tracing (do not background): NODE_ENV=production EMAIL_SUPPRESS_OUTBOUND=true STRIPE_MOCK_MODE=true node --trace-uncaught dist/index.js
+- Capture full startup console and the first crash stack (top 50 lines). If it boots, note URL and continue; if it crashes, record exact file:line, module name, and require/import chain.
+
+3) Health & Route Registration (READ-ONLY HTTP)
+- If server booted, hit GET /health and GET /api/events (no query params). Save HTTP status and first 500 chars of body (redact if needed).
+- Dump the list of API route registrations from code (file paths + line numbers where app.get/app.post etc. are defined), especially any new media/upload routes (multer/sharp), backup routes, and artist/menu admin routes. Note any conditional feature flags encountered in code.
+
+4) Database Connectivity (READ-ONLY)
+- Open DB connection the same way the app does, but ONLY run safe SELECTs:
+  • SELECT COUNT(*) FROM drizzle migrations table (or your migrations tracking table)
+  • Show the most recent migration name and applied_at timestamp
+  • SELECT id, title, date, is_active FROM events WHERE id IN (43,44,45) ORDER BY id
+  • SELECT id, name, description, photo_url FROM menu_items WHERE name ILIKE '%Salmon%' LIMIT 3
+  • SELECT id, event_id, name, role, photo_url FROM artists WHERE event_id IN (43,44,45) ORDER BY event_id, id
+- DO NOT run any INSERT/UPDATE/DELETE. DO NOT call seed scripts.
+
+5) Frontend Build Integrity (READ-ONLY)
+- Confirm Vite/React build succeeded; note any build-time warnings.
+- Inspect dist/ for index.html, assets manifest, and chunk files count.
+- Grep built JS for "sharp", "multer", "heic", or other native dependencies accidentally bundled client-side (should not be).
+- Confirm import.meta.env usage guards in code (file + line) to avoid undefined at runtime.
+
+6) Crash Fingerprint Classification
+- Based on stack + code, classify the crash into one or more buckets (must include exact evidence lines):
+  A) Native module load failure (e.g., sharp) on server startup
+  B) Missing env read causing undefined access in prod
+  C) Route/module import error (path/extension/ESM-CJS mismatch)
+  D) Database schema drift (selects expecting columns that don’t exist)
+  E) Build artifact drift (stale dist/ vs src/)
+  F) Date/time util regression (if relevant)
+  G) Other (be specific)
+
+7) Date Rendering Sanity (READ-ONLY)
+- From code (not by changing data), show the exact functions/lines currently used to render event dates in:
+  • client/src/components/events/EventCard.tsx
+  • client/src/components/events/EventDetails.tsx
+  • any shared date util (client/src/lib/datetime.ts or similar)
+- Show whether they parse DB values as UTC → Phoenix via date-fns-tz (file + lines).
+- No changes; evidence only.
+
+8) Protected Events Safety
+- Show middleware/write-guard code path (file + lines) proving that 39,40 are protected against writes.
+- Confirm no audit step attempted to read/modify 39/40 beyond SELECT.
+
+9) Backups/Cron Non-Interference
+- Show backup scheduler code (file + lines) and gating via BACKUPS_ENABLED. Confirm it won’t run in this audit session.
+- Confirm no scheduler started during the audit run (logs evidence).
+
+10) Final Artifacts (include in report)
+- Full server crash stack (or confirmation the server booted)
+- Route table summary (code references)
+- Env overview (masked)
+- DB read-only snapshots (event/menu/artist rows; redact PII if present)
+- Build integrity notes
+- Crash classification with pinpointed source files/lines
+- A one-screen “What’s breaking the app right now (evidence)” section
+- ZERO changes performed confirmation
+
+Formatting Requirements
+- Every claim must reference exact file paths and line numbers or command output snippets.
+- Use fenced code blocks for logs and SQL.
+- Mask any secrets beyond first/last 4 chars.
+- Close with an explicit statement: “No writes. No migrations. No external calls.”
+
+Deliverable
+Write the complete report to:
+TRE1929_Live_Crash_Audit_<timestamp>.md
+and print its path at the end of your output.
