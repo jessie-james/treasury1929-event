@@ -5,7 +5,18 @@ import { registerPricingRoutes } from "./routes-pricing";
 import { registerVenueRoutes } from "./routes-venue";
 import { registerSeatSelectionRoutes } from "./routes-seat-selection";
 import { registerSeatHoldRoutes } from "./routes-seat-holds";
-import { setupVite, log, serveStatic } from "./vite";
+// Vite imports moved to dynamic imports for production safety
+
+// Simple log function for production builds
+function log(message: string, source = "express") {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit", 
+    second: "2-digit",
+    hour12: true,
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+}
 import adminBookingRoutes from "./routes-admin-bookings";
 import reportsRoutes from "./routes-reports";
 import checkinRoutes from "./routes-checkin";
@@ -954,9 +965,11 @@ app.use((req, res, next) => {
     // Set up serving mode based on environment BEFORE client routes
     if (app.get("env") === "development") {
       log("Setting up Vite development server...");
-      await setupVite(app, server);
+      const { mountViteDevMiddleware } = await import('./dev-vite.js');
+      await mountViteDevMiddleware(app, server);
     } else {
       log("Setting up static file serving for production...");
+      const { serveStatic } = await import('./dev-vite.js');  
       serveStatic(app);
     }
 
