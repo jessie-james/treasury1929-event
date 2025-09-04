@@ -44,8 +44,8 @@ const DIETARY_RESTRICTIONS: string[] = ["gluten-free", "vegan", "vegetarian", "d
 const foodFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().min(1, "Description is required"),
-  // Accept any non-empty string for image (URL or uploaded path)
-  image: z.string().min(1, "Image is required"),
+  // Allow empty string for image - not all food items may have images
+  image: z.string().optional(),
   price: z.number().min(0, "Price must be greater than or equal to 0").optional(),
   type: z.enum(["salad", "entree", "dessert"]),
   allergens: z.array(z.string()).optional(),

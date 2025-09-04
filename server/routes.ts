@@ -235,6 +235,20 @@ const updateFoodOptionsOrderSchema = z.object({
 
 export async function registerRoutes(app: Express) {
   
+  // Add middleware to log all PATCH requests for debugging
+  app.use((req, res, next) => {
+    if (req.method === 'PATCH') {
+      console.log(`🔍 PATCH REQUEST: ${req.url}`, {
+        method: req.method,
+        url: req.url,
+        body: req.body,
+        authenticated: req.isAuthenticated?.(),
+        user: req.user?.email
+      });
+    }
+    next();
+  });
+  
   // Emergency diagnostic endpoints for phantom layouts
   app.get("/api/debug/phantom-layouts/:eventId", async (req, res) => {
     try {
