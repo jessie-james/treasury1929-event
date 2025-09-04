@@ -1,0 +1,186 @@
+Replit AI — Dev Safety Lockdown (Emails suppressed, Stripe mocked, Backups off) + Runtime Guards + Proof
+Mode & Guardrails
+
+WRITE-MODE allowed (code/config only).
+
+Do NOT read or write any data for Aug 28 or Sept 5 events.
+
+No real network I/O: actual emails and Stripe calls must remain impossible in dev.
+
+Timezone: America/Phoenix for any schedules/logs.
+
+Branch
+
+Create: safety/dev-guards-and-banner
+
+Phase 1 — Dev Defaults (env files + docs)
+
+Goal: Make dev safe by default and document it.
+
+.env.development (create if missing):
+
+EMAIL_SUPPRESS_OUTBOUND=true
+STRIPE_MOCK_MODE=true
+BACKUPS_ENABLED=false
+PROTECT_EVENT_IDS=39,40
+PHX_TZ=America/Phoenix
+
+
+.env.local.example & .env.example
+Ensure these keys are present with safe defaults and no secrets:
+
+# Safety
+EMAIL_SUPPRESS_OUTBOUND=true
+STRIPE_MOCK_MODE=true
+BACKUPS_ENABLED=false
+PROTECT_EVENT_IDS=39,40
+PHX_TZ=America/Phoenix
+
+
+Do not add live keys. Leave Stripe/SendGrid placeholders if the file already has them.
+
+Commit: chore(safety): dev defaults (emails suppressed, stripe mocked, backups off) + docs
+
+Phase 2 — Runtime “Can’t Hurt Anyone” Guards
+
+Goal: Even if someone flips envs, the app won’t send real emails or charge cards outside production.
+
+2A) Email guard (server/email-service.ts)
+
+At the top of the send path (shared send function or per-method), enforce:
+
+const isProd = process.env.NODE_ENV === 'production';
+const suppress = process.env.EMAIL_SUPPRESS_OUTBOUND === 'true';
+
+if (!isProd || suppress) {
+  console.log('[EMAIL] SUPPRESSED', { isProd, suppress, to: msg?.to });
+  return { ok: true, suppressed: true };
+}
+
+
+Keep existing serialization/logging. Make sure all email sends go through this gate.
+
+2B) Stripe guard (server/stripe.ts and any factory used)
+
+Centralize Stripe client creation in getStripe() and enforce:
+
+const isProd = process.env.NODE_ENV === 'production';
+const mock = process.env.STRIPE_MOCK_MODE === 'true';
+
+if (!isProd || mock) {
+  // Return a minimal mock with the methods we call
+  return {
+    checkout: { sessions: { create: async () => ({ url: 'https://example.test/checkout/mock' }) } },
+    refunds: { create: async () => ({ id: 're_mock' }) },
+    webhooks: { constructEvent: (_b:any,_s:any,_k:any) => ({ id: 'evt_mock' }) }
+  } as any;
+}
+
+// Only here may we instantiate real Stripe client w/ server key from env.
+
+
+In /api/create-checkout-session and webhook handlers, ensure they use getStripe() (not new Stripe(...) directly).
+
+Add a hard stop if someone tries to use a live key while NODE_ENV!=='production':
+
+if (!isProd && process.env.STRIPE_SECRET_KEY_NEW?.startsWith('sk_live_')) {
+  throw new Error('Blocked: live Stripe key in non-production environment');
+}
+
+2C) Backups guard (confirm, don’t rewrite the system)
+
+Ensure the scheduler code already checks:
+
+BACKUPS_ENABLED === 'true'
+
+03:30 Phoenix cron
+If either is missing, add them. Keep default OFF in dev.
+
+Commit: feat(safety): hard runtime guards for email + stripe; confirm backups gating
+
+Phase 3 — Backoffice Safe Mode banner
+
+Goal: Always show when the app is in a safe, non-production mode.
+
+In a shared backoffice layout (e.g., client/src/components/backoffice/BackofficeLayout.tsx), render a slim banner if any of these are true:
+
+NODE_ENV!=='production'
+
+EMAIL_SUPPRESS_OUTBOUND==='true'
+
+STRIPE_MOCK_MODE==='true'
+
+BACKUPS_ENABLED!=='true'
+
+Suggested JSX:
+
+{(process.env.NODE_ENV !== 'production' || import.meta.env.VITE_SAFE_MODE === 'true') && (
+  <div className="w-full bg-amber-100 text-amber-900 text-sm px-3 py-2 border-b border-amber-300">
+    Safe Mode: emails suppressed, Stripe mocked, backups {import.meta.env.VITE_BACKUPS_ENABLED === 'true' ? 'ON' : 'OFF'}
+  </div>
+)}
+
+
+If you’re not exposing envs to the client yet, add Vite exposes in vite.config.ts:
+
+define: {
+  'import.meta.env.VITE_BACKUPS_ENABLED': JSON.stringify(process.env.BACKUPS_ENABLED === 'true'),
+  'import.meta.env.VITE_SAFE_MODE': JSON.stringify(process.env.NODE_ENV !== 'production' || process.env.EMAIL_SUPPRESS_OUTBOUND === 'true' || process.env.STRIPE_MOCK_MODE === 'true'),
+}
+
+
+Commit: feat(ui): Backoffice Safe Mode banner (env-synced)
+
+Phase 4 — Tests & Proof (no external traffic)
+
+Add/extend tests (Vitest):
+
+tests/safety.spec.ts
+
+Email: calling any send method in dev returns { suppressed: true }.
+
+Stripe: getStripe() in dev yields mock; sessions.create returns a mock URL.
+
+Guard: using sk_live_ in non-prod throws.
+
+Backups: cron job does not schedule when BACKUPS_ENABLED=false.
+
+Generate TRE1929_Safety_Guards_Proof_<timestamp>.md including:
+
+Code excerpts (file:line) for the guards you added (email & stripe).
+
+.env.development keys (redact any secrets; there shouldn’t be any).
+
+Screenshot/DOM of the Safe Mode banner in backoffice.
+
+Test summary: counts for safety.spec.ts (& any others impacted).
+
+One-liner confirming PROTECT_EVENT_IDS=39,40 still active.
+
+Commit: test(safety): guards verified; proof report emitted
+
+Phase 5 — Final dev smoke (read-only)
+
+Confirm Event Cards for IDs 43, 44, 45 still show “$130 per guest — tax & gratuity included”.
+
+Confirm Grilled King Salmon still selectable for all three.
+
+Confirm Artists rows visible (Sophia Su / Dr. Fanya Lin).
+
+No emails sent, no Stripe calls (log statements show suppression/mocking).
+
+Output: Append a short “Dev Smoke” section to the same proof file with bullet checks.
+
+Acceptance
+
+Dev defaults: emails suppressed, stripe mocked, backups off.
+
+Guards make real emails/charges impossible outside prod.
+
+Safe Mode banner visible in backoffice.
+
+Proof report written: TRE1929_Safety_Guards_Proof_<timestamp>.md.
+
+No reads/writes to Aug 28 / Sep 5.
+
+If anything in the proof doesn’t match, apply the smallest fix and re-run Phase 4.
