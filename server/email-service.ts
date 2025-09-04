@@ -65,10 +65,18 @@ export function ensureEmailReady(): void {
 }
 
 export async function sendEmail(msg: sgMail.MailDataRequired): Promise<any> {
-  // PHASE 0: Email suppression flag
-  if (process.env.EMAIL_SUPPRESS_OUTBOUND === 'true') {
-    console.log('[EMAIL] SUPPRESSED - EMAIL_SUPPRESS_OUTBOUND is true. Would have sent to:', typeof msg.to === 'string' ? msg.to : 'multiple');
-    return { statusCode: 202, body: 'SUPPRESSED' };
+  // RUNTIME SAFETY GUARD: Never send real emails outside production
+  const isProd = process.env.NODE_ENV === 'production';
+  const suppress = process.env.EMAIL_SUPPRESS_OUTBOUND === 'true';
+
+  if (!isProd || suppress) {
+    console.log('[EMAIL] SUPPRESSED', { 
+      isProd, 
+      suppress, 
+      to: typeof msg.to === 'string' ? msg.to : 'multiple recipients',
+      subject: msg.subject 
+    });
+    return { ok: true, suppressed: true };
   }
 
   ensureEmailReady();

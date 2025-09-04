@@ -52,8 +52,46 @@ export function initializeStripe(): boolean {
   }
 }
 
-// Get the Stripe instance (initializing if needed)
-export function getStripe(): Stripe | null {
+// Get the Stripe instance (initializing if needed) with safety guards
+export function getStripe(): Stripe | any {
+  // RUNTIME SAFETY GUARD: Never use real Stripe outside production
+  const isProd = process.env.NODE_ENV === 'production';
+  const mock = process.env.STRIPE_MOCK_MODE === 'true';
+
+  if (!isProd || mock) {
+    console.log('[STRIPE] MOCK MODE', { isProd, mock });
+    // Return a minimal mock with the methods we call
+    return {
+      checkout: { 
+        sessions: { 
+          create: async (params: any) => ({ 
+            url: 'https://example.test/checkout/mock',
+            id: 'cs_mock_' + Date.now(),
+            ...params 
+          }) 
+        } 
+      },
+      refunds: { 
+        create: async (params: any) => ({ 
+          id: 're_mock_' + Date.now(),
+          status: 'succeeded',
+          ...params 
+        }) 
+      },
+      webhooks: { 
+        constructEvent: (_body: any, _sig: any, _secret: any) => ({ 
+          id: 'evt_mock_' + Date.now(),
+          type: 'payment_intent.succeeded'
+        }) 
+      }
+    };
+  }
+
+  // SAFETY CHECK: Block live keys in non-production
+  if (!isProd && process.env.STRIPE_SECRET_KEY_NEW?.startsWith('sk_live_')) {
+    throw new Error('BLOCKED: Live Stripe key detected in non-production environment');
+  }
+
   if (!stripe && !stripeInitialized) {
     initializeStripe();
   }

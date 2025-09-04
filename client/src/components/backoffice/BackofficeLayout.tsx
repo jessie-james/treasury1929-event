@@ -156,6 +156,17 @@ export function BackofficeLayout({ children }: Props) {
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Safe Mode Banner */}
+        {(import.meta.env.MODE !== 'production' || import.meta.env.VITE_SAFE_MODE === 'true') && (
+          <div className="w-full bg-amber-100 text-amber-900 text-sm px-3 py-2 border-b border-amber-300">
+            <div className="flex items-center justify-center">
+              <span className="font-medium">🛡️ Safe Mode:</span>
+              <span className="ml-2">
+                emails suppressed, Stripe mocked, backups {import.meta.env.VITE_BACKUPS_ENABLED === 'true' ? 'ON' : 'OFF'}
+              </span>
+            </div>
+          </div>
+        )}
         <div className="h-16 border-b flex items-center px-6">
           <div className="w-12 md:w-0" /> {/* Spacer for mobile menu button */}
           <p className="text-sm text-muted-foreground">
