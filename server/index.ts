@@ -973,7 +973,7 @@ app.use((req, res, next) => {
         const { serveStatic } = await import('./dev-vite.js');  
         serveStatic(app);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.warn("Vite setup failed (missing packages), running in basic mode:", error.message);
       // Fallback: serve basic static files if dist/public exists
       const express = (await import("express")).default;

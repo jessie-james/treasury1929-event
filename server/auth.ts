@@ -23,10 +23,22 @@ async function safeCreateAdminLog(logData: InsertAdminLog): Promise<boolean> {
 
 declare global {
   namespace Express {
+    interface Request {
+      isAuthenticated(): boolean;
+      user?: User;
+      login(user: User, done: (err: any) => void): void;
+      logout(done: (err?: any) => void): void;
+      session?: any;
+      sessionID?: string;
+    }
     interface User {
       id: number;
       email: string;
       role: string;
+      firstName?: string | null;
+      lastName?: string | null;
+      phone?: string | null;
+      password?: string | null;
     }
   }
 }
@@ -44,7 +56,7 @@ async function comparePasswords(supplied: string, stored: string) {
     const [hashed, salt] = stored.split(".");
     const hashedBuf = Buffer.from(hashed, "hex");
     const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-    return timingSafeEqual(hashedBuf, suppliedBuf);
+    return timingSafeEqual(new Uint8Array(hashedBuf), new Uint8Array(suppliedBuf));
   } catch (error) {
     console.error("Error comparing passwords:", error);
     return false;
@@ -150,7 +162,7 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(
       { usernameField: "email" },
-      async (email, password, done) => {
+      async (email: string, password: string, done: any) => {
         try {
           console.log(`Attempting login for email: ${email}`);
           const user = await storage.getUserByEmail(email);
@@ -184,7 +196,7 @@ export function setupAuth(app: Express) {
     ),
   );
 
-  passport.serializeUser((user, done) => {
+  passport.serializeUser((user: any, done: any) => {
     try {
       if (!user || !user.id) {
         console.error("Cannot serialize user: missing user or user.id", user);
@@ -197,7 +209,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  passport.deserializeUser(async (id: number, done) => {
+  passport.deserializeUser(async (id: number, done: any) => {
     try {
       console.log(`Deserializing user with ID: ${id}`);
       const user = await storage.getUserById(id);
