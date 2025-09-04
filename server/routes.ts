@@ -235,32 +235,6 @@ const updateFoodOptionsOrderSchema = z.object({
 
 export async function registerRoutes(app: Express) {
   
-  // Add middleware to log all PATCH requests for debugging
-  app.use((req, res, next) => {
-    if (req.method === 'PATCH') {
-      console.log(`🔍 PATCH REQUEST: ${req.url}`, {
-        method: req.method,
-        url: req.url,
-        body: req.body,
-        authenticated: req.isAuthenticated?.(),
-        user: req.user?.email
-      });
-    }
-    next();
-  });
-
-  // Add error handling middleware for all requests
-  app.use((err, req, res, next) => {
-    if (req.method === 'PATCH' && req.url.includes('food-options')) {
-      console.error("🚨 MIDDLEWARE ERROR for PATCH food-options:", {
-        error: err.message,
-        stack: err.stack,
-        url: req.url,
-        body: req.body
-      });
-    }
-    next(err);
-  });
   
   // Emergency diagnostic endpoints for phantom layouts
   app.get("/api/debug/phantom-layouts/:eventId", async (req, res) => {
@@ -2491,7 +2465,6 @@ export async function registerRoutes(app: Express) {
   };
 
   // Handle food image uploads with improved error handling
-  console.log("🔧 REGISTERING /api/upload/food-image route");
   app.post("/api/upload/food-image", (req, res, next) => {
     // Explicitly wrap multer to catch and handle any errors
     console.log("Starting food image upload request");
@@ -4201,7 +4174,6 @@ export async function registerRoutes(app: Express) {
       }
 
       const id = parseInt(req.params.id);
-      console.log("🔧 UPDATING FOOD OPTION", { id, data: req.body });
 
       // Get original food option before updates for better logging
       const originalFoodOption = await storage.getFoodOptionsByIds([id]);
@@ -4244,13 +4216,7 @@ export async function registerRoutes(app: Express) {
 
       res.json(foodOption);
     } catch (error) {
-      console.error("❌ ERROR UPDATING FOOD OPTION:", error);
-      console.error("Error details:", {
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        id: req.params.id,
-        data: req.body
-      });
+      console.error("Error updating food option:", error);
       res.status(500).json({ 
         message: "Failed to update food option",
         error: error instanceof Error ? error.message : String(error)

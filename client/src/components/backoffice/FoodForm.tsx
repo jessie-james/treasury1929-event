@@ -197,69 +197,19 @@ export function FoodForm({ food, onClose }: Props) {
 
   const { mutate: saveFood, isPending } = useMutation({
     mutationFn: async (data: FoodFormData) => {
-      console.log("=== FOOD FORM SUBMISSION ===");
-      console.log("Food data being submitted:", data);
-      console.log("Food object:", food);
-      
-      // Check authentication status first with more detailed debugging
-      try {
-        console.log("🔐 Checking authentication status...");
-        const authCheck = await fetch('/api/user', {
-          method: 'GET',
-          credentials: 'include',
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        console.log("Auth check response status:", authCheck.status);
-        console.log("Auth check response headers:", [...authCheck.headers.entries()]);
-        
-        if (!authCheck.ok) {
-          console.error("Auth check failed with status:", authCheck.status);
-          const authError = await authCheck.text();
-          console.error("Auth error response:", authError);
-          throw new Error(`Authentication failed: ${authCheck.status} ${authError}`);
-        }
-        
-        const authUser = await authCheck.json();
-        console.log("Current authenticated user:", authUser);
-        
-        if (!authUser || authUser.role !== 'admin') {
-          throw new Error("You must be logged in as an admin to save food items");
-        }
-        
-        console.log("✅ Authentication confirmed for admin:", authUser.email);
-      } catch (authError) {
-        console.error("Authentication check failed:", authError);
-        throw new Error("Authentication required. Please log in as admin.");
-      }
-      
       const endpoint = food ? `/api/food-options/${food.id}` : "/api/food-options";
       const method = food ? "PATCH" : "POST";
-      console.log("API endpoint:", endpoint);
-      console.log("HTTP method:", method);
       
-      // Convert price to cents for storage (like BeverageForm does)
+      // Convert price to cents for storage
       const payload = {
         ...data,
-        // Use uploaded image if available, otherwise use form data
         image: uploadedImage || data.image || "",
         price: data.price !== undefined ? Math.round(data.price * 100) : undefined,
       };
       
-      console.log("Final payload with converted price:", payload);
-      
-      try {
-        const result = await apiRequest(method, endpoint, payload);
-        console.log("API request successful:", result);
-        return result;
-      } catch (error) {
-        console.error("API request failed:", error);
-        throw error;
-      }
+      return await apiRequest(method, endpoint, payload);
     },
     onSuccess: (data) => {
-      console.log("=== MUTATION SUCCESS ===");
-      console.log("Response data:", data);
       queryClient.invalidateQueries({ queryKey: ["/api/food-options"] });
       toast({
         title: `Food item ${food ? "updated" : "created"} successfully`,
@@ -267,7 +217,6 @@ export function FoodForm({ food, onClose }: Props) {
       onClose();
     },
     onError: (error) => {
-      console.error("=== MUTATION ERROR ===");
       console.error("Full error object:", error);
       console.error("Error message:", error instanceof Error ? error.message : String(error));
       toast({
