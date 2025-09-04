@@ -4173,6 +4173,7 @@ export async function registerRoutes(app: Express) {
       }
 
       const id = parseInt(req.params.id);
+      console.log("🔧 UPDATING FOOD OPTION", { id, data: req.body });
 
       // Get original food option before updates for better logging
       const originalFoodOption = await storage.getFoodOptionsByIds([id]);
@@ -4215,8 +4216,17 @@ export async function registerRoutes(app: Express) {
 
       res.json(foodOption);
     } catch (error) {
-      console.error("Error updating food option:", error);
-      res.status(500).json({ message: "Failed to update food option" });
+      console.error("❌ ERROR UPDATING FOOD OPTION:", error);
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        id: req.params.id,
+        data: req.body
+      });
+      res.status(500).json({ 
+        message: "Failed to update food option",
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
