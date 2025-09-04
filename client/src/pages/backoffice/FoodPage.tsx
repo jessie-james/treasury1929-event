@@ -373,7 +373,7 @@ export default function FoodPage() {
                                       </div>
                                       <div className="h-16 w-24 overflow-hidden rounded">
                                         <img
-                                          src={food.image}
+                                          src={food.image || ''}
                                           alt={food.name}
                                           className="h-full w-full object-cover"
                                         />
@@ -412,7 +412,7 @@ export default function FoodPage() {
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                              ${(beverage.price / 100).toFixed(0)}
+                              ${beverage.price ? (beverage.price / 100).toFixed(0) : '0'}
                             </Badge>
                             <Button
                               variant="outline"
@@ -481,7 +481,7 @@ export default function FoodPage() {
                                   </div>
                                 </div>
                                 <Badge variant="outline" className="bg-purple-50 text-purple-700">
-                                  ${(beverage.price / 100).toFixed(0)}
+                                  ${beverage.price ? (beverage.price / 100).toFixed(0) : '0'}
                                 </Badge>
                               </div>
                             </div>
