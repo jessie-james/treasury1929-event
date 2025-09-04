@@ -5,10 +5,10 @@
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
-    "module": "ESNext",
+    "module": "CommonJS",
     "target": "ES2020",
     "strict": true,
-    "lib": ["ES5", "ES6", "ES2015", "ES2017", "ES2018", "ES2019", "ES2020", "ES2021", "ESNext", "DOM", "DOM.Iterable"],
+    "lib": ["ES2015", "ES2020", "DOM", "DOM.Iterable"],
     "jsx": "preserve",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
@@ -20,7 +20,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "baseUrl": ".",
-    "types": ["node", "vite/client"],
+    "types": ["node"],
     "paths": {
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"]
