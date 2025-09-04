@@ -27,7 +27,7 @@ import { storage } from "./storage";
 import cors from 'cors';
 import { setupAuth } from "./auth";
 import { setupSecurity, validateInput, securityErrorHandler, validateEnvironment } from "./security";
-import { getStripe } from "./stripe";
+import { getStripe, getPublishableKey } from "./stripe";
 
 const app = express();
 
@@ -238,11 +238,11 @@ app.get("/api/health", (_req, res) => {
 // Stripe configuration endpoint for frontend
 app.get("/api/stripe/config", (_req, res) => {
   try {
-    const publishableKey = process.env.TRE_STRIPE_TEST_PUBLISHABLE_KEY;
+    const publishableKey = getPublishableKey();
     
     if (!publishableKey) {
       return res.status(500).json({ 
-        error: "Treasury Stripe test configuration not available" 
+        error: "Treasury Stripe configuration not available" 
       });
     }
 
