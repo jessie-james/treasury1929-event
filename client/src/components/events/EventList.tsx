@@ -55,8 +55,10 @@ export function EventList() {
           <div className="h-6 w-32 bg-gray-200 animate-pulse rounded mx-auto mb-4"></div>
           <div className="h-10 w-64 bg-gray-200 animate-pulse rounded mx-auto"></div>
         </div>
-        <div className="flex justify-center">
-          <div className="w-[300px] h-[400px] bg-gray-200 animate-pulse rounded-lg"></div>
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="max-w-2xl mx-auto h-64 bg-gray-200 animate-pulse rounded-lg"></div>
+          ))}
         </div>
       </div>
     );
@@ -64,7 +66,7 @@ export function EventList() {
 
   return (
     <div className="space-y-6">
-      {/* Sort Controls - Centered */}
+      {/* Sort Controls */}
       <div className="text-center">
         <div className="mb-4">
           <span className="text-lg font-medium text-gray-900">Sort events by:</span>
@@ -86,7 +88,7 @@ export function EventList() {
         </div>
       </div>
       
-      {/* Single Column Event Cards - Centered */}
+      {/* Event Cards */}
       <div className="space-y-6">
         {sortedEvents.map((event) => (
           <EventCard key={event.id} event={event} />
