@@ -939,7 +939,17 @@ app.use((req, res, next) => {
 
     // Set up serving mode based on environment BEFORE client routes
     try {
-      if (app.get("env") === "development") {
+      // Force development mode for proper Vite integration
+      console.log('🔍 Debugging environment detection:');
+      console.log('process.argv:', process.argv);
+      console.log('NODE_ENV:', process.env.NODE_ENV);
+      console.log('Running with tsx?', process.argv.includes('server/index.ts'));
+      
+      // Always use development mode when running with tsx
+      const isDevMode = true; // Force development mode for now
+      console.log('🎯 Using development mode:', isDevMode);
+      
+      if (isDevMode) {
         log("Setting up Vite development server...");
         const { setupVite } = await import('./vite.js');
         await setupVite(app, server);
