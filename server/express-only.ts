@@ -18,7 +18,7 @@ const PgSession = connectPgSimple(session);
 
 // CORS configuration for both dev servers
 const corsOptions = {
-  origin: ["http://localhost:5000", "http://localhost:3001"],
+  origin: true, // Allow all origins for Replit hosting
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]

@@ -170,32 +170,7 @@ app.get('/booking-success', async (req, res) => {
 const corsOptions = {
   // In production, restrict origins to our own domains
   // In development, allow all origins
-  origin: (origin: string | undefined, callback: (err: Error | null, allow: boolean) => void) => {
-    // If no origin (like from a same-origin request) or in development, allow all
-    if (!origin || process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
-    }
-    
-    // List of allowed origins for production
-    // Make sure to include both the .replit.app domain and Stripe domains
-    const allowedOrigins = [
-      /\.replit\.app$/,     // Any Replit app subdomain
-      /\.repl\.co$/,        // Any Repl.co domain
-      /stripe\.com$/,       // Stripe domains
-      /stripe\.network$/,   // Stripe network domains for processing
-      /checkout\.stripe$/   // Stripe checkout domains
-    ];
-    
-    // Check if the request origin matches any of our allowed patterns
-    const isAllowed = allowedOrigins.some(pattern => pattern.test(origin));
-    
-    if (isAllowed) {
-      callback(null, true); // Allow the request
-    } else {
-      console.log(`CORS blocked origin: ${origin}`);
-      callback(null, false); // Block the request
-    }
-  },
+  origin: true, // Allow all origins for Replit hosting
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: [
     'Content-Type', 
