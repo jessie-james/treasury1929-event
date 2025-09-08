@@ -941,11 +941,11 @@ app.use((req, res, next) => {
     try {
       if (app.get("env") === "development") {
         log("Setting up Vite development server...");
-        const { mountViteDevMiddleware } = await import('./dev-vite.js');
-        await mountViteDevMiddleware(app, server);
+        const { setupVite } = await import('./vite.js');
+        await setupVite(app, server);
       } else {
         log("Setting up static file serving for production...");
-        const { serveStatic } = await import('./dev-vite.js');  
+        const { serveStatic } = await import('./vite.js');  
         serveStatic(app);
       }
     } catch (error: any) {
