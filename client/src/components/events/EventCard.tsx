@@ -45,41 +45,19 @@ export function EventCard({ event }: { event: Event }) {
       : { text: "Tickets available", color: "success" };
 
   return (
-    <div style={{
-      overflow: 'hidden',
-      boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-      borderRadius: '0.5rem',
-      border: '1px solid #e5e7eb',
-      backgroundColor: 'white'
-    }}>
-      <div style={{ 
-        position: 'relative',
-        width: '300px', 
-        height: '300px', 
-        margin: '0 auto',
-        overflow: 'hidden',
-        borderRadius: '8px 8px 0 0'
-      }}>
+    <Card className="overflow-hidden max-w-sm mx-auto">
+      <div className="relative w-full h-72 overflow-hidden">
         <img
           src={event.image || '/assets/placeholder-event.jpg'}
           alt={event.title || 'Event'}
-          style={{ 
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            width: '100%', 
-            height: '100%', 
-            objectFit: 'cover',
-            objectPosition: '50% 10%'
-          }}
+          className="absolute inset-0 w-full h-full object-cover object-top"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             target.src = '/assets/placeholder-event.jpg';
           }}
         />
       </div>
-      {/* ELDERLY-FRIENDLY: Much larger text, bigger touch targets, clear contrast */}
-      <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <CardContent className="p-6 space-y-6">
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-2xl md:text-3xl font-bold flex-1 leading-snug">{event.title}</h3>
@@ -135,7 +113,7 @@ export function EventCard({ event }: { event: Event }) {
             }
           </Button>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
