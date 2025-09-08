@@ -88,8 +88,7 @@ export function EventList() {
         </Select>
       </div>
       
-      {/* ELDERLY-FRIENDLY: Single column on mobile for easier reading, larger cards */}
-      <div className="grid gap-8 max-w-2xl mx-auto lg:max-w-6xl lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-6 max-w-2xl mx-auto md:grid-cols-2 lg:max-w-6xl lg:grid-cols-3">
         {sortedEvents.map((event) => (
           <EventCard key={event.id} event={event} />
         ))}
