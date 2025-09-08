@@ -38,14 +38,14 @@ export function EventCard({ event }: { event: Event }) {
       <CardContent className="p-0">
         <div className="flex">
           {/* Image Section */}
-          <div className="w-48 h-64 flex-shrink-0">
+          <div className="w-48 h-64 flex-shrink-0 bg-gray-200">
             <img
-              src={event.image || '/assets/placeholder-event.jpg'}
+              src={event.image || 'https://via.placeholder.com/192x256/cccccc/666666?text=Event+Image'}
               alt={event.title || 'Event'}
               className="w-full h-full object-cover"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.src = '/assets/placeholder-event.jpg';
+                target.src = 'https://via.placeholder.com/192x256/cccccc/666666?text=Event+Image';
               }}
             />
           </div>
