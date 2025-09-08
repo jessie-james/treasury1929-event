@@ -129,8 +129,8 @@ export default function PaymentSuccessPage() {
   return (
     <div className="container max-w-2xl mx-auto my-12 px-4">
       <div className="mb-4">
-        <Button variant="ghost" size="lg" onClick={() => navigate('/')} className="py-4 text-xl font-semibold">
-          <ArrowLeft className="h-6 w-6 mr-2" />
+        <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+          <ArrowLeft className="h-4 w-4 mr-1" />
           Back to Home
         </Button>
       </div>
@@ -140,8 +140,8 @@ export default function PaymentSuccessPage() {
           <div className="mx-auto w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-4">
             <CheckCircle className="h-10 w-10 text-green-500" />
           </div>
-          <CardTitle className="text-4xl md:text-5xl text-green-700 font-bold">Payment Successful!</CardTitle>
-          <CardDescription className="text-2xl md:text-3xl leading-relaxed">
+          <CardTitle className="text-2xl text-green-700">Payment Successful!</CardTitle>
+          <CardDescription className="text-lg">
             Thank you for your purchase
           </CardDescription>
         </CardHeader>
@@ -149,13 +149,13 @@ export default function PaymentSuccessPage() {
         <CardContent className="space-y-6">
           {/* Booking confirmation */}
           <div className="text-center py-2">
-            <p className="text-xl md:text-2xl text-gray-600 leading-relaxed">
+            <p className="text-gray-600">
               Your payment has been processed successfully. 
             </p>
             
-            <div className="mt-6 bg-amber-50 border border-amber-100 rounded-lg p-6 text-amber-800 text-xl">
-              <p className="leading-relaxed">A confirmation email has been sent to your registered email address.</p>
-              <p className="mt-4 leading-relaxed">Please keep your booking reference for your records.</p>
+            <div className="mt-6 bg-amber-50 border border-amber-100 rounded-lg p-4 text-amber-800 text-sm">
+              <p>A confirmation email has been sent to your registered email address.</p>
+              <p className="mt-2">Please keep your booking reference for your records.</p>
             </div>
           </div>
 
@@ -163,15 +163,15 @@ export default function PaymentSuccessPage() {
           {isLoading && bookingId && (
             <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="mt-4 text-xl text-gray-600">Loading your booking details...</p>
+              <p className="mt-2 text-sm text-gray-600">Loading your booking details...</p>
             </div>
           )}
 
           {/* Fallback booking confirmed message if booking data fails to load */}
           {!booking && !isLoading && bookingId && (
             <div className="border border-green-200 rounded-lg p-4 bg-green-50 text-center">
-              <h3 className="text-2xl md:text-3xl font-bold mb-4 text-green-800">Booking Confirmed!</h3>
-              <div className="space-y-4 text-xl">
+              <h3 className="text-lg font-semibold mb-2 text-green-800">Booking Confirmed!</h3>
+              <div className="space-y-2 text-sm">
                 <div>
                   <span className="font-medium">Booking ID:</span>
                   <div className="bg-white p-2 rounded border mt-1 font-mono text-xs">
@@ -188,8 +188,8 @@ export default function PaymentSuccessPage() {
             <div className="space-y-6">
               {/* Event Title */}
               <div className="text-center">
-                <h2 className="text-4xl md:text-5xl font-bold text-primary mb-4 leading-tight">{booking.event.title}</h2>
-                <div className="flex flex-col items-center gap-2 text-xl md:text-2xl text-muted-foreground mb-2">
+                <h2 className="text-2xl font-bold text-primary mb-2">{booking.event.title}</h2>
+                <div className="flex flex-col items-center gap-1 text-sm text-muted-foreground mb-1">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
                     <span>
