@@ -25,7 +25,7 @@ export function BottomNavigation() {
       icon: User,
     },
     {
-      title: "Backstage",
+      title: "Backoffice",
       href: "/backoffice",
       icon: AlertTriangle,
       requireAuth: true,
@@ -38,7 +38,7 @@ export function BottomNavigation() {
       {/* RESPONSIVE: Mobile-friendly (elderly) vs Desktop proportions */}
       <div className="container flex justify-around items-center h-24 md:h-16 px-2">
         {navigationItems.map((item) => {
-          if ((item.requireAuth && !user) || (item.requireAdmin && user?.role !== 'admin')) return null;
+          if ((item.requireAuth && !user) || (item.requireAdmin && user?.role !== 'admin') || (item.hideForAdmin && user?.role === 'admin')) return null;
           
           const isActive = location === item.href;
           
