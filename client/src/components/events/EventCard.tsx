@@ -11,10 +11,15 @@ export function EventCard({ event }: { event: Event }) {
   return (
     <div 
       onClick={handleClick}
-      className="relative cursor-pointer rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
-      style={{ aspectRatio: '4/5' }}
+      className="relative cursor-pointer rounded-lg overflow-hidden"
+      style={{ 
+        width: '100%',
+        height: '400px',
+        maxWidth: '300px',
+        margin: '0 auto'
+      }}
     >
-      {/* Background Image */}
+      {/* Event Image */}
       <img
         src={event.image || '/assets/placeholder-event.jpg'}
         alt={event.title || 'Event'}
@@ -25,8 +30,8 @@ export function EventCard({ event }: { event: Event }) {
         }}
       />
       
-      {/* Title Overlay at Bottom */}
-      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4">
+      {/* Title Overlay */}
+      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-3">
         <h3 className="text-sm font-medium leading-tight">
           {event.title}
         </h3>
