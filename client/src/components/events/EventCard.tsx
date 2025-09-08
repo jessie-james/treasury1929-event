@@ -45,97 +45,65 @@ export function EventCard({ event }: { event: Event }) {
       : { text: "Tickets available", color: "success" };
 
   return (
-    <div style={{
-      overflow: 'hidden',
-      boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-      borderRadius: '0.5rem',
-      border: '1px solid #e5e7eb',
-      backgroundColor: 'white'
-    }}>
-      <div style={{ 
-        position: 'relative',
-        width: '300px', 
-        height: '300px', 
-        margin: '0 auto',
-        overflow: 'hidden',
-        borderRadius: '8px 8px 0 0'
-      }}>
-        <img
-          src={event.image || '/assets/placeholder-event.jpg'}
-          alt={event.title || 'Event'}
-          style={{ 
-            position: 'absolute',
-            top: '0',
-            left: '0',
-            width: '100%', 
-            height: '100%', 
-            objectFit: 'cover',
-            objectPosition: '50% 10%'
-          }}
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = '/assets/placeholder-event.jpg';
-          }}
-        />
-      </div>
-      {/* ELDERLY-FRIENDLY: Much larger text, bigger touch targets, clear contrast */}
-      <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <Card className="w-full">
+      <CardContent className="p-6 space-y-6">
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-2xl md:text-3xl font-bold flex-1 leading-snug">{event.title}</h3>
+            <h3 className="text-2xl md:text-3xl font-bold flex-1 leading-snug text-slate-700">
+              {event.title}
+            </h3>
             <EventTypeIndicator 
               eventType={event.eventType || 'full'} 
               isPrivate={event.isPrivate || false}
             />
           </div>
-          <div className="text-xl md:text-2xl text-muted-foreground leading-relaxed">
-            <div className="font-semibold text-foreground">{formatEventDateForCard(event.date)}</div>
-            <div>Time: Guest Arrival 5:45 PM, show starts 6:30 PM</div>
+          
+          <div className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+            <div className="font-medium text-foreground">
+              {formatEventDateForCard(event.date)}
+            </div>
           </div>
-          {/* PHASE 0: Price Display */}
+          
+          <div className="space-y-2 text-sm md:text-base text-muted-foreground leading-relaxed">
+            <p>
+              {event.description ? event.description.substring(0, 120) + '...' : 
+               'Dinner Concert Series Premiere: An Evening of Fine Dining and Live Music Presented at The Treasury 1929 Join us for the launch of our Dinner Concert Series, an elegant evening where culinary artistry...'}
+            </p>
+          </div>
+          
           <div className="text-xl md:text-2xl font-semibold text-foreground">
-            {(typeof formatPriceDisplay === 'function' && formatPriceDisplay(event)) || "$130 per guest — tax & gratuity included"}
+            Price: {(typeof formatPriceDisplay === 'function' && formatPriceDisplay(event)) || "$130 per guest — tax & gratuity included"}
           </div>
-          <Badge variant={availability.color as any} className="text-lg px-4 py-2">
+          
+          <Badge variant={availability.color as any} className="text-base px-3 py-1">
             {availability.text}
           </Badge>
         </div>
         
-        {/* ELDERLY-FRIENDLY: Much larger buttons, easier to tap */}
-        <div className="flex flex-col gap-4">
-          <Button 
-            variant="outline" 
-            size="lg"
-            onClick={() => setLocation(`/events/${event.id}`)}
-            className="w-full py-4 text-xl font-semibold"
-          >
-            View Details
-          </Button>
-          <Button 
-            size="lg"
-            onClick={() => {
-              if (isTicketOnly) {
-                setLocation(`/events/${event.id}/tickets`);
-              } else {
-                setLocation(`/events/${event.id}/book`);
-              }
-            }}
-            className="w-full py-4 text-xl font-semibold"
-            disabled={event.isActive === false || isSoldOut || event.isPrivate}
-          >
-            {event.isActive === false
-              ? "Sold Out"
-              : isSoldOut
-              ? "Sold Out" 
-              : event.isPrivate 
-                ? "Private Event" 
-                : isTicketOnly 
-                  ? "Buy Tickets" 
-                  : "Book Table"
+        <Button 
+          size="lg"
+          onClick={() => {
+            if (isTicketOnly) {
+              setLocation(`/events/${event.id}/tickets`);
+            } else {
+              setLocation(`/events/${event.id}/book`);
             }
-          </Button>
-        </div>
-      </div>
-    </div>
+          }}
+          className="w-full py-3 text-lg font-medium bg-blue-500 hover:bg-blue-600"
+          disabled={event.isActive === false || isSoldOut || event.isPrivate}
+        >
+          {event.isActive === false
+            ? "Sold Out"
+            : isSoldOut
+            ? "Sold Out" 
+            : event.isPrivate 
+              ? "Private Event" 
+              : isTicketOnly 
+                ? "Buy Tickets" 
+                : "Book Now"
+          }
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
