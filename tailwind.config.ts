@@ -2,18 +2,6 @@
 export default {
   darkMode: ["class"],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
-  safelist: [
-    'shadow-sm',
-    'shadow-md', 
-    'shadow-lg',
-    'rounded-lg',
-    'bg-card',
-    'text-card-foreground',
-    'border',
-    'overflow-hidden',
-    'max-w-sm',
-    'mx-auto'
-  ],
   theme: {
     container: {
       center: true,
