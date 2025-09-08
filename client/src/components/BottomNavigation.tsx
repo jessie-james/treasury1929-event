@@ -25,7 +25,7 @@ export function BottomNavigation() {
       icon: User,
     },
     {
-      title: "Backoffice",
+      title: "Backstage",
       href: "/backoffice",
       icon: AlertTriangle,
       requireAuth: true,
