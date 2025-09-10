@@ -920,15 +920,29 @@ export async function registerRoutes(app: Express) {
         updateData.basePrice = 13000; // Default to $130.00
       }
 
+      // Get original event data first for date preservation and comparison
+      const originalEvent = await storage.getEventById(id);
+      if (!originalEvent) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
       if (req.body.date) {
         try {
           // Parse date in timezone-neutral way to prevent date shifting
           let formattedDate;
           if (typeof req.body.date === 'string') {
-            // If it's a date-only string (YYYY-MM-DD), parse as local date
+            // If it's a date-only string (YYYY-MM-DD), preserve existing time component
             if (req.body.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
               const [year, month, day] = req.body.date.split('-').map(Number);
-              formattedDate = new Date(year, month - 1, day); // month is 0-indexed
+              const originalDate = new Date(originalEvent.date);
+              
+              // Create new date with updated date but preserve original time
+              formattedDate = new Date(year, month - 1, day, 
+                originalDate.getHours(), 
+                originalDate.getMinutes(), 
+                originalDate.getSeconds(),
+                originalDate.getMilliseconds()
+              );
             } else {
               // Otherwise parse normally (for ISO strings with time)
               formattedDate = new Date(req.body.date);
@@ -975,12 +989,6 @@ export async function registerRoutes(app: Express) {
       }
 
       console.log("Updating event with data:", updateData);
-
-      // Get original event data for comparison
-      const originalEvent = await storage.getEventById(id);
-      if (!originalEvent) {
-        return res.status(404).json({ message: "Event not found" });
-      }
 
       const event = await storage.updateEvent(id, updateData);
 
