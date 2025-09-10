@@ -915,6 +915,11 @@ export async function registerRoutes(app: Express) {
       // Handle date formatting if it's being updated
       let updateData = { ...req.body };
       
+      // If date is not explicitly provided, remove it from updateData to preserve existing date
+      if (!req.body.date) {
+        delete updateData.date;
+      }
+      
       // Ensure basePrice validation for full events
       if (updateData.eventType === 'full' && (!updateData.basePrice || updateData.basePrice < 100)) {
         updateData.basePrice = 13000; // Default to $130.00
