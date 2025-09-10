@@ -5,7 +5,8 @@ import { registerPricingRoutes } from "./routes-pricing";
 import { registerVenueRoutes } from "./routes-venue";
 import { registerSeatSelectionRoutes } from "./routes-seat-selection";
 import { registerSeatHoldRoutes } from "./routes-seat-holds";
-// Vite imports moved to dynamic imports for production safety
+// Production-safe imports - Vite dependencies isolated to prevent bundling issues
+import { isProductionMode, getCacheHeaders } from './dev-dependencies.js';
 
 // Simple log function for production builds
 function log(message: string, source = "express") {
@@ -945,18 +946,46 @@ app.use((req, res, next) => {
       console.log('NODE_ENV:', process.env.NODE_ENV);
       console.log('Running with tsx?', process.argv.includes('server/index.ts'));
       
-      // Always use development mode when running with tsx
-      const isDevMode = true; // Force development mode for now
-      console.log('🎯 Using development mode:', isDevMode);
+      // Use proper production mode detection from isolated dependencies
+      const productionMode = isProductionMode();
+      console.log('🎯 Production mode detected:', productionMode);
+      console.log('NODE_ENV:', process.env.NODE_ENV);
+      console.log('REPL_DEPLOYMENT:', process.env.REPL_DEPLOYMENT);
       
-      if (isDevMode) {
-        log("Setting up Vite development server...");
-        const { setupVite } = await import('./vite.js');
-        await setupVite(app, server);
-      } else {
+      if (productionMode) {
         log("Setting up static file serving for production...");
-        const { serveStatic } = await import('./vite.js');  
-        serveStatic(app);
+        try {
+          const { loadStaticServer } = await import('./dev-dependencies.js');
+          const serveStatic = await loadStaticServer();
+          if (serveStatic) {
+            serveStatic(app);
+            log("Static file serving setup complete");
+          } else {
+            throw new Error("Static server not available");
+          }
+        } catch (staticError) {
+          console.warn("Static server setup failed, using express.static fallback:", staticError);
+          // Fallback to basic express static serving
+          app.use(express.static("dist/public"));
+          log("Fallback: Basic static file serving enabled");
+        }
+      } else {
+        log("Setting up Vite development server...");
+        try {
+          const { loadViteDevServer } = await import('./dev-dependencies.js');
+          const setupVite = await loadViteDevServer();
+          if (setupVite) {
+            await setupVite(app, server);
+            log("Vite development server setup complete");
+          } else {
+            throw new Error("Vite dev server not available");
+          }
+        } catch (viteError) {
+          console.warn("Vite dev server setup failed:", viteError);
+          // Fallback to direct import for development
+          const { setupVite } = await import('./vite.js');
+          await setupVite(app, server);
+        }
       }
     } catch (error: any) {
       console.warn("Vite setup failed (missing packages), running in basic mode:", error.message);
