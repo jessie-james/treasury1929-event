@@ -1,44 +1,34 @@
-// Dedicated Stripe integration module
+// Simple Stripe integration - just swap keys between test/live mode
 import Stripe from "stripe";
 
 // Keep track of Stripe initialization status
 let stripe: Stripe | null = null;
 let stripeInitialized = false;
-let initAttempts = 0;
 
-// Initialize Stripe client
+// Initialize Stripe client with simple key selection
 export function initializeStripe(): boolean {
   if (stripe) {
     return true; // Already initialized
   }
   
-  if (initAttempts >= 3) {
-    console.error(`Failed to initialize Stripe after ${initAttempts} attempts`);
-    return false;
-  }
-  
   try {
-    initAttempts++;
-    console.log(`Initializing Stripe (attempt ${initAttempts})...`);
+    console.log("Initializing Stripe...");
     
-    // Use live Stripe key first, fallback to test key if needed
-    const liveStripeKey = process.env.STRIPE_SECRET_KEY_NEW;
-    const testStripeKey = process.env.TRE_STRIPE_TEST_SECRET_KEY;
-    
-    const stripeSecretKey = liveStripeKey || testStripeKey;
-    const isLiveMode = !!liveStripeKey;
+    // Simple key selection - just use STRIPE_SECRET_KEY (test or live)
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
     
     if (!stripeSecretKey) {
-      console.error("Missing Stripe keys - need either STRIPE_SECRET_KEY_NEW (live) or TRE_STRIPE_TEST_SECRET_KEY (test)");
+      console.error("Missing STRIPE_SECRET_KEY environment variable");
       return false;
     }
     
-    // Log first few characters of the key for debugging (never full key)
+    // Log key type for debugging (never full key)
     const keyPrefix = stripeSecretKey.substring(0, 12);
-    const modeLabel = isLiveMode ? "LIVE (sk_live...)" : "TEST_MODE";
-    console.log(`Using Stripe key with prefix: ${keyPrefix}... (${modeLabel})`);
+    const isLive = stripeSecretKey.startsWith('sk_live_');
+    const modeLabel = isLive ? "LIVE" : "TEST";
+    console.log(`Using Stripe key: ${keyPrefix}... (${modeLabel} mode)`);
     
-    // Create Stripe instance - without specifying API version to avoid type conflicts
+    // Create Stripe instance
     stripe = new Stripe(stripeSecretKey);
     
     stripeInitialized = true;
@@ -52,46 +42,8 @@ export function initializeStripe(): boolean {
   }
 }
 
-// Get the Stripe instance (initializing if needed) with safety guards
-export function getStripe(): Stripe | any {
-  // RUNTIME SAFETY GUARD: Never use real Stripe outside production
-  const isProd = process.env.NODE_ENV === 'production';
-  const mock = process.env.STRIPE_MOCK_MODE === 'true';
-
-  if (!isProd || mock) {
-    console.log('[STRIPE] MOCK MODE', { isProd, mock });
-    // Return a minimal mock with the methods we call
-    return {
-      checkout: { 
-        sessions: { 
-          create: async (params: any) => ({ 
-            url: 'https://example.test/checkout/mock',
-            id: 'cs_mock_' + Date.now(),
-            ...params 
-          }) 
-        } 
-      },
-      refunds: { 
-        create: async (params: any) => ({ 
-          id: 're_mock_' + Date.now(),
-          status: 'succeeded',
-          ...params 
-        }) 
-      },
-      webhooks: { 
-        constructEvent: (_body: any, _sig: any, _secret: any) => ({ 
-          id: 'evt_mock_' + Date.now(),
-          type: 'payment_intent.succeeded'
-        }) 
-      }
-    };
-  }
-
-  // SAFETY CHECK: Block live keys in non-production
-  if (!isProd && process.env.STRIPE_SECRET_KEY_NEW?.startsWith('sk_live_')) {
-    throw new Error('BLOCKED: Live Stripe key detected in non-production environment');
-  }
-
+// Get the Stripe instance (initializing if needed)
+export function getStripe(): Stripe | null {
   if (!stripe && !stripeInitialized) {
     initializeStripe();
   }
@@ -100,15 +52,13 @@ export function getStripe(): Stripe | any {
 
 // Check if running in live mode
 export function isLiveMode(): boolean {
-  return !process.env.TRE_STRIPE_TEST_SECRET_KEY && !!process.env.STRIPE_SECRET_KEY_NEW;
+  const key = process.env.STRIPE_SECRET_KEY;
+  return key?.startsWith('sk_live_') || false;
 }
 
 // Get the publishable key for frontend
 export function getPublishableKey(): string | null {
-  const liveKey = process.env.STRIPE_PUBLISHABLE_KEY_NEW;
-  const testKey = process.env.TRE_STRIPE_TEST_PUBLISHABLE_KEY;
-  
-  return liveKey || testKey || null;
+  return process.env.STRIPE_PUBLISHABLE_KEY || null;
 }
 
 // Simple helper to create a payment intent
