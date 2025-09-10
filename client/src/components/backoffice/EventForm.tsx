@@ -76,6 +76,7 @@ export function EventForm({ event, onClose }: Props) {
   const [totalTables, setTotalTables] = useState<number>(0);
   const [totalSeats, setTotalSeats] = useState<number>(0);
   const [selectedFoodOptions, setSelectedFoodOptions] = useState<number[]>([]);
+  const [originalEventTime, setOriginalEventTime] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch venues for selection
@@ -167,6 +168,14 @@ export function EventForm({ event, onClose }: Props) {
   useEffect(() => {
     if (event?.image) {
       setUploadedImage(event.image);
+    }
+  }, [event]);
+
+  // Store original event time when editing to preserve time component
+  useEffect(() => {
+    if (event?.date) {
+      const eventDate = new Date(event.date);
+      setOriginalEventTime(eventDate.toTimeString().split(' ')[0]); // Store "HH:MM:SS"
     }
   }, [event]);
 
@@ -270,7 +279,15 @@ export function EventForm({ event, onClose }: Props) {
   const { mutate: saveEvent, isPending } = useMutation({
     mutationFn: async (data: EventFormData) => {
       // Convert form data to proper types before submission
-      const date = new Date(data.date);
+      let date: Date;
+      
+      // For existing events, preserve the original time component
+      if (event && originalEventTime && data.date) {
+        // Combine the new date with the preserved time
+        date = new Date(`${data.date}T${originalEventTime}`);
+      } else {
+        date = new Date(data.date);
+      }
       
       // Validate the date
       if (isNaN(date.getTime())) {
