@@ -920,6 +920,33 @@ export async function registerRoutes(app: Express) {
         delete updateData.date;
       }
       
+      // CRITICAL FIX: If date is provided but appears to be midnight (00:00:00), 
+      // and we're updating an existing event, preserve the original time
+      if (req.body.date && event) {
+        const sentDate = new Date(req.body.date);
+        const originalDate = new Date(originalEvent.date);
+        
+        // If the sent date is at midnight (00:00:00) but the original had a different time,
+        // it means the frontend stripped the time - preserve the original time
+        if (sentDate.getHours() === 0 && sentDate.getMinutes() === 0 && sentDate.getSeconds() === 0 &&
+            (originalDate.getHours() !== 0 || originalDate.getMinutes() !== 0 || originalDate.getSeconds() !== 0)) {
+          
+          // Create new date with the sent date but preserve the original time
+          const preservedDate = new Date(
+            sentDate.getFullYear(),
+            sentDate.getMonth(), 
+            sentDate.getDate(),
+            originalDate.getHours(),
+            originalDate.getMinutes(),
+            originalDate.getSeconds(),
+            originalDate.getMilliseconds()
+          );
+          
+          updateData.date = preservedDate;
+          console.log(`Preserving original time: ${originalDate.toISOString()} -> ${preservedDate.toISOString()}`);
+        }
+      }
+      
       // Ensure basePrice validation for full events
       if (updateData.eventType === 'full' && (!updateData.basePrice || updateData.basePrice < 100)) {
         updateData.basePrice = 13000; // Default to $130.00
