@@ -5,25 +5,9 @@ import { AvailabilitySync } from './availability-sync';
 import { EmailService } from './email-service';
 import { normalizeString, normalizeName, normalizeEmail } from './utils/strings';
 import { writeGuard } from './middleware/write-guard';
-import Stripe from 'stripe';
+import { getStripe } from './stripe';
 
 const router = express.Router();
-
-// Initialize Stripe for payment links (using environment-appropriate key)
-const getStripeInstance = () => {
-  const isTestMode = process.env.NODE_ENV !== 'production';
-  const stripeKey = isTestMode 
-    ? process.env.TRE_STRIPE_TEST_SECRET_KEY 
-    : process.env.STRIPE_SECRET_KEY_NEW;
-  
-  if (!stripeKey) {
-    throw new Error(`Missing Stripe key for ${isTestMode ? 'test' : 'live'} mode`);
-  }
-  
-  return new Stripe(stripeKey, {
-    apiVersion: '2025-02-24.acacia'
-  });
-};
 
 /**
  * POST /api/admin/bookings/reserve
@@ -186,7 +170,11 @@ router.post('/:id/paylink', writeGuard, async (req, res) => {
     const partySize = booking.partySize || 1; // Handle null case
     const totalAmount = pricePerGuest * partySize;
 
-    const stripe = getStripeInstance();
+    const stripe = getStripe();
+    
+    if (!stripe) {
+      return res.status(500).json({ error: 'Stripe is not configured' });
+    }
 
     // Create Checkout session
     const session = await stripe.checkout.sessions.create({
