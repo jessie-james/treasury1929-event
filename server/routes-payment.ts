@@ -201,7 +201,7 @@ export function registerPaymentRoutes(app: Express) {
         metadata: {
           eventId: eventId.toString(),
           tableId: tableId.toString(),
-          userId: req.user.id.toString(),
+          userId: req.user?.id?.toString() || 'unknown',
           seats: seats.join(','),
           foodSelections: JSON.stringify(foodSelections || []),
           wineSelections: JSON.stringify(wineSelections || []),
@@ -1334,8 +1334,8 @@ export function registerPaymentRoutes(app: Express) {
           },
         ],
         mode: 'payment',
-        success_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/ticket-success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.CLIENT_URL || 'http://localhost:5000'}/booking-cancel`,
+        success_url: `${req.protocol}://${req.get('host')}/ticket-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${req.protocol}://${req.get('host')}/booking-cancel`,
         metadata: {
           eventId: eventId.toString(),
           quantity: quantity.toString(),

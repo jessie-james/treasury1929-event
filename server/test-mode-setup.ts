@@ -55,7 +55,11 @@ const TEST_EVENTS = [
     includeFoodService: true,
     includeBeverages: true,
     includeAlcohol: true,
-    maxTicketsPerPurchase: 8
+    maxTicketsPerPurchase: 8,
+    availableTables: 2,
+    totalTables: 2,
+    availableSeats: 8,
+    totalSeats: 8
   }
 ];
 

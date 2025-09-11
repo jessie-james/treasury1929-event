@@ -191,8 +191,8 @@ router.post('/:id/paylink', writeGuard, async (req, res) => {
         quantity: partySize
       }],
       mode: 'payment',
-      success_url: `${process.env.REPLIT_URL || 'http://localhost:5000'}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.REPLIT_URL || 'http://localhost:5000'}/booking-canceled`,
+      success_url: `${req.protocol}://${req.get('host')}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${req.protocol}://${req.get('host')}/booking-canceled`,
       metadata: {
         bookingId: bookingId.toString(),
         eventId: booking.eventId.toString(),
