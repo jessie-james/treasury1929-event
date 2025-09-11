@@ -72,8 +72,13 @@ export function setupAuth(app: Express) {
   const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === 'true';
   const isDevelopment = !isProduction;
   
-  // Use secure random secret instead of hardcoded value
-  const sessionSecret = process.env.SESSION_SECRET || randomBytes(32).toString('hex');
+  // Require fixed SESSION_SECRET in production for session persistence
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (!sessionSecret && isProduction) {
+    throw new Error("SESSION_SECRET environment variable must be set in production");
+  }
+  // Only use random fallback in development
+  const finalSecret = sessionSecret || randomBytes(32).toString('hex');
   
   // Configure session store with better error handling
   const sessionStore = new PostgresSessionStore({
@@ -121,7 +126,7 @@ export function setupAuth(app: Express) {
   
   // Enhanced session settings with better compatibility across environments
   const sessionSettings: session.SessionOptions = {
-    secret: sessionSecret,
+    secret: finalSecret,
     
     // Resave determines whether the session should be saved back to the session store,
     // even if it wasn't modified during the request
@@ -136,7 +141,7 @@ export function setupAuth(app: Express) {
     cookie: cookieSettings,
     
     // Better compatibility with proxy setups (like Replit)
-    proxy: false, // Disable proxy to fix session issues
+    proxy: isProduction, // Enable proxy in production to match trust proxy setting
     
     // Add rolling session - extends expiration on each request
     rolling: true,
