@@ -24,7 +24,7 @@ import { z } from "zod";
 import { setupAuth, hashPassword } from "./auth";
 import { BookingValidation } from "./booking-validation";
 import { AvailabilitySync } from "./availability-sync";
-import Stripe from "stripe";
+import { getStripe, getStripeForPayment, getStripeForPaymentVerified, getStripeApiVersion, isLiveMode } from "./stripe";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -42,113 +42,8 @@ import { EmailService } from "./email-service";
 import PDFDocument from "pdfkit";
 import QRCode from "qrcode";
 
-// Initialize Stripe with Treasury 1929 keys - separate test and live keys  
-const stripeLiveKey = process.env.STRIPE_SECRET_KEY_NEW; // Live key
-const stripeTestKey = process.env.STRIPE_SECRET_KEY; // Test key (from second initialization)
-
-// Log key types for debugging
-console.log(`🔑 Live key available: ${stripeLiveKey ? 'YES' : 'NO'} ${stripeLiveKey ? '(' + stripeLiveKey.substring(0, 7) + '...)' : ''}`);
-console.log(`🔑 Test key available: ${stripeTestKey ? 'YES' : 'NO'} ${stripeTestKey ? '(' + stripeTestKey.substring(0, 7) + '...)' : ''}`);
-
-if (stripeLiveKey) {
-  const isTestKey = stripeLiveKey.startsWith('sk_test_');
-  console.log(`Primary Stripe key detected as: ${isTestKey ? 'TEST' : 'LIVE'} (${stripeLiveKey.substring(0, 7)}...)`);
-}
-
-if (!stripeLiveKey) {
-  console.error("STRIPE_SECRET_KEY_TREASURY, STRIPE_SECRET_KEY_NEW or STRIPE_SECRET_KEY environment variable not set. Stripe payments will not work.");
-}
-
-// Explicitly define API version for type safety
-const stripeApiVersion = "2023-10-16" as Stripe.LatestApiVersion;
-
-// Initialize Stripe with better error handling
-let stripe: Stripe | null = null;
-let stripeTest: Stripe | null = null;
-let stripeInitAttempt = 0;
-const MAX_INIT_ATTEMPTS = 3;
-
-// Function to initialize Stripe with retry logic
-function initializeStripe() {
-  stripeInitAttempt++;
-  try {
-    // Initialize live Stripe instance
-    if (stripeLiveKey) {
-      console.log(`Initializing Stripe (attempt ${stripeInitAttempt})...`);
-
-      // Determine if this is actually a test or live key
-      const isActuallyTestKey = stripeLiveKey.startsWith('sk_test_');
-      const keyPrefix = stripeLiveKey.substring(0, 7);
-      const keySource = process.env.STRIPE_SECRET_KEY_TREASURY ? "TREASURY" : process.env.STRIPE_SECRET_KEY_NEW ? "TREASURY_NEW" : "SAHUARO_OLD";
-      console.log(`Using Stripe key with prefix: ${keyPrefix}... (${keySource})`);
-
-      // Create primary Stripe instance
-      stripe = new Stripe(stripeLiveKey, {
-        apiVersion: stripeApiVersion,
-        timeout: 20000,
-        maxNetworkRetries: 3,
-        httpAgent: undefined,
-      });
-
-      console.log("✓ Stripe initialized successfully");
-      
-      // Initialize test instance - always try to use a test key for test operations
-      if (isActuallyTestKey) {
-        console.log("Primary key is test mode - using same instance for test operations");
-        stripeTest = stripe;
-      } else {
-        // Force create test instance with the actual test key from environment
-        const actualTestKey = process.env.STRIPE_SECRET_KEY; // This contains sk_test_51Rd... based on logs
-        
-        if (actualTestKey && actualTestKey.startsWith('sk_test_')) {
-          stripeTest = new Stripe(actualTestKey, {
-            apiVersion: stripeApiVersion,
-            timeout: 20000,
-            maxNetworkRetries: 3,
-            httpAgent: undefined,
-          });
-          console.log(`✓ Stripe TEST instance created with test key: ${actualTestKey.substring(0, 12)}...`);
-        } else {
-          console.log("⚠️ STRIPE_SECRET_KEY does not contain test key - using fallback");
-          stripeTest = stripe; // Fallback to live instance
-        }
-      }
-      
-      return true;
-    } else {
-      console.error("× Cannot initialize Stripe: STRIPE_SECRET_KEY_NEW or STRIPE_SECRET_KEY is missing");
-      return false;
-    }
-  } catch (error) {
-    console.error(`× Failed to initialize Stripe (attempt ${stripeInitAttempt}):`, error);
-    return false;
-  }
-}
-
-// Initial initialization attempt with proper async handling
-(async () => {
-  try {
-    // Attempt initialization immediately
-    const success = initializeStripe();
-
-    // If initial attempt fails, try once more after a delay
-    if (!success) {
-      console.log("First Stripe initialization failed, retrying after delay...");
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      if (initializeStripe()) {
-        console.log("Delayed Stripe initialization succeeded");
-      } else {
-        console.error("Delayed Stripe initialization also failed");
-        // Set a flag to indicate Stripe is unavailable
-        process.env.STRIPE_UNAVAILABLE = 'true';
-      }
-    }
-  } catch (error) {
-    console.error("Critical error during Stripe initialization:", error);
-    process.env.STRIPE_UNAVAILABLE = 'true';
-  }
-})();
+// Use unified Stripe configuration from ./stripe.ts
+// Stripe initialization is handled by ./stripe.ts
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -2710,6 +2605,7 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
+      const stripe = getStripe();
       if (!stripe) {
         return res.status(500).json({ error: "Stripe not configured" });
       }
@@ -3621,25 +3517,18 @@ export async function registerRoutes(app: Express) {
           
           // Debug logging removed since refund is working
           
-          console.log(`🔑 Test key available: ${!!testKey}, prefix: ${testKey?.substring(0, 12)}`);
+          console.log(`🔑 Test key available: ${!!testKey}`);
           
-          // ALWAYS create a fresh instance for test payments, never use existing instances
-          stripeInstance = new Stripe(testKey!, {
-            apiVersion: '2023-10-16',
-            timeout: 20000,
-            maxNetworkRetries: 3,
-          });
-          console.log(`✅ FRESH TEST instance created successfully`);
+          // Use unified Stripe instance for test payments
+          stripeInstance = await getStripeForPaymentVerified(booking.stripePaymentId);
+          console.log(`✅ Using unified Stripe instance for test payment`);
         } else {
-          stripeInstance = stripe;
-          console.log(`📋 Using LIVE instance for live payment`);
+          stripeInstance = await getStripeForPaymentVerified(booking.stripePaymentId);
+          console.log(`📋 Using verified Stripe instance for live payment`);
         }
         
         // Log which instance we're actually using
-        const instanceIdentifier = stripeInstance === stripe ? 'PRIMARY' : stripeInstance === stripeTest ? 'TEST' : 'UNKNOWN';
-        console.log(`📊 Using Stripe instance: ${isTestPayment ? 'TEST' : 'LIVE'} mode -> ${instanceIdentifier} instance (${stripeInstance ? 'initialized' : 'NOT initialized'})`);
-        console.log(`🔍 Instance check: stripe === stripeTest: ${stripe === stripeTest}`);
-        console.log(`🔍 stripeTest exists: ${!!stripeTest}, stripe exists: ${!!stripe}`);
+        console.log(`📊 Using Stripe instance: ${isTestPayment ? 'TEST' : 'LIVE'} mode (${stripeInstance ? 'initialized' : 'NOT initialized'});`);
         
         // Check if the appropriate Stripe instance is initialized
         if (!stripeInstance) {
@@ -4056,6 +3945,7 @@ export async function registerRoutes(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
+      const stripe = getStripe();
       if (!stripe) {
         return res.status(500).json({ 
           message: "Stripe not initialized", 
@@ -4554,21 +4444,13 @@ export async function registerRoutes(app: Express) {
       }
 
       // Check if Stripe is properly initialized
+      const stripe = getStripe();
       if (!stripe) {
-        console.error("Stripe is not initialized. Attempting to initialize now...");
-
-        // Try to initialize Stripe with our retry function
-        if (!initializeStripe() && stripeInitAttempt < MAX_INIT_ATTEMPTS) {
-          // Try one more time after a short delay
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          if (!initializeStripe()) {
-            console.error(`Failed to initialize Stripe after ${stripeInitAttempt} attempts`);
-            return res.status(503).json({ 
-              error: "Payment service temporarily unavailable. Please try again later.",
-              code: "STRIPE_INIT_FAILED"
-            });
-          }
-        }
+        console.error("Stripe is not initialized");
+        return res.status(503).json({ 
+          error: "Payment service temporarily unavailable. Please try again later.",
+          code: "STRIPE_INIT_FAILED"
+        });
       }
 
       // Validate the request payload
@@ -4597,10 +4479,7 @@ export async function registerRoutes(app: Express) {
       // Create the payment intent with Stripe with better error handling
       let paymentIntent;
       try {
-        // Double-check Stripe is initialized (type safety)
-        if (!stripe) {
-          throw new Error("Stripe is not properly initialized");
-        }
+        // Stripe is already validated above
 
         paymentIntent = await stripe.paymentIntents.create({
           amount,
@@ -4697,12 +4576,12 @@ export async function registerRoutes(app: Express) {
           stripeSecretKeyPrefix: process.env.STRIPE_SECRET_KEY 
             ? process.env.STRIPE_SECRET_KEY.substring(0, 7) + '...' 
             : 'missing',
-          stripeApiVersionConfigured: stripeApiVersion,
+          stripeApiVersionConfigured: getStripeApiVersion(),
           deployedUrl: req.protocol + '://' + req.get('host'),
         },
         stripeInstance: {
           initialized: !!stripe,
-          apiVersion: (stripe as any)?.apiVersion || stripeApiVersion,
+          apiVersion: getStripeApiVersion(),
         },
         tests: {
           connectivity: {
@@ -4727,10 +4606,10 @@ export async function registerRoutes(app: Express) {
         try {
           console.log("Attempting to initialize Stripe during diagnostics");
           stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-            apiVersion: stripeApiVersion
+            apiVersion: getStripeApiVersion()
           });
           diagnostics.stripeInstance.initialized = true;
-          diagnostics.stripeInstance.apiVersion = (stripe as any).apiVersion || stripeApiVersion;
+          diagnostics.stripeInstance.apiVersion = getStripeApiVersion();
         } catch (initError: any) {
           diagnostics.tests.connectivity.error = {
             message: "Failed to initialize Stripe instance",
