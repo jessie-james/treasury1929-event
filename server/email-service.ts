@@ -167,7 +167,7 @@ class EmailServiceClass {
   private async sendEmail(msg: any): Promise<boolean> {
     try {
       await sgMail.send(msg);
-      console.log(`✓ Booking confirmation email sent to ${msg.to}`);
+      console.log(`✓ Email sent to ${msg.to}`);
       return true;
     } catch (error) {
       console.error('❌ SendGrid email sending failed:', error);
@@ -191,9 +191,87 @@ class EmailServiceClass {
     return true;
   }
 
-  async sendPasswordResetEmail(data: any): Promise<boolean> {
-    console.log('📧 Password reset email would be sent (not implemented)');
-    return true;
+  async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
+    try {
+      await this.ensureEmailReady();
+      
+      // Get the base URL for the reset link
+      const baseUrl = process.env.FRONTEND_BASE_URL || 
+                      process.env.PUBLIC_BASE_URL || 
+                      (process.env.NODE_ENV === 'production' 
+                        ? 'https://www.thetreasury1929.com'
+                        : 'http://localhost:5000');
+      
+      const resetUrl = `${baseUrl}/password-reset?token=${encodeURIComponent(resetToken)}`;
+
+      const htmlContent = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <div style="text-align: center; border-bottom: 2px solid #8B4513; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="color: #8B4513; margin: 0; font-size: 32px;">The Treasury 1929</h1>
+            <h2 style="color: #666; margin: 10px 0 0 0; font-size: 24px;">Password Reset Request</h2>
+          </div>
+
+          <div style="background: #f9f9f9; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+            <h3 style="color: #8B4513; margin-top: 0; font-size: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Reset Your Password</h3>
+            <p style="margin: 15px 0; font-size: 16px; line-height: 1.5;">
+              We received a request to reset the password for your account at The Treasury 1929. 
+              If you made this request, please click the button below to set a new password.
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" 
+                 style="background-color: #8B4513; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold; display: inline-block;">
+                Reset Your Password
+              </a>
+            </div>
+            
+            <p style="margin: 15px 0; font-size: 14px; color: #666; line-height: 1.5;">
+              If the button above doesn't work, you can also copy and paste this link into your browser:
+            </p>
+            <p style="margin: 10px 0; font-size: 14px; word-break: break-all;">
+              <a href="${resetUrl}" style="color: #8B4513;">${resetUrl}</a>
+            </p>
+          </div>
+
+          <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <p style="margin: 0; font-size: 14px; color: #856404;">
+              <strong>Security Notice:</strong> This password reset link will expire in 1 hour. 
+              If you didn't request this password reset, please ignore this email or contact us at 
+              <a href="mailto:info@thetreasury1929.com" style="color: #8B4513;">info@thetreasury1929.com</a>.
+            </p>
+          </div>
+
+          <div style="text-align: center; margin-top: 40px; padding-top: 25px; border-top: 1px solid #ddd; font-size: 12px; color: #999;">
+            <p style="margin: 5px 0;">The Treasury 1929</p>
+            <p style="margin: 5px 0;">2 E Congress St, Ste 100</p>
+            <p style="margin: 5px 0;">(520) 734-3979</p>
+            <p style="margin: 15px 0 5px 0;">www.thetreasury1929.com</p>
+            <p style="margin: 5px 0;">If you have any questions, please don't hesitate to contact us.</p>
+          </div>
+        </div>
+      `;
+
+      const msg = {
+        to: email,
+        from: {
+          email: 'noreply@thetreasury1929.com',
+          name: 'The Treasury 1929'
+        },
+        subject: 'Password Reset Request - The Treasury 1929',
+        html: htmlContent,
+      };
+
+      const result = await this.sendEmail(msg);
+      if (result) {
+        console.log(`✓ Password reset email sent to ${email}`);
+      } else {
+        console.log(`✗ Failed to send password reset email to ${email}`);
+      }
+      return result;
+    } catch (error) {
+      console.error('❌ Failed to send password reset email:', error);
+      return false;
+    }
   }
 }
 
