@@ -1100,7 +1100,7 @@ export function registerPaymentRoutes(app: Express) {
             
             // Send refund notification email using centralized email service
             try {
-              const { sendEmail } = await import('./email-service');
+              const { EmailService } = await import('./email-service');
               
               // Get event, table, and venue details for email
               const event = await storage.getEventById(booking.eventId);
@@ -1144,7 +1144,7 @@ export function registerPaymentRoutes(app: Express) {
                 };
                 
                 const { EmailService } = await import('./email-service');
-                const emailSent = await EmailService.sendRefundNotification(emailData);
+                const emailSent = await EmailService.sendCancellationEmail(emailData);
                 console.log(`[REFUND EMAIL] ${emailSent ? 'SUCCESS' : 'FAILED'} - Booking #${booking.id}, Customer: ${booking.customerEmail}`);
               } else {
                 console.warn(`[REFUND EMAIL] Missing data - Event: ${!!event}, Table: ${!!table}, Venue: ${!!venue} for booking ${booking.id}`);
@@ -1274,7 +1274,7 @@ export function registerPaymentRoutes(app: Express) {
           }
         };
         
-        emailSent = await EmailService.sendRefundNotification(emailData);
+        emailSent = await EmailService.sendCancellationEmail(emailData);
         console.log(`TEST: Refund notification email ${emailSent ? 'sent' : 'failed'} for booking #${booking.id}`);
       }
       

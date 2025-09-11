@@ -102,6 +102,9 @@ export function IframeSeatSelection({ eventId, onComplete, hasExistingBooking, s
   // Fetch existing bookings
   const { data: existingBookings, error: bookingsError } = useQuery({
     queryKey: ['/api/event-bookings', eventId],
+    queryFn: eventId ? () => fetch(`/api/event-bookings?eventId=${eventId}`, {
+      credentials: 'include'
+    }).then(res => res.json()) : undefined,
     enabled: !!eventId,
     retry: 2,
     throwOnError: false
