@@ -26,8 +26,7 @@ import artistsRoutes from "./routes-artists";
 import { storage } from "./storage";
 // import './api-server'; // Disabled to prevent port conflicts
 import cors from 'cors';
-// Import test mode setup - runs conditionally based on environment
-import './test-mode-setup';
+// Test mode setup removed - back to simple Stripe key switching
 import { setupAuth } from "./auth";
 import { setupSecurity, validateInput, securityErrorHandler, validateEnvironment } from "./security";
 import { getStripe, getPublishableKey } from "./stripe";
