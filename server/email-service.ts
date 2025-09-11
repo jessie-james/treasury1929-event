@@ -48,7 +48,7 @@ class EmailServiceClass {
   }
 
   private initialize() {
-    const apiKey = process.env.SENDGRID_API_KEY;
+    const apiKey = process.env.SENDGRID_API_KEY_NEW;
     if (apiKey) {
       sgMail.setApiKey(apiKey);
       this.initialized = true;
