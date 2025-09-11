@@ -72,10 +72,9 @@ class EmailServiceClass {
       const eventDateObj = new Date(data.event.date);
       const eventDate = formatInTimeZone(eventDateObj, 'America/Phoenix', 'EEEE, MMMM d, yyyy');
       
-      // Calculate arrival time (45 minutes before the show time) and format both show and arrival times
-      const showTime = formatInTimeZone(eventDateObj, 'America/Phoenix', 'h:mm a');
-      const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
-      const arrivalTimeFormatted = formatInTimeZone(arrivalTime, 'America/Phoenix', 'h:mm a');
+      // Treasury events have standard times: Doors 5:45 PM, Concert 6:30 PM
+      const doorsTime = '5:45 PM';
+      const showTime = '6:30 PM';
       
       // Generate QR code containing the booking ID
       const qrCodeBuffer = await QRCode.toBuffer(data.booking.id.toString(), {
@@ -99,7 +98,7 @@ class EmailServiceClass {
             <h3 style="color: #8B4513; margin-top: 0; font-size: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Event Information</h3>
             <p style="margin: 8px 0; font-size: 16px;"><strong>Event:</strong> ${data.event.title}</p>
             <p style="margin: 8px 0; font-size: 16px;"><strong>Date:</strong> ${eventDate}</p>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>Time:</strong> Doors: ${arrivalTimeFormatted} • Concert: ${showTime}</p>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>Time:</strong> Doors: ${doorsTime} • Concert: ${showTime}</p>
             <p style="margin: 8px 0; font-size: 16px;"><strong>Venue:</strong> ${data.venue.name}</p>
             <p style="margin: 8px 0; font-size: 16px;"><strong>Address:</strong> 2 E Congress St, Ste 100</p>
           </div>
@@ -121,7 +120,7 @@ class EmailServiceClass {
 
           <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 20px; border-radius: 8px; margin: 25px 0;">
             <p style="margin: 0; font-size: 14px; color: #856404;">
-              <strong>Important:</strong> Please arrive by ${arrivalTimeFormatted} to allow time for seating and drink service before the performance begins. 
+              <strong>Important:</strong> Please arrive by ${doorsTime} to allow time for seating and drink service before the performance begins. 
               If you need to make changes to your reservation, please contact us at 
               <a href="mailto:info@thetreasury1929.com" style="color: #8B4513;">info@thetreasury1929.com</a> 
               or call (520) 734-3979.
