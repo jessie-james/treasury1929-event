@@ -124,14 +124,14 @@ class EmailServiceClass {
               <strong>Important:</strong> Please arrive by ${arrivalTimeFormatted} to allow time for seating and drink service before the performance begins. 
               If you need to make changes to your reservation, please contact us at 
               <a href="mailto:info@thetreasury1929.com" style="color: #8B4513;">info@thetreasury1929.com</a> 
-              or call (520) 734-3937.
+              or call (520) 734-3979.
             </p>
           </div>
 
           <div style="text-align: center; margin-top: 40px; padding-top: 25px; border-top: 1px solid #ddd; font-size: 12px; color: #999;">
             <p style="margin: 5px 0;">The Treasury 1929</p>
             <p style="margin: 5px 0;">2 E Congress St, Ste 100</p>
-            <p style="margin: 5px 0;">(520) 734-3937</p>
+            <p style="margin: 5px 0;">(520) 734-3979</p>
             <p style="margin: 15px 0 5px 0;">www.thetreasury1929.com/dinnerconcerts</p>
             <p style="margin: 5px 0;">Thank you for choosing us for your special evening!</p>
           </div>
