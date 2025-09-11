@@ -66,9 +66,7 @@ export class PgStorage implements IStorage {
   }
 
   async createUser(userData: any): Promise<User> {
-    if (userData.password) {
-      userData.password = await hashPassword(userData.password);
-    }
+    // Password should already be hashed by the caller
     const result = await db.insert(schema.users).values(userData).returning();
     return result[0];
   }

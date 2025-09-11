@@ -3,6 +3,7 @@ import { storage } from "./storage";
 import { insertTableSchema, insertSeatSchema, tables } from "@shared/schema";
 import { db } from "./db";
 import { eq, and } from "drizzle-orm";
+import { hashPassword } from "./auth";
 
 /**
  * Register admin routes for venue layout management
@@ -353,9 +354,10 @@ export function registerAdminRoutes(app: Express): void {
       let user = await storage.getUserByEmail(customerEmail);
       if (!user) {
         // Create user for Athena if doesn't exist
+        const hashedTempPassword = await hashPassword("temp_password_123");
         const newUser = await storage.createUser({
           email: customerEmail,
-          password: "temp_password_123", // She can reset this
+          password: hashedTempPassword, // Password properly hashed
           role: "customer",
           firstName: customerEmail.includes("athena") ? "Athena" : "Customer",
           lastName: "Recovery"
