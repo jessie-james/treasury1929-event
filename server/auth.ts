@@ -149,8 +149,12 @@ export function setupAuth(app: Express) {
   console.log(`Auth setup: ${isDevelopment ? 'Development' : 'Production'} mode`);
   console.log(`Session cookie: secure=${cookieSettings.secure}, sameSite=${cookieSettings.sameSite}`);
   
-  // Disable trust proxy for development
-  app.set('trust proxy', false);
+  // Enable trust proxy in production for proper HTTPS detection
+  if (isProduction) {
+    app.set('trust proxy', 1); // Trust first proxy (Replit's deployment proxy)
+  } else {
+    app.set('trust proxy', false); // Disable in development
+  }
 
   app.use(session(sessionSettings));
   app.use(passport.initialize());
