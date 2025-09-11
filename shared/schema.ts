@@ -146,6 +146,7 @@ export const bookings = pgTable("bookings", {
   foodSelections: json("food_selections").$type<any[]>().default([]),
   customerEmail: varchar("customer_email", { length: 255 }).notNull(),
   stripePaymentId: varchar("stripe_payment_id", { length: 255 }),
+  stripeSessionId: varchar("stripe_session_id", { length: 255 }),
   amount: integer("amount"), // Actual Stripe charged amount in cents
   createdAt: timestamp("created_at").defaultNow().notNull(),
   // PHASE 1: Enhanced status support - 'pending'|'confirmed'|'refunded'|'cancelled'|'reserved'|'comp'
