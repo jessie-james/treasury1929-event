@@ -6,6 +6,75 @@ let stripeLive: Stripe | null = null;
 let stripeTest: Stripe | null = null;
 let stripeInitialized = false;
 
+// Mock Stripe object for testing mode
+const mockStripe = {
+  checkout: {
+    sessions: {
+      create: async (params: any) => ({
+        id: `cs_test_mock_${Date.now()}`,
+        url: `${process.env.REPLIT_URL || 'http://localhost:5000'}/booking-success?session_id=cs_test_mock_${Date.now()}`,
+        payment_status: 'paid',
+        customer_details: { email: params.customer_email || 'test@example.com' },
+        metadata: params.metadata || {},
+        amount_total: params.line_items?.[0]?.price_data?.unit_amount || 0,
+        payment_intent: `pi_test_mock_${Date.now()}`,
+      }),
+      retrieve: async (sessionId: string) => ({
+        id: sessionId,
+        payment_status: 'paid',
+        customer_details: { email: 'test@example.com' },
+        metadata: {},
+        amount_total: 13000,
+        payment_intent: `pi_test_mock_${Date.now()}`,
+      })
+    }
+  },
+  paymentIntents: {
+    create: async (params: any) => ({
+      id: `pi_test_mock_${Date.now()}`,
+      amount: params.amount,
+      currency: params.currency,
+      status: 'succeeded',
+      metadata: params.metadata || {},
+      client_secret: `pi_test_mock_${Date.now()}_secret`,
+    }),
+    retrieve: async (paymentId: string) => ({
+      id: paymentId,
+      amount: 13000,
+      currency: 'usd',
+      status: 'succeeded',
+      metadata: {},
+    }),
+    cancel: async (paymentId: string) => ({
+      id: paymentId,
+      status: 'canceled',
+    })
+  },
+  refunds: {
+    create: async (params: any) => ({
+      id: `re_test_mock_${Date.now()}`,
+      amount: params.amount,
+      payment_intent: params.payment_intent,
+      status: 'succeeded',
+    })
+  },
+  webhooks: {
+    constructEvent: (payload: any, sig: string, secret: string) => ({
+      id: `evt_test_mock_${Date.now()}`,
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: `cs_test_mock_${Date.now()}`,
+          payment_status: 'paid',
+          metadata: {},
+          amount_total: 13000,
+          payment_intent: `pi_test_mock_${Date.now()}`,
+        }
+      }
+    })
+  }
+} as any;
+
 // Initialize Stripe client with simple key selection
 export function initializeStripe(): boolean {
   if (stripeInitialized) {
@@ -13,6 +82,15 @@ export function initializeStripe(): boolean {
   }
   
   try {
+    // Check if we should use mock mode
+    const shouldMock = process.env.STRIPE_MOCK_MODE === 'true' || process.env.NODE_ENV === 'test';
+    
+    if (shouldMock) {
+      console.log("✓ Stripe MOCK mode enabled - no real charges will be made");
+      stripeInitialized = true;
+      return true;
+    }
+    
     console.log("Initializing Stripe instances...");
     
     // Collect all possible key sources
@@ -31,14 +109,14 @@ export function initializeStripe(): boolean {
     for (const key of possibleKeys) {
       if (key.startsWith('sk_live_') && !stripeLive) {
         stripeLive = new Stripe(key, {
-          apiVersion: '2023-10-16',
+          apiVersion: '2025-02-24.acacia',
           timeout: 20000,
           maxNetworkRetries: 3,
         });
         console.log("✓ Stripe LIVE instance initialized");
       } else if (key.startsWith('sk_test_') && !stripeTest) {
         stripeTest = new Stripe(key, {
-          apiVersion: '2023-10-16',
+          apiVersion: '2025-02-24.acacia',
           timeout: 20000,
           maxNetworkRetries: 3,
         });
@@ -62,6 +140,12 @@ export function initializeStripe(): boolean {
 export function getStripe(mode?: 'live' | 'test'): Stripe | null {
   if (!stripeInitialized) {
     initializeStripe();
+  }
+  
+  // Return mock Stripe if in mock mode
+  const shouldMock = process.env.STRIPE_MOCK_MODE === 'true' || process.env.NODE_ENV === 'test';
+  if (shouldMock) {
+    return mockStripe;
   }
   
   // Return appropriate instance based on mode
@@ -214,7 +298,12 @@ export function formatStripeError(error: any): { message: string, code: string }
 
 // Get Stripe API version for consistency
 export function getStripeApiVersion(): string {
-  return "2023-10-16";
+  return "2025-02-24.acacia";
+}
+
+// Helper to check if running in mock mode
+export function isStripeMockMode(): boolean {
+  return process.env.STRIPE_MOCK_MODE === 'true' || process.env.NODE_ENV === 'test';
 }
 
 // Initialize Stripe on module load
