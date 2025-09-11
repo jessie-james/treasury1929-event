@@ -1,6 +1,6 @@
 import sgMail from '@sendgrid/mail';
 import QRCode from 'qrcode';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface BookingData {
   id: string | number;
@@ -58,80 +58,84 @@ class EmailServiceClass {
     }
   }
 
-  async sendBookingConfirmation(data: EmailConfirmationData): Promise<boolean> {
+  async ensureEmailReady(): Promise<void> {
     if (!this.initialized) {
-      console.log('📧 Email service not initialized - skipping email');
-      return false;
+      throw new Error('Email service not initialized - check SENDGRID_API_KEY_NEW');
     }
+  }
 
+  async sendBookingConfirmation(data: EmailConfirmationData): Promise<boolean> {
     try {
-      // Generate QR code for the booking
-      const qrData = JSON.stringify({
-        bookingId: data.booking.id,
-        eventId: data.event.id,
-        date: data.event.date,
-        status: data.booking.status
-      });
+      await this.ensureEmailReady();
       
-      const qrCodeDataUrl = await QRCode.toDataURL(qrData);
+      // Create Date object from the event date and format it using Phoenix timezone
+      const eventDateObj = new Date(data.event.date);
+      const eventDate = formatInTimeZone(eventDateObj, 'America/Phoenix', 'EEEE, MMMM d, yyyy');
+      
+      // Calculate arrival time (45 minutes before the show time) and format both show and arrival times
+      const showTime = formatInTimeZone(eventDateObj, 'America/Phoenix', 'h:mm a');
+      const arrivalTime = new Date(eventDateObj.getTime() - 45 * 60 * 1000);
+      const arrivalTimeFormatted = formatInTimeZone(arrivalTime, 'America/Phoenix', 'h:mm a');
+      
+      // Generate QR code containing the booking ID
+      const qrCodeBuffer = await QRCode.toBuffer(data.booking.id.toString(), {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#2c3e50',
+          light: '#ffffff'
+        }
+      });
 
-      // Format the event date
-      const eventDate = format(new Date(data.event.date), 'EEEE, MMMM d, yyyy');
-      const eventTime = format(new Date(data.event.date), 'h:mm a');
-
+      // Construct the email content
       const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Booking Confirmation - The Treasury 1929</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <h1 style="color: #8B4513; margin-bottom: 10px;">The Treasury 1929</h1>
-            <h2 style="color: #4a4a4a; margin-top: 0;">Booking Confirmation</h2>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <div style="text-align: center; border-bottom: 2px solid #8B4513; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="color: #8B4513; margin: 0; font-size: 32px;">The Treasury 1929</h1>
+            <h2 style="color: #666; margin: 10px 0 0 0; font-size: 24px;">Digital Ticket</h2>
           </div>
 
-          <div style="background: #f8f8f8; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-            <h3 style="margin-top: 0; color: #8B4513;">Event Details</h3>
-            <p><strong>Event:</strong> ${data.event.title}</p>
-            <p><strong>Date:</strong> ${eventDate}</p>
-            <p><strong>Time:</strong> ${eventTime}</p>
-            <p><strong>Venue:</strong> ${data.venue.name}</p>
-            <p><strong>Address:</strong> ${data.venue.address}</p>
+          <div style="background: #f9f9f9; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+            <h3 style="color: #8B4513; margin-top: 0; font-size: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Event Information</h3>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>Event:</strong> ${data.event.title}</p>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>Date:</strong> ${eventDate}</p>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>Time:</strong> Doors: ${arrivalTimeFormatted} • Concert: ${showTime}</p>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>Venue:</strong> ${data.venue.name}</p>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>Address:</strong> 2 E Congress St, Ste 100</p>
           </div>
 
-          <div style="background: #f8f8f8; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-            <h3 style="margin-top: 0; color: #8B4513;">Booking Information</h3>
-            <p><strong>Booking ID:</strong> ${data.booking.id}</p>
-            <p><strong>Table:</strong> ${data.table.tableNumber} (${data.table.floor})</p>
-            <p><strong>Party Size:</strong> ${data.booking.partySize} guests</p>
-            <p><strong>Status:</strong> ${data.booking.status}</p>
-            ${data.booking.notes ? `<p><strong>Special Notes:</strong> ${data.booking.notes}</p>` : ''}
+          <div style="background: #f9f9f9; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+            <h3 style="color: #8B4513; margin-top: 0; font-size: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Reservation Details</h3>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>Booking ID:</strong> ${data.booking.id}</p>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>Table:</strong> Table ${data.table.tableNumber}</p>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>Party Size:</strong> ${data.booking.partySize} guests</p>
+            <p style="margin: 8px 0; font-size: 16px;"><strong>Guest Email:</strong> ${data.booking.customerEmail}</p>
+            ${data.booking.notes ? `<p style="margin: 8px 0; font-size: 16px;"><strong>Special Notes:</strong> ${data.booking.notes}</p>` : ''}
           </div>
 
-          <div style="text-align: center; margin: 30px 0;">
-            <img src="${qrCodeDataUrl}" alt="Booking QR Code" style="max-width: 200px; height: auto;" />
-            <p style="font-size: 12px; color: #666; margin-top: 10px;">
-              Please present this QR code at check-in
+          <div style="text-align: center; margin: 30px 0; padding: 25px; background: #f0f8ff; border-radius: 8px;">
+            <h3 style="color: #27ae60; margin-top: 0; font-size: 18px;">QR Code Check-in</h3>
+            <img src="cid:qrcode${data.booking.id}" alt="Booking QR Code" style="width: 150px; height: 150px; border: 2px solid #ddd;" />
+            <p style="font-size: 14px; color: #666; margin: 15px 0 0 0;">Scan this QR code at the venue for quick check-in</p>
+          </div>
+
+          <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 20px; border-radius: 8px; margin: 25px 0;">
+            <p style="margin: 0; font-size: 14px; color: #856404;">
+              <strong>Important:</strong> Please arrive by ${arrivalTimeFormatted} to allow time for seating and drink service before the performance begins. 
+              If you need to make changes to your reservation, please contact us at 
+              <a href="mailto:info@thetreasury1929.com" style="color: #8B4513;">info@thetreasury1929.com</a> 
+              or call (520) 734-3937.
             </p>
           </div>
 
-          <div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-top: 20px;">
-            <p style="margin: 0; font-size: 14px; color: #555;">
-              <strong>Important:</strong> Please arrive 15 minutes before the event start time. 
-              If you need to make changes to your booking, please contact us at 
-              <a href="mailto:info@thetreasury1929.com">info@thetreasury1929.com</a> 
-              or call (520) 123-4567.
-            </p>
+          <div style="text-align: center; margin-top: 40px; padding-top: 25px; border-top: 1px solid #ddd; font-size: 12px; color: #999;">
+            <p style="margin: 5px 0;">The Treasury 1929</p>
+            <p style="margin: 5px 0;">2 E Congress St, Ste 100</p>
+            <p style="margin: 5px 0;">(520) 734-3937</p>
+            <p style="margin: 15px 0 5px 0;">www.thetreasury1929.com/dinnerconcerts</p>
+            <p style="margin: 5px 0;">Thank you for choosing us for your special evening!</p>
           </div>
-
-          <div style="text-align: center; margin-top: 30px; font-size: 12px; color: #888;">
-            <p>The Treasury 1929 • ${data.venue.address}</p>
-            <p>Thank you for choosing us for your special evening!</p>
-          </div>
-        </body>
-        </html>
+        </div>
       `;
 
       const msg = {
@@ -142,13 +146,32 @@ class EmailServiceClass {
         },
         subject: `Booking Confirmation - ${data.event.title}`,
         html: htmlContent,
+        attachments: [
+          {
+            content: qrCodeBuffer.toString('base64'),
+            filename: 'qrcode.png',
+            type: 'image/png',
+            disposition: 'inline',
+            content_id: `qrcode${data.booking.id}`
+          }
+        ]
       };
 
-      await sgMail.send(msg);
-      console.log(`✓ Booking confirmation email sent to ${data.booking.customerEmail}`);
-      return true;
+      const result = await this.sendEmail(msg);
+      return result;
     } catch (error) {
       console.error('❌ Failed to send booking confirmation email:', error);
+      return false;
+    }
+  }
+
+  private async sendEmail(msg: any): Promise<boolean> {
+    try {
+      await sgMail.send(msg);
+      console.log(`✓ Booking confirmation email sent to ${msg.to}`);
+      return true;
+    } catch (error) {
+      console.error('❌ SendGrid email sending failed:', error);
       return false;
     }
   }
