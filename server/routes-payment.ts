@@ -960,18 +960,32 @@ export function registerPaymentRoutes(app: Express) {
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
       
       if (webhookSecret && req.headers['stripe-signature']) {
+        // Only verify signature if we have the secret
         webhookEvent = stripe.webhooks.constructEvent(
           req.body,
           req.headers['stripe-signature'] as string,
           webhookSecret
         );
       } else {
-        // For testing, just parse the JSON
+        // For development or when webhook secret is not configured, just parse the JSON
+        // This allows the webhook to work without signature verification
         webhookEvent = req.body;
+        if (!webhookSecret && req.headers['stripe-signature']) {
+          console.log('[WEBHOOK] Warning: Stripe signature present but STRIPE_WEBHOOK_SECRET not configured - processing without verification');
+        }
       }
     } catch (err: any) {
       console.error(`Webhook signature verification failed: ${err.message}`);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
+      
+      // If signature verification fails but we don't have a webhook secret configured,
+      // try to process anyway (fallback for development)
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      if (!webhookSecret) {
+        console.log('[WEBHOOK] Signature verification failed but no webhook secret configured - processing anyway');
+        webhookEvent = req.body;
+      } else {
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
     }
     
     // Check for duplicate webhook events using Stripe event ID
