@@ -21,6 +21,18 @@ export async function createBookingFromStripeSession(session: any) {
   const tableId = parseInt(metadata.tableId);
   const eventId = parseInt(metadata.eventId);
   
+  // IDEMPOTENCY CHECK: First check if booking already exists for this payment
+  const allBookings = await storage.getBookings();
+  const existingBookingByPayment = allBookings.find(booking => 
+    booking.stripeSessionId === session.id || 
+    booking.stripePaymentId === session.payment_intent
+  );
+  
+  if (existingBookingByPayment) {
+    console.log(`✅ IDEMPOTENCY: Booking already exists for session ${session.id} or payment ${session.payment_intent} - returning existing booking #${existingBookingByPayment.id}`);
+    return existingBookingByPayment.id;
+  }
+  
   // Check if table is already booked for this event
   const existingBookings = await storage.getBookingsByEventId(eventId);
   const tableAlreadyBooked = existingBookings.some(booking => 
@@ -31,9 +43,42 @@ export async function createBookingFromStripeSession(session: any) {
     throw new Error(`Table ${tableId} is already booked for this event`);
   }
   
-  // DEBUG: Log metadata wine selections
-  console.log("🍷 WINE DEBUG: Metadata wine selections from Stripe:", metadata.wineSelections);
-  const parsedWineSelections = metadata.wineSelections ? JSON.parse(metadata.wineSelections) : [];
+  // ROBUST JSON PARSING: Parse metadata with error handling
+  let parsedWineSelections = [];
+  let parsedFoodSelections = [];
+  let parsedGuestNames = [];
+  
+  try {
+    parsedWineSelections = metadata.wineSelections ? JSON.parse(metadata.wineSelections) : [];
+    // Ensure it's an array
+    if (!Array.isArray(parsedWineSelections)) {
+      parsedWineSelections = [];
+    }
+  } catch (e) {
+    console.warn('Failed to parse wineSelections metadata:', e);
+    parsedWineSelections = [];
+  }
+  
+  try {
+    parsedFoodSelections = metadata.foodSelections ? JSON.parse(metadata.foodSelections) : [];
+    if (!Array.isArray(parsedFoodSelections)) {
+      parsedFoodSelections = [];
+    }
+  } catch (e) {
+    console.warn('Failed to parse foodSelections metadata:', e);
+    parsedFoodSelections = [];
+  }
+  
+  try {
+    parsedGuestNames = metadata.guestNames ? JSON.parse(metadata.guestNames) : [];
+    if (!Array.isArray(parsedGuestNames)) {
+      parsedGuestNames = [];
+    }
+  } catch (e) {
+    console.warn('Failed to parse guestNames metadata:', e);
+    parsedGuestNames = [];
+  }
+  
   console.log("🍷 WINE DEBUG: Parsed wine selections:", JSON.stringify(parsedWineSelections, null, 2));
 
   const bookingData = {
@@ -47,9 +92,9 @@ export async function createBookingFromStripeSession(session: any) {
     stripeSessionId: session.id,
     amount: session.amount_total || 0,
     status: 'confirmed' as const,
-    foodSelections: metadata.foodSelections ? JSON.parse(metadata.foodSelections) : [],
+    foodSelections: parsedFoodSelections,
     wineSelections: parsedWineSelections,
-    guestNames: metadata.guestNames ? JSON.parse(metadata.guestNames) : [],
+    guestNames: parsedGuestNames,
     selectedVenue: metadata.selectedVenue || null,
     holdStartTime: new Date()
   };
@@ -196,7 +241,7 @@ export function registerPaymentRoutes(app: Express) {
           },
         ],
         mode: 'payment',
-        success_url: `${req.protocol}://${req.get('host')}/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${req.protocol}://${req.get('host')}/api/booking-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${req.protocol}://${req.get('host')}/booking-cancel`,
         metadata: {
           eventId: eventId.toString(),
@@ -205,7 +250,7 @@ export function registerPaymentRoutes(app: Express) {
           seats: seats.join(','),
           foodSelections: JSON.stringify(foodSelections || []),
           wineSelections: JSON.stringify(wineSelections || []),
-          guestNames: JSON.stringify(guestNames || {}),
+          guestNames: JSON.stringify(guestNames || []),
           selectedVenue: selectedVenue || '',
         },
       });
