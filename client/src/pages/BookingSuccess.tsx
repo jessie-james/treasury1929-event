@@ -105,12 +105,59 @@ export function BookingSuccess() {
           </div>
 
           {bookingData && (
-            <div className="text-left space-y-2 bg-gray-50 p-4 rounded-lg">
-              <p><strong>Booking ID:</strong> {bookingData.id}</p>
-              <p><strong>Event ID:</strong> {bookingData.eventId}</p>
-              <p><strong>Table:</strong> {bookingData.tableId}</p>
-              <p><strong>Party Size:</strong> {bookingData.partySize}</p>
-            </div>
+            <>
+              {/* QR Code Display */}
+              {bookingData.qrCode && (
+                <div className="bg-white border border-gray-200 rounded-lg p-6 mb-4">
+                  <h3 className="font-semibold text-center mb-4 text-gray-800">Your Digital Ticket</h3>
+                  <div className="flex justify-center mb-4">
+                    <img 
+                      src={`data:image/png;base64,${bookingData.qrCode}`}
+                      alt={`QR Code for Booking ${bookingData.id}`}
+                      className="border border-gray-300 rounded-lg"
+                      style={{ width: '150px', height: '150px' }}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-600 text-center">
+                    Show this QR code at the venue for check-in
+                  </p>
+                </div>
+              )}
+
+              {/* Event Details */}
+              {bookingData.event && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h3 className="font-semibold text-blue-800 mb-2">Event Details</h3>
+                  <p><strong>Event:</strong> {bookingData.event.title}</p>
+                  <p><strong>Date:</strong> {new Date(bookingData.event.date).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}</p>
+                  <p><strong>Time:</strong> Guest Arrival 5:45 PM, show starts 6:30 PM</p>
+                </div>
+              )}
+
+              {/* Booking Details */}
+              <div className="text-left space-y-2 bg-gray-50 p-4 rounded-lg mb-4">
+                <h3 className="font-semibold text-gray-800 mb-2">Booking Information</h3>
+                <p><strong>Booking ID:</strong> #{bookingData.id}</p>
+                <p><strong>Table:</strong> {bookingData.tableNumber}</p>
+                <p><strong>Party Size:</strong> {bookingData.partySize} {bookingData.partySize === 1 ? 'guest' : 'guests'}</p>
+                <p><strong>Amount:</strong> ${(bookingData.amount / 100).toFixed(2)}</p>
+              </div>
+
+              {/* Guest Names */}
+              {bookingData.guestNames && bookingData.guestNames.length > 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                  <h3 className="font-semibold text-green-800 mb-2">Guest Names</h3>
+                  {bookingData.guestNames.map((name: string, index: number) => (
+                    <p key={index}><strong>Guest {index + 1}:</strong> {name}</p>
+                  ))}
+                </div>
+              )}
+            </>
           )}
 
           <div className="space-y-2">
