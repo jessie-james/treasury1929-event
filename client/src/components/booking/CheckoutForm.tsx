@@ -92,7 +92,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
           amount: pricing.totalPrice, // NEW: $130 per person + wine
           foodSelections,
           wineSelections,
-          guestNames,
+          guestNames: Object.values(guestNames || {}), // Convert Record<number, string> to string[]
           selectedVenue
         }),
       });
