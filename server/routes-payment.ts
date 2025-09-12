@@ -71,24 +71,19 @@ export async function createBookingFromStripeSession(session: any) {
   }
   
   try {
-    console.log('👥 METADATA DEBUG: guestNames in metadata:', metadata.guestNames);
     const rawGuestNames = metadata.guestNames ? JSON.parse(metadata.guestNames) : {};
-    console.log('👥 RAW DEBUG: Raw guest names:', rawGuestNames);
     
     // Convert object format {1: "John", 2: "Jane"} to array format ["John", "Jane"]
     if (typeof rawGuestNames === 'object' && !Array.isArray(rawGuestNames)) {
       // Object format - convert to array ordered by seat number
       const seatNumbers = metadata.seats ? metadata.seats.split(',').map(Number) : [];
       parsedGuestNames = seatNumbers.map(seatNum => rawGuestNames[seatNum] || '').filter(name => name);
-      console.log('👥 CONVERTED DEBUG: Converted object to array:', parsedGuestNames);
     } else if (Array.isArray(rawGuestNames)) {
       // Already array format
       parsedGuestNames = rawGuestNames;
-      console.log('👥 ARRAY DEBUG: Already array format:', parsedGuestNames);
     } else {
       parsedGuestNames = [];
     }
-    console.log('👥 FINAL DEBUG: Final guest names for database:', parsedGuestNames);
   } catch (e) {
     console.warn('Failed to parse guestNames metadata:', e);
     parsedGuestNames = [];
@@ -199,9 +194,8 @@ export function registerPaymentRoutes(app: Express) {
 
       const { eventId, tableId, selectedSeats, amount, foodSelections, wineSelections, guestNames, selectedVenue, partySize } = req.body;
       
-      // DEBUG: Log wine selections and guest names received from frontend
+      // Log wine selections received from frontend
       console.log("🍷 WINE DEBUG: Wine selections received from frontend:", JSON.stringify(wineSelections, null, 2));
-      console.log("👥 GUEST DEBUG: Guest names received from frontend:", JSON.stringify(guestNames, null, 2));
       
       // Use selectedSeats or derive from partySize, and calculate amount if not provided
       const seats = selectedSeats || Array.from({length: partySize || 2}, (_, i) => i + 1);

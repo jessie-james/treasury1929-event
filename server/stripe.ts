@@ -11,12 +11,12 @@ export function initializeStripe(): boolean {
   }
 
   try {
-    // TEMPORARILY USE TEST KEY FOR TESTING - Switch this back for production
+    // PRODUCTION MODE: Use live keys for real transactions
     const testKey = process.env.TRE_STRIPE_TEST_SECRET_KEY;
     const liveKey = process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY;
     
-    // TESTING MODE: Prefer test key for safe testing
-    const secretKey = testKey || liveKey;
+    // PRODUCTION MODE: Prefer live key for real transactions
+    const secretKey = liveKey || testKey;
     
     if (!secretKey) {
       console.error("Missing Stripe secret key");
@@ -61,8 +61,8 @@ export function getPublishableKey(): string | null {
   const testKey = process.env.TRE_STRIPE_TEST_PUBLISHABLE_KEY;
   const liveKey = process.env.STRIPE_PUBLISHABLE_KEY_NEW || process.env.STRIPE_PUBLISHABLE_KEY;
   
-  // TESTING MODE: Use test key for safe testing
-  return testKey || liveKey || null;
+  // PRODUCTION MODE: Use live key for real transactions
+  return liveKey || testKey || null;
 }
 
 // Backward compatibility helpers

@@ -79,7 +79,6 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
     setError(null);
     
     try {
-      console.log('🔍 CHECKOUT DEBUG: Guest names being sent:', guestNames);
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 
