@@ -4,6 +4,9 @@ import Stripe from "stripe";
 let stripe: Stripe | null = null;
 let stripeInitialized = false;
 
+// Track which key is actually being used
+let usedSecretKey: string | null = null;
+
 // Initialize Stripe with the appropriate key
 export function initializeStripe(): boolean {
   if (stripeInitialized) {
@@ -11,17 +14,41 @@ export function initializeStripe(): boolean {
   }
 
   try {
-    // Use live key if available, otherwise use test key
-    const testKey = process.env.TRE_STRIPE_TEST_SECRET_KEY;
-    const liveKey = process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY;
+    const testKey = process.env.TRE_STRIPE_TEST_SECRET_KEY || null;
+    const liveKey = process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY || null;
+    // Detect actual production vs development environment 
+    // In Replit, NODE_ENV can be 'production' even in development
+    const isActualProduction = process.env.REPL_DEPLOYMENT === 'production' || 
+                               (process.env.NODE_ENV === 'production' && process.env.REPL_DEPLOYMENT);
     
-    // Prefer live key for production, fallback to test
-    const secretKey = liveKey || testKey;
+    let secretKey: string | null = null;
+    
+    if (isActualProduction) {
+      // In production, prefer live key, fallback to test
+      secretKey = liveKey || testKey;
+    } else {
+      // In development, ONLY use test keys for safety
+      if (liveKey && !testKey) {
+        console.error('🚨 SAFETY ERROR: Live Stripe keys detected in development but no test key available!');
+        console.error('🚨 Please set TRE_STRIPE_TEST_SECRET_KEY to safely test payments.');
+        return false;
+      }
+      
+      if (liveKey && testKey) {
+        console.warn('⚠️  WARNING: Both live and test Stripe keys detected in development.');
+        console.warn('⚠️  Using TEST key for safety. Remove live keys from development environment.');
+      }
+      
+      secretKey = testKey; // Force test key in development
+    }
     
     if (!secretKey) {
       console.error("Missing Stripe secret key");
       return false;
     }
+
+    // Store the key being used for accurate mode detection
+    usedSecretKey = secretKey;
 
     stripe = new Stripe(secretKey, {
       apiVersion: '2025-02-24.acacia',
@@ -31,6 +58,15 @@ export function initializeStripe(): boolean {
 
     const mode = secretKey.startsWith('sk_test_') ? 'TEST' : 'LIVE';
     console.log(`✓ Stripe initialized in ${mode} mode`);
+    
+    // Extra safety check in development
+    if (!isActualProduction && mode === 'LIVE') {
+      console.error('🚨 CRITICAL SAFETY ERROR: Live Stripe mode detected in development!');
+      stripe = null;
+      stripeInitialized = false;
+      usedSecretKey = null;
+      return false;
+    }
     
     stripeInitialized = true;
     return true;
@@ -52,17 +88,23 @@ export function getStripe(): Stripe | null {
 
 // Check if running in test mode
 export function isTestMode(): boolean {
-  const key = process.env.TRE_STRIPE_TEST_SECRET_KEY;
-  return !!(key && stripe);
+  return !!(usedSecretKey && usedSecretKey.startsWith('sk_test_'));
 }
 
 // Get the publishable key for frontend
 export function getPublishableKey(): string | null {
   const testKey = process.env.TRE_STRIPE_TEST_PUBLISHABLE_KEY;
   const liveKey = process.env.STRIPE_PUBLISHABLE_KEY_NEW || process.env.STRIPE_PUBLISHABLE_KEY;
+  const isActualProduction = process.env.REPL_DEPLOYMENT === 'production' || 
+                             (process.env.NODE_ENV === 'production' && process.env.REPL_DEPLOYMENT);
   
-  // Use live if available, otherwise test
-  return liveKey || testKey || null;
+  if (isActualProduction) {
+    // In production, prefer live key, fallback to test
+    return liveKey || testKey || null;
+  } else {
+    // In development, ONLY use test keys for safety
+    return testKey || null;
+  }
 }
 
 // Backward compatibility helpers
