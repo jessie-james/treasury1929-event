@@ -21,50 +21,10 @@ export default function PaymentSuccessPage() {
   const [bookingReference, setBookingReference] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState<number | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // On component mount, check for session_id parameter first
+  // On component mount, always fetch the most recent booking
   useEffect(() => {
-    console.log('🔄 PaymentSuccessPage mounted, current URL:', window.location.href);
-    const urlParams = new URLSearchParams(window.location.search);
-    const session_id = urlParams.get('session_id');
-    
-    console.log('🔄 URL parameters:', Object.fromEntries(urlParams.entries()));
-    
-    if (session_id) {
-      console.log('✅ Found session_id, fetching booking for session:', session_id);
-      setSessionId(session_id);
-      
-      // Use the payment-success endpoint to get the booking for this session
-      fetch(`/api/payment-success?session_id=${session_id}`, { credentials: 'include' })
-        .then(response => {
-          console.log('🔄 Payment success API response status:', response.status);
-          return response.json();
-        })
-        .then(data => {
-          console.log('🔄 Payment success API response data:', data);
-          if (data.success && data.booking) {
-            console.log('✅ Setting booking from session:', data.booking.id || data.booking);
-            const bookingIdValue = data.booking.id || data.booking;
-            setBookingId(bookingIdValue);
-            setBookingReference(bookingIdValue.toString());
-          } else {
-            console.warn('⚠️ Payment success API did not return expected data, falling back');
-            fallbackToRecentBooking();
-          }
-        })
-        .catch(error => {
-          console.error('❌ Error fetching booking from session:', error);
-          // Fallback to most recent booking
-          fallbackToRecentBooking();
-        });
-    } else {
-      console.log('⚠️ No session_id found in URL, fetching most recent booking...');
-      fallbackToRecentBooking();
-    }
-  }, []);
-
-  const fallbackToRecentBooking = () => {
+    console.log('🔄 Fetching most recent booking for payment success page...');
     fetch('/api/user/bookings', { credentials: 'include' })
       .then(response => response.json())
       .then(bookings => {
@@ -79,7 +39,7 @@ export default function PaymentSuccessPage() {
       .catch(error => {
         console.error('Error fetching recent bookings:', error);
       });
-  };
+  }, []);
 
   // Fetch booking details if we have a booking ID
   const { data: booking, isLoading } = useQuery({

@@ -34,7 +34,7 @@ export default function BookingPage() {
   const [holdStartTime, setHoldStartTime] = useState<Date | null>(null);
 
   // First check event type to determine booking flow
-  const { data: event, isLoading: isLoadingEvent } = useQuery<any>({
+  const { data: event, isLoading: isLoadingEvent } = useQuery({
     queryKey: [`/api/events/${eventId}`],
     enabled: !!eventId,
     retry: false,
@@ -42,7 +42,7 @@ export default function BookingPage() {
   });
 
   // Only load venue layouts if event type is 'full'
-  const { data: venueLayouts, isLoading: isLoadingVenueLayouts, error: venueLayoutsError } = useQuery<any>({
+  const { data: venueLayouts, isLoading: isLoadingVenueLayouts, error: venueLayoutsError } = useQuery({
     queryKey: [`/api/events/${eventId}/venue-layouts`],
     enabled: !!eventId && event?.eventType === 'full',
     retry: false,
@@ -58,26 +58,6 @@ export default function BookingPage() {
     venueLayoutsError, 
     step,
     eventId
-  });
-
-  // DEBUG: Log step changes and data
-  console.log('📋 BOOKING STEP DEBUG:', {
-    step,
-    selectedVenue,
-    selectedSeats: selectedSeats ? {tableId: selectedSeats.tableId, seatCount: selectedSeats.seatNumbers?.length} : null,
-    foodSelections: foodSelections?.length || 0,
-    wineSelections: wineSelections?.length || 0,
-    guestNames: Object.keys(guestNames || {}).length,
-    canShowCheckout: step === "checkout" && selectedSeats
-  });
-
-  // IMMEDIATE DEBUG: Log every render
-  console.log('🚨 BOOKING PAGE RENDER:', {
-    step,
-    eventId,
-    hasSelectedSeats: !!selectedSeats,
-    hasVenueLayouts: !!(venueLayouts as any[])?.length,
-    venueLayoutsLength: (venueLayouts as any[])?.length || 0
   });
 
   const { data: existingBookings } = useQuery<Booking[]>({
@@ -106,18 +86,6 @@ export default function BookingPage() {
     step === "seats" ? 40 : 
     step === "food" ? 60 : 
     step === "wine" ? 80 : 100;
-
-  // Add proper logging with useEffect
-  useEffect(() => {
-    console.log('🚨 CHECKOUT STEP CHECK:', { 
-      step, 
-      hasSelectedSeats: !!selectedSeats, 
-      canRenderCheckout: step === "checkout" && selectedSeats 
-    });
-    if (step === "checkout" && selectedSeats) {
-      console.log('✅ CHECKOUT FORM SHOULD RENDER NOW');
-    }
-  }, [step, selectedSeats]);
 
   // Show loading state while checking event type
   if (isLoadingEvent || (event?.eventType === 'full' && isLoadingVenueLayouts)) {
@@ -193,9 +161,9 @@ export default function BookingPage() {
       <div className="max-w-6xl mx-auto px-6">
           {step === "venue" && (
             <div>
-              {venueLayouts && (venueLayouts as any[])?.length > 0 ? (
+              {venueLayouts && venueLayouts.length > 0 ? (
                 <VenueFloorSelection
-                  venues={(venueLayouts as any[]).map((layout: any, index: number) => ({
+                  venues={venueLayouts.map((layout, index) => ({
                     id: layout.eventVenueId,
                     displayName: layout.displayName,
                     description: layout.displayName === "Mezzanine" ? "Elevated seating with premium view" : "Main dining area with stage view",
@@ -260,13 +228,6 @@ export default function BookingPage() {
             />
           )}
 
-          {step === "checkout" && !selectedSeats && (
-            <div className="p-8 text-center text-red-600">
-              <h3 className="text-xl font-bold mb-4">❌ CHECKOUT ERROR</h3>
-              <p>Missing seat selection data. Please go back and select seats again.</p>
-              <p className="text-sm mt-2">Debug: step="{step}", selectedSeats={JSON.stringify(selectedSeats)}</p>
-            </div>
-          )}
           {step === "checkout" && selectedSeats && (
             <CheckoutForm
               eventId={eventId}

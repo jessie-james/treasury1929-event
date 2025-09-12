@@ -178,18 +178,11 @@ export function registerPaymentRoutes(app: Express) {
   // Create checkout session for server-side Stripe processing
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
-      console.log('🔥 CHECKOUT SESSION CREATION STARTED');
-      console.log('🔥 Request body:', JSON.stringify(req.body, null, 2));
-      console.log('🔥 User authenticated:', req.isAuthenticated());
-      console.log('🔥 User:', req.user ? req.user.email : 'No user');
-      
       if (!req.isAuthenticated()) {
-        console.log('❌ CHECKOUT FAILED: User not authenticated');
         return res.status(401).json({ message: "Unauthorized" });
       }
 
       const { eventId, tableId, selectedSeats, amount, foodSelections, wineSelections, guestNames, selectedVenue, partySize } = req.body;
-      console.log('🔥 Extracted data:', { eventId, tableId, partySize, selectedVenue });
       
       // DEBUG: Log wine selections received from frontend
       console.log("🍷 WINE DEBUG: Wine selections received from frontend:", JSON.stringify(wineSelections, null, 2));
@@ -248,7 +241,7 @@ export function registerPaymentRoutes(app: Express) {
           },
         ],
         mode: 'payment',
-        success_url: `${req.protocol}://${req.get('host')}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${req.protocol}://${req.get('host')}/api/booking-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${req.protocol}://${req.get('host')}/booking-cancel`,
         metadata: {
           eventId: eventId.toString(),
@@ -266,30 +259,6 @@ export function registerPaymentRoutes(app: Express) {
     } catch (error) {
       console.error('Checkout session creation failed:', error);
       res.status(500).json({ error: error instanceof Error ? error.message : 'Payment setup failed' });
-    }
-  });
-
-  // Test endpoint to check Stripe status
-  app.get("/api/stripe-status", async (req, res) => {
-    try {
-      const stripe = getStripe();
-      if (!stripe) {
-        return res.json({ status: 'error', message: 'Stripe not initialized' });
-      }
-      
-      // Test if we can make a simple API call
-      await stripe.prices.list({ limit: 1 });
-      return res.json({ 
-        status: 'success', 
-        message: 'Stripe is working correctly',
-        testMode: process.env.NODE_ENV !== 'production'
-      });
-    } catch (error) {
-      return res.json({ 
-        status: 'error', 
-        message: 'Stripe connection failed',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
     }
   });
 
@@ -434,10 +403,8 @@ export function registerPaymentRoutes(app: Express) {
       res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       
       const { session_id } = req.query;
-      console.log('🔄 Payment success endpoint called with session_id:', session_id);
       
       if (!session_id) {
-        console.error('❌ Missing session ID in payment success request');
         return res.status(400).json({ error: 'Missing session ID' });
       }
 
