@@ -78,6 +78,27 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
     setIsLoading(true);
     setError(null);
     
+    console.log('🔥 FRONTEND CHECKOUT STARTED');
+    console.log('🔥 Table ID being sent:', tableId);
+    console.log('🔥 Table data:', table);
+    console.log('🔥 Event ID:', eventId);
+    console.log('🔥 Selected seats:', selectedSeats);
+    console.log('🔥 Guest names:', guestNames);
+    console.log('🔥 Selected venue:', selectedVenue);
+    
+    const checkoutData = {
+      eventId,
+      tableId,
+      selectedSeats,
+      amount: pricing.totalPrice, // NEW: $130 per person + wine
+      foodSelections,
+      wineSelections,
+      guestNames,
+      selectedVenue
+    };
+    
+    console.log('🔥 FULL CHECKOUT DATA:', JSON.stringify(checkoutData, null, 2));
+    
     try {
       const response = await fetch('/api/create-checkout-session', {
         method: 'POST',
@@ -85,24 +106,20 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({
-          eventId,
-          tableId,
-          selectedSeats,
-          amount: pricing.totalPrice, // NEW: $130 per person + wine
-          foodSelections,
-          wineSelections,
-          guestNames,
-          selectedVenue
-        }),
+        body: JSON.stringify(checkoutData),
       });
 
       const data = await response.json();
+      
+      console.log('🔥 CHECKOUT SESSION RESPONSE STATUS:', response.status);
+      console.log('🔥 CHECKOUT SESSION RESPONSE DATA:', JSON.stringify(data, null, 2));
 
       if (!response.ok) {
+        console.error('❌ CHECKOUT FAILED:', data);
         throw new Error(data.error || 'Payment setup failed');
       }
 
+      console.log('✅ CHECKOUT SUCCESS, redirecting to:', data.url);
       // Redirect to Stripe Checkout - this always works!
       window.location.href = data.url;
       
