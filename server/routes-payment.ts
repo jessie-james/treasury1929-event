@@ -262,6 +262,30 @@ export function registerPaymentRoutes(app: Express) {
     }
   });
 
+  // Test endpoint to check Stripe status
+  app.get("/api/stripe-status", async (req, res) => {
+    try {
+      const stripe = getStripe();
+      if (!stripe) {
+        return res.json({ status: 'error', message: 'Stripe not initialized' });
+      }
+      
+      // Test if we can make a simple API call
+      await stripe.prices.list({ limit: 1 });
+      return res.json({ 
+        status: 'success', 
+        message: 'Stripe is working correctly',
+        testMode: process.env.NODE_ENV !== 'production'
+      });
+    } catch (error) {
+      return res.json({ 
+        status: 'error', 
+        message: 'Stripe connection failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Handle Stripe redirect to server-side success page
   app.get("/api/booking-success", async (req, res) => {
     try {
