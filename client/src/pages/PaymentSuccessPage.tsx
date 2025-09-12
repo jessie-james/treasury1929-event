@@ -30,14 +30,6 @@ export default function PaymentSuccessPage() {
     const session_id = urlParams.get('session_id');
     
     console.log('🔄 URL parameters:', Object.fromEntries(urlParams.entries()));
-    console.log('🚨 SESSION ID DEBUG:', {
-      session_id: session_id,
-      session_id_length: session_id?.length,
-      session_id_type: typeof session_id,
-      starts_with_cs: session_id?.startsWith('cs_'),
-      full_url: window.location.href,
-      search: window.location.search
-    });
     
     if (session_id) {
       console.log('✅ Found session_id, fetching booking for session:', session_id);
@@ -47,49 +39,22 @@ export default function PaymentSuccessPage() {
       fetch(`/api/payment-success?session_id=${session_id}`, { credentials: 'include' })
         .then(response => {
           console.log('🔄 Payment success API response status:', response.status);
-          console.log('🚨 PAYMENT SUCCESS API DEBUG:', {
-            status: response.status,
-            ok: response.ok,
-            statusText: response.statusText,
-            url: response.url,
-            session_id_sent: session_id
-          });
           return response.json();
         })
         .then(data => {
           console.log('🔄 Payment success API response data:', data);
-          console.log('🚨 DETAILED API RESPONSE DEBUG:', {
-            success: data.success,
-            booking: data.booking,
-            error: data.error,
-            session_id: data.session_id,
-            stripe_data: data.stripe_data
-          });
           if (data.success && data.booking) {
             console.log('✅ Setting booking from session:', data.booking.id || data.booking);
             const bookingIdValue = data.booking.id || data.booking;
             setBookingId(bookingIdValue);
             setBookingReference(bookingIdValue.toString());
           } else {
-            console.warn('⚠️ Payment success API did not return expected data, falling back to recent booking');
-            console.warn('⚠️ FALLBACK REASON:', {
-              has_success: !!data.success,
-              has_booking: !!data.booking,
-              api_error: data.error || 'none',
-              will_use_booking_244: 'most recent booking'
-            });
+            console.warn('⚠️ Payment success API did not return expected data, falling back');
             fallbackToRecentBooking();
           }
         })
         .catch(error => {
           console.error('❌ Error fetching booking from session:', error);
-          console.error('❌ FETCH ERROR DEBUG:', {
-            message: error.message,
-            name: error.name,
-            stack: error.stack,
-            session_id: session_id,
-            will_fallback_to: 'booking #244'
-          });
           // Fallback to most recent booking
           fallbackToRecentBooking();
         });
