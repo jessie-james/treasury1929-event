@@ -34,7 +34,7 @@ export default function BookingPage() {
   const [holdStartTime, setHoldStartTime] = useState<Date | null>(null);
 
   // First check event type to determine booking flow
-  const { data: event, isLoading: isLoadingEvent } = useQuery({
+  const { data: event, isLoading: isLoadingEvent } = useQuery<any>({
     queryKey: [`/api/events/${eventId}`],
     enabled: !!eventId,
     retry: false,
@@ -42,7 +42,7 @@ export default function BookingPage() {
   });
 
   // Only load venue layouts if event type is 'full'
-  const { data: venueLayouts, isLoading: isLoadingVenueLayouts, error: venueLayoutsError } = useQuery({
+  const { data: venueLayouts, isLoading: isLoadingVenueLayouts, error: venueLayoutsError } = useQuery<any>({
     queryKey: [`/api/events/${eventId}/venue-layouts`],
     enabled: !!eventId && event?.eventType === 'full',
     retry: false,
