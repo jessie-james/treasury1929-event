@@ -241,7 +241,11 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
       )}
       
       <button 
-        onClick={handleStripeCheckout}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          handleStripeCheckout();
+        }}
         disabled={isLoading}
         className={`w-full py-3 px-6 rounded-lg text-white font-medium text-lg transition-colors ${
           isLoading 
