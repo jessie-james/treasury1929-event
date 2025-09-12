@@ -178,11 +178,18 @@ export function registerPaymentRoutes(app: Express) {
   // Create checkout session for server-side Stripe processing
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
+      console.log('🔥 CHECKOUT SESSION CREATION STARTED');
+      console.log('🔥 Request body:', JSON.stringify(req.body, null, 2));
+      console.log('🔥 User authenticated:', req.isAuthenticated());
+      console.log('🔥 User:', req.user ? req.user.email : 'No user');
+      
       if (!req.isAuthenticated()) {
+        console.log('❌ CHECKOUT FAILED: User not authenticated');
         return res.status(401).json({ message: "Unauthorized" });
       }
 
       const { eventId, tableId, selectedSeats, amount, foodSelections, wineSelections, guestNames, selectedVenue, partySize } = req.body;
+      console.log('🔥 Extracted data:', { eventId, tableId, partySize, selectedVenue });
       
       // DEBUG: Log wine selections received from frontend
       console.log("🍷 WINE DEBUG: Wine selections received from frontend:", JSON.stringify(wineSelections, null, 2));
