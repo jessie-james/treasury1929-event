@@ -403,8 +403,10 @@ export function registerPaymentRoutes(app: Express) {
       res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       
       const { session_id } = req.query;
+      console.log('🔄 Payment success endpoint called with session_id:', session_id);
       
       if (!session_id) {
+        console.error('❌ Missing session ID in payment success request');
         return res.status(400).json({ error: 'Missing session ID' });
       }
 
