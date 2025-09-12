@@ -192,9 +192,9 @@ function FoodSelectionInner({ selectedSeats, eventId, onComplete }: Props) {
         });
 
         const names = Object.fromEntries(
-          selectedSeats.map((seat, index) => {
+          selectedSeats.map((seat) => {
             const selection = selections[seat];
-            return [index + 1, selection?.name || `Guest ${index + 1}`];
+            return [seat, selection?.name || `Guest ${seat}`];
           })
         );
 
