@@ -42,6 +42,16 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // IMMEDIATE RENDER DEBUG
+  console.log('💳 CHECKOUT FORM RENDERED!', {
+    eventId,
+    tableId,
+    selectedSeats,
+    foodSelections: foodSelections?.length || 0,
+    wineSelections: wineSelections?.length || 0,
+    guestNames: Object.keys(guestNames || {}).length
+  });
+
   // Fetch event details for pricing
   const { data: event } = useQuery<Event>({
     queryKey: [`/api/events/${eventId}`],

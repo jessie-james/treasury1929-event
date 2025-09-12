@@ -71,6 +71,15 @@ export default function BookingPage() {
     showCheckout: step === "checkout" && selectedSeats
   });
 
+  // IMMEDIATE DEBUG: Log every render
+  console.log('🚨 BOOKING PAGE RENDER:', {
+    step,
+    eventId,
+    hasSelectedSeats: !!selectedSeats,
+    hasVenueLayouts: !!(venueLayouts as any[])?.length,
+    venueLayoutsLength: (venueLayouts as any[])?.length || 0
+  });
+
   const { data: existingBookings } = useQuery<Booking[]>({
     queryKey: ["/api/user/bookings"],
   });
