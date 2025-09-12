@@ -72,11 +72,23 @@ export async function createBookingFromStripeSession(session: any) {
   
   try {
     console.log('👥 METADATA DEBUG: guestNames in metadata:', metadata.guestNames);
-    parsedGuestNames = metadata.guestNames ? JSON.parse(metadata.guestNames) : [];
-    if (!Array.isArray(parsedGuestNames)) {
+    const rawGuestNames = metadata.guestNames ? JSON.parse(metadata.guestNames) : {};
+    console.log('👥 RAW DEBUG: Raw guest names:', rawGuestNames);
+    
+    // Convert object format {1: "John", 2: "Jane"} to array format ["John", "Jane"]
+    if (typeof rawGuestNames === 'object' && !Array.isArray(rawGuestNames)) {
+      // Object format - convert to array ordered by seat number
+      const seatNumbers = metadata.seats ? metadata.seats.split(',').map(Number) : [];
+      parsedGuestNames = seatNumbers.map(seatNum => rawGuestNames[seatNum] || '').filter(name => name);
+      console.log('👥 CONVERTED DEBUG: Converted object to array:', parsedGuestNames);
+    } else if (Array.isArray(rawGuestNames)) {
+      // Already array format
+      parsedGuestNames = rawGuestNames;
+      console.log('👥 ARRAY DEBUG: Already array format:', parsedGuestNames);
+    } else {
       parsedGuestNames = [];
     }
-    console.log('👥 PARSED DEBUG: Parsed guest names:', parsedGuestNames);
+    console.log('👥 FINAL DEBUG: Final guest names for database:', parsedGuestNames);
   } catch (e) {
     console.warn('Failed to parse guestNames metadata:', e);
     parsedGuestNames = [];
@@ -254,7 +266,7 @@ export function registerPaymentRoutes(app: Express) {
           seats: seats.join(','),
           foodSelections: JSON.stringify(foodSelections || []),
           wineSelections: JSON.stringify(wineSelections || []),
-          guestNames: JSON.stringify(guestNames || []),
+          guestNames: JSON.stringify(guestNames || {}),
           selectedVenue: selectedVenue || '',
         },
       });
