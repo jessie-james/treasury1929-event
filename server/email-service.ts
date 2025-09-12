@@ -1,83 +1,138 @@
 import sgMail from '@sendgrid/mail';
 import QRCode from 'qrcode';
-import { formatInTimeZone } from 'date-fns-tz';
+import { format, formatInTimeZone } from 'date-fns-tz';
 
-interface BookingData {
-  id: string | number;
-  customerEmail: string;
-  partySize: number;
-  status: string;
-  notes?: string;
-  stripePaymentId?: string;
-  createdAt: Date | string;
-  guestNames?: string[];
+interface User {
+  email: string;
+  firstName?: string;
 }
 
-interface EventData {
-  id: string;
-  title: string;
-  date: Date;
-  description: string;
+interface BookingEmailData {
+  booking: {
+    id: number | string; // Allow both for flexibility during type migration
+    customerEmail: string;
+    partySize: number;
+    status: string;
+    notes?: string;
+    stripePaymentId?: string;
+    createdAt: Date | string; // Allow both Date and ISO string
+    guestNames?: string[];
+  };
+  event: {
+    id: number | string; // Allow both for flexibility
+    title: string;
+    date: Date | string; // Allow both Date and ISO string
+    description: string;
+  };
+  table: {
+    id: number | string; // Allow both for flexibility
+    tableNumber: number;
+    floor: string;
+    capacity: number;
+  };
+  venue: {
+    id: number | string; // Allow both for flexibility
+    name: string;
+    address?: string;
+  };
 }
 
-interface TableData {
-  id: string;
-  tableNumber: number;
-  floor: string;
-  capacity: number;
+let emailInitialized = false;
+
+// Centralized email initialization and error handling
+export function initializeEmailService(): void {
+  const key = process.env.SENDGRID_API_KEY_NEW;
+  if (!key) {
+    console.error('[EMAIL] Missing SENDGRID_API_KEY_NEW - Treasury account key required');
+    emailInitialized = false;
+    return;
+  }
+  
+  try {
+    sgMail.setApiKey(key);
+    emailInitialized = true;
+    console.info('[EMAIL] SendGrid initialized successfully with Treasury key');
+  } catch (err) {
+    emailInitialized = false;
+    console.error('[EMAIL] Initialization error:', serializeEmailError(err));
+  }
 }
 
-interface VenueData {
-  id: string;
-  name: string;
-  address: string;
+export function ensureEmailReady(): void {
+  if (!emailInitialized) {
+    throw new Error('EMAIL_NOT_INITIALIZED - call initializeEmailService() first');
+  }
 }
 
-interface EmailConfirmationData {
-  booking: BookingData;
-  event: EventData;
-  table: TableData;
-  venue: VenueData;
-}
+export async function sendEmail(msg: sgMail.MailDataRequired): Promise<any> {
+  // RUNTIME SAFETY GUARD: Never send real emails outside production
+  const isProd = process.env.NODE_ENV === 'production';
+  const suppress = process.env.EMAIL_SUPPRESS_OUTBOUND === 'true';
 
-class EmailServiceClass {
-  private initialized = false;
-
-  constructor() {
-    this.initialize();
+  if (!isProd || suppress) {
+    console.log('[EMAIL] SUPPRESSED', { 
+      isProd, 
+      suppress, 
+      to: typeof msg.to === 'string' ? msg.to : 'multiple recipients',
+      subject: msg.subject 
+    });
+    return { ok: true, suppressed: true };
   }
 
-  private initialize() {
-    const apiKey = process.env.SENDGRID_API_KEY_NEW;
-    if (apiKey) {
-      sgMail.setApiKey(apiKey);
-      this.initialized = true;
-      console.log('✓ SendGrid email service initialized');
-    } else {
-      console.log('⚠️ SendGrid API key not found - email service disabled');
-    }
+  ensureEmailReady();
+  try {
+    const [res] = await sgMail.send(msg);
+    console.debug('[EMAIL] Sent successfully', { 
+      status: res.statusCode, 
+      to: typeof msg.to === 'string' ? msg.to : 'multiple',
+      messageId: res.headers?.['x-message-id']
+    });
+    return res;
+  } catch (err: any) {
+    const serializedError = serializeEmailError(err);
+    console.error('[EMAIL] Send failed:', serializedError);
+    throw new Error(`EMAIL_SEND_FAILED:${serializedError.code ?? 'UNKNOWN'}`);
+  }
+}
+
+function serializeEmailError(err: any): any {
+  return {
+    code: err?.code,
+    message: err?.message,
+    responseBody: err?.response?.body,
+    status: err?.response?.statusCode,
+    timestamp: new Date().toISOString()
+  };
+}
+
+export class EmailService {
+  private static readonly FROM_EMAIL = 'The Treasury 1929 <info@thetreasury1929.com>';
+  private static readonly ADMIN_EMAIL = 'info@thetreasury1929.com';
+
+  static async initialize(): Promise<void> {
+    // Use the centralized initialization
+    initializeEmailService();
   }
 
-  async ensureEmailReady(): Promise<void> {
-    if (!this.initialized) {
-      throw new Error('Email service not initialized - check SENDGRID_API_KEY_NEW');
-    }
-  }
-
-  async sendBookingConfirmation(data: EmailConfirmationData): Promise<boolean> {
+  static async sendBookingConfirmation(data: BookingEmailData): Promise<boolean> {
     try {
-      await this.ensureEmailReady();
+      ensureEmailReady(); // Throw error if not initialized instead of silent skip
       
-      // Create Date object from the event date and format it using Phoenix timezone
-      const eventDateObj = new Date(data.event.date);
-      const eventDate = formatInTimeZone(eventDateObj, 'America/Phoenix', 'EEEE, MMMM d, yyyy');
+      const { booking, event, table, venue } = data;
       
-      // Treasury events have standard times: Doors 5:45 PM, Concert 6:30 PM
-      const doorsTime = '5:45 PM';
-      const showTime = '6:30 PM';
+      // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
+      const PHOENIX_TZ = 'America/Phoenix';
+      const eventDateObj = typeof event.date === 'string' ? new Date(event.date) : event.date;
       
-      // Generate QR code containing the booking ID
-      const qrCodeBuffer = await QRCode.toBuffer(data.booking.id.toString(), {
+      // Format date in Phoenix timezone
+      const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
+      
+      // Use consistent event timing: Doors at 5:45 PM, Concert at 6:30 PM
+      const timeDisplay = 'Guest Arrival 5:45 PM, show starts 6:30 PM';
+      
+      // Generate QR code using simple booking ID format expected by scanner
+      const qrData = booking.id.toString();
+      const qrCodeBuffer = await QRCode.toBuffer(qrData, {
         width: 200,
         margin: 2,
         color: {
@@ -86,139 +141,247 @@ class EmailServiceClass {
         }
       });
 
-      // Construct the email content
-      const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-          <div style="text-align: center; border-bottom: 2px solid #8B4513; padding-bottom: 20px; margin-bottom: 30px;">
-            <h1 style="color: #8B4513; margin: 0; font-size: 32px;">The Treasury 1929</h1>
-            <h2 style="color: #666; margin: 10px 0 0 0; font-size: 24px;">Digital Ticket</h2>
-          </div>
+      const guestList = booking.guestNames && booking.guestNames.length > 0 
+        ? booking.guestNames.join(', ') 
+        : 'Guest names not provided';
 
-          <div style="background: #f9f9f9; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
-            <h3 style="color: #8B4513; margin-top: 0; font-size: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Event Information</h3>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>Event:</strong> ${data.event.title}</p>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>Date:</strong> ${eventDate}</p>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>Time:</strong> Doors: ${doorsTime} • Concert: ${showTime}</p>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>Venue:</strong> ${data.venue.name}</p>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>Address:</strong> 2 E Congress St, Ste 100</p>
-          </div>
-
-          <div style="background: #f9f9f9; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
-            <h3 style="color: #8B4513; margin-top: 0; font-size: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Reservation Details</h3>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>Booking ID:</strong> ${data.booking.id}</p>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>Table:</strong> Table ${data.table.tableNumber}</p>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>Party Size:</strong> ${data.booking.partySize} guests</p>
-            <p style="margin: 8px 0; font-size: 16px;"><strong>Guest Email:</strong> ${data.booking.customerEmail}</p>
-            ${data.booking.notes ? `<p style="margin: 8px 0; font-size: 16px;"><strong>Special Notes:</strong> ${data.booking.notes}</p>` : ''}
-          </div>
-
-          ${(() => {
-            // Handle guest names - support both array and object formats
-            let guestNames: string[] = [];
-            if (Array.isArray(data.booking.guestNames)) {
-              guestNames = data.booking.guestNames;
-            } else if (data.booking.guestNames && typeof data.booking.guestNames === 'object') {
-              guestNames = Object.values(data.booking.guestNames) as string[];
-            }
-            
-            if (guestNames.length > 0) {
-              return `
-                <div style="background: #f9f9f9; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
-                  <h3 style="color: #8B4513; margin-top: 0; font-size: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Guest Names</h3>
-                  ${guestNames.map((name, index) => 
-                    name && typeof name === 'string' 
-                      ? `<p style="margin: 8px 0; font-size: 16px;"><strong>Guest ${index + 1}:</strong> ${name}</p>`
-                      : ''
-                  ).join('')}
-                </div>
-              `;
-            }
-            return '';
-          })()}
-
-          <div style="text-align: center; margin: 30px 0; padding: 25px; background: #f0f8ff; border-radius: 8px;">
-            <h3 style="color: #27ae60; margin-top: 0; font-size: 18px;">QR Code Check-in</h3>
-            <img src="cid:qrcode${data.booking.id}" alt="Booking QR Code" style="width: 150px; height: 150px; border: 2px solid #ddd;" />
-            <p style="font-size: 14px; color: #666; margin: 15px 0 0 0;">Scan this QR code at the venue for quick check-in</p>
-          </div>
-
-          <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 20px; border-radius: 8px; margin: 25px 0;">
-            <p style="margin: 0; font-size: 14px; color: #856404;">
-              <strong>Important:</strong> Please arrive by ${doorsTime} to allow time for seating and drink service before the performance begins. 
-              If you need to make changes to your reservation, please contact us at 
-              <a href="mailto:info@thetreasury1929.com" style="color: #8B4513;">info@thetreasury1929.com</a> 
-              or call (520) 734-3979.
-            </p>
-          </div>
-
-          <div style="text-align: center; margin-top: 40px; padding-top: 25px; border-top: 1px solid #ddd; font-size: 12px; color: #999;">
-            <p style="margin: 5px 0;">The Treasury 1929</p>
-            <p style="margin: 5px 0;">2 E Congress St, Ste 100</p>
-            <p style="margin: 5px 0;">(520) 734-3979</p>
-            <p style="margin: 15px 0 5px 0;">www.thetreasury1929.com/dinnerconcerts</p>
-            <p style="margin: 5px 0;">Thank you for choosing us for your special evening!</p>
-          </div>
-        </div>
-      `;
-
-      const msg = {
-        to: data.booking.customerEmail,
-        from: {
-          email: 'noreply@thetreasury1929.com',
-          name: 'The Treasury 1929'
-        },
-        subject: `Booking Confirmation - ${data.event.title}`,
-        html: htmlContent,
+      const emailContent = {
+        to: booking.customerEmail,
+        from: this.FROM_EMAIL,
+        subject: 'Your Dinner Concert Ticket Confirmation – The Treasury 1929',
         attachments: [
           {
             content: qrCodeBuffer.toString('base64'),
-            filename: 'qrcode.png',
+            filename: `qrcode-${booking.id}.png`,
             type: 'image/png',
             disposition: 'inline',
-            content_id: `qrcode${data.booking.id}`
+            content_id: `qrcode${booking.id}`
           }
-        ]
+        ],
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Guest,</p>
+            
+            <p>Thank you for your purchase! We're excited to welcome you to an intimate evening of live music and dining at The Treasury 1929.</p>
+            
+            <p>Your ticket is confirmed for the upcoming Dinner Concert. Please be sure to bring and show the QR code below at the door on the day of the event for entry:</p>
+            
+            <!-- FULL DIGITAL TICKET -->
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #6c757d;">
+              <h2 style="color: #2c3e50; margin-top: 0; text-align: center;">🎫 YOUR DIGITAL TICKET</h2>
+              <div style="text-align: center; margin: 20px 0;">
+                <p style="font-size: 18px; font-weight: bold; color: #2c3e50; margin: 5px 0;">${event.title}</p>
+                <p style="font-size: 16px; color: #495057; margin: 5px 0;">${eventDateFormatted}</p>
+                <p style="font-size: 14px; color: #6c757d; margin: 5px 0;">${timeDisplay}</p>
+                <p style="font-size: 14px; color: #6c757d; margin: 5px 0;">Table ${table.tableNumber} • ${booking.partySize} Guests</p>
+              </div>
+              
+              <!-- QR CODE SECTION - USING ATTACHMENT -->
+              <div style="background-color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 15px 0;">
+                <h3 style="color: #27ae60; margin-top: 0;">QR Code Check-in</h3>
+                <img src="cid:qrcode${booking.id}" alt="QR Code for Booking ${booking.id}" style="width: 150px; height: 150px; border: 1px solid #dee2e6; border-radius: 8px;" />
+                <p style="color: #666; margin-top: 15px; font-size: 14px;">Scan this QR code at the venue for quick check-in</p>
+                <p style="font-family: monospace; font-size: 12px; margin: 10px 0; color: #666;">Booking ID: ${booking.id}</p>
+              </div>
+              
+              <!-- PDF download button removed as requested -->
+            </div>
+
+            <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #27ae60; margin-top: 0;">Event Details</h3>
+              <p><strong>Event:</strong> ${event.title}</p>
+              <p><strong>Date:</strong> ${eventDateFormatted}</p>
+              <p><strong>Time:</strong> ${timeDisplay}</p>
+              <p><strong>Table:</strong> ${table.tableNumber}</p>
+              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
+              <p><strong>Booking Reference:</strong> #${booking.id}</p>
+            </div>
+
+            ${booking.guestNames && booking.guestNames.length > 0 ? `
+            <div style="background-color: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #2c3e50; margin-top: 0;">Guest Names</h3>
+              ${booking.guestNames.map((name, index) => `<p><strong>Guest ${index + 1}:</strong> ${name}</p>`).join('')}
+            </div>
+            ` : ''}
+
+            ${booking.notes ? `
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <h4 style="color: #856404; margin-top: 0;">Special Notes</h4>
+              <p style="color: #856404;">${booking.notes}</p>
+            </div>
+            ` : ''}
+
+            <p>We look forward to sharing a memorable evening with you.</p>
+            
+            <p>If you'd like to receive updates about future Dinner Concert Series dates and exclusive invites, just reply to this email and let us know you'd like to be added to our mailing list.</p>
+            
+            <p>Warm regards,<br><br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3937<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
+            </div>
+          </div>
+        `
       };
 
-      const result = await this.sendEmail(msg);
-      return result;
-    } catch (error) {
-      console.error('❌ Failed to send booking confirmation email:', error);
-      return false;
-    }
-  }
-
-  private async sendEmail(msg: any): Promise<boolean> {
-    try {
-      await sgMail.send(msg);
-      console.log(`✓ Email sent to ${msg.to}`);
-      return true;
-    } catch (error) {
-      console.error('❌ SendGrid email sending failed:', error);
-      return false;
-    }
-  }
-
-  // Placeholder methods for backward compatibility
-  async sendCancellationEmail(data: any): Promise<boolean> {
-    console.log('📧 Cancellation email would be sent (not implemented)');
-    return true;
-  }
-
-  async sendVenueCancellationEmail(data: any): Promise<boolean> {
-    console.log('📧 Venue cancellation email would be sent (not implemented)');
-    return true;
-  }
-
-  async sendEventReminder(data: any): Promise<boolean> {
-    console.log('📧 Event reminder email would be sent (not implemented)');
-    return true;
-  }
-
-  async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
-    try {
-      await this.ensureEmailReady();
+      await sendEmail(emailContent);
+      console.log(`✓ Booking confirmation sent to ${booking.customerEmail} (RESTORED)`);
       
+      // Send admin copy for monitoring and verification
+      try {
+        const adminEmailContent = {
+          ...emailContent,
+          to: this.ADMIN_EMAIL,
+          subject: `[ADMIN COPY] Customer Booking Confirmation - ${booking.customerEmail}`,
+          html: `
+            <div style="background-color: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2196f3;">
+              <h3 style="color: #1565c0; margin-top: 0;">📋 Admin Copy - Customer Email Sent Successfully</h3>
+              <p><strong>Customer Email:</strong> ${booking.customerEmail}</p>
+              <p><strong>Booking ID:</strong> #${booking.id}</p>
+              <p><strong>Payment ID:</strong> ${booking.stripePaymentId || 'N/A'}</p>
+              <p style="color: #1565c0;">This email confirms the customer received the booking confirmation below.</p>
+            </div>
+            ${emailContent.html}
+          `
+        };
+        
+        await sendEmail(adminEmailContent);
+        console.log(`✓ Admin copy sent to ${this.ADMIN_EMAIL} for booking ${booking.id}`);
+      } catch (adminEmailError) {
+        console.error(`⚠️ Failed to send admin copy (customer email was successful):`, adminEmailError);
+        // Don't fail the whole process if admin copy fails
+      }
+      
+      return true;
+
+    } catch (error) {
+      console.error('✗ CRITICAL: Failed to send booking confirmation email');
+      console.error('  Booking ID:', data.booking.id);
+      console.error('  Customer Email:', data.booking.customerEmail);
+      console.error('  Event:', data.event.title);
+      console.error('  Error Details:', error);
+      
+      return false;
+    }
+  }
+
+  static async sendEventReminder(data: BookingEmailData): Promise<boolean> {
+    if (!emailInitialized) {
+      console.log('📧 Email service not initialized - skipping event reminder');
+      return false;
+    }
+
+    try {
+      const { booking, event, table, venue } = data;
+      
+      // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
+      const PHOENIX_TZ = 'America/Phoenix';
+      const eventDateObj = typeof event.date === 'string' ? new Date(event.date) : event.date;
+      
+      // Format date in Phoenix timezone
+      const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
+      
+      // Use consistent event timing: Doors at 5:45 PM, Concert at 6:30 PM
+      const timeDisplay = 'Guest Arrival 5:45 PM, show starts 6:30 PM';
+      
+      // Generate QR code using simple booking ID format expected by scanner
+      const qrData = booking.id.toString();
+      const qrCodeBuffer = await QRCode.toBuffer(qrData, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#2c3e50',
+          light: '#ffffff'
+        }
+      });
+
+      const emailContent = {
+        to: booking.customerEmail,
+        from: this.FROM_EMAIL,
+        subject: 'Tomorrow: Your Dinner Concert at The Treasury 1929',
+        attachments: [
+          {
+            content: qrCodeBuffer.toString('base64'),
+            filename: `qrcode-reminder-${booking.id}.png`,
+            type: 'image/png',
+            disposition: 'inline',
+            content_id: `qrcodereminder${booking.id}`
+          }
+        ],
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Guest,</p>
+            
+            <p>Tomorrow is the day! We're excited to welcome you to The Treasury 1929 for an intimate evening of live music and dining.</p>
+            
+            <p>Here's your digital ticket for quick check-in tomorrow:</p>
+            
+            <!-- FULL DIGITAL TICKET -->
+            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px dashed #6c757d;">
+              <h2 style="color: #2c3e50; margin-top: 0; text-align: center;">🎫 YOUR DIGITAL TICKET</h2>
+              <div style="text-align: center; margin: 20px 0;">
+                <p style="font-size: 18px; font-weight: bold; color: #2c3e50; margin: 5px 0;">${event.title}</p>
+                <p style="font-size: 16px; color: #495057; margin: 5px 0;">${eventDateFormatted}</p>
+                <p style="font-size: 14px; color: #6c757d; margin: 5px 0;">${timeDisplay}</p>
+                <p style="font-size: 14px; color: #6c757d; margin: 5px 0;">Table ${table.tableNumber} • ${booking.partySize} Guests</p>
+              </div>
+              
+              <!-- QR CODE SECTION - USING ATTACHMENT -->
+              <div style="background-color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 15px 0;">
+                <h3 style="color: #27ae60; margin-top: 0;">QR Code Check-in</h3>
+                <img src="cid:qrcodereminder${booking.id}" alt="QR Code for Booking ${booking.id}" style="width: 150px; height: 150px; border: 1px solid #dee2e6; border-radius: 8px;" />
+                <p style="color: #666; margin-top: 15px; font-size: 14px;">Scan this QR code at the venue for quick check-in</p>
+                <p style="font-family: monospace; font-size: 12px; margin: 10px 0; color: #666;">Booking ID: ${booking.id}</p>
+              </div>
+              
+              <!-- PDF download button removed as requested -->
+            </div>
+
+            <div style="background-color: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #27ae60; margin-top: 0;">Event Information</h3>
+              <p><strong>Event:</strong> ${event.title}</p>
+              <p><strong>Date:</strong> ${eventDateFormatted}</p>
+              <p><strong>Time:</strong> ${timeDisplay}</p>
+              <p><strong>Table:</strong> ${table.tableNumber}</p>
+              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
+              <p><strong>Booking Reference:</strong> #${booking.id}</p>
+            </div>
+            
+            <p>See you tomorrow evening!</p>
+            
+            <p>Warm regards,<br><br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3937<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
+            </div>
+          </div>
+        `
+      };
+
+      await sendEmail(emailContent);
+      console.log(`✓ Event reminder sent to ${booking.customerEmail} (RESTORED)`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ CRITICAL: Failed to send event reminder email');
+      console.error('  Booking ID:', data.booking.id);
+      console.error('  Customer Email:', data.booking.customerEmail);
+      console.error('  Event:', data.event.title);
+      console.error('  Error Details:', error);
+      console.error('  Timestamp:', new Date().toISOString());
+      return false;
+    }
+  }
+
+  static async sendPasswordResetEmail(email: string, resetToken: string): Promise<boolean> {
+    try {
+      ensureEmailReady();
       // Use the correct public-facing deployment URL
       const baseUrl = process.env.REPLIT_URL || 'https://venue-master-remix.replit.app';
       const resetUrl = `${baseUrl}/reset-password?token=${resetToken}`;
@@ -227,11 +390,8 @@ class EmailServiceClass {
 
       const emailContent = {
         to: email,
-        from: {
-          email: 'noreply@thetreasury1929.com',
-          name: 'The Treasury 1929'
-        },
-        subject: `Reset Your Password - The Treasury 1929`,
+        from: this.FROM_EMAIL,
+        subject: 'Reset Your Password - The Treasury 1929',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
             <p>Dear Guest,</p>
@@ -251,7 +411,11 @@ class EmailServiceClass {
             <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
               <p style="color: #856404; margin: 0;">If you didn't request this password reset, please ignore this email. Your password will remain unchanged.</p>
             </div>
-
+            
+            <p>If you have any questions, please contact us at (520) 734-3937.</p>
+            
+            <p>Best regards,<br>The Treasury 1929 Team</p>
+            
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
               <p>📍 2 E Congress St, Ste 100<br>
               📞 (520) 734-3937<br>
@@ -262,18 +426,15 @@ class EmailServiceClass {
         `
       };
 
-      const result = await this.sendEmail(emailContent);
-      if (result) {
-        console.log(`✓ Password reset email sent to ${email}`);
-      } else {
-        console.log(`✗ Failed to send password reset email to ${email}`);
-      }
-      return result;
+      await sendEmail(emailContent);
+      console.log(`✓ Password reset email sent to ${email}`);
+      return true;
+
     } catch (error) {
-      console.error('❌ Failed to send password reset email:', error);
+      console.error('✗ CRITICAL: Failed to send password reset email');
+      console.error('  Email:', email);
+      console.error('  Error Details:', error);
       return false;
     }
   }
 }
-
-export const EmailService = new EmailServiceClass();
