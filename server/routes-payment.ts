@@ -43,7 +43,7 @@ export async function createBookingFromStripeSession(session: any) {
     throw new Error(`Table ${tableId} is already booked for this event`);
   }
   
-  // Parse metadata with error handling - maintain original data types
+  // ROBUST JSON PARSING: Parse metadata with error handling
   let parsedWineSelections = [];
   let parsedFoodSelections = [];
   let parsedGuestNames = [];
@@ -69,8 +69,15 @@ export async function createBookingFromStripeSession(session: any) {
     parsedFoodSelections = [];
   }
   
-  // Parse guestNames maintaining original Record<number, string> format  
-  parsedGuestNames = metadata.guestNames ? JSON.parse(metadata.guestNames) : [];
+  try {
+    parsedGuestNames = metadata.guestNames ? JSON.parse(metadata.guestNames) : [];
+    if (!Array.isArray(parsedGuestNames)) {
+      parsedGuestNames = [];
+    }
+  } catch (e) {
+    console.warn('Failed to parse guestNames metadata:', e);
+    parsedGuestNames = [];
+  }
   
   console.log("🍷 WINE DEBUG: Parsed wine selections:", JSON.stringify(parsedWineSelections, null, 2));
 
@@ -994,12 +1001,24 @@ export function registerPaymentRoutes(app: Express) {
     let webhookEvent;
     
     try {
-      // Verify webhook signature - disabled for test mode
+      // Verify webhook signature
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
       
-      // In test mode, skip signature verification to allow booking creation
-      console.log('[WEBHOOK] Processing Stripe event in test mode - signature verification bypassed');
-      webhookEvent = req.body;
+      if (webhookSecret && req.headers['stripe-signature']) {
+        // Only verify signature if we have the secret
+        webhookEvent = stripe.webhooks.constructEvent(
+          req.body,
+          req.headers['stripe-signature'] as string,
+          webhookSecret
+        );
+      } else {
+        // For development or when webhook secret is not configured, just parse the JSON
+        // This allows the webhook to work without signature verification
+        webhookEvent = req.body;
+        if (!webhookSecret && req.headers['stripe-signature']) {
+          console.log('[WEBHOOK] Warning: Stripe signature present but STRIPE_WEBHOOK_SECRET not configured - processing without verification');
+        }
+      }
     } catch (err: any) {
       console.error(`Webhook signature verification failed: ${err.message}`);
       

@@ -15,8 +15,8 @@ export function initializeStripe(): boolean {
     const testKey = process.env.TRE_STRIPE_TEST_SECRET_KEY;
     const liveKey = process.env.STRIPE_SECRET_KEY_NEW || process.env.STRIPE_SECRET_KEY;
     
-    // Prefer test key for testing, fallback to live
-    const secretKey = testKey || liveKey;
+    // Prefer live key for production, fallback to test
+    const secretKey = liveKey || testKey;
     
     if (!secretKey) {
       console.error("Missing Stripe secret key");
@@ -61,8 +61,8 @@ export function getPublishableKey(): string | null {
   const testKey = process.env.TRE_STRIPE_TEST_PUBLISHABLE_KEY;
   const liveKey = process.env.STRIPE_PUBLISHABLE_KEY_NEW || process.env.STRIPE_PUBLISHABLE_KEY;
   
-  // Use test if available, otherwise live
-  return testKey || liveKey || null;
+  // Use live if available, otherwise test
+  return liveKey || testKey || null;
 }
 
 // Backward compatibility helpers
