@@ -43,7 +43,7 @@ export async function createBookingFromStripeSession(session: any) {
     throw new Error(`Table ${tableId} is already booked for this event`);
   }
   
-  // ROBUST JSON PARSING: Parse metadata with error handling
+  // Parse metadata with error handling - maintain original data types
   let parsedWineSelections = [];
   let parsedFoodSelections = [];
   let parsedGuestNames = [];
@@ -69,15 +69,8 @@ export async function createBookingFromStripeSession(session: any) {
     parsedFoodSelections = [];
   }
   
-  try {
-    parsedGuestNames = metadata.guestNames ? JSON.parse(metadata.guestNames) : [];
-    if (!Array.isArray(parsedGuestNames)) {
-      parsedGuestNames = [];
-    }
-  } catch (e) {
-    console.warn('Failed to parse guestNames metadata:', e);
-    parsedGuestNames = [];
-  }
+  // Parse guestNames maintaining original Record<number, string> format  
+  parsedGuestNames = metadata.guestNames ? JSON.parse(metadata.guestNames) : [];
   
   console.log("🍷 WINE DEBUG: Parsed wine selections:", JSON.stringify(parsedWineSelections, null, 2));
 
@@ -183,8 +176,6 @@ export function registerPaymentRoutes(app: Express) {
       }
 
       const { eventId, tableId, selectedSeats, amount, foodSelections, wineSelections, guestNames, selectedVenue, partySize } = req.body;
-      
-      console.log("🔍 SERVER GUEST DEBUG: Received guestNames in request:", guestNames);
       
       // DEBUG: Log wine selections received from frontend
       console.log("🍷 WINE DEBUG: Wine selections received from frontend:", JSON.stringify(wineSelections, null, 2));

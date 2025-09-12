@@ -206,7 +206,6 @@ export default function BookingPage() {
               eventId={eventId}
               selectedSeats={selectedSeats.seatNumbers}
               onComplete={(selections, names) => {
-                console.log("🔍 FOOD DEBUG: Received guest names from food selection:", names);
                 setFoodSelections(selections);
                 setGuestNames(names);
                 setStep("wine");
