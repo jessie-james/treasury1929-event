@@ -64,11 +64,11 @@ export default function BookingPage() {
   console.log('📋 BOOKING STEP DEBUG:', {
     step,
     selectedVenue,
-    selectedSeats,
+    selectedSeats: selectedSeats ? {tableId: selectedSeats.tableId, seatCount: selectedSeats.seatNumbers?.length} : null,
     foodSelections: foodSelections?.length || 0,
     wineSelections: wineSelections?.length || 0,
     guestNames: Object.keys(guestNames || {}).length,
-    showCheckout: step === "checkout" && selectedSeats
+    canShowCheckout: step === "checkout" && selectedSeats
   });
 
   // IMMEDIATE DEBUG: Log every render
@@ -106,6 +106,18 @@ export default function BookingPage() {
     step === "seats" ? 40 : 
     step === "food" ? 60 : 
     step === "wine" ? 80 : 100;
+
+  // Add proper logging with useEffect
+  useEffect(() => {
+    console.log('🚨 CHECKOUT STEP CHECK:', { 
+      step, 
+      hasSelectedSeats: !!selectedSeats, 
+      canRenderCheckout: step === "checkout" && selectedSeats 
+    });
+    if (step === "checkout" && selectedSeats) {
+      console.log('✅ CHECKOUT FORM SHOULD RENDER NOW');
+    }
+  }, [step, selectedSeats]);
 
   // Show loading state while checking event type
   if (isLoadingEvent || (event?.eventType === 'full' && isLoadingVenueLayouts)) {
@@ -248,6 +260,13 @@ export default function BookingPage() {
             />
           )}
 
+          {step === "checkout" && !selectedSeats && (
+            <div className="p-8 text-center text-red-600">
+              <h3 className="text-xl font-bold mb-4">❌ CHECKOUT ERROR</h3>
+              <p>Missing seat selection data. Please go back and select seats again.</p>
+              <p className="text-sm mt-2">Debug: step="{step}", selectedSeats={JSON.stringify(selectedSeats)}</p>
+            </div>
+          )}
           {step === "checkout" && selectedSeats && (
             <CheckoutForm
               eventId={eventId}
