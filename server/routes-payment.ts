@@ -71,10 +71,12 @@ export async function createBookingFromStripeSession(session: any) {
   }
   
   try {
+    console.log('👥 METADATA DEBUG: guestNames in metadata:', metadata.guestNames);
     parsedGuestNames = metadata.guestNames ? JSON.parse(metadata.guestNames) : [];
     if (!Array.isArray(parsedGuestNames)) {
       parsedGuestNames = [];
     }
+    console.log('👥 PARSED DEBUG: Parsed guest names:', parsedGuestNames);
   } catch (e) {
     console.warn('Failed to parse guestNames metadata:', e);
     parsedGuestNames = [];
@@ -185,8 +187,9 @@ export function registerPaymentRoutes(app: Express) {
 
       const { eventId, tableId, selectedSeats, amount, foodSelections, wineSelections, guestNames, selectedVenue, partySize } = req.body;
       
-      // DEBUG: Log wine selections received from frontend
+      // DEBUG: Log wine selections and guest names received from frontend
       console.log("🍷 WINE DEBUG: Wine selections received from frontend:", JSON.stringify(wineSelections, null, 2));
+      console.log("👥 GUEST DEBUG: Guest names received from frontend:", JSON.stringify(guestNames, null, 2));
       
       // Use selectedSeats or derive from partySize, and calculate amount if not provided
       const seats = selectedSeats || Array.from({length: partySize || 2}, (_, i) => i + 1);
