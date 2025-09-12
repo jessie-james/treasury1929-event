@@ -184,6 +184,8 @@ export function registerPaymentRoutes(app: Express) {
 
       const { eventId, tableId, selectedSeats, amount, foodSelections, wineSelections, guestNames, selectedVenue, partySize } = req.body;
       
+      console.log("🔍 SERVER GUEST DEBUG: Received guestNames in request:", guestNames);
+      
       // DEBUG: Log wine selections received from frontend
       console.log("🍷 WINE DEBUG: Wine selections received from frontend:", JSON.stringify(wineSelections, null, 2));
       
