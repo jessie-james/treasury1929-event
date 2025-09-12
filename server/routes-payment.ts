@@ -241,7 +241,7 @@ export function registerPaymentRoutes(app: Express) {
           },
         ],
         mode: 'payment',
-        success_url: `${req.protocol}://${req.get('host')}/api/booking-success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${req.protocol}://${req.get('host')}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${req.protocol}://${req.get('host')}/booking-cancel`,
         metadata: {
           eventId: eventId.toString(),
