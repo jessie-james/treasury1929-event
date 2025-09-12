@@ -394,7 +394,7 @@ export function registerPaymentRoutes(app: Express) {
     }
   });
 
-  // Handle successful payment callback
+  // Handle successful payment callback - Return existing booking info for React component
   app.get("/api/payment-success", async (req, res) => {
     try {
       // Add CORS headers for better cross-origin support
@@ -415,96 +415,76 @@ export function registerPaymentRoutes(app: Express) {
 
       const session = await stripe.checkout.sessions.retrieve(session_id as string);
       
-      if (session.payment_status === 'paid') {
-        // Create booking in database
-        const bookingData = {
-          eventId: parseInt(session.metadata!.eventId),
-          userId: parseInt(session.metadata!.userId),
-          tableId: parseInt(session.metadata!.tableId),
-          partySize: session.metadata!.seats.split(',').length,
-          customerEmail: session.customer_details?.email || '',
-          stripePaymentId: session.payment_intent as string,
-          guestNames: JSON.parse(session.metadata!.guestNames || '[]'),
-          foodSelections: JSON.parse(session.metadata!.foodSelections || '[]'),
-          status: 'confirmed'
-        };
-
-        // Insert booking into database
-        const bookingId = await storage.createBooking(bookingData);
-        
-        // Send booking confirmation email
-        try {
-          const { EmailService } = await import('./email-service');
-          
-          // Get the created booking with full details
-          const createdBooking = await storage.getBooking(bookingId.id);
-          const event = await storage.getEventById(parseInt(session.metadata!.eventId));
-          const table = await storage.getTableById(parseInt(session.metadata!.tableId));
-          const venue = await storage.getVenueById(parseInt(session.metadata!.selectedVenue || '4'));
-          
-          if (createdBooking && event && table && venue) {
-            const emailData = {
-              booking: {
-                id: createdBooking.id.toString(),
-                customerEmail: createdBooking.customerEmail,
-                partySize: createdBooking.partySize || 1,
-                status: createdBooking.status,
-                notes: createdBooking.notes || undefined,
-                stripePaymentId: createdBooking.stripePaymentId || undefined,
-                createdAt: createdBooking.createdAt,
-                guestNames: createdBooking.guestNames || []
-              },
-              event: {
-                id: event.id.toString(),
-                title: event.title,
-                date: event.date,
-                description: event.description || ''
-              },
-              table: {
-                id: table.id.toString(),
-                tableNumber: table.tableNumber,
-                floor: table.floor,
-                capacity: table.capacity
-              },
-              venue: {
-                id: venue.id.toString(),
-                name: venue.name,
-                address: '2 E Congress St, Ste 100'
-              }
-            };
-            
-            const emailSent = await EmailService.sendBookingConfirmation(emailData);
-            if (emailSent) {
-              console.log(`✓ SUCCESS: Booking confirmation email sent to ${bookingData.customerEmail}`);
-              console.log(`  Booking ID: ${bookingId}`);
-              console.log(`  Event: ${event.title}`);
-              console.log(`  Table: ${table.tableNumber}`);
-            } else {
-              console.error(`❌ CRITICAL EMAIL FAILURE: Failed to send confirmation email`);
-              console.error(`  Customer: ${bookingData.customerEmail}`);
-              console.error(`  Booking ID: ${bookingId}`);
-              console.error(`  Event: ${event.title}`);
-              console.error(`  This customer will NOT receive their ticket!`);
-            }
-          }
-        } catch (emailError) {
-          console.error('❌ CRITICAL ERROR: Booking confirmation email system failure');
-          console.error('  This means customers are not receiving their tickets!');
-          console.error('  Booking was created but email failed');
-          console.error('  Email Error Details:', emailError);
-          console.error('  Time:', new Date().toISOString());
-          // Don't fail the booking creation if email fails, but log extensively
-        }
-        
-        // Sync availability after booking creation
-        const { AvailabilitySync } = await import('./availability-sync.js');
-        await AvailabilitySync.syncEventAvailability(parseInt(session.metadata!.eventId));
-        console.log(`✅ Availability synced for event ${session.metadata!.eventId} after direct booking creation`);
-        
-        res.json({ success: true, booking: bookingId });
-      } else {
-        res.status(400).json({ error: 'Payment not completed' });
+      if (session.payment_status !== 'paid') {
+        return res.status(400).json({ error: 'Payment not completed' });
       }
+
+      // Find existing booking for this session (created by webhook/other flow)
+      const allBookings = await storage.getBookings();
+      let booking = allBookings.find(booking => 
+        booking.stripeSessionId === session.id || 
+        booking.stripePaymentId === session.payment_intent
+      );
+
+      // If no existing booking found, create it as fallback
+      if (!booking) {
+        console.log('⚠️ No existing booking found, creating from payment-success endpoint');
+        const bookingResult = await createBookingFromStripeSession(session);
+        booking = allBookings.find(b => b.id === bookingResult);
+      }
+
+      if (!booking) {
+        return res.status(404).json({ error: 'Booking not found for this payment' });
+      }
+
+      // Get complete booking details with event and table info
+      const event = await storage.getEventById(booking.eventId);
+      const table = await storage.getTableById(booking.tableId);
+      
+      if (!event || !table) {
+        return res.status(404).json({ error: 'Booking details not found' });
+      }
+
+      // Generate QR code for display
+      const qrData = booking.id.toString();
+      const qrCodeBuffer = await QRCode.toBuffer(qrData, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#2c3e50',
+          light: '#ffffff'
+        }
+      });
+
+      res.json({
+        success: true,
+        booking: {
+          id: booking.id,
+          eventId: booking.eventId,
+          tableId: booking.tableId,
+          tableNumber: table.tableNumber,
+          partySize: booking.partySize,
+          amount: booking.amount,
+          customerEmail: booking.customerEmail,
+          guestNames: booking.guestNames || [],
+          foodSelections: booking.foodSelections || [],
+          wineSelections: booking.wineSelections || [],
+          status: booking.status,
+          stripePaymentId: booking.stripePaymentId,
+          event: {
+            title: event.title,
+            date: event.date,
+            description: event.description
+          },
+          table: {
+            tableNumber: table.tableNumber,
+            capacity: table.capacity,
+            floor: table.floor
+          },
+          qrCode: qrCodeBuffer.toString('base64')
+        }
+      });
+
     } catch (error) {
       console.error('Payment verification failed:', error);
       res.status(500).json({ error: error instanceof Error ? error.message : 'Payment verification failed' });

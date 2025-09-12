@@ -66,7 +66,8 @@ async function comparePasswords(supplied: string, stored: string) {
 const PostgresSessionStore = connectPg(session);
 
 export function setupAuth(app: Express) {
-  // Email service is initialized automatically when imported
+  // Initialize email service 
+  EmailService.initialize();
 
   // Detect environment - if process.env.NODE_ENV is not set, assume development
   const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === 'true';
