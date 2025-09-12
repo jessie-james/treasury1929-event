@@ -112,6 +112,30 @@ class EmailServiceClass {
             ${data.booking.notes ? `<p style="margin: 8px 0; font-size: 16px;"><strong>Special Notes:</strong> ${data.booking.notes}</p>` : ''}
           </div>
 
+          ${(() => {
+            // Handle guest names - support both array and object formats
+            let guestNames: string[] = [];
+            if (Array.isArray(data.booking.guestNames)) {
+              guestNames = data.booking.guestNames;
+            } else if (data.booking.guestNames && typeof data.booking.guestNames === 'object') {
+              guestNames = Object.values(data.booking.guestNames) as string[];
+            }
+            
+            if (guestNames.length > 0) {
+              return `
+                <div style="background: #f9f9f9; padding: 25px; border-radius: 8px; margin-bottom: 25px;">
+                  <h3 style="color: #8B4513; margin-top: 0; font-size: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Guest Names</h3>
+                  ${guestNames.map((name, index) => 
+                    name && typeof name === 'string' 
+                      ? `<p style="margin: 8px 0; font-size: 16px;"><strong>Guest ${index + 1}:</strong> ${name}</p>`
+                      : ''
+                  ).join('')}
+                </div>
+              `;
+            }
+            return '';
+          })()}
+
           <div style="text-align: center; margin: 30px 0; padding: 25px; background: #f0f8ff; border-radius: 8px;">
             <h3 style="color: #27ae60; margin-top: 0; font-size: 18px;">QR Code Check-in</h3>
             <img src="cid:qrcode${data.booking.id}" alt="Booking QR Code" style="width: 150px; height: 150px; border: 2px solid #ddd;" />
