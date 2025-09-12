@@ -60,6 +60,17 @@ export default function BookingPage() {
     eventId
   });
 
+  // DEBUG: Log step changes and data
+  console.log('📋 BOOKING STEP DEBUG:', {
+    step,
+    selectedVenue,
+    selectedSeats,
+    foodSelections: foodSelections?.length || 0,
+    wineSelections: wineSelections?.length || 0,
+    guestNames: Object.keys(guestNames || {}).length,
+    showCheckout: step === "checkout" && selectedSeats
+  });
+
   const { data: existingBookings } = useQuery<Booking[]>({
     queryKey: ["/api/user/bookings"],
   });
@@ -161,9 +172,9 @@ export default function BookingPage() {
       <div className="max-w-6xl mx-auto px-6">
           {step === "venue" && (
             <div>
-              {venueLayouts && venueLayouts.length > 0 ? (
+              {venueLayouts && (venueLayouts as any[])?.length > 0 ? (
                 <VenueFloorSelection
-                  venues={venueLayouts.map((layout, index) => ({
+                  venues={(venueLayouts as any[]).map((layout: any, index: number) => ({
                     id: layout.eventVenueId,
                     displayName: layout.displayName,
                     description: layout.displayName === "Mezzanine" ? "Elevated seating with premium view" : "Main dining area with stage view",
