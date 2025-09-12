@@ -3,6 +3,7 @@ import type { Express } from "express";
 import { getStripe, createPaymentIntent, formatStripeError } from "./stripe";
 import { storage } from "./storage";
 import express from "express";
+import QRCode from "qrcode";
 
 // Helper function to create booking from Stripe session
 export async function createBookingFromStripeSession(session: any) {
