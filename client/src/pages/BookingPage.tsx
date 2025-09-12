@@ -265,6 +265,15 @@ export default function BookingPage() {
               onBack={() => setStep("wine")}
             />
           )}
+          
+          {/* DEBUG: Show current step and conditions */}
+          <div className="fixed bottom-4 right-4 bg-red-100 p-4 rounded text-sm font-mono text-xs z-50">
+            <div>Current Step: {step}</div>
+            <div>Selected Seats: {selectedSeats ? 'YES' : 'NO'}</div>
+            <div>Show Checkout: {step === "checkout" && selectedSeats ? 'YES' : 'NO'}</div>
+            <div>Event ID: {eventId}</div>
+            <div>Venue Layouts: {(venueLayouts as any[])?.length || 0}</div>
+          </div>
       </div>
     </div>
   );
