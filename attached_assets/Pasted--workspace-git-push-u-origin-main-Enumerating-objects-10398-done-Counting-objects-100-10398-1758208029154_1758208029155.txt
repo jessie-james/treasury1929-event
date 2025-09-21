@@ -1,0 +1,41 @@
+~/workspace$ git push -u origin main
+Enumerating objects: 10398, done.
+Counting objects: 100% (10398/10398), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (3072/3072), done.
+Writing objects: 100% (10398/10398), 152.21 MiB | 5.69 MiB/s, done.
+Total 10398 (delta 7669), reused 9733 (delta 7186), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (7669/7669), done.
+remote: error: GH013: Repository rule violations found for refs/heads/main.
+remote: 
+remote: - GITHUB PUSH PROTECTION
+remote:   —————————————————————————————————————————
+remote:     Resolve the following violations before pushing again
+remote: 
+remote:     - Push cannot contain secrets
+remote: 
+remote:     
+remote:      (?) Learn how to resolve a blocked push
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push
+remote:     
+remote:     
+remote:       —— Stripe Test API Secret Key ————————————————————————
+remote:        locations:
+remote:          - blob id: 40552070b43b1cb781981580070ad8b164d3b65f
+remote:     
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.
+remote:        https://github.com/jessie-james/treasury1929-event/security/secret-scanning/unblock-secret/32sSrYA4Z0BWwAERMZ1ULQfAm5H
+remote:     
+remote:     
+remote:     ——[ WARNING ]—————————————————————————————————————————
+remote:      Scan incomplete: This push was large and we didn't finish on time.
+remote:      It can still contain undetected secrets.
+remote:     
+remote:      (?) Use the following command to find the path of the detected secret(s):
+remote:          git rev-list --objects --all | grep blobid
+remote:     ——————————————————————————————————————————————————————
+remote: 
+remote: 
+To https://github.com/jessie-james/treasury1929-event.git
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/jessie-james/treasury1929-event.git'

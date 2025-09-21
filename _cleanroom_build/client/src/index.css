@@ -15,7 +15,7 @@
   h3.event-title, 
   .food-item-name,
   .event-card-title {
-    @apply font-serif;
+    @apply font-sans;
   }
 }
 
