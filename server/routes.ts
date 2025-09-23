@@ -855,6 +855,19 @@ export async function registerRoutes(app: Express) {
           ? Math.max(...allEvents.map((e) => e.displayOrder || 0))
           : 0;
 
+      const eventType = req.body.eventType || "full";
+      
+      // For full events, venueId is required; for ticket-only events, it should be null
+      let venueId = null;
+      if (eventType === "full") {
+        if (!req.body.venueId) {
+          return res.status(400).json({
+            message: "Venue is required for full events",
+          });
+        }
+        venueId = req.body.venueId;
+      }
+
       const eventData = {
         title: req.body.title,
         description: req.body.description,
@@ -862,7 +875,7 @@ export async function registerRoutes(app: Express) {
           req.body.image ||
           "https://images.unsplash.com/photo-1470019693664-1d202d2c0907",
         date: formattedDate,
-        venueId: req.body.venueId || 4,
+        venueId,
         totalSeats: Number(req.body.totalSeats) || 96,
         totalTables:
           Number(req.body.totalTables) ||
@@ -873,9 +886,9 @@ export async function registerRoutes(app: Express) {
         isActive: req.body.isActive !== undefined ? req.body.isActive : true,
         displayOrder: maxDisplayOrder + 1,
         // PRICING FIELDS
-        eventType: req.body.eventType || "full",
+        eventType,
         basePrice:
-          req.body.eventType === "full" ? req.body.basePrice || 13000 : 13000,
+          eventType === "full" ? req.body.basePrice || 13000 : 13000,
         priceDisplay: req.body.priceDisplay || null,
         ticketPrice: req.body.ticketPrice || 5000,
         // EVENT OPTIONS
