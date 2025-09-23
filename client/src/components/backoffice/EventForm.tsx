@@ -54,7 +54,7 @@ const eventFormSchema = z
     description: z.string().min(1, "Description is required"),
     image: z.string().min(1, "Image is required"),
     date: z.string().min(1, "Date is required"),
-    venueId: z.number().min(1, "Venue is required"),
+    venueId: z.number().optional(), // Made optional - will be validated conditionally
     isActive: z.boolean().default(true),
     // NEW EVENT FLEXIBILITY TOGGLES
     includeFoodService: z.boolean().default(true),
@@ -82,6 +82,19 @@ const eventFormSchema = z
     {
       message: "Base price is required for full events (minimum $1.00)",
       path: ["basePrice"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Validate venueId is set for full events
+      if (data.eventType === "full" && !data.venueId) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Venue is required for full events",
+      path: ["venueId"],
     },
   );
 
@@ -154,7 +167,7 @@ export function EventForm({ event, onClose }: Props) {
           description: "",
           image: "",
           date: new Date().toISOString().split("T")[0],
-          venueId: venues?.[0]?.id || 1, // Default to first venue
+          venueId: undefined, // No default venue - user must select for full events
           isActive: true,
           includeFoodService: true,
           includeBeverages: true,
@@ -170,6 +183,7 @@ export function EventForm({ event, onClose }: Props) {
 
   // Fetch venue layout when venue is selected to calculate total seats
   const selectedVenueId = form.watch("venueId");
+  const eventType = form.watch("eventType");
   const { data: venueLayout } = useQuery({
     queryKey: ["venue-layout", selectedVenueId],
     queryFn: async () => {
@@ -181,7 +195,7 @@ export function EventForm({ event, onClose }: Props) {
       if (!response.ok) return null;
       return response.json();
     },
-    enabled: !!selectedVenueId,
+    enabled: eventType === "full" && !!selectedVenueId,
     throwOnError: false,
   });
 
@@ -613,6 +627,56 @@ export function EventForm({ event, onClose }: Props) {
                 </FormItem>
               )}
             />
+
+            {/* Venue Selection for Full Events */}
+            {form.watch("eventType") === "full" && (
+              <FormField
+                control={form.control}
+                name="venueId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Venue *</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      value={field.value?.toString() || ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a venue" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoadingVenues ? (
+                          <SelectItem value="" disabled>
+                            Loading venues...
+                          </SelectItem>
+                        ) : (
+                          venues.map((venue) => (
+                            <SelectItem key={venue.id} value={venue.id.toString()}>
+                              {venue.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      {selectedVenueId && totalSeats > 0 ? (
+                        <span className="text-green-600 font-medium">
+                          ✓ Venue selected: {totalTables} tables, {totalSeats} total seats
+                        </span>
+                      ) : selectedVenueId && totalSeats === 0 ? (
+                        <span className="text-amber-600 font-medium">
+                          ⚠ Selected venue has no layout configured
+                        </span>
+                      ) : (
+                        "Choose the venue where this event will take place"
+                      )}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Base Price for Full Events */}
             {form.watch("eventType") === "full" && (
