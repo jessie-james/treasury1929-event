@@ -185,9 +185,18 @@ export function EventForm({ event, onClose }: Props) {
   const selectedVenueId = form.watch("venueId");
   const eventType = form.watch("eventType");
   
+  // DEBUG: Log what's triggering the venue layout query
+  console.log("EventForm DEBUG:", {
+    selectedVenueId,
+    eventType,
+    queryEnabled: eventType === "full" && !!selectedVenueId,
+    event: event ? `editing event ${event.id}` : "creating new event"
+  });
+  
   const { data: venueLayout } = useQuery({
     queryKey: ["venue-layout", selectedVenueId],
     queryFn: async () => {
+      console.log("MAKING VENUE LAYOUT REQUEST FOR:", selectedVenueId);
       if (!selectedVenueId) return null;
       const response = await apiRequest(
         "GET",
