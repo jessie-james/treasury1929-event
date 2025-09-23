@@ -1077,12 +1077,16 @@ export function EventForm({ event, onClose }: Props) {
               </>
             )}
 
-            {/* Event Venue Management */}
-            <Separator className="my-6" />
-            <EventVenueManager
-              eventId={event?.id || null}
-              isNewEvent={!event}
-            />
+            {/* Event Venue Management - Only show for existing events */}
+            {event && event.eventType === 'full' && (
+              <>
+                <Separator className="my-6" />
+                <EventVenueManager
+                  eventId={event.id}
+                  isNewEvent={false}
+                />
+              </>
+            )}
 
             <div className="flex justify-end gap-2">
               {event && (
