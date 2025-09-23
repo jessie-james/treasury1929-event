@@ -184,9 +184,14 @@ export function EventForm({ event, onClose }: Props) {
   // Fetch venue layout when venue is selected to calculate total seats
   const selectedVenueId = form.watch("venueId");
   const eventType = form.watch("eventType");
+  
+  // DEBUG: Log venue selection state
+  console.log("EventForm DEBUG - venueId:", selectedVenueId, "eventType:", eventType, "query enabled:", eventType === "full" && !!selectedVenueId);
+  
   const { data: venueLayout } = useQuery({
     queryKey: ["venue-layout", selectedVenueId],
     queryFn: async () => {
+      console.log("EventForm DEBUG - Fetching venue layout for:", selectedVenueId);
       if (!selectedVenueId) return null;
       const response = await apiRequest(
         "GET",
@@ -729,7 +734,7 @@ export function EventForm({ event, onClose }: Props) {
                       description: form.watch("description") || "",
                       image: form.watch("image") || "",
                       date: new Date(),
-                      venueId: form.watch("venueId") || 1,
+                      venueId: form.watch("venueId") || 4, // Use valid venue ID for preview
                       isActive: true,
                     } as any;
                     const previewPrice = formatPriceDisplay(currentEvent);
