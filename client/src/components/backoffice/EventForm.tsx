@@ -28,7 +28,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { type Event, type FoodOption } from "@shared/schema";
+import { type Event, type FoodOption, type Venue } from "@shared/schema";
 import { useState, useRef, useEffect } from "react";
 import {
   ImagePlus,
@@ -150,7 +150,7 @@ export function EventForm({ event, onClose }: Props) {
           description: event.description || "",
           image: event.image || "",
           date: formatPhoenixDateForInput(event.date),
-          venueId: event.venueId,
+          venueId: event.venueId ?? undefined,
           isActive: event.isActive ?? true,
           includeFoodService: event.includeFoodService ?? true,
           includeBeverages: event.includeBeverages ?? true,
@@ -183,6 +183,10 @@ export function EventForm({ event, onClose }: Props) {
 
   // Fetch venue layout when venue is selected to calculate total seats
   const selectedVenueId = form.watch("venueId");
+  useEffect(() => {
+    console.log('selectedVenueId changed:', selectedVenueId);
+    console.log('form venueId:', form.getValues('venueId'));
+  }, [selectedVenueId]);
   const eventType = form.watch("eventType");
   
   const { data: venueLayout } = useQuery({
@@ -651,7 +655,7 @@ export function EventForm({ event, onClose }: Props) {
                             Loading venues...
                           </SelectItem>
                         ) : (
-                          venues.map((venue) => (
+                          venues.map((venue: Venue) => (
                             <SelectItem key={venue.id} value={venue.id.toString()}>
                               {venue.name}
                             </SelectItem>
