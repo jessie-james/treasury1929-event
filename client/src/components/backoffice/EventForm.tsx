@@ -560,7 +560,7 @@ export function EventForm({ event, onClose }: Props) {
                     <Input type="hidden" {...field} />
                   </div>
                   <FormDescription>
-                    Upload a photo for this event.n test this
+                    ✨ SUCCESS! Live editing is working! Change this text to test it! ✨
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
