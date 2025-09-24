@@ -215,7 +215,7 @@ export function EventForm({ event, onClose }: Props) {
       if (!response.ok) return null;
       return response.json();
     },
-    enabled: eventType === "full" && !!selectedVenueId,
+    enabled: eventType === "full" && !!selectedVenueId && venues.some((v: Venue) => v.id === selectedVenueId),
     throwOnError: false,
   });
 
