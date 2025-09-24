@@ -560,7 +560,7 @@ export function EventForm({ event, onClose }: Props) {
                     <Input type="hidden" {...field} />
                   </div>
                   <FormDescription>
-                    Upload a photo for this event.
+                    Upload a photo for this event.n test this
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -696,8 +696,9 @@ export function EventForm({ event, onClose }: Props) {
                         />
                       </FormControl>
                       <FormDescription>
-                        Base price per guest in dollars for full dinner events this is normal client.
-                        Default: $130.00 test test test test
+                        Base price per guest in dollars for full dinner events
+                        this is normal client. Default: $130.00 test test test
+                        test
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
