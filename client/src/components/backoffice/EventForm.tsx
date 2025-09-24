@@ -131,7 +131,6 @@ export function EventForm({ event, onClose }: Props) {
     throwOnError: false,
   });
 
-
   // Fetch all food options
   const { data: allFoodOptions = [] } = useQuery<FoodOption[]>({
     queryKey: ["/api/food-options"],
@@ -346,16 +345,16 @@ export function EventForm({ event, onClose }: Props) {
 
       // DEBUG: Show venue submission details
       const selectedVenue = venues.find((v: Venue) => v.id === data.venueId);
-      console.log('📤 SUBMITTING EVENT WITH VENUE DATA:', {
+      console.log("📤 SUBMITTING EVENT WITH VENUE DATA:", {
         eventType: data.eventType,
-        venueId: data.venueId, 
-        selectedVenueName: selectedVenue?.name || 'NO VENUE SELECTED',
+        venueId: data.venueId,
+        selectedVenueName: selectedVenue?.name || "NO VENUE SELECTED",
         totalTables,
         totalSeats,
-        isNewEvent: !event
+        isNewEvent: !event,
       });
       console.log("Full submission data:", formattedData);
-      
+
       const endpoint = event ? `/api/events/${event.id}` : "/api/events";
       console.log("API endpoint:", endpoint);
       const method = event ? "PATCH" : "POST";
@@ -639,7 +638,10 @@ export function EventForm({ event, onClose }: Props) {
                           </SelectItem>
                         ) : (
                           venues.map((venue: Venue) => (
-                            <SelectItem key={venue.id} value={venue.id.toString()}>
+                            <SelectItem
+                              key={venue.id}
+                              value={venue.id.toString()}
+                            >
                               {venue.name}
                             </SelectItem>
                           ))
@@ -649,7 +651,8 @@ export function EventForm({ event, onClose }: Props) {
                     <FormDescription>
                       {selectedVenueId && totalSeats > 0 ? (
                         <span className="text-green-600 font-medium">
-                          ✓ Venue selected: {totalTables} tables, {totalSeats} total seats
+                          ✓ Venue selected: {totalTables} tables, {totalSeats}{" "}
+                          total seats
                         </span>
                       ) : selectedVenueId && totalSeats === 0 ? (
                         <span className="text-amber-600 font-medium">
@@ -693,8 +696,8 @@ export function EventForm({ event, onClose }: Props) {
                         />
                       </FormControl>
                       <FormDescription>
-                        Base price per guest in dollars for full dinner events.
-                        Default: $130.00
+                        Base price per guest in dollars for full dinner events this is normal client.
+                        Default: $130.00 test test test test
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -1065,13 +1068,10 @@ export function EventForm({ event, onClose }: Props) {
             )}
 
             {/* Event Venue Management - Only show for existing events */}
-            {event && event.eventType === 'full' && (
+            {event && event.eventType === "full" && (
               <>
                 <Separator className="my-6" />
-                <EventVenueManager
-                  eventId={event.id}
-                  isNewEvent={false}
-                />
+                <EventVenueManager eventId={event.id} isNewEvent={false} />
               </>
             )}
 
