@@ -185,35 +185,11 @@ export function EventForm({ event, onClose }: Props) {
   // Fetch venue layout when venue is selected to calculate total seats
   const selectedVenueId = form.watch("venueId");
   const eventType = form.watch("eventType");
-  const { data: venueLayout } = useQuery({
-    queryKey: ["venue-layout", selectedVenueId],
-    queryFn: async () => {
-      if (!selectedVenueId) return null;
-      const response = await apiRequest(
-        "GET",
-        `/api/admin/venues/${selectedVenueId}/layout`,
-      );
-      if (!response.ok) return null;
-      return response.json();
-    },
-    enabled: false, // DISABLED: Prevents unwanted API calls to non-existent venues
-    throwOnError: false,
-  });
+  // COMPLETELY REMOVED: This query was causing unwanted API calls to venues/1/layout
+  // const { data: venueLayout } = useQuery({...})
+  const venueLayout = null; // Hardcoded to null to prevent any layout calls
 
-  // Calculate total tables and seats when venue layout changes
-  useEffect(() => {
-    if (venueLayout?.tables) {
-      const calculatedTables = venueLayout.tables.length;
-      const calculatedSeats = venueLayout.tables.reduce(
-        (total: number, table: any) => {
-          return total + (table.capacity || 0);
-        },
-        0,
-      );
-      setTotalTables(calculatedTables);
-      setTotalSeats(calculatedSeats);
-    }
-  }, [venueLayout]);
+  // REMOVED: Table/seat calculation since venue layout query was disabled
 
   // Set existing event image as uploaded image on component mount
   useEffect(() => {
