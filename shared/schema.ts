@@ -42,7 +42,7 @@ export const events = pgTable("events", {
   totalTables: integer("total_tables").default(0),
   availableSeats: integer("available_seats").default(0),
   totalSeats: integer("total_seats").default(0),
-  venueId: integer("venue_id"), // Nullable for ticket-only events
+  venueId: integer("venue_id").notNull(),
   displayOrder: integer("display_order").default(0),
   isActive: boolean("is_active").default(true),
   eventType: varchar("event_type", { length: 50 }).default("full").notNull(), // 'full' or 'ticket-only'

@@ -137,7 +137,7 @@ export default function LayoutSettings() {
     { id: "mezzanine", name: "Mezzanine", image: "/floor-plans/mezzanine-floor.png", isActive: true },
   ]);
   
-  const [selectedVenueId, setSelectedVenueId] = useState<number | null>(null);
+  const [selectedVenueId, setSelectedVenueId] = useState<number | null>(1);
   const [venues, setVenues] = useState<{id: number, name: string}[]>([]);
   const [zones, setZones] = useState<Zone[]>([
     { id: "general", name: "General", color: "#3b82f6", tables: [1, 2, 3] },
