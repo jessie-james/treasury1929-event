@@ -131,13 +131,6 @@ export function EventForm({ event, onClose }: Props) {
     throwOnError: false,
   });
 
-  // DEBUG: Log venue information when venues load
-  useEffect(() => {
-    if (venues.length > 0) {
-      console.log('🏢 VENUES LOADED:');
-      console.table(venues.map((v: Venue) => ({ id: v.id, name: v.name, width: v.width, height: v.height })));
-    }
-  }, [venues]);
 
   // Fetch all food options
   const { data: allFoodOptions = [] } = useQuery<FoodOption[]>({
@@ -192,18 +185,6 @@ export function EventForm({ event, onClose }: Props) {
   // Fetch venue layout when venue is selected to calculate total seats
   const selectedVenueId = form.watch("venueId");
   const eventType = form.watch("eventType");
-  
-  // DEBUG: Log venue selection changes
-  useEffect(() => {
-    const selectedVenue = venues.find((v: Venue) => v.id === selectedVenueId);
-    console.log('🎯 VENUE SELECTION CHANGED:', { 
-      selectedVenueId, 
-      selectedVenueName: selectedVenue?.name || 'NONE SELECTED',
-      eventType,
-      isNewEvent: !event
-    });
-  }, [selectedVenueId, venues, eventType, event]);
-  
   const { data: venueLayout } = useQuery({
     queryKey: ["venue-layout", selectedVenueId],
     queryFn: async () => {
@@ -215,7 +196,7 @@ export function EventForm({ event, onClose }: Props) {
       if (!response.ok) return null;
       return response.json();
     },
-    enabled: eventType === "full" && !!selectedVenueId && venues.some((v: Venue) => v.id === selectedVenueId),
+    enabled: false, // DISABLED: Prevents unwanted API calls to non-existent venues
     throwOnError: false,
   });
 
