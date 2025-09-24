@@ -947,9 +947,11 @@ app.use((req, res, next) => {
       console.log('NODE_ENV:', process.env.NODE_ENV);
       console.log('Running with tsx?', process.argv.includes('server/index.ts'));
       
-      // Use proper production mode detection from isolated dependencies
-      const productionMode = isProductionMode();
-      console.log('🎯 Production mode detected:', productionMode);
+      // FORCE DEVELOPMENT MODE for live editing and HMR
+      process.env.NODE_ENV = 'development'; // Force NODE_ENV to development for Vite
+      const productionMode = false; // Force development mode for live editing
+      console.log('🎯 Production mode FORCED to false for live editing:', productionMode);
+      console.log('🎯 NODE_ENV set to:', process.env.NODE_ENV);
       console.log('NODE_ENV:', process.env.NODE_ENV);
       console.log('REPL_DEPLOYMENT:', process.env.REPL_DEPLOYMENT);
       
