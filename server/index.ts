@@ -947,9 +947,9 @@ app.use((req, res, next) => {
       console.log('NODE_ENV:', process.env.NODE_ENV);
       console.log('Running with tsx?', process.argv.includes('server/index.ts'));
       
-      // FORCE DEVELOPMENT MODE for live reloading - override production detection
-      const productionMode = false; // isProductionMode(); 
-      console.log('🎯 Production mode FORCED to false for development:', productionMode);
+      // Use proper production mode detection from isolated dependencies
+      const productionMode = isProductionMode();
+      console.log('🎯 Production mode detected:', productionMode);
       console.log('NODE_ENV:', process.env.NODE_ENV);
       console.log('REPL_DEPLOYMENT:', process.env.REPL_DEPLOYMENT);
       
