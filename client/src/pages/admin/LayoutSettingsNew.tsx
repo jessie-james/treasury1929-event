@@ -1321,7 +1321,7 @@ export default function LayoutSettings() {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="">No Zone</SelectItem>
+                                    <SelectItem value="no-zone">No Zone</SelectItem>
                                     {zones.map(zone => (
                                       <SelectItem key={zone.id} value={zone.id}>
                                         {zone.name}
@@ -1523,7 +1523,7 @@ export default function LayoutSettings() {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    <SelectItem value="">No Zone</SelectItem>
+                                    <SelectItem value="no-zone">No Zone</SelectItem>
                                     {zones.map(zone => (
                                       <SelectItem key={zone.id} value={zone.id}>
                                         {zone.name}
