@@ -437,4 +437,156 @@ export class EmailService {
       return false;
     }
   }
+
+  static async sendCancellationEmail(data: BookingEmailData, refundAmountCents: number): Promise<boolean> {
+    try {
+      ensureEmailReady();
+      const { booking, event, table, venue } = data;
+      
+      // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
+      const PHOENIX_TZ = 'America/Phoenix';
+      const eventDateObj = typeof event.date === 'string' ? new Date(event.date) : event.date;
+      
+      // Format date in Phoenix timezone
+      const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
+      
+      // Use consistent event timing: Doors at 5:45 PM, Concert at 6:30 PM
+      const timeDisplay = 'Guest Arrival 5:45 PM, show starts 6:30 PM';
+      const refundAmount = (refundAmountCents / 100).toFixed(2);
+
+      const emailContent = {
+        to: booking.customerEmail,
+        from: this.FROM_EMAIL,
+        subject: `Your Dinner Concert Ticket Cancellation & Refund Confirmation`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Guest,</p>
+            
+            <p>We have successfully processed your cancellation request for your dinner concert reservation at The Treasury 1929.</p>
+            
+            <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+              <h3 style="color: #856404; margin-top: 0;">📋 Cancelled Reservation Details</h3>
+              <p><strong>Event:</strong> ${event.title}</p>
+              <p><strong>Date:</strong> ${eventDateFormatted}</p>
+              <p><strong>Time:</strong> ${timeDisplay}</p>
+              <p><strong>Table:</strong> ${table.tableNumber}</p>
+              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
+              <p><strong>Booking Reference:</strong> #${booking.id}</p>
+            </div>
+            
+            <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+              <h3 style="color: #155724; margin-top: 0;">💰 Refund Information</h3>
+              <p><strong>Refund Amount:</strong> $${refundAmount}</p>
+              <p><strong>Processing Time:</strong> 7-10 business days</p>
+              <p><strong>Refund Method:</strong> Original payment method</p>
+              <p style="margin-top: 15px; color: #155724;">Your refund is being processed and will appear on your statement within 7-10 business days. You'll receive a separate confirmation from your bank or credit card company once the refund is complete.</p>
+            </div>
+            
+            <div style="background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="color: #155724; margin: 0;"><strong>Have Questions?</strong> If you have any questions about your cancellation or refund, please contact us at (520) 734-3937 or reply to this email.</p>
+            </div>
+            
+            <p>We're sorry we won't see you for this event, but we hope to welcome you to The Treasury 1929 in the future. Keep an eye on our upcoming dinner concerts at <a href="https://www.thetreasury1929.com/dinnerconcerts" style="color: #2c3e50;">www.thetreasury1929.com/dinnerconcerts</a>.</p>
+            
+            <p>Thank you for choosing The Treasury 1929.</p>
+            
+            <p>Best regards,<br>The Treasury 1929 Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3937<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
+            </div>
+          </div>
+        `
+      };
+
+      await sendEmail(emailContent);
+      console.log(`✓ Customer cancellation email sent to ${booking.customerEmail}`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ Failed to send customer cancellation email:', error);
+      return false;
+    }
+  }
+
+  static async sendVenueCancellationEmail(data: BookingEmailData, refundAmountCents: number): Promise<boolean> {
+    if (!emailInitialized) {
+      console.log('📧 Email service not initialized - skipping venue cancellation');
+      return false;
+    }
+
+    try {
+      const { booking, event, table, venue } = data;
+      
+      // All events are in Phoenix, Arizona timezone (America/Phoenix - no DST)
+      const PHOENIX_TZ = 'America/Phoenix';
+      const eventDateObj = typeof event.date === 'string' ? new Date(event.date) : event.date;
+      
+      // Format date in Phoenix timezone
+      const eventDateFormatted = formatInTimeZone(eventDateObj, PHOENIX_TZ, 'EEEE, MMMM d, yyyy');
+      
+      // Use consistent event timing: Doors at 5:45 PM, Concert at 6:30 PM
+      const timeDisplay = 'Guest Arrival 5:45 PM, show starts 6:30 PM';
+      const refundAmount = (refundAmountCents / 100).toFixed(2);
+
+      const emailContent = {
+        to: booking.customerEmail,
+        from: this.FROM_EMAIL,
+        subject: 'Important Update: Dinner Concert Cancellation & Full Refund',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; line-height: 1.6;">
+            <p>Dear Valued Guest,</p>
+            
+            <p>We regret to inform you that due to unforeseen circumstances, we must cancel the following dinner concert event at The Treasury 1929:</p>
+            
+            <div style="background-color: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+              <h3 style="color: #721c24; margin-top: 0;">🎭 Cancelled Event Details</h3>
+              <p><strong>Event:</strong> ${event.title}</p>
+              <p><strong>Date:</strong> ${eventDateFormatted}</p>
+              <p><strong>Time:</strong> ${timeDisplay}</p>
+              <p><strong>Table:</strong> ${table.tableNumber}</p>
+              <p><strong>Party Size:</strong> ${booking.partySize} people</p>
+              <p><strong>Booking Reference:</strong> #${booking.id}</p>
+            </div>
+            
+            <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+              <h3 style="color: #155724; margin-top: 0;">💰 Full Refund Processing</h3>
+              <p><strong>Refund Amount:</strong> $${refundAmount} (full ticket price)</p>
+              <p><strong>Processing Time:</strong> 3-5 business days</p>
+              <p><strong>Refund Method:</strong> Original payment method</p>
+              <p style="margin-top: 15px; color: #155724;">We are processing your full refund immediately. You should see this refund appear on your statement within 3-5 business days.</p>
+            </div>
+            
+            <div style="background-color: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="color: #155724; margin: 0;"><strong>We Sincerely Apologize</strong> for any inconvenience this cancellation may cause. If you have made any travel arrangements or have questions, please contact us immediately at (520) 734-3937.</p>
+            </div>
+            
+            <p>We will be announcing new dinner concert dates soon. To be the first to know about future events, please visit <a href="https://www.thetreasury1929.com/dinnerconcerts" style="color: #2c3e50;">www.thetreasury1929.com/dinnerconcerts</a> or reply to this email to join our priority list.</p>
+            
+            <p>Thank you for your understanding, and we look forward to welcoming you to The Treasury 1929 in the future.</p>
+            
+            <p>Sincerely,<br>The Treasury 1929 Management Team</p>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
+              <p>📍 2 E Congress St, Ste 100<br>
+              📞 (520) 734-3937<br>
+              📧 info@thetreasury1929.com<br>
+              🌐 www.thetreasury1929.com/dinnerconcerts</p>
+            </div>
+          </div>
+        `
+      };
+
+      await sendEmail(emailContent);
+      console.log(`✓ Venue cancellation email sent to ${booking.customerEmail}`);
+      return true;
+
+    } catch (error) {
+      console.error('✗ Failed to send venue cancellation email:', error);
+      return false;
+    }
+  }
 }
