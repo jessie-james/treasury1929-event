@@ -387,9 +387,20 @@ export function EventForm({ event, onClose }: Props) {
         ticketCapacity: data.eventType === "ticket-only" ? 100 : null, // Add missing field for ticket events
       };
 
-      console.log("Submitting event data:", formattedData);
+      // DEBUG: Show venue submission details
+      const selectedVenue = venues.find((v: Venue) => v.id === data.venueId);
+      console.log('📤 SUBMITTING EVENT WITH VENUE DATA:', {
+        eventType: data.eventType,
+        venueId: data.venueId, 
+        selectedVenueName: selectedVenue?.name || 'NO VENUE SELECTED',
+        totalTables,
+        totalSeats,
+        isNewEvent: !event
+      });
+      console.log("Full submission data:", formattedData);
+      
       const endpoint = event ? `/api/events/${event.id}` : "/api/events";
-      console.log("is there an event", event);
+      console.log("API endpoint:", endpoint);
       const method = event ? "PATCH" : "POST";
       return apiRequest(method, endpoint, formattedData);
     },
