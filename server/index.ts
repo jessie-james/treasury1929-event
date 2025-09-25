@@ -940,9 +940,10 @@ app.use((req, res, next) => {
     });
 
     // DEVELOPMENT-ONLY: SSE auto-reload endpoint for live development
-    if (process.env.NODE_ENV !== "production") {
-      const fs = require('fs');
-      const path = require('path');
+    // Enable for both development and Replit environments (production mode is detected incorrectly in Replit)
+    if (process.env.NODE_ENV !== "production" || !process.env.REPL_DEPLOYMENT) {
+      const fs = await import('fs');
+      const path = await import('path');
       
       let lastModified = Date.now();
       
