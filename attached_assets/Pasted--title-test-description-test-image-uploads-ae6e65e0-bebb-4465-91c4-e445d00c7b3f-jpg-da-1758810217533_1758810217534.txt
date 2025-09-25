@@ -1,0 +1,32 @@
+{"title":"test","description":"test","image":"/uploads/ae6e65e0-bebb-4465-91c4-e445d00c7b3f.jpg","date":"2025-10-01T00:00:00.000Z","venueId":5,"isActive":true,"includeFoodService":true,"includeBeverages":true,"includeAlcohol":true,"isPrivate":false,"eventType":"full","maxTicketsPerPurchase":8,"basePrice":100,"priceDisplay":"","ticketPrice":5000,"totalTables":7,"totalSeats":16,"availableTables":7,"availableSeats":16,"ticketCapacity":null}
+access-control-allow-credentials	true
+access-control-allow-origin	https://5fb93cb7-e64f-4141-8ab1-be0d88d65709-00-1t9h9g6wq1o6d.kirk.replit.dev
+access-control-expose-headers	Set-Cookie,Date,ETag
+content-length	90
+content-security-policy	default-src 'self';style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;font-src 'self' https://fonts.gstatic.com;img-src 'self' data: https: blob:;script-src 'self' 'unsafe-inline' 'unsafe-eval';connect-src 'self' https://api.stripe.com wss://localhost:* ws://localhost:*;frame-src 'self' https://js.stripe.com https://hooks.stripe.com;object-src 'none';upgrade-insecure-requests;base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none'
+content-type	application/json; charset=utf-8
+cross-origin-opener-policy	same-origin
+cross-origin-resource-policy	same-origin
+date	Thu, 25 Sep 2025 14:23:06 GMT
+etag	W/"5a-IGaMAzECVjofEMrtkMwtc5to0nA"
+origin-agent-cluster	?1
+ratelimit-limit	100
+ratelimit-policy	100;w=60
+ratelimit-remaining	95
+ratelimit-reset	41
+referrer-policy	no-referrer
+replit-cluster	kirk
+strict-transport-security	max-age=31536000; includeSubDomains
+vary	Origin
+x-content-type-options	nosniff
+x-dns-prefetch-control	off
+x-download-options	noopen
+x-frame-options	SAMEORIGIN
+x-permitted-cross-domain-policies	none
+x-robots-tag	none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex, none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex
+x-xss-protection	0
+Accept	application/json
+X-Requested-With	XMLHttpRequest
+Content-Type	application/json
+Origin	https://5fb93cb7-e64f-4141-8ab1-be0d88d65709-00-1t9h9g6wq1o6d.kirk.replit.dev
+{"message":"Failed to update event","error":"Cannot access 'event' before initialization"}
