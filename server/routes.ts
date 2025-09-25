@@ -741,20 +741,72 @@ export async function registerRoutes(app: Express) {
       const allEvents = await storage.getAllEvents();
       const maxDisplayOrder = allEvents.length > 0 ? Math.max(...allEvents.map(e => e.displayOrder || 0)) : 0;
 
+      // Calculate venue capacity for 'full' events, use ticketCapacity for 'ticket-only' events
+      let totalSeats = 0;
+      let totalTables = 0;
+      let availableSeats = 0;
+      let availableTables = 0;
+      
+      const eventType = req.body.eventType || 'full';
+      const venueId = req.body.venueId;
+      
+      if (eventType === 'full' && venueId) {
+        // Calculate from venue layout for full events
+        try {
+          const venueLayout = await (storage as any).getVenueLayout(venueId);
+          if (venueLayout?.tables) {
+            totalSeats = venueLayout.tables.reduce((sum: number, table: any) => sum + (table.capacity || 0), 0);
+            totalTables = venueLayout.tables.length;
+            availableSeats = totalSeats; // Initially all seats available
+            availableTables = totalTables; // Initially all tables available
+            
+            console.log(`Event venue ${venueId}: ${totalSeats} seats from ${totalTables} tables`);
+          } else {
+            console.warn(`No tables found for venue ${venueId}, using fallback values`);
+            // Fallback for full events without venue data
+            totalSeats = 20;
+            totalTables = 7;
+            availableSeats = 20;
+            availableTables = 7;
+          }
+        } catch (venueError) {
+          console.warn(`Could not fetch venue layout for venue ${venueId}:`, venueError);
+          // Fallback for full events
+          totalSeats = 20;
+          totalTables = 7;
+          availableSeats = 20;
+          availableTables = 7;
+        }
+      } else if (eventType === 'ticket-only') {
+        // For ticket-only events, no tables/seats, just ticket capacity
+        totalSeats = 0;
+        totalTables = 0;
+        availableSeats = 0;
+        availableTables = 0;
+      } else {
+        // If no venueId provided for full event, require it
+        if (eventType === 'full') {
+          return res.status(400).json({ 
+            message: "venueId is required for full events" 
+          });
+        }
+      }
+
       const eventData = {
         title: req.body.title,
         description: req.body.description,
         image: req.body.image || "https://images.unsplash.com/photo-1470019693664-1d202d2c0907",
         date: formattedDate,
-        venueId: req.body.venueId || 4,
-        totalSeats: Number(req.body.totalSeats) || 96,
-        totalTables: Number(req.body.totalTables) || Number(req.body.availableTables) || 32,
-        availableTables: Number(req.body.availableTables) || 32,
+        venueId: eventType === 'full' ? venueId : null,
+        totalSeats,
+        totalTables,
+        availableSeats,
+        availableTables,
         isActive: req.body.isActive !== undefined ? req.body.isActive : true,
         displayOrder: maxDisplayOrder + 1,
         // PRICING FIELDS
-        eventType: req.body.eventType || 'full',
-        basePrice: req.body.eventType === 'full' ? (req.body.basePrice || 13000) : 13000,
+        eventType,
+        basePrice: eventType === 'full' ? (req.body.basePrice || 13000) : 13000,
         priceDisplay: req.body.priceDisplay || null,
         ticketPrice: req.body.ticketPrice || 5000,
         // EVENT OPTIONS
@@ -763,7 +815,7 @@ export async function registerRoutes(app: Express) {
         includeAlcohol: req.body.includeAlcohol !== undefined ? req.body.includeAlcohol : true,
         isPrivate: req.body.isPrivate || false,
         maxTicketsPerPurchase: req.body.maxTicketsPerPurchase || 8,
-        ticketCapacity: req.body.ticketCapacity || null,
+        ticketCapacity: eventType === 'ticket-only' ? (req.body.ticketCapacity || 100) : null,
       };
       
       console.log("Final event data being saved:", eventData);

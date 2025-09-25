@@ -1,0 +1,32 @@
+{"title":"test","description":"test event1","image":"/uploads/36e5f404-b5e5-44bc-b248-a5b2f1a404f9.jpg","date":"2025-09-30T00:00:00.000Z","venueId":1,"isActive":true,"includeFoodService":true,"includeBeverages":true,"includeAlcohol":true,"isPrivate":false,"eventType":"full","maxTicketsPerPurchase":8,"basePrice":100,"priceDisplay":"","ticketPrice":5000,"totalTables":0,"totalSeats":0,"availableTables":0,"ticketCapacity":null}
+access-control-allow-credentials	true
+access-control-allow-origin	https://5fb93cb7-e64f-4141-8ab1-be0d88d65709-00-1t9h9g6wq1o6d.kirk.replit.dev
+access-control-expose-headers	Set-Cookie,Date,ETag
+content-length	140
+content-security-policy	default-src 'self';style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;font-src 'self' https://fonts.gstatic.com;img-src 'self' data: https: blob:;script-src 'self' 'unsafe-inline' 'unsafe-eval';connect-src 'self' https://api.stripe.com wss://localhost:* ws://localhost:*;frame-src 'self' https://js.stripe.com https://hooks.stripe.com;object-src 'none';upgrade-insecure-requests;base-uri 'self';form-action 'self';frame-ancestors 'self';script-src-attr 'none'
+content-type	application/json; charset=utf-8
+cross-origin-opener-policy	same-origin
+cross-origin-resource-policy	same-origin
+date	Thu, 25 Sep 2025 13:46:57 GMT
+etag	W/"8c-HxnKTKprTuRGF4creqzN0z6Kggg"
+origin-agent-cluster	?1
+ratelimit-limit	100
+ratelimit-policy	100;w=60
+ratelimit-remaining	94
+ratelimit-reset	18
+referrer-policy	no-referrer
+replit-cluster	kirk
+strict-transport-security	max-age=31536000; includeSubDomains
+vary	Origin
+x-content-type-options	nosniff
+x-dns-prefetch-control	off
+x-download-options	noopen
+x-frame-options	SAMEORIGIN
+x-permitted-cross-domain-policies	none
+x-robots-tag	none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex, none, noindex, noarchive, nofollow, nositelinkssearchbox, noimageindex
+x-xss-protection	0
+Accept	application/json
+X-Requested-With	XMLHttpRequest
+Content-Type	application/json
+Origin	https://5fb93cb7-e64f-4141-8ab1-be0d88d65709-00-1t9h9g6wq1o6d.kirk.replit.dev
+{"message":"Failed to create event","error":"insert or update on table \"events\" violates foreign key constraint \"events_venue_id_fkey\""}
