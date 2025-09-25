@@ -8,10 +8,10 @@ export default function HomePage() {
         <div className="container mx-auto py-8 space-y-12 px-6">
           <div className="text-center space-y-4 max-w-4xl mx-auto">
             <h2 className="text-5xl md:text-6xl font-bold leading-tight">
-              TEST This is live is working
+              Upcoming Events
             </h2>
             <p className="text-2xl md:text-3xl text-muted-foreground leading-relaxed">
-              Book your spot at our most exclusive gatherings
+              Book your spot at our most exclusive gatherings!!
             </p>
           </div>
           <EventList />
