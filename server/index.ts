@@ -939,6 +939,55 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
+    // DEVELOPMENT-ONLY: SSE auto-reload endpoint for live development
+    if (process.env.NODE_ENV !== "production") {
+      const fs = require('fs');
+      const path = require('path');
+      
+      let lastModified = Date.now();
+      
+      app.get('/__dev/reload', (req, res) => {
+        // Set up SSE headers
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Cache-Control'
+        });
+
+        // Function to check for file changes
+        const checkForChanges = () => {
+          try {
+            const clientSrcPath = path.resolve(process.cwd(), 'client/src');
+            if (fs.existsSync(clientSrcPath)) {
+              const stats = fs.statSync(clientSrcPath);
+              if (stats.mtime.getTime() > lastModified) {
+                lastModified = stats.mtime.getTime();
+                res.write(`event: reload\ndata: ${Date.now()}\n\n`);
+              }
+            }
+          } catch (error) {
+            console.log('File watching error:', error.message);
+          }
+        };
+
+        // Check for changes every 500ms
+        const interval = setInterval(checkForChanges, 500);
+        
+        // Clean up on client disconnect
+        req.on('close', () => {
+          clearInterval(interval);
+          res.end();
+        });
+        
+        // Initial ping
+        res.write(`event: connected\ndata: SSE reload active\n\n`);
+      });
+      
+      log("Development SSE auto-reload endpoint configured at /__dev/reload");
+    }
+
     // Set up serving mode based on environment BEFORE client routes
     try {
       // Force development mode for proper Vite integration
