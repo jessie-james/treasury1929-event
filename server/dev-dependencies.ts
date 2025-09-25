@@ -7,7 +7,8 @@
  */
 
 // Only export development utilities when in development mode
-export const isDevelopment = process.env.NODE_ENV !== 'production';
+// FORCE DEVELOPMENT MODE for live reloading
+export const isDevelopment = true; // process.env.NODE_ENV !== 'production';
 
 // Vite development server setup
 export async function loadViteDevServer() {
@@ -42,11 +43,15 @@ export async function loadStaticServer() {
 
 // Development mode detection with fallbacks
 export function isProductionMode(): boolean {
+  // FORCE DEVELOPMENT MODE for live reloading - temporarily override
+  return false;
+  /*
   return (
     process.env.NODE_ENV === 'production' ||
     process.env.REPL_DEPLOYMENT === 'true' ||
     !isDevelopment
   );
+  */
 }
 
 // Cache control for development vs production
